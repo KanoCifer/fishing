@@ -7,12 +7,13 @@
       :latitude="latitude"
       :scale="scale"
       :show-location="showLocation"
+      :markers="markers"
       enable-zoom
       enable-scroll
       enable-rotate
       :enable-poi="showLocation"
       @regionchange="onRegionChange"
-      @tap="onTap"
+      @markertap="onMarkerTap"
     />
 
     <!--
@@ -25,17 +26,26 @@
       <cover-view v-else class="btn" @tap="recenter">{{ statusText }}</cover-view>
     </cover-view>
 
+    <!--
+      定位被拒的兜底。用户拒绝一次之后小程序不会再弹权限窗，
+      只能由这里引导去设置页手动打开 —— 详见 openLocationSetting。
+    -->
     <cover-view v-if="!hasLocation" class="tip" :style="{ top: topInset + 'px' }">
       <cover-view class="tip__title">未获取到定位权限</cover-view>
       <cover-view class="tip__text">
         当前展示默认坐标，可在设置中开启定位后点击按钮重试
+      </cover-view>
+      <cover-view class="tip__action" @tap="openLocationSetting">
+        去设置开启定位
       </cover-view>
     </cover-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+
+import type { MapMarkerItem } from '@/composables/useMapMarkers'
 
 const props = withDefaults(
   defineProps<{
@@ -52,6 +62,11 @@ const props = withDefaults(
      * 组件自己排版排不了这个，得由调用方把导航栏底边的高度传进来。
      */
     topInset?: number
+    /**
+     * 地图标记。由 useMapMarkers 从领域层 MapMarker[] 转换而来，
+     * 组件本身不认钓点业务字段。
+     */
+    markers?: MapMarkerItem[]
   }>(),
   {
     latitude: 30.2741,
@@ -59,11 +74,14 @@ const props = withDefaults(
     scale: 16,
     showLocation: true,
     topInset: 0,
+    markers: () => [],
   },
 )
 
 const emit = defineEmits<{
   (e: 'regionchange', payload: { latitude: number; longitude: number; scale: number }): void
+  /** marker 被点中。只回传 markerId，由调用方用 useMapMarkers 的 resolveMarker 换回领域对象 */
+  (e: 'markertap', payload: { markerId: number }): void
 }>()
 
 const latitude = ref(props.latitude)
@@ -73,6 +91,28 @@ const scale = ref(props.scale)
 const locating = ref(false)
 const hasLocation = ref(false)
 const statusText = ref('定位中…')
+
+/**
+ * 父组件改经纬度就把地图移过去。
+ *
+ * 这是"聚焦某个钓点"的实现方式：<map> 的经纬度是受控属性，
+ * 改 prop 就移图，不必绕 MapContext 的 translateMarker。
+ */
+watch(
+  () => [props.latitude, props.longitude] as const,
+  ([nextLat, nextLng]) => {
+    latitude.value = nextLat
+    longitude.value = nextLng
+  },
+)
+
+/** 同样受控，父组件也能改缩放层级 */
+watch(
+  () => props.scale,
+  (nextScale) => {
+    scale.value = nextScale
+  },
+)
 
 function locate() {
   locating.value = true
@@ -90,7 +130,9 @@ function locate() {
       statusText.value = '回到我的位置'
     },
     fail: () => {
-      // 用户拒绝授权或系统定位不可用，保留默认坐标，界面上给提示
+      // 授权被拒或系统定位不可用：保留默认坐标，界面上给提示。
+      // 不在这里弹 openSetting —— 用户可能只是定位信号不好，
+      // 上来就抢设置页很突兀，按钮点一下再去。
       hasLocation.value = false
       statusText.value = '重新定位'
     },
@@ -100,15 +142,38 @@ function locate() {
   })
 }
 
+/**
+ * 引导去设置页开定位。
+ *
+ * 用户拒绝授权后小程序**不会再次弹权限窗**，唯一能重来的路径就是设置页。
+ * openSetting 返回时会带上用户在设置里做的选择：开了就重新定位，
+ * 没开就退回手动重试，别让按钮看起来"点了没反应"。
+ */
+function openLocationSetting() {
+  uni.openSetting({
+    success: (res) => {
+      if (res.authSetting?.['scope.userLocation']) {
+        locate()
+      } else {
+        statusText.value = '重新定位'
+      }
+    },
+    fail: () => {
+      // 用户没走完设置流程，退回手动重试
+      statusText.value = '重新定位'
+    },
+  })
+}
+
 function recenter() {
   if (locating.value) return
   locate()
 }
 
-function onRegionChange(e: any) {
-  const d = e.detail
-  if (d && typeof d.scale === 'number') {
-    scale.value = d.scale
+function onRegionChange(e: { detail?: { scale?: number } }) {
+  const scaleFromEvent = e.detail?.scale
+  if (typeof scaleFromEvent === 'number') {
+    scale.value = scaleFromEvent
   }
   emit('regionchange', {
     latitude: latitude.value,
@@ -117,9 +182,16 @@ function onRegionChange(e: any) {
   })
 }
 
-function onTap(e: any) {
-  // 地图点击不触发业务逻辑，预留钩子
-  void e
+/**
+ * marker 点击。
+ *
+ * 官方类型里没有 <map> 的 markertap 事件声明，detail 只有 markerId 一个字段，
+ * 按实际形状取，不写 any。
+ */
+function onMarkerTap(e: { detail?: { markerId?: number } }) {
+  const markerId = e.detail?.markerId
+  if (typeof markerId !== 'number') return
+  emit('markertap', { markerId })
 }
 
 onMounted(() => {
@@ -178,5 +250,17 @@ onMounted(() => {
   color: #999999;
   font-size: 24rpx;
   line-height: 36rpx;
+}
+
+/* cover-view 只支持极少的 CSS：不能用 box-shadow、transform、animation */
+.tip__action {
+  display: inline-block;
+  margin-top: 16rpx;
+  padding: 12rpx 24rpx;
+  background-color: #2f80ed;
+  border-radius: 999rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+  text-align: center;
 }
 </style>
