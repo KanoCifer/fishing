@@ -74,3 +74,54 @@ $uni-color-subtitle: #555; // 二级标题颜色
 $uni-font-size-subtitle: 18px;
 $uni-color-paragraph: #3f536e; // 文章段落颜色
 $uni-font-size-paragraph: 15px;
+
+// ===========================================================================
+// 钓点图设计令牌
+//
+// 基调：Google 蓝（Material Blue）。
+//
+// 从源项目的 Tailwind oklch 暖棕主题（ink #282520 / accent #8c6c4a）
+// 切到冷调品牌蓝。取值全部落在 Material Blue 500 主色及其邻近色阶上，
+// 保持同一套「主色 + 语义色 + 中性灰」的关系，只是色相从暖转冷：
+//
+//   主操作  Material Blue 500  #4285F4
+//   文字    Material Grey 900/700（Google 官方正文灰阶）
+//   页面    Material Grey 50（不再是暖白纸感）
+//
+// 为什么不用 CSS 变量而是编译期常量：canvas 2d 不解析 var()，只认 rgb/hex
+// （见 TideChart 的注释）；小程序端也没有 MutationObserver 监听主题切换。
+// 所以主题在编译期定死，canvas 侧的色值需与此处手工保持一致。
+// ===========================================================================
+
+/* 主色 —— Material Blue 500 */
+$fish-blue: #4285f4;
+/* 深一档，按钮按下 / 标题强调 */
+$fish-blue-600: #1a73e8;
+/* 极浅底，segmented control 未选中态的容器色 */
+$fish-blue-50: #e8f0fe;
+
+/* 文字 —— Material Grey 900 / 700 */
+$fish-ink: #202124;
+$fish-ink-60: rgba(32, 33, 36, 0.6);
+$fish-muted: #5f6368;
+$fish-muted-60: rgba(95, 99, 104, 0.6);
+
+/* 表面 */
+$fish-page: #ffffff; // 卡片 / 面板底色
+$fish-surface: #f1f3f4; // 次级表面（骨架块、未选中 chip）
+$fish-border: #dadce0; // 分隔线
+$fish-border-40: rgba(218, 220, 224, 0.4); // inset 分组内部线
+
+/* 语义色 */
+$fish-accent: $fish-blue; // 主操作色
+$fish-success: #34a853;
+$fish-warning: #fbbc04;
+$fish-destructive: #ea4335;
+
+/* 图表专用 */
+$fish-tide: $fish-blue; // 潮汐曲线
+$fish-temp: #ea4335; // 温度曲线，与主色拉开区分
+
+/* 圆角 */
+$fish-radius-lg: 12rpx; // segmented control
+$fish-radius-xl: 28rpx; // inset-grouped 容器

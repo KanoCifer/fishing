@@ -1,10 +1,17 @@
 <template>
   <view class="page">
     <!--
-      沉浸式导航栏。它浮在地图之上，所以组件内部用的是 cover-view 而不是 view。
-      页面配了 navigationStyle: custom，原生栏已经关掉了。
+      技术验证页 —— 不是业务页面。
+
+      最初用来验证两件在浏览器里写不出来的事：
+      1. 同层渲染：微信已支持（map 自基础库 2.8.3 起），普通 view 用 z-index 即可压在 map 上
+      2. Canvas 2d：dpr 缩放、节点自带 rAF、触摸拾取
+
+      这两件事的结论都已写进 docs/miniprogram-gotchas.md。业务页面是
+      pages/fishing/index（启动页），这页降级为二级入口，保留下来是为了调
+      Canvas 相关问题时有个最小复现。
     -->
-    <NavBar title="fishing" />
+    <NavBar title="渔录" />
 
     <!-- 全屏地图 -->
     <FullscreenMap
@@ -30,15 +37,19 @@
     </view>
 
     <!--
-      切换按钮必须用 cover-view：它在地图视图时压在原生 map 组件之上，
-      普通 view 无论 z-index 多大都会被 map 盖住。
+      切换按钮浮在地图上，靠同层渲染的 z-index 生效。
       top 绑定 navBarBottom 是因为导航栏是浮层，按钮得排在它下面而不是被它盖住。
     -->
-    <cover-view class="switcher" :style="{ top: nav.navBarBottom + 'px' }">
-      <cover-view class="switcher__btn" @tap="toggle">
+    <view class="switcher" :style="{ top: nav.navBarBottom + 'px' }">
+      <view class="switcher__btn" @tap="toggle">
         {{ view === 'map' ? '看数据' : '看地图' }}
-      </cover-view>
-    </cover-view>
+      </view>
+    </view>
+
+    <!-- 图表视图下没有 map，普通 view 即可，可以放返回入口 -->
+    <view v-if="view === 'chart'" class="back" :style="{ top: nav.navBarBottom + 'px' }">
+      <text class="back__btn" @tap="goFishing">回钓点地图</text>
+    </view>
   </view>
 </template>
 
@@ -61,6 +72,14 @@ function toggle() {
   view.value = view.value === 'map' ? 'chart' : 'map'
 }
 
+/**
+ * 用 reLaunch 而不是 navigateTo：这页是二级入口，返回时应该回到启动页并清掉
+ * 页面栈，不然用户按返回会退回这页，形成"地图 → 演示页 → 地图"的绕圈。
+ */
+function goFishing() {
+  uni.reLaunch({ url: '/pages/fishing/index' })
+}
+
 const categories = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const series = reactive([
   { name: '渔获数', data: [12, 28, 45, 38, 62, 80, 55] },
@@ -81,7 +100,7 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: #f5f6f8;
+  background: $fish-page;
 }
 
 .page__map {
@@ -98,7 +117,7 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
 }
 
 .card {
-  background: #fff;
+  background: $fish-page;
   border-radius: 20rpx;
   padding: 30rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
@@ -158,7 +177,7 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
   }
 }
 
-/* cover-view 只支持极少的 CSS：不能用 box-shadow，字号必须写具体值 */
+/* 切换按钮浮在原生 map 之上 */
 .switcher {
   position: absolute;
   left: 30rpx;
@@ -174,5 +193,23 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
   color: #ffffff;
   font-size: 26rpx;
   text-align: center;
+}
+
+/* 图表视图下没有 map，普通 view 即可 */
+.back {
+  position: absolute;
+  right: 30rpx;
+  /* top 由脚本按导航栏底边动态绑定 */
+  margin-top: 20rpx;
+  z-index: 20;
+}
+
+.back__btn {
+  display: inline-block;
+  padding: 18rpx 32rpx;
+  background-color: rgba(0, 0, 0, 0.65);
+  border-radius: 999rpx;
+  color: #ffffff;
+  font-size: 26rpx;
 }
 </style>

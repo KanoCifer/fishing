@@ -1,31 +1,28 @@
 <template>
   <!--
-    整个导航栏用 cover-view 写，不能用普通 view。
-    它要浮在原生 map 之上，而 map 走独立渲染层，普通 view 的 z-index 对它完全无效。
-
-    代价是 CSS 能力被砍得很狠：能用 background-color / border-radius / padding /
-    margin / color / text-align / display:flex 和具体值的 font-size，
-    没有 box-shadow、transform、渐变、animation。所以毛玻璃那套效果在这上面做不出来。
+    整个导航栏用普通 view + z-index 浮在地图之上。
+    微信已支持同层渲染（map 自基础库 2.8.3 起），不再需要 cover-view，
+    所以 box-shadow / transform / 渐变这些现在都能用了。
   -->
-  <cover-view
+  <view
     class="navbar"
     :style="{ paddingTop: statusBarHeight + 'px', backgroundColor: background }"
   >
-    <cover-view
+    <view
       class="navbar__bar"
       :style="{ height: navBarHeight + 'px' }"
     >
-      <cover-view v-if="showBack" class="navbar__back" @tap="onBack">‹ 返回</cover-view>
+      <view v-if="showBack" class="navbar__back" @tap="onBack">‹ 返回</view>
 
       <!--
         右侧内边距把标题往左推半段，抵消胶囊按钮占掉的宽度，
         这样标题居中的是「胶囊左边那块可用区」，而不是整个屏幕。
       -->
-      <cover-view class="navbar__title" :style="{ paddingRight: capsuleInsetRight + 'px' }">
+      <view class="navbar__title" :style="{ paddingRight: capsuleInsetRight + 'px' }">
         {{ title }}
-      </cover-view>
-    </cover-view>
-  </cover-view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -86,7 +83,8 @@ function onBack() {
   display: flex;
   align-items: center;
   padding-left: 24rpx;
-  /* cover-view 没有 box-shadow / border，这里用一层更深的背景色区分导航区和内容区 */
+  /* 用一层更深的背景色区分导航区和内容区 —— 地图是原生渲染的，
+     同层渲染只保证层级，box-shadow 压在地图上看不出来 */
 }
 
 .navbar__title {

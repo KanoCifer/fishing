@@ -17,28 +17,28 @@
     />
 
     <!--
-      map 是原生组件，层级永远在普通组件之上，z-index 对它无效。
-      任何要浮在地图上的东西都只能用 cover-view / cover-image。
-      而且 cover-view 只支持极少的 CSS（没有 box-shadow，字号要写具体值）。
+      浮在地图上的控件用普通 view + z-index。
+      微信已支持同层渲染（map 自基础库 2.8.3 起），不再需要 cover-view，
+      好处是 box-shadow / transform 这些样式都能用了。
     -->
-    <cover-view class="controls">
-      <cover-view v-if="locating" class="btn">定位中…</cover-view>
-      <cover-view v-else class="btn" @tap="recenter">{{ statusText }}</cover-view>
-    </cover-view>
+    <view class="controls">
+      <view v-if="locating" class="btn">定位中…</view>
+      <view v-else class="btn" @tap="recenter">{{ statusText }}</view>
+    </view>
 
     <!--
       定位被拒的兜底。用户拒绝一次之后小程序不会再弹权限窗，
       只能由这里引导去设置页手动打开 —— 详见 openLocationSetting。
     -->
-    <cover-view v-if="!hasLocation" class="tip" :style="{ top: topInset + 'px' }">
-      <cover-view class="tip__title">未获取到定位权限</cover-view>
-      <cover-view class="tip__text">
+    <view v-if="!hasLocation" class="tip" :style="{ top: topInset + 'px' }">
+      <view class="tip__title">未获取到定位权限</view>
+      <view class="tip__text">
         当前展示默认坐标，可在设置中开启定位后点击按钮重试
-      </cover-view>
-      <cover-view class="tip__action" @tap="openLocationSetting">
+      </view>
+      <view class="tip__action" @tap="openLocationSetting">
         去设置开启定位
-      </cover-view>
-    </cover-view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -170,11 +170,31 @@ function recenter() {
   locate()
 }
 
-function onRegionChange(e: { detail?: { scale?: number } }) {
-  const scaleFromEvent = e.detail?.scale
-  if (typeof scaleFromEvent === 'number') {
-    scale.value = scaleFromEvent
-  }
+/**
+ * 视口变化（缩放 / 拖动 / 旋转），三个值必须**一起**同步回本地 ref。
+ *
+ * 为什么缺一个就会弹回中心：<map> 的经纬度和缩放都是受控属性，微信收到
+ * setData 时会以属性里的 longitude/latitude 为中心重新定位。所以只要有任意
+ * 一个属性被 Vue 重新 patch，地图就被拽回那个属性值指向的旧中心 ——
+ * 典型就是捏合缩放改了 scale，而 latitude/longitude 还留着定位成功那一刻的值，
+ * 缩放一下地图就弹回定位点。
+ *
+ * 把 detail 里的三个值全量同步后，受控属性始终等于地图内部的真实视口，
+ * 之后任何一次 patch 传下去的都是「本来就在的位置」，等于没动。
+ *
+ * rotation / skew 不在这儿：组件没绑这两个属性，它们不受控，
+ * patch 不会触发重定位，不构成回弹来源。
+ */
+function onRegionChange(e: {
+  detail?: { latitude?: number; longitude?: number; scale?: number }
+}) {
+  const { latitude: lat, longitude: lng, scale: nextScale } = e.detail ?? {}
+
+  // 同步赋值落在同一批次，微信只会收到一次合并后的更新，中途不会瞬移
+  if (typeof lat === 'number') latitude.value = lat
+  if (typeof lng === 'number') longitude.value = lng
+  if (typeof nextScale === 'number') scale.value = nextScale
+
   emit('regionchange', {
     latitude: latitude.value,
     longitude: longitude.value,
@@ -240,24 +260,23 @@ onMounted(() => {
 
 .tip__title {
   display: block;
-  color: #333333;
+  color: $fish-ink;
   font-size: 28rpx;
   margin-bottom: 8rpx;
 }
 
 .tip__text {
   display: block;
-  color: #999999;
+  color: $fish-muted;
   font-size: 24rpx;
   line-height: 36rpx;
 }
 
-/* cover-view 只支持极少的 CSS：不能用 box-shadow、transform、animation */
 .tip__action {
   display: inline-block;
   margin-top: 16rpx;
   padding: 12rpx 24rpx;
-  background-color: #2f80ed;
+  background-color: $fish-accent;
   border-radius: 999rpx;
   color: #ffffff;
   font-size: 24rpx;

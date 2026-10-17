@@ -1,24 +1,24 @@
 {
   "pages": [
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "fishing",
-        "navigationStyle": "custom"
-      }
-    },
     {
       "path": "pages/fishing/index",
       "style": {
         "navigationBarTitleText": "钓点",
-				"navigationStyle": "custom"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "fishing",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	}
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "渔录",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "渔录",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  }
 }

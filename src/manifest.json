@@ -1,39 +1,29 @@
 {
-    "name" : "fishing",
-    "appid" : "",
+    "name" : "渔录",
+    "appid": "wxe310d6eacdda4d66",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
-    /* 关闭后 scss 里的 px 不会被转换成 rpx，小程序端建议保持 false，尺寸一律手写 rpx */
     "transformPx" : false,
-
-    /* 微信小程序特有相关 */
     "mp-weixin" : {
-        /* 必填：改成你自己的小程序 AppID，填 "touristappid" 只能用开发者工具预览，无法真机调试和上传 */
-        "appid" : "",
+        "appid": "wxe310d6eacdda4d66",
         "setting" : {
-            /* 开发期关闭合法域名校验以方便本地联调；上线前请在微信后台配置好 request 合法域名，并在真机上验证 */
             "urlCheck" : false,
             "es6" : true,
             "postcss" : false,
-            /* 开启代码压缩（uncompressed 后的包体更小） */
             "minified" : true
         },
         "usingComponents" : true,
-        /* 获取定位需要在微信后台声明用途，否则 wx.getLocation 会被直接拒绝 */
         "permission" : {
             "scope.userLocation" : {
                 "desc" : "用于在地图上显示你的位置并标记钓点"
             }
         },
-        /* 按需注入：小程序只加载当前页面用到的组件，能明显缩短启动时间 */
         "lazyCodeLoading" : "requiredComponents",
-        /* 启用分包优化，构建时会自动把 static 下的非分包资源挪进主包 */
         "optimization" : {
             "subPackages" : true
         }
     },
-
     "uniStatistics" : {
         "enable" : false
     },
