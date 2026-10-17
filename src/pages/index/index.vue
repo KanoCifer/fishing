@@ -1,10 +1,21 @@
 <template>
   <view class="page">
+    <!--
+      沉浸式导航栏。它浮在地图之上，所以组件内部用的是 cover-view 而不是 view。
+      页面配了 navigationStyle: custom，原生栏已经关掉了。
+    -->
+    <NavBar title="fishing" />
+
     <!-- 全屏地图 -->
-    <FullscreenMap v-if="view === 'map'" class="page__map" @regionchange="onRegionChange" />
+    <FullscreenMap
+      v-if="view === 'map'"
+      class="page__map"
+      :top-inset="nav.navBarBottom"
+      @regionchange="onRegionChange"
+    />
 
     <!-- 图表 -->
-    <view v-else class="page__chart">
+    <view v-else class="page__chart" :style="{ paddingTop: chartTop + 'px' }">
       <view class="card">
         <view class="card__header">
           <text class="card__title">近 7 天渔获趋势</text>
@@ -21,8 +32,9 @@
     <!--
       切换按钮必须用 cover-view：它在地图视图时压在原生 map 组件之上，
       普通 view 无论 z-index 多大都会被 map 盖住。
+      top 绑定 navBarBottom 是因为导航栏是浮层，按钮得排在它下面而不是被它盖住。
     -->
-    <cover-view class="switcher">
+    <cover-view class="switcher" :style="{ top: nav.navBarBottom + 'px' }">
       <cover-view class="switcher__btn" @tap="toggle">
         {{ view === 'map' ? '看数据' : '看地图' }}
       </cover-view>
@@ -34,6 +46,14 @@
 import { computed, reactive, ref } from 'vue'
 import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue'
 import LineChart from '@/components/LineChart/LineChart.vue'
+import { useNavMetrics } from '@/composables/useNavMetrics'
+
+// 导航栏是浮层，页面里凡是贴在顶部的元素都得按它的高度往下让
+const nav = useNavMetrics()
+
+// 图表卡片的上内边距：导航栏底边 + 一段 rpx 间距。
+// rpx 和 px 不是同一套单位，相加前必须过 upx2px——这里不换算的话间距会差将近一倍。
+const chartTop = nav.navBarBottom + uni.upx2px(20)
 
 const view = ref<'map' | 'chart'>('map')
 
@@ -72,7 +92,7 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
 .page__chart {
   height: 100%;
   padding: 30rpx;
-  padding-top: 120rpx;
+  /* padding-top 由脚本按导航栏高度动态绑定，这里不能写死 */
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -142,7 +162,8 @@ function onRegionChange(e: { latitude: number; longitude: number; scale: number 
 .switcher {
   position: absolute;
   left: 30rpx;
-  top: 30rpx;
+  /* top 由脚本按导航栏底边动态绑定，这里只用 margin-top 留出固定间距 */
+  margin-top: 20rpx;
 }
 
 .switcher__btn {

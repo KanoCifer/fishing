@@ -25,7 +25,7 @@
       <cover-view v-else class="btn" @tap="recenter">{{ statusText }}</cover-view>
     </cover-view>
 
-    <cover-view v-if="!hasLocation" class="tip">
+    <cover-view v-if="!hasLocation" class="tip" :style="{ top: topInset + 'px' }">
       <cover-view class="tip__title">未获取到定位权限</cover-view>
       <cover-view class="tip__text">
         当前展示默认坐标，可在设置中开启定位后点击按钮重试
@@ -46,12 +46,19 @@ const props = withDefaults(
     scale?: number
     /** 是否显示当前位置蓝点 */
     showLocation?: boolean
+    /**
+     * 顶部避让高度（px）。
+     * 地图铺满整屏时，页面里浮着的导航栏会盖住顶部，
+     * 组件自己排版排不了这个，得由调用方把导航栏底边的高度传进来。
+     */
+    topInset?: number
   }>(),
   {
     latitude: 30.2741,
     longitude: 120.1551,
     scale: 16,
     showLocation: true,
+    topInset: 0,
   },
 )
 
@@ -152,7 +159,8 @@ onMounted(() => {
   position: absolute;
   left: 30rpx;
   right: 30rpx;
-  top: 30rpx;
+  /* top 由 topInset 动态绑定，这里只用 margin-top 留出固定间距 */
+  margin-top: 20rpx;
   padding: 24rpx 28rpx;
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 16rpx;

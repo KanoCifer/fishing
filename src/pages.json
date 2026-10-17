@@ -3,7 +3,10 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "fishing"
+				"navigationBarTitleText": "fishing",
+				/* 沉浸式：关掉原生导航栏，页面内容可以铺到状态栏。
+                   代价是导航栏变成自绘浮层，要用 cover-view 压在原生 map 之上。 */
+				"navigationStyle": "custom"
 			}
 		}
 	],
