@@ -9,9 +9,6 @@
  * 和手写 rpx 不是同一套单位。rpx 间距要跟这些值相加，必须先过 uni.upx2px()。
  */
 
-/** H5 / App 端没有胶囊按钮，用微信导航栏的通用高度兜底 */
-const FALLBACK_NAV_BAR_HEIGHT = 44
-
 export interface NavMetrics {
   /** 状态栏高度（px）。刘海屏机型 > 0，非刘海为 0 */
   statusBarHeight: number
@@ -31,23 +28,9 @@ function measure(): NavMetrics {
 
   const { statusBarHeight, windowWidth } = uni.getWindowInfo()
 
-  // getMenuButtonBoundingClientRect 是小程序端独有的 API，H5 预览时不存在。
-  // 这里必须先做 typeof 判断——直接调用会在 H5 上抛 undefined is not a function，
-  // 而 dev:h5 是本项目日常用的预览方式。
-  const capsule =
-    typeof uni.getMenuButtonBoundingClientRect === 'function'
-      ? uni.getMenuButtonBoundingClientRect()
-      : null
-
-  if (!capsule) {
-    cached = {
-      statusBarHeight: 0,
-      navBarHeight: FALLBACK_NAV_BAR_HEIGHT,
-      navBarBottom: FALLBACK_NAV_BAR_HEIGHT,
-      capsuleInsetRight: 0,
-    }
-    return cached
-  }
+  // 胶囊按钮矩形是微信小程序独有的 API，基础库 2.7.1 起提供。
+  // 本项目只有小程序端，不存在"拿不到胶囊"的运行环境，所以直接用，不写兑底值。
+  const capsule = uni.getMenuButtonBoundingClientRect()
 
   // 微信官方那条公式：导航栏高度 = 胶囊上下留白对称推算。
   // 胶囊顶部到状态栏底部的空隙记作 gap，那么上下各留一个 gap，导航栏 = gap*2 + 胶囊高。

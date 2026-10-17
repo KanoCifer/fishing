@@ -34,12 +34,21 @@
   ```
   canvas.width = item.width * dpr
   canvas.height = item.height * dpr
-  ctx.scale(dpr, dpr)   // 之后的绘制逻辑继续用 CSS 像素
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)   // 之后的绘制逻辑继续用 CSS 像素
+  ctx.clearRect(0, 0, item.width, item.height)
   ```
+- **缩放只能用 `setTransform`，不能用 `scale`**：`scale` 是往当前变换矩阵上**累乘**的，只有 `canvas.width` 被赋值那一次会重置矩阵。入场动画每帧重绘一次，每帧 `scale(dpr, dpr)` 就会叠成 `dpr^n`，第二帧起线条直接飞出画布。`setTransform` 是覆盖式，每帧幂等。
+- **没有全局 `requestAnimationFrame`**：那是浏览器 API，小程序逻辑层连 `window` 都没有，照抄浏览器写法必崩 `requestAnimationFrame is not a function`（而且 `vue-tsc` 查不出来，DOM lib 里它是合法的）。`type="2d"` 的 canvas **节点自带** `requestAnimationFrame(cb) → requestId` 和 `cancelAnimationFrame(requestId)`（基础库 2.7.0+）。
+  ```
+  const id = canvas.requestAnimationFrame(tick)   // 注意是 canvas. 节点上的方法
+  canvas.cancelAnimationFrame(id)                // 必须同一个节点取消
+  ```
+- **取帧和取消必须成对走同一个节点**：节点的 `requestId` 交给别处的 `cancelAnimationFrame` 会**静默失效**，不报错、循环也停不下来，页面反复进出就一直漏帧。
+- **`requestAnimationFrame` 必须在 `onBeforeUnmount` 里取消**，否则页面反复进出会持续泄漏。
+- **`uni.getSystemInfoSync()` 在微信端已废弃**，控制台每次告警，dpr 之类的字段改从 `uni.getWindowInfo()` 取（`pixelRatio` / `windowWidth` / `statusBarHeight` / `safeArea` 都在里面）。
 - `display: block`，否则微信端 canvas 是 inline 元素，尺寸计算会偏。
 - `canvasId` 必须全局唯一（同一个页面可能画多个图），随机后缀即可。
 - 触摸换算：把绘图时的几何存下来，`e.touches[0].clientX` 减掉画布左边距，再除以点间距。
-- **`requestAnimationFrame` 必须在 `onBeforeUnmount` 里 `cancelAnimationFrame`**，否则页面反复进出会持续泄漏。
 
 **示例**：`src/components/LineChart/LineChart.vue`（含 dpr、入场动画、触摸拾取的完整实现）。
 

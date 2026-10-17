@@ -1,14 +1,15 @@
 # fishing
 
-uni-app + Vue 3 + TypeScript，**主目标平台是微信小程序（mp-weixin）**。
+uni-app + Vue 3 + TypeScript，**只有微信小程序（mp-weixin）一个目标平台**。没有 H5、没有 App、没有其他小程序端，构建目标写死在 `package.json` 的 `dev` / `build` 上（都带 `-p mp-weixin`）。
 
-改代码前先确认自己在写哪一端：小程序和 H5 的渲染差异不是编译期问题，是运行时行为，H5 上跑通不代表小程序上成立。
+**不要写浏览器 API**。小程序逻辑层没有 `window`、没有 DOM、没有全局 `requestAnimationFrame`，任何"在浏览器里这么写就对了"的直觉在这里都会变成运行时崩溃，且 `vue-tsc` 查不出来——类型定义来自 DOM lib，静态门禁全程放行。写之前先问：这个 API 在小程序端叫什么、谁来提供。真出过事的例子见 `docs/miniprogram-gotchas.md`「Canvas 2d 绘制」里的 `requestAnimationFrame`。
+
+同理，不要为了"顺便兼容"写平台兑底分支。没有第二个端，兑底就是死代码，只会让后来的人以为还有别的运行环境。
 
 ## 命令
 
 - `pnpm type-check` — `vue-tsc --noEmit`，唯一的静态门禁，覆盖 `src/**/*.vue`，当前零报错。
 - `pnpm build` — 产物落在 `dist/build/mp-weixin`，微信开发者工具「导入项目」指向这个目录，不是项目根目录。
-- `pnpm dev:h5` — 浏览器里快速看效果，只在确认跟小程序渲染无关时用。
 
 ## 平台分支：先认领，再动手
 

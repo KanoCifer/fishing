@@ -38,6 +38,30 @@ interface Series {
   color?: string
 }
 
+/**
+ * `fields({ node: true })` 返回的 canvas 节点没有官方类型，
+ * 按实际用到的成员局部声明，不要 any。
+ */
+interface CanvasNode2D {
+  width: number
+  height: number
+  getContext(type: '2d'): CanvasRenderingContext2D
+  /**
+   * 基础库 2.7.0+ 由 canvas 节点提供的 rAF。
+   * 本项目只有小程序端，`type="2d"` 本身就要求 2.9.0+，所以这两个方法一定在，
+   * 直接声明为必需，不用再写 H5 的兑底分支。
+   */
+  requestAnimationFrame(cb: () => void): number
+  cancelAnimationFrame(requestId: number): void
+}
+
+/** SelectorQuery 的 fields 回调返回，按实际用到的字段局部声明（宽高依赖 size: true 才带） */
+interface CanvasQueryResult {
+  node?: CanvasNode2D
+  width?: number
+  height?: number
+}
+
 const props = withDefaults(
   defineProps<{
     categories: string[]
@@ -76,9 +100,15 @@ const colors = computed(() => PALETTE)
 /** rpx 只对样式有效，canvas 内部坐标要用 px，这里先记下 px 值 */
 const cssWidth = ref('')
 const cssHeight = ref('')
-const canvasRef = ref<any>(null)
-const ctxRef = ref<any>(null)
+const canvasRef = ref<{ width: number; height: number } | null>(null)
+const ctxRef = ref<CanvasRenderingContext2D | null>(null)
 const dprRef = ref(1)
+/**
+ * canvas 节点，帧调度要用它自带的 requestAnimationFrame。
+ * 不进模板也不需要响应式，普通变量即可。
+ */
+let canvasNode: CanvasNode2D | null = null
+let rafId = 0
 
 const activeIndex = ref(-1)
 const activePoint = ref<number[] | null>(null)
@@ -111,14 +141,15 @@ function niceMax(value: number): number {
 
 function draw() {
   const ctx = ctxRef.value
-  if (!ctx) return
+  const size = canvasRef.value
+  if (!ctx || !size) return
 
-  const { width, height } = canvasRef.value ?? {}
-  const w = width * dprRef.value
-  const h = height * dprRef.value
+  const { width, height } = size
 
-  ctx.clearRect(0, 0, w, h)
-  ctx.scale(dprRef.value, dprRef.value)
+  // setTransform 是覆盖式，scale 是累乘式：动画每帧都调 scale，矩阵会叠成 dpr^n，
+  // 第二帧起线条就飞出画布。每帧重置一次矩阵，绘制逻辑继续用 CSS 像素。
+  ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0)
+  ctx.clearRect(0, 0, width, height)
 
   const cw = width
   const ch = height
@@ -215,11 +246,13 @@ async function initCanvas() {
     .createSelectorQuery()
     .in(instance)
     .select(`#${canvasId}`)
-    .fields({ node: true, size: true }, (res: any) => {
+    .fields({ node: true, size: true }, (res: CanvasQueryResult | CanvasQueryResult[]) => {
       const item = Array.isArray(res) ? res[0] : res
-      if (!item?.node) return
-      const canvas = item.node as any
-      const dpr = uni.getSystemInfoSync().pixelRatio || 1
+      // 宽高只在 fields 里声明了 size 时才返回，缺了就画不了，别拿 NaN 去设位图尺寸
+      if (!item?.node || !item.width || !item.height) return
+      const canvas = item.node
+      // getSystemInfoSync 在微信端已废弃（控制台告警），dpr 从 getWindowInfo 取
+      const dpr = uni.getWindowInfo().pixelRatio || 1
 
       // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定
       canvas.width = item.width * dpr
@@ -228,6 +261,8 @@ async function initCanvas() {
       canvasRef.value = { width: item.width, height: item.height }
       dprRef.value = dpr
       ctxRef.value = canvas.getContext('2d')
+      canvasNode = canvas
+
       if (props.animate) {
         play()
       } else {
@@ -238,13 +273,26 @@ async function initCanvas() {
     .exec()
 }
 
+function cancelFrame() {
+  if (canvasNode && rafId) {
+    canvasNode.cancelAnimationFrame(rafId)
+  }
+  rafId = 0
+}
+
 /**
- * 入场动画：逐帧推进 progress，让折线"画"出来
- * 注意必须在组件卸载时 cancelAnimationFrame，否则会内存泄漏
+ * 入场动画：逐帧推进 progress，让折线"画"出来。
+ *
+ * mp-weixin 逻辑层没有全局 requestAnimationFrame（那是浏览器 API，连 window 都没有），
+ * 取帧走 canvas 节点自带的方法（基础库 2.7.0+），帧率跟随系统刷新、页面隐藏自动暂停。
+ * 取消必须用同一个节点：节点的 requestId 交给别处的 cancelAnimationFrame 会静默失效，
+ * 不报错、循环也停不下来，页面反复进出就一直漏帧。
  */
-let rafId = 0
 function play() {
-  cancelAnimationFrame(rafId)
+  // watch 可能早于 SelectorQuery 回调触发，那时节点还没拿到，等 initCanvas 里再放
+  if (!canvasNode) return
+  const node = canvasNode
+  cancelFrame()
   const duration = props.duration
   const start = Date.now()
   progress = 0
@@ -254,13 +302,13 @@ function play() {
     progress = 1 - Math.pow(1 - t, 3)
     draw()
     if (t < 1) {
-      rafId = requestAnimationFrame(tick)
+      rafId = node.requestAnimationFrame(tick)
     } else {
-      progress = 1
-      draw()
+      // t=1 时 progress 已经是 1，这一帧画完循环自然结束
+      rafId = 0
     }
   }
-  rafId = requestAnimationFrame(tick)
+  rafId = node.requestAnimationFrame(tick)
 }
 
 onMounted(() => {
@@ -285,7 +333,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(rafId)
+  cancelFrame()
 })
 
 const tooltipStyle = computed(() => {
