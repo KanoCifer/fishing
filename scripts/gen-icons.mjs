@@ -68,6 +68,8 @@ const ICONS = [
   { name: 'crosshair', color: 'ink', use: '地图定位' },
   { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
   { name: 'compass', color: 'muted', use: '地图回正北' },
+  // —— 我的页 ——
+  { name: 'chevron-right', color: 'muted60', use: '条目右侧的展开箭头' },
 ];
 
 /**

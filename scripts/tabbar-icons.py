@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-生成 tabBar 图标 —— 钓点（地图钉）/ 数据（趋势线），各含未选中与选中两态。
+生成 tabBar 图标 —— 钓点（地图钉）/ 数据（趋势线）/ 我的（人形），各含未选中与选中两态。
 
 为什么是脚本而不是手搓图片：图标是要跟着主题走的（选中态用主色蓝），
 改一次 uni.scss 的 $fish-blue 就得重出一套 PNG。留成脚本，改色值只改这里一处，
@@ -120,6 +120,47 @@ def draw_data(color: tuple[int, int, int, int]) -> Image.Image:
     return img
 
 
+def draw_mine(color: tuple[int, int, int, int]) -> Image.Image:
+    """
+    我的：头 + 肩。
+
+    头是正圆，肩是**半个椭圆**而不是半圆：正圆加半圆看着像图钉，
+    头身一宽一窄才对得上人的肩宽比。肩的横向半径 27、纵向半径 21，
+    宽高比 27:21 接近 iOS tabbar person 图标惯用的 1.3:1。
+
+    只画上半：pieslice 从 180° 起画到 360°（PIL 角度自 3 点方向顺时针计），
+    取的就是贴着水平中线的那半个椭圆，下缘刚好是直线，正好当肩的底。
+    """
+    img, draw = new_canvas()
+
+    cx = 40.5
+
+    # 头
+    head_cy = 30.0
+    head_r = 12.5
+    draw.ellipse(
+        [s(cx - head_r), s(head_cy - head_r), s(cx + head_r), s(head_cy + head_r)],
+        fill=color,
+    )
+
+    # 肩：椭圆顶边落在头的下方一点，中间留出一道颈部的空隙
+    shoulder_rx = 27.0
+    shoulder_ry = 21.0
+    shoulder_top = 49.0
+    draw.pieslice(
+        [
+            s(cx - shoulder_rx),
+            s(shoulder_top),
+            s(cx + shoulder_rx),
+            s(shoulder_top + shoulder_ry * 2),
+        ],
+        start=180,
+        end=360,
+        fill=color,
+    )
+    return img
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     print(f"生成 tabBar 图标（{SIZE}×{SIZE}）→ {OUT_DIR}")
@@ -127,6 +168,8 @@ def main() -> None:
     save(draw_spots(COLOR_ACTIVE), "spots-active.png")
     save(draw_data(COLOR_IDLE), "data.png")
     save(draw_data(COLOR_ACTIVE), "data-active.png")
+    save(draw_mine(COLOR_IDLE), "mine.png")
+    save(draw_mine(COLOR_ACTIVE), "mine-active.png")
 
 
 if __name__ == "__main__":
