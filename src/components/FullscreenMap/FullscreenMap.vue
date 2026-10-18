@@ -24,37 +24,69 @@
       微信已支持同层渲染（map 自基础库 2.8.3 起），不再需要 cover-view，
       好处是 box-shadow / transform 这些样式都能用了。
 
-      控件簇排右上角、贴着 topInset（导航栏底边）：
+      地图操作收成**一列** toolbar：顶上是底图循环键，中间一根发丝线，
+      底下是定位和回正北两个动作。排右上角、贴着 topInset（导航栏底边）：
       左侧留给手势，底部留给钓点计数浮层和 tabBar，只有右上角是长期空着的。
+
+      竖着摞在这里比横着排还稳：指南针只在地图转过之后才出现，竖排意味着
+      它是往下长一格，上面几项一动不动；横排则整条会往左顶，顶到手势区去。
+
+      之前这三块是各自独立的控件，各自带一套材质，读起来像三个不相干的浮层
+      而不是一组操作。合成一个外壳之后它们共享同一张皮，「换底图」和
+      「动地图」显然是同一件事。
     -->
-    <view class="controls" :style="{ top: topInset + 'px' }">
-      <!-- 底图切换：卫星影像对看水面、岸线有用，所以给一个显式开关 -->
-      <view class="controls__segmented">
-        <view
-          v-for="opt in BASE_MAP_OPTIONS"
-          :key="opt.value"
-          class="controls__segment"
-          :class="{ 'controls__segment--active': activeBaseMap === opt.value }"
-          @tap="selectBaseMap(opt.value)"
-        >
-          {{ opt.label }}
-        </view>
+    <view class="toolbar" :style="{ top: topInset + 'px' }">
+      <!--
+        底图切换：点一下在三档之间循环，按钮上直接写着当前是哪一档。
+
+        原来三档并排摆着（~276rpx 宽），竖着摞的话列宽就由最宽的那一项说了算 ——
+        低频的「换底图」反而替整列决定了压在地图上的宽度。收成循环键之后最宽的
+        变成了下面的指南针键，这一列窄到 ~130rpx，只有原来的一半不到。
+
+        按下来说明的是「现在是什么」而不是「有哪些可选」，所以灰底那套选中态
+        一起去掉了：没有并列的兄弟项，就没有需要标出来的选中项。文案本身就是值。
+      -->
+      <view class="toolbar__mode" @tap="cycleBaseMap">
+        <image class="toolbar__mode-icon" :src="layersIcon" mode="aspectFit" />
+        <text class="toolbar__mode-label">{{ activeBaseMapOption.label }}</text>
       </view>
 
-      <view class="btn" @tap="recenter">{{ locating ? '定位中…' : statusText }}</view>
+      <!-- 发丝线。不用 padding 把两组撑开 —— 撑开的只是一段空白，读起来还是一组 -->
+      <view class="toolbar__divider" />
+
+      <!--
+        定位：图标键，不再挂文字。
+
+        原来三段文案（定位中… / 回到我的位置 / 重新定位）最长六个字，一行排下来
+        会比底图键还长，喧宾夺主 —— 定位是次要操作，不该比底图切换更抢眼。
+        换成图标正好压回去。状态改由图标自己说：定位中压暗，权限没开染红
+        （见 locateIcon）。
+      -->
+      <view class="toolbar__action" :class="{ 'toolbar__action--busy': locating }" @tap="recenter">
+        <image class="toolbar__action-icon" :src="locateIcon" mode="aspectFit" />
+      </view>
 
       <!--
         自绘指南针。
 
         原生 show-compass 也能开，但它画死在地图右上角，而右上角被微信的胶囊
         按钮常驻盖着 —— 那是个点不到也看不见的死位置。胶囊在小程序里永远在最上层，
-        页面内容盖不过去，只能换地方画。控件簇已经排在胶囊下方（top 取 navBarBottom），
+        页面内容盖不过去，只能换地方画。toolbar 已经排在胶囊下方（top 取 navBarBottom），
         所以按钮挂这儿。
 
         只在旋转时出现：地图 enable-rotate 开着，用户能拧，拧完得给条回来的路。
         MapContext 没有重置角度的接口，只能把 rotate 绑成受控属性手动置 0。
+
+        角度跟着一起留着：光一个指南针图标只能告诉用户「地图歪了」，那个数字才
+        告诉他偏了多少、拧回去要多少度。图标本身不跟着 rotate 转 —— 一个会自转的
+        图标读起来像 loading，而且 needle 的初始指向是东北不是正北，套一层补偿
+        角度的常数纯属自找麻烦。角度排在图标正下方，和上面底图键同一套排法，
+        顺带把这个键的宽度也收下来（见 .toolbar__action--stack）。
       -->
-      <view v-if="isRotated" class="btn btn--compass" @tap="resetRotation"> 回正北 {{ rotationLabel }}° </view>
+      <view v-if="isRotated" class="toolbar__action toolbar__action--stack" @tap="resetRotation">
+        <image class="toolbar__action-icon" :src="compassIcon" mode="aspectFit" />
+        <text class="toolbar__angle">{{ rotationLabel }}°</text>
+      </view>
     </view>
   </view>
 </template>
@@ -63,6 +95,7 @@
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
 import type { MapMarkerItem } from '@/composables/useMapMarkers';
+import { icon } from '@/constants/icons';
 
 /** 底图模式：标准 / 卫星影像 / 实时路况 */
 type BaseMapMode = 'standard' | 'satellite' | 'traffic';
@@ -76,8 +109,11 @@ interface BaseMapOption {
  * 底图选项。
  *
  * 卫星图和路况是 <map> 的两个独立布尔属性（enable-satellite / enable-traffic，
- * 均基础库 2.7.0 起），不是三选一的枚举。界面上按三选一呈现，是为了让用户
- * 心里只有「当前底图」这一件事；两个属性的实际取值由 selectBaseMap 统一翻译。
+ * 均基础库 2.7.0 起），不是三选一的枚举。界面上按一个「当前值」呈现，是为了让
+ * 用户心里只有「当前底图」这一件事；两个属性的实际取值由 selectBaseMap 统一翻译。
+ *
+ * 这个数组同时是三处事实源：按钮上显示的文案、循环切换的顺序、以及标签用的值。
+ * 增删一档只改这里，三处一起跟着变。
  *
  * 注意别走 layer-style（个性化地图 style 编号）那条路：它是静态的，
  * 官方明确不支持动态修改，切不动。
@@ -87,17 +123,6 @@ const BASE_MAP_OPTIONS: BaseMapOption[] = [
   { value: 'satellite', label: '卫星' },
   { value: 'traffic', label: '路况' },
 ];
-
-/**
- * 控件簇的固定高度（rpx）。
- *
- * 定位权限提示排在控件簇正下方，CSS 里算不出控件簇多高，只能在这里按样式里的
- * 尺寸硬算一遍。改 .controls / .btn 的 padding 记得回来同步这个数。
- */
-const CONTROLS_HEIGHT_RPX = 150;
-
-/** 指南针按钮自身高度 + 与上一个按钮的间距，只在旋转时占位 */
-const COMPASS_HEIGHT_RPX = 80;
 
 const props = withDefaults(
   defineProps<{
@@ -166,12 +191,61 @@ const rotate = ref(0);
 
 const locating = ref(false);
 const hasLocation = ref(false);
-const statusText = ref('定位中…');
 
-/** 由两个布尔反推当前档位，供 segmented 高亮 */
+/**
+ * 定位失败 / 权限被拒。
+ *
+ * 只驱动定位键的图标配色，不参与 recenter 的分支 —— 那条路由仍旧看
+ * hasLocation，因为它要区分的是「有没有坐标可用」，不是「是不是被拒」。
+ * 分成两个状态是因为首次进入时 hasLocation 也是 false（还没定位完），
+ * 拿它当「被拒」的判据会让图标一进来就闪红。
+ */
+const permissionDenied = ref(false);
+
+/** 指南针图标。见模板里关于「为什么不跟着 rotate 转」那段 */
+const compassIcon = icon('compass', 'muted');
+
+/** 底图循环键的图层图标。压成 muted，让它和文案读成一个整体而不是「图标 + 标签」 */
+const layersIcon = icon('layers', 'muted');
+
+/**
+ * 定位键图标。
+ *
+ * 权限没开就染红而不是压灰：压灰和「定位中」撞在一起，分不出是暂时在忙还是
+ * 根本定位不了，而这两件事用户该做的下一步完全不同（等一下 vs 去设置页开权限）。
+ */
+const locateIcon = computed(() =>
+  permissionDenied.value ? icon('crosshair', 'destructive') : icon('crosshair', 'ink'),
+);
+
+/** 由两个布尔反推当前档位，供按钮显示和循环切换用 */
 const activeBaseMap = computed<BaseMapMode>(() =>
   satellite.value ? 'satellite' : traffic.value ? 'traffic' : 'standard',
 );
+
+/**
+ * 当前档位对应的选项本身。
+ *
+ * 文案和循环顺序都从这一份选项表推出来，不各自另存一份 —— 否则一旦有一处
+ * 漏改，就会出现「按钮写着卫星、切下去却是路况」这种对不上的状态。
+ *
+ * 兜底取第一档：activeBaseMap 永远返回这三档之一，这里只是让 TS 认得出
+ * find 的返回值可能是 undefined。
+ */
+const activeBaseMapOption = computed(
+  () => BASE_MAP_OPTIONS.find((opt) => opt.value === activeBaseMap.value) ?? BASE_MAP_OPTIONS[0],
+);
+
+/**
+ * 点底图键：往后走一档，到头回开头。
+ *
+ * 循环而不是弹菜单：底图只有三档，弹一次选择器比结果本身还重。
+ * 顺序取自 BASE_MAP_OPTIONS，界面摆过的顺序就是循环的顺序，不另定一个。
+ */
+function cycleBaseMap() {
+  const order = BASE_MAP_OPTIONS.map((opt) => opt.value);
+  selectBaseMap(order[(order.indexOf(activeBaseMap.value) + 1) % order.length]);
+}
 
 /**
  * 当前旋转角归一到 0~360 的整数。
@@ -188,12 +262,6 @@ const isRotated = computed(() => rotationLabel.value !== 0);
 function resetRotation() {
   rotate.value = 0;
 }
-
-/** 定位权限提示的 top：导航栏底边 + 控件簇高度（指南针出现时再加一段） */
-const tipTop = computed(() => {
-  const extra = isRotated.value ? COMPASS_HEIGHT_RPX : 0;
-  return props.topInset + uni.upx2px(CONTROLS_HEIGHT_RPX + extra);
-});
 
 /**
  * 切底图。
@@ -254,7 +322,6 @@ watch(
 
 function locate() {
   locating.value = true;
-  statusText.value = '定位中…';
 
   uni.getLocation({
     // 必须是 gcj02 —— 小程序 <map> 组件用的是 GCJ-02 火星坐标系。
@@ -265,14 +332,14 @@ function locate() {
       longitude.value = res.longitude;
       scale.value = 16;
       hasLocation.value = true;
-      statusText.value = '回到我的位置';
+      permissionDenied.value = false;
     },
     fail: () => {
-      // 授权被拒或系统定位不可用：保留默认坐标，界面上给提示。
+      // 授权被拒或系统定位不可用：保留默认坐标，靠图标染红告诉用户「定位键按了没用」。
       // 不在这里弹 openSetting —— 用户可能只是定位信号不好，
-      // 上来就抢设置页很突兀，按钮点一下再去。
+      // 上来就抢设置页很突兀，按键点一下再去。
       hasLocation.value = false;
-      statusText.value = '重新定位';
+      permissionDenied.value = true;
     },
     complete: () => {
       locating.value = false;
@@ -285,7 +352,7 @@ function locate() {
  *
  * 用户拒绝授权后小程序**不会再次弹权限窗**，唯一能重来的路径就是设置页。
  * openSetting 返回时会带上用户在设置里做的选择：开了就重新定位，
- * 没开就退回手动重试，别让按钮看起来"点了没反应"。
+ * 没开就把定位键继续留在染红状态，别让它看起来"点了没反应"。
  */
 function openLocationSetting() {
   uni.openSetting({
@@ -293,12 +360,12 @@ function openLocationSetting() {
       if (res.authSetting?.['scope.userLocation']) {
         locate();
       } else {
-        statusText.value = '重新定位';
+        permissionDenied.value = true;
       }
     },
     fail: () => {
       // 用户没走完设置流程，退回手动重试
-      statusText.value = '重新定位';
+      permissionDenied.value = true;
     },
   });
 }
@@ -413,99 +480,161 @@ onMounted(() => {
   height: 100%;
 }
 
-.controls {
+/*
+ * toolbar —— 整个地图操作区的**一个**外壳，横着一条。
+ *
+ * 浮在地图上的控件是**材质**：半透明 + 一层实投影。
+ *
+ * 没有 backdrop-filter（map 是原生组件，模糊它要重采样整屏纹理），所以
+ * 靠「半透明的底 + 更重的投影」这两件事把它推离地图 —— 只做前者会像一块
+ * 半透明的贴纸浮在瓦片上，做不到层次。投影要比页面内的卡片重，因为它压的
+ * 是一张高对比度的地图，任何浅投影都会被底图吃掉。
+ *
+ * 竖着摞在这一列：三项从上到下是「换底图」「定位」「回正北」，高度统一，
+ * 宽度由底图键决定。align-items: center 让下面两个窄的图标键居中，不贴着
+ * 左边沿 —— 靠左对齐的话这一列会像个阶梯。
+ */
+.toolbar {
   position: absolute;
   right: 24rpx;
   /* top 由 topInset 动态绑定，这里只留出固定的右边距 */
   z-index: 10;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-}
-
-/* 与 TideCard 的港口切换同一套 segmented 观感 */
-.controls__segmented {
-  display: flex;
-  padding: 4rpx;
+  align-items: center;
+  padding: 6rpx;
   border-radius: $fish-radius-lg;
-  background-color: $fish-blue-50;
-  box-shadow: 0 4rpx 16rpx rgba(32, 33, 36, 0.12);
-}
-
-.controls__segment {
-  padding: 12rpx 22rpx;
-  /* 比容器小 4rpx，正好压在容器的 4rpx 内边距上 */
-  border-radius: 8rpx;
-  color: $fish-muted;
-  font-size: 24rpx;
-  line-height: 32rpx;
-}
-
-.controls__segment--active {
-  background-color: $fish-page;
-  color: $fish-blue-600;
-  font-weight: 600;
-  box-shadow: 0 2rpx 6rpx rgba(32, 33, 36, 0.12);
-}
-
-.btn {
-  /* 深蓝灰而非纯黑：浮在地图上比黑更协调，也和 Google 蓝同一色相家族 */
-  margin-top: 16rpx;
-  padding: 16rpx 28rpx;
-  border-radius: 999rpx;
-  background-color: rgba(32, 33, 36, 0.82);
-  box-shadow: 0 4rpx 16rpx rgba(32, 33, 36, 0.18);
-  color: #ffffff;
-  font-size: 24rpx;
-  line-height: 32rpx;
-  text-align: center;
+  background-color: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.16);
 }
 
 /*
- * 指南针按钮。
+ * 底图循环键：图标在上，档位文案落在图标正下方。
  *
- * 用主色底从定位按钮里跳出来：它跟定位不是一回事，定位是「回到我」，
- * 指南针是「把地图拧正」，两件事不该长得一样。
+ * 和下面两个动作键同一套尺寸（84rpx 高、14rpx 圆角）。图标+文案摞起来比纯图标
+ * 高一截，所以三个键一起从 72rpx 抬到 84rpx —— 宁可一起长高，也不能让底图键
+ * 单独凸出去，凸出去就读成三个不同的控件，而不是一组。
+ *
+ * 按下用缩放（fish-press）而不是分段控件那套变暗：它现在是个独立按钮了，
+ * 跟下面两个动作键的手感保持一致更重要。
  */
-.btn--compass {
-  background-color: $fish-accent;
+.toolbar__mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 84rpx;
+  padding: 0 16rpx;
+  border-radius: 14rpx;
+
+  @include fish-press(0.94);
 }
 
-.tip {
-  position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  /* top 由 topInset + 控件簇高度动态绑定，这里只留固定间距 */
-  z-index: 10;
-  margin-top: 20rpx;
-  padding: 24rpx 28rpx;
-  border-radius: 16rpx;
-  background-color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4rpx 16rpx rgba(32, 33, 36, 0.12);
+.toolbar__mode-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
-.tip__title {
-  display: block;
-  color: $fish-ink;
-  font-size: 28rpx;
-  margin-bottom: 8rpx;
-}
-
-.tip__text {
-  display: block;
+/*
+ * 档位文案，压在图标下面。
+ *
+ * caption2（11pt）是字阶里最小的一级，再小就只能写字号、绕过整套字阶 ——
+ * 那样字距和行高都没了，正是 uni.scss 反对的那种写法。所以「改小」到底就是
+ * 这一级。line-height 收成 1：默认的 1.3 会在这一个两行高的格子里塞进一段
+ * 看不见的行距，图标和文案之间看着像隔了双份。
+ *
+ * secondaryLabel + 加粗：这一列里只有它需要被读出来（另外两个是纯图标），
+ * 用 muted 是不跟下面定位键的 ink 抢主色，600 是在 muted 上仍然读得清。
+ */
+.toolbar__mode-label {
+  margin-top: 6rpx;
   color: $fish-muted;
-  font-size: 24rpx;
-  line-height: 36rpx;
+  @include fish-type(caption2);
+
+  font-weight: 600;
+  line-height: 1;
 }
 
-.tip__action {
-  display: inline-block;
-  margin-top: 16rpx;
-  padding: 12rpx 24rpx;
-  background-color: $fish-accent;
-  border-radius: 999rpx;
-  color: #ffffff;
-  font-size: 24rpx;
-  text-align: center;
+/*
+ * 两组之间的发丝线，竖着摞的时候它就横过来。
+ *
+ * 只画 32rpx 长而不是拉满整个内容宽：这一列里最宽的是底图键，满宽的线会和
+ * 它等长，看着像把底图键从中间切开了。短一点才读得出「这里分两组」，
+ * 而不是一条排版线。
+ */
+.toolbar__divider {
+  width: 32rpx;
+  height: 1rpx;
+  margin: 6rpx 0;
+  background-color: $fish-border-40;
+}
+
+/*
+ * 图标动作键。
+ *
+ * 84rpx ≈ 42pt，和底图键齐平（见上面那条为什么抬高）。没到 44pt 的原因是
+ * 三个键摞在一起，再大会让这一列长得压到导航栏。定位是高频操作，这块尺寸
+ * 是能接受的取舍。
+ *
+ * min-width 不是 44pt 那种安全尺寸，是拿这一列的总宽倒推的：三个键都得塞进
+ * 一条压在地图上的窄列里，宽度让位给高度。倒推出来的 76rpx ≈ 38pt 偏小，
+ * 但仍然远大于图标本身（32rpx），不至于难点。
+ *
+ * 这里没套 fish-press：它只带 transform 的 transition，而定位状态切换还要淡
+ * opacity，两条 transition 写全，省得后写的把先写的覆盖掉。
+ */
+.toolbar__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 84rpx;
+  min-width: 76rpx;
+  padding: 0 10rpx;
+  border-radius: 14rpx;
+
+  transition:
+    transform $fish-dur-base $fish-spring,
+    opacity $fish-dur-fast $fish-ease-out;
+
+  &:active {
+    transform: scale(0.92);
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+/*
+ * 定位中：压暗。
+ *
+ * 不转圈 —— 定位通常几百毫秒就回来了，一个闪一下的 spinner 比压暗更吵。
+ * 压暗同时也是「按了没反应」的合理解释：recenter 在 locating 期间本来就直接 return。
+ */
+.toolbar__action--busy {
+  opacity: 0.35;
+}
+
+.toolbar__action-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+/*
+ * 指南针键：角度改到图标下面，图标和数字不再并排。
+ *
+ * 并排的时候这个键有 ~116rpx 宽，是整列最宽的一项 —— 列宽全被它撑着，
+ * 底图键和定位键都在给它让位。摞起来之后它比底图键还窄，列宽就交回给
+ * 底图键，同时和底图键读成同一套「图标 + 小字」排法。
+ */
+.toolbar__action--stack {
+  flex-direction: column;
+}
+
+/* 旋转角。跟图标同色，读成一个整体，而不是「图标 + 一个黑数字」 */
+.toolbar__angle {
+  margin-top: 4rpx;
+  color: $fish-muted;
+  @include fish-type(caption2);
+
+  font-weight: 600;
+  line-height: 1;
 }
 </style>

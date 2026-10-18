@@ -81,9 +81,9 @@ const props = withDefaults(
   {
     width: 690,
     height: 360,
-    gridColor: '#dadce0',
-    axisColor: '#dadce0',
-    textColor: '#5f6368',
+    gridColor: 'rgba(60, 60, 67, 0.29)',
+    axisColor: 'rgba(60, 60, 67, 0.29)',
+    textColor: 'rgba(60, 60, 67, 0.6)',
     animate: true,
     duration: 700,
   },
@@ -94,12 +94,12 @@ const uid = Math.random().toString(36).slice(2, 8);
 const canvasId = `line-chart-${uid}`;
 
 /**
- * 系列配色。取 Google / Material 色板的蓝、红、黄、绿、紫五色，
- * 顺序刻意从主色蓝起，让首条曲线与页面主题一致。
+ * 系列配色。取 iOS 系统色蓝、红、黄、绿、紫五色，顺序刻意从主色蓝起，
+ * 让首条曲线与页面主题一致。
  *
  * 同样是 canvas 硬编码，改主题时要和 uni.scss 的 $fish-* 一起看。
  */
-const PALETTE = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#8f5fd6'];
+const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
 const colors = computed(() => PALETTE);
 
 /**
@@ -251,7 +251,7 @@ function draw() {
     if (!points.length) return;
 
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5; // iOS Charts 默认 3pt，2.5 在 690rpx 画布上视觉重量相当
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -269,12 +269,12 @@ function draw() {
     });
     ctx.stroke();
 
-    // 数据点：随动画进度逐个出现
-    ctx.fillStyle = '#fff';
+    // 数据点：随动画进度逐个出现。白心 + 彩色描边，和 iOS Charts 的数据点一致
+    ctx.fillStyle = '#ffffff';
     points.forEach((p, i) => {
       if (i > cut + 0.5) return;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
@@ -492,41 +492,54 @@ function onTouchEnd() {
   display: block; // 微信端必须是 block，否则 canvas 是 inline 元素，尺寸计算会偏
 }
 
+/*
+ * 数值浮层。
+ *
+ * 浮在 canvas 上，所以必须是深色材质 —— 白底会被曲线和网格线打散，读不出来。
+ * 底色用 $fish-material-dark 而不是纯黑：纯黑贴在白底图表上像贴纸，
+ * 带一点暖的黑才像「浮起来的一层」。
+ *
+ * 宽度给死 120px 是因为 tooltipStyle 在脚本里按这个宽度做边界收拢（见那段注释），
+ * 改这里必须同步改那边的 120。
+ */
 .line-chart__tooltip {
   position: absolute;
   z-index: 10;
   min-width: 120px;
-  padding: 8rpx 12rpx;
-  background: rgba(0, 0, 0, 0.75);
-  border-radius: 8rpx;
+  padding: 10rpx 16rpx;
+  border-radius: $fish-radius-sm;
+  background-color: $fish-material-dark;
   pointer-events: none;
 }
 
 .line-chart__tooltip-title {
   display: block;
-  font-size: 22rpx;
-  color: #fff;
-  margin-bottom: 4rpx;
+  margin-bottom: 6rpx;
+  @include fish-type(caption2);
+
+  /* 半透明材质上的文字要比平时更重一点，否则会被背景打散 */
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
 }
 
 .line-chart__tooltip-row {
   display: flex;
   align-items: center;
-  font-size: 22rpx;
-  color: #fff;
-  line-height: 1.6;
+  line-height: 1.5;
+  color: #ffffff;
+  @include fish-type(caption);
 }
 
 .line-chart__tooltip-dot {
-  width: 10rpx;
-  height: 10rpx;
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 10rpx;
   border-radius: 50%;
-  margin-right: 8rpx;
 }
 
 .line-chart__tooltip-name {
   flex: 1;
-  margin-right: 16rpx;
+  margin-right: 20rpx;
 }
 
 .line-chart__tooltip-value {

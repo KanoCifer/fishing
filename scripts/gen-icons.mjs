@@ -27,27 +27,31 @@ const OUT_FILE = resolve(ROOT, 'src/constants/icons.ts');
 /**
  * 色板。取值必须与 src/uni.scss 的同名变量一致 —— 这里只能写十六进制，
  * 因为 CSS 变量传不进 <image>。改色值两处都要动，注释是给下一个人看的路标。
+ *
+ * 注意 muted / muted60 落在 rgba(60, 60, 67, …) 上：它们在 svg 里拆成
+ * 十六进制基底 + stroke-opacity 两部分表达（见 ALPHA），不是直接写 rgba。
  */
 const COLORS = {
-  ink: '#202124', // $fish-ink
-  muted: '#5f6368', // $fish-muted
-  muted60: '#5f6368', // $fish-muted-60，同色降透明度（见下方 alpha）
-  blue: '#4285f4', // $fish-blue
-  blue600: '#1a73e8', // $fish-blue-600
-  success: '#34a853', // $fish-success
-  destructive: '#ea4335', // $fish-destructive
+  ink: '#000000', // $fish-ink
+  muted: '#3c3c43', // $fish-muted（secondaryLabel）
+  muted60: '#3c3c43', // $fish-muted-60（tertiaryLabel），同色降透明度（见下方 alpha）
+  blue: '#007aff', // $fish-blue
+  blue600: '#0062cc', // $fish-blue-600
+  success: '#34c759', // $fish-success
+  destructive: '#ff3b30', // $fish-destructive
   onAccent: '#ffffff', // 主色按钮上的前景色
 };
 
 /** alpha > 1 的条目按半透明烘（muted60 这类 rgba 色值），其余烤成实色 */
-const ALPHA = { muted60: 0.6 };
+const ALPHA = { muted: 0.6, muted60: 0.3 };
 
 /**
  * 清单：每个图标只列它真正在用的那一两个配色，不铺满色板。
  *
- * 数量刻意压在个位数 —— 图标一多，这一页就从「读数据」滑向「看图标」。
+ * 数量刻意压着不加 —— 图标一多，页面就从「读数据」滑向「看图标」。
  * 这里每个条目要么替掉了手搓的字形（↻、自绘的定位针），要么给一行只有
- * 文字标签的指标配了个锚点，其余地方不该加。
+ * 文字标签的指标配了个锚点，要么是把一段文字按钮换成了图标（地图 toolbar
+ * 上的定位 / 回正北）。其余地方不该加。
  */
 const ICONS = [
   // —— 结论头 ——
@@ -59,6 +63,11 @@ const ICONS = [
   { name: 'wind', color: 'blue600', use: '风速信号' },
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
   { name: 'info', color: 'ink', use: '特征详情按钮' },
+  // —— 地图 toolbar ——
+  { name: 'layers', color: 'muted', use: '底图循环键' },
+  { name: 'crosshair', color: 'ink', use: '地图定位' },
+  { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
+  { name: 'compass', color: 'muted', use: '地图回正北' },
 ];
 
 /**

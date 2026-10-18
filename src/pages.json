@@ -16,14 +16,14 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "渔碌",
-    "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#FFFFFF"
+    "navigationBarBackgroundColor": "#F2F2F7",
+    "backgroundColor": "#F2F2F7"
   },
   "tabBar": {
-    "color": "#9A9A9A",
-    "selectedColor": "#4285F4",
+    "color": "#3C3C43",
+    "selectedColor": "#007AFF",
     "backgroundColor": "#FFFFFF",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/fishing/index",

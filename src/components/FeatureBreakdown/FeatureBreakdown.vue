@@ -12,7 +12,14 @@
       一条没有含义的起伏。
     -->
     <view v-if="tiles.length" class="features__list">
-      <view v-for="tile in tiles" :key="tile.key" class="features__row">
+      <!--
+        九条横条依次落位。这一组最吃入场动画：九行是拿来互相比较的，
+        从上到下扫一遍就得出「谁在拉分」，一次全出现的话那一眼扫视没有落点。
+
+        延迟在 enterDelay 里封了顶（第 9 项起不再累加），九条 × 60ms = 480ms，
+        末条出现时前八条已经落定，不会出现「最后一行还在等」的空档。
+      -->
+      <view v-for="(tile, i) in tiles" :key="tile.key" class="features__row" :style="{ animationDelay: enterDelay(i) }">
         <text class="features__label">{{ tile.label }}</text>
         <view class="features__track">
           <view
@@ -41,6 +48,7 @@ import { computed } from 'vue';
 
 import { useFishingMapStore } from '@/composables/useFishingMapStore';
 import { toFeatureTiles } from '@/types/fishing';
+import { enterDelay } from '@/utils/motion';
 
 const { state } = useFishingMapStore();
 
@@ -52,6 +60,11 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
 </script>
 
 <style lang="scss" scoped>
+/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
+.features {
+  margin-top: $fish-space-section;
+}
+
 .features__head {
   display: flex;
   align-items: baseline;
@@ -59,44 +72,45 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
   margin-bottom: 20rpx;
 }
 
+/* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
 .features__title {
   color: $fish-ink;
-  font-size: 30rpx;
-  font-weight: 600;
-  letter-spacing: -1rpx;
+  @include fish-type(headline);
 }
 
 .features__meta {
   color: $fish-muted-60;
-  font-size: 22rpx;
+  @include fish-type(caption2);
 }
 
 .features__row {
   display: flex;
   align-items: center;
   height: 52rpx;
+  @include fish-enter;
 }
 
 .features__label {
-  width: 68rpx;
+  width: 72rpx;
   flex-shrink: 0;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(subhead);
 }
 
+/* 轨道用次级填充，卡片浮在上面 —— 12rpx ≈ 6pt 的条在这个信息密度下刚好 */
 .features__track {
   flex: 1;
   height: 12rpx;
-  border-radius: 999rpx;
   overflow: hidden;
+  border-radius: $fish-radius-pill;
   background-color: $fish-surface;
 }
 
 .features__fill {
   height: 100%;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-pill;
   background-color: $fish-accent;
-  transition: width 200ms ease-out;
+  transition: width $fish-dur-base $fish-ease-out;
 }
 
 /* 满格的那项单独上色：它是当前最主导的因素，值得从九条里跳出来 */
@@ -108,16 +122,18 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
   width: 88rpx;
   flex-shrink: 0;
   color: $fish-ink;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(subhead);
+
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .features__empty {
   display: block;
   padding: 64rpx 0;
-  color: $fish-muted-60;
-  font-size: 26rpx;
+  color: $fish-muted;
+  @include fish-type(subhead);
+
   text-align: center;
 }
 </style>

@@ -30,7 +30,15 @@
 
     <!-- 有数据 -->
     <template v-else-if="state.indexData">
-      <view class="verdict__figure">
+      <!--
+        三段依次落位：先给结论（分数），再给依据（三条成因），最后给动作。
+        骨架屏换成实数据的这一下是最容易「闪」的地方 —— 整块内容突然出现，
+        眼睛要重新找一遍。分三段递进，读的人跟着结论 → 依据 → 下一步走一遍。
+
+        只在首次拿到数据时播一次：刷新时 indexData 还在，v-else-if 不会重新挂载，
+        所以下拉/点刷新拿到新数据不会把这一屏重播一遍。
+      -->
+      <view class="verdict__figure" :style="{ animationDelay: enterDelay(0) }">
         <text class="verdict__score" :class="`verdict__score--${tone}`">
           {{ state.indexData.fishing_index }}
         </text>
@@ -41,7 +49,7 @@
       </view>
 
       <!-- 三个成因。少一条就少一半说服力，所以天气/潮汐/风缺哪条都还占位 -->
-      <view class="verdict__signals">
+      <view class="verdict__signals" :style="{ animationDelay: enterDelay(1) }">
         <view class="verdict__signal">
           <image class="verdict__icon verdict__icon--temp" :src="thermometerIcon" mode="widthFix" />
           <view class="verdict__signal-text">
@@ -67,7 +75,7 @@
         </view>
       </view>
 
-      <view class="verdict__actions">
+      <view class="verdict__actions" :style="{ animationDelay: enterDelay(2) }">
         <view class="verdict__btn verdict__btn--primary" @tap="emit('feedback')">
           <image class="verdict__icon verdict__icon--onaccent" :src="messageIcon" mode="widthFix" />
           <text class="verdict__btn-text verdict__btn-text--onaccent">反馈今日指数</text>
@@ -105,6 +113,7 @@ import { computed } from 'vue';
 import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
+import { enterDelay } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
 import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
@@ -172,14 +181,21 @@ function onRefresh() {
 </script>
 
 <style lang="scss" scoped>
+/*
+ * 结论头。
+ *
+ * 底色是一层**很淡的蓝调 wash**，不是 Material 那种 #e8f0fe 的实色板。
+ * 差别在于实色板会在这一屏铺开一大片有彩色的区域，把注意力从分数上抢走；
+ * 淡 wash 只是给整屏一个冷调的空气，分数仍然站在最前面。
+ *
+ * 前 34% 保持实度：状态栏和胶囊都落在这块背景里，这一段若已经开始透明，
+ * 顶部就会露出 App.vue 里 page 的灰底。
+ */
 .verdict {
   padding-right: 24rpx;
-  padding-bottom: 28rpx;
+  padding-bottom: 32rpx;
   padding-left: 24rpx;
-  border-bottom: 2rpx solid $fish-border-40;
-  /* 状态栏和胶囊都落在这块背景里，所以渐变的前 1/3 保持实色，再往下才淡出：
-     顶部留出的是状态栏 + 导航栏的高度，这一段若已经开始透明，状态栏就会露白 */
-  background: linear-gradient(180deg, $fish-blue-50 0%, $fish-blue-50 34%, rgba(232, 240, 254, 0) 100%);
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.1) 34%, rgba(0, 122, 255, 0) 100%);
 }
 
 .verdict__top {
@@ -202,9 +218,9 @@ function onRefresh() {
 }
 
 .verdict__icon--pin {
-  margin-right: 10rpx;
   width: 28rpx;
   height: 28rpx;
+  margin-right: 10rpx;
 }
 
 .verdict__icon--temp,
@@ -221,7 +237,8 @@ function onRefresh() {
   max-width: 300rpx;
   overflow: hidden;
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -230,17 +247,19 @@ function onRefresh() {
 .verdict__updated {
   margin-left: 12rpx;
   color: $fish-muted-60;
-  font-size: 22rpx;
+  @include fish-type(caption2);
 }
 
+/* 刷新键：圆形热区，按下即反馈，不用等抬手 */
 .verdict__refresh {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56rpx;
-  height: 56rpx;
+  width: 64rpx;
+  height: 64rpx;
   flex-shrink: 0;
   border-radius: 50%;
+  @include fish-press-dim;
 }
 
 /* 刷新中的转圈。用 CSS 旋转而不是图标帧图，少一张静态图 */
@@ -262,17 +281,30 @@ function onRefresh() {
   display: flex;
   align-items: flex-start;
   margin-bottom: 32rpx;
+  @include fish-enter;
 }
 
+/*
+ * 那个大数字。
+ *
+ * 不套 fish-type：这一处四项全都要覆盖（大到 76pt），套上去只会留下一串
+ * 被覆盖掉的声明，读的人得逐条比对才知道哪个才是生效值。这里直写。
+ *
+ * 字距收 -0.025em：76pt 的数字，SF Pro 的默认字距在这个尺寸上偏松，
+ * 两个位数之间会露出一道缝。但也别收到更紧 —— 数字本身还带着内边白，
+ * 收到 -0.05em 两三位就会粘连。字重 300 是在「细得优雅」和「非 Apple 设备上
+ * 退化成细体后发虚」之间取的折中。
+ */
 .verdict__score {
   font-size: 152rpx;
-  font-weight: 200;
+  font-weight: 300;
   line-height: 1;
-  letter-spacing: -8rpx;
+  letter-spacing: -0.025em;
 }
 
+/* 分数当文字用，所以走压深过的那一档绿，不是填充用的 systemGreen */
 .verdict__score--success {
-  color: $fish-success;
+  color: $fish-success-ink;
 }
 
 .verdict__score--ink {
@@ -294,19 +326,17 @@ function onRefresh() {
 .verdict__figure-side {
   flex: 1;
   min-width: 0;
-  padding-top: 10rpx;
+  padding-top: 12rpx;
   padding-left: 28rpx;
 }
 
 .verdict__level {
   display: block;
-  font-size: 34rpx;
-  font-weight: 600;
-  letter-spacing: -1rpx;
+  @include fish-type(title3);
 }
 
 .verdict__level--success {
-  color: $fish-success;
+  color: $fish-success-ink;
 }
 
 .verdict__level--ink {
@@ -327,18 +357,23 @@ function onRefresh() {
 
 .verdict__verdict {
   display: block;
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   color: $fish-muted;
-  font-size: 24rpx;
-  line-height: 1.5;
+  @include fish-type(subhead);
 }
 
-/* 三个成因。inset 分组，和下面的卡片同一套分组语言 */
+/*
+ * 三个成因 —— inset-grouped 分组。
+ *
+ * 白底浮在带色 wash 上，卡与卡之间靠 1rpx 发丝线分隔，这条线要「几乎看不见」
+ * 才不显得脏。分组容器不投影：它已经是白底浮在 tint 上了，再加投影就成了三层。
+ */
 .verdict__signals {
   display: flex;
-  border-radius: $fish-radius-xl;
   overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.72);
+  border-radius: $fish-radius-xl;
+  background-color: $fish-page;
+  @include fish-enter;
 }
 
 .verdict__signal {
@@ -347,7 +382,7 @@ function onRefresh() {
   flex: 1;
   min-width: 0;
   padding: 20rpx 18rpx;
-  border-right: 2rpx solid $fish-border-40;
+  border-right: 1rpx solid $fish-border;
 }
 
 .verdict__signal:last-child {
@@ -362,19 +397,20 @@ function onRefresh() {
   display: block;
   overflow: hidden;
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
-  letter-spacing: -1rpx;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .verdict__signal-meta {
   display: block;
-  margin-top: 4rpx;
+  margin-top: 2rpx;
   overflow: hidden;
-  color: $fish-muted-60;
-  font-size: 20rpx;
+  color: $fish-muted;
+  @include fish-type(caption2);
+
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -382,16 +418,25 @@ function onRefresh() {
 .verdict__actions {
   display: flex;
   margin-top: 28rpx;
+  @include fish-enter;
 }
 
+/*
+ * 按钮。
+ *
+ * 88rpx = 44pt，正好是 Apple 判定为「可放心点按」的最小命中尺寸。
+ * 反馈在手指落下的那一帧就给出（fish-press），抬手回弹用满 260ms ——
+ * 两段时长一短一长，是 iOS 按压手感的关键，缺一段立刻变塑料。
+ */
 .verdict__btn {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 88rpx;
   padding: 0 20rpx;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-pill;
   background-color: $fish-surface;
+  @include fish-press(0.97);
 }
 
 .verdict__btn--primary {
@@ -406,22 +451,21 @@ function onRefresh() {
 
 .verdict__btn-text {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 500;
+  @include fish-type(callout);
 }
 
 .verdict__btn-text--onaccent {
-  color: #fff;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .verdict__error {
   color: $fish-destructive;
-  font-size: 28rpx;
+  @include fish-type(callout);
 }
 
 .verdict__empty {
   color: $fish-muted;
-  font-size: 28rpx;
+  @include fish-type(callout);
 }
 </style>

@@ -108,8 +108,15 @@ const emit = defineEmits<{
 const nav = useNavMetrics();
 const instance = getCurrentInstance()!;
 
-/** 拖拽把手区实测高度（px）：上下 padding + 指示条 */
-const HANDLE_HEIGHT = 54;
+/**
+ * 拖拽把手区实测高度（px）：上下 padding（24 + 12）+ 指示条 10 = 46rpx。
+ *
+ * 用 upx2px 现场换算而不是写死数字：这个值要参与滚动区高度的算式
+ * （面板高 − 把手 − 头部），写死等于把样式里那串 padding 又抄了一份，
+ * 以后改 padding 忘了回来改这里，滚动区就会凭空短一截或长一截。
+ * 代价只有一次函数调用，换掉的是一整类「两处必须同时改」的坑。
+ */
+const HANDLE_HEIGHT = uni.upx2px(46);
 
 /** 头部实测高度（px）。无 header 时为 0 */
 const headerHeight = ref(0);
@@ -194,7 +201,10 @@ function snapToPx(index: number): number {
 
 const panelStyle = computed(() => ({
   height: `${heightPx.value}px`,
-  transition: dragging.value ? 'none' : 'height 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+  // 曲线与时长照抄 uni.scss 的 $fish-spring / $fish-dur-base（行内 style 不走 SCSS，
+  // 变量传不进来，只能写死并在注释里指回源头）。抬手吸附走临界阻尼、不回弹：
+  // 档位切换是「落位」不是「甩过去」，加了过冲会读成弹了一下。
+  transition: dragging.value ? 'none' : 'height 280ms cubic-bezier(0.2, 0, 0, 1)',
 }));
 
 watch(
@@ -328,13 +338,13 @@ function onMaskTap() {
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgba(32, 33, 36, 0.3);
-  animation: snap-mask-in 0.2s ease-out both;
+  background-color: $fish-scrim;
+  animation: snap-mask-in $fish-dur-base $fish-ease-out both;
 }
 
 /* 退场遮罩：比面板早收，让面板滑落时背景已经暗回去 */
 .snap-sheet__mask--out {
-  animation: snap-mask-out 0.26s ease-in both;
+  animation: snap-mask-out 260ms $fish-ease-in both;
 }
 
 .snap-sheet__panel {
@@ -345,11 +355,15 @@ function onMaskTap() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-top-left-radius: 36rpx;
-  border-top-right-radius: 36rpx;
+  border-top-left-radius: $fish-radius-sheet;
+  border-top-right-radius: $fish-radius-sheet;
   background-color: $fish-page;
-  /* 投影让面板从地图上"浮起" */
-  box-shadow: 0 -8rpx 28rpx rgba(32, 33, 36, 0.1);
+  /*
+   * 投影让面板从地图上"浮起"。
+   * 背后是原生 map，投影是唯一能表达高度的手段（没有 backdrop-filter 兜底），
+   * 所以这一层要比普通卡片重：向上扩散的范围更大、衰减更慢。
+   */
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.16);
   /*
    * 入场：从底部下方滑上来，落位时归零 transform。
    *
@@ -357,27 +371,34 @@ function onMaskTap() {
    * 不像拖拽那样每帧都在变 height，中间高度跳来跳去会很难看。
    * 面板始终贴底，滑入过程中露出的是地图，本来就该露。
    *
-   * 轻微上移 + 淡入的组合，比纯位移更有"被拿起来"的感觉。
+   * 曲线用 $fish-ease-out：末端加速后急停，是 iOS 呈现面板的形状。
+   * 420ms 给了它足够的「被拿起来」的分量，再短就退化成淡入了。
    */
-  animation: snap-panel-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: snap-panel-in $fish-dur-slow $fish-ease-out both;
 }
 
-/* 退场：原路滑回底部 */
+/* 退场：原路滑回底部。260ms 必须与脚本里的 EXIT_MS 一致 */
 .snap-sheet__panel--out {
-  animation: snap-panel-out 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: snap-panel-out 260ms $fish-ease-in both;
 }
 
+/*
+ * 拖拽把手。
+ * HANDLE_HEIGHT 是脚本里按这套 padding + 指示条高度算出来的常量（54px），
+ * 改这里的 padding 必须回去同步那个数，否则滚动区会算错高度。
+ */
 .snap-sheet__handle {
-  padding: 24rpx 40rpx 16rpx;
+  padding: 24rpx 40rpx 12rpx;
   flex-shrink: 0;
 }
 
+/* 抓握条：36pt × 5pt，是 iOS sheet 的标准把手尺寸 */
 .snap-sheet__handle-bar {
-  width: 80rpx;
-  height: 12rpx;
+  width: 72rpx;
+  height: 10rpx;
   margin: 0 auto;
-  border-radius: 999rpx;
-  background-color: $fish-border;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-muted-60;
 }
 
 .snap-sheet__header {
@@ -411,7 +432,7 @@ function onMaskTap() {
   }
 }
 
-/*
+/**
  * 入场：translateY 用百分比，锚的是面板自身高度，
  * 所以不管当前档位多高，起点都在「刚好完全藏在屏幕下方」，
  * 不会出现矮面板只滑一半就露底的情况。

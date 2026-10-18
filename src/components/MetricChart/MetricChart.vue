@@ -71,9 +71,9 @@ interface Metric {
 }
 
 const METRICS: ReadonlyArray<Metric> = [
-  { key: 'temp', label: '气温', unit: '°C', color: '#ea4335' },
-  { key: 'precip', label: '降水', unit: 'mm', color: '#4285f4' },
-  { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#1a73e8' },
+  { key: 'temp', label: '气温', unit: '°C', color: '#ff3b30' }, // $fish-temp
+  { key: 'precip', label: '降水', unit: 'mm', color: '#007aff' }, // $fish-tide 的蓝：水
+  { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#5ac8fa' }, // systemTeal
 ];
 
 const { state } = useFishingMapStore();
@@ -125,6 +125,11 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 </script>
 
 <style lang="scss" scoped>
+/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
+.metric {
+  margin-top: $fish-space-section;
+}
+
 .metric__head {
   display: flex;
   align-items: baseline;
@@ -134,43 +139,51 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 
 .metric__title {
   color: $fish-ink;
-  font-size: 30rpx;
-  font-weight: 600;
-  letter-spacing: -1rpx;
+  @include fish-type(title3);
 }
 
 .metric__hint {
   color: $fish-muted-60;
-  font-size: 22rpx;
+  @include fish-type(caption2);
 }
 
+/*
+ * 分段控件。
+ *
+ * 轨道用中性填充（$fish-fill）而不是带色底 —— iOS 的 segmented control
+ * 从来不给轨道上品牌色，彩色只出现在选中项上，否则整排都在抢注意力。
+ *
+ * 选中块是白底 + 一层极浅投影：它是「浮」在轨道上的一层，不是「染」了轨道的颜色。
+ */
 .metric__segment {
   display: flex;
   margin-bottom: 20rpx;
   padding: 4rpx;
   border-radius: $fish-radius-lg;
-  background-color: $fish-blue-50;
+  background-color: $fish-fill;
 }
 
 .metric__item {
   flex: 1;
-  padding: 12rpx 0;
-  border-radius: 18rpx;
+  padding: 14rpx 0;
+  border-radius: 14rpx;
   text-align: center;
+  @include fish-press-dim;
 }
 
 .metric__item--active {
   background-color: $fish-page;
-  box-shadow: 0 2rpx 6rpx rgba(32, 33, 36, 0.12);
+  /* 选中块压出轨道用的那层投影。0.08 就够，再重就变成灰色描边了 */
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .metric__item-text {
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(callout);
 }
 
 .metric__item-text--active {
-  color: $fish-blue-600;
+  color: $fish-ink;
   font-weight: 600;
 }
 
@@ -178,7 +191,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
   display: block;
   padding: 64rpx 0;
   color: $fish-muted-60;
-  font-size: 26rpx;
+  @include fish-type(subhead);
   text-align: center;
 }
 
@@ -186,6 +199,6 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
   display: block;
   margin-top: 12rpx;
   color: $fish-muted-60;
-  font-size: 22rpx;
+  @include fish-type(caption2);
 }
 </style>

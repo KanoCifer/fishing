@@ -89,7 +89,7 @@ withDefaults(
 }
 
 .skeleton-card__bar {
-  border-radius: 8rpx;
+  border-radius: $fish-radius-sm;
   background-color: $fish-surface;
 }
 
@@ -138,11 +138,18 @@ withDefaults(
   margin-top: 30rpx;
 }
 
+/*
+ * 分组容器。
+ *
+ * 底色是分隔线色而不是「卡片色」——它在这套结构里的角色是**露出的一条缝**：
+ * 卡片从缝里浮起来，分组才能读成一个整体。真实内容里同一条缝由
+ * $fish-border 的 1rpx 发丝线承担（见 WeatherCard / FishingSpotDetailSheet）。
+ */
 .skeleton-card__group {
   display: flex;
   margin-bottom: 30rpx;
-  border-radius: $fish-radius-xl;
   overflow: hidden;
+  border-radius: $fish-radius-xl;
   background-color: $fish-border-40;
 }
 
@@ -164,13 +171,19 @@ withDefaults(
   margin-bottom: 0;
 }
 
+/*
+ * 呼吸幅度收到 0.35。
+ *
+ * 骨架屏是一次性出现的加载占位，用户盯着它的时间不确定长；幅度越小、越平缓，
+ * 弱网下反复闪烁时的疲劳感越低。1 → 0.35 是既能看出「在动」又不会晃眼的档。
+ */
 @keyframes skeleton-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 </style>

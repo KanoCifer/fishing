@@ -42,7 +42,7 @@
             <view class="weather-card__pressure-dot" :class="`weather-card__pressure-dot--${pressureTone}`" />
             <text class="weather-card__row-label">气压状态</text>
           </view>
-          <text class="weather-card__row-value weather-card__row-value--{{ pressureTone }}">
+          <text class="weather-card__row-value" :class="`weather-card__row-value--${pressureTone}`">
             {{ pressureLabel }}
           </text>
         </view>
@@ -111,23 +111,22 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 </script>
 
 <style lang="scss" scoped>
+/* 分区间距：统一走 $fish-space-section，理由见 uni.scss。
+   左右留白不在这里：数据页是无卡片的分区布局，留白统一由页面的 .pane 给。 */
 .weather-card {
-  /* 原先这段内边距是为了把自己缩进 .card 里（卡片自带 24rpx 内边距，
-     再补 8rpx 才和别的卡片标题对齐）。数据页改成无卡片的分区布局后，
-     没有卡片可缩进了，内边距统一交给页面的 .pane，这里归零。 */
+  margin-top: $fish-space-section;
 }
 
 .weather-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
 }
 
 .weather-card__title {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 600;
+  @include fish-type(headline);
 }
 
 .weather-card__body {
@@ -135,18 +134,20 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
   flex-direction: column;
 }
 
+/* inset-grouped 分组：白底浮在页面灰底上，靠面分层而不是描边 */
 .weather-card__group {
-  border-radius: $fish-radius-xl;
   overflow: hidden;
+  border-radius: $fish-radius-xl;
   background-color: $fish-page;
 }
 
+/* 行间 1rpx 发丝线。2rpx 在 375pt 机型上是 1pt，是 iOS 分隔线的三倍厚 */
 .weather-card__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 32rpx;
-  border-bottom: 2rpx solid $fish-border-40;
+  padding: 22rpx 32rpx;
+  border-bottom: 1rpx solid $fish-border;
 }
 
 .weather-card__row:last-child {
@@ -158,6 +159,7 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
   align-items: center;
 }
 
+/* 状态点用填充档的绿/红，右侧文字用压深档（见 uni.scss 的说明） */
 .weather-card__pressure-dot {
   width: 16rpx;
   height: 16rpx;
@@ -178,23 +180,23 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 }
 
 .weather-card__pressure-dot--muted {
-  background-color: $fish-surface;
+  background-color: $fish-muted-60;
 }
 
 .weather-card__row-label {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(subhead);
 }
 
 .weather-card__row-value {
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
 }
 
 .weather-card__row-value--success {
-  color: $fish-success;
+  color: $fish-success-ink;
 }
 
 .weather-card__row-value--warning {
@@ -212,7 +214,7 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 /* 三日预报：扁平横排，不加卡片边框 */
 .weather-card__forecast {
   display: flex;
-  margin-top: 32rpx;
+  margin-top: 24rpx;
 }
 
 .weather-card__forecast-cell {
@@ -224,15 +226,15 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 }
 
 .weather-card__forecast-cell--divided {
-  border-left: 2rpx solid $fish-border-40;
+  border-left: 1rpx solid $fish-border;
 }
 
 .weather-card__forecast-date {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
 }
 
+/* 图标字形不走字阶，理由见 HourlyWeather 的 .hourly__icon */
 .weather-card__forecast-icon {
   margin: 12rpx 0;
   font-size: 44rpx;
@@ -243,17 +245,18 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 
 .weather-card__forecast-temp {
   color: $fish-ink;
-  font-size: 24rpx;
+  @include fish-type(caption);
+
   font-weight: 600;
 }
 
 .weather-card__error {
   color: $fish-destructive;
-  font-size: 28rpx;
+  @include fish-type(callout);
 }
 
 .weather-card__empty {
   color: $fish-muted;
-  font-size: 28rpx;
+  @include fish-type(callout);
 }
 </style>

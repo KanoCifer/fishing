@@ -35,22 +35,29 @@
       </view>
     </view>
 
-    <!-- 天气：实况 → 趋势 → 逐时 → 七天，由实到细 -->
+    <!--
+      天气：实况 → 趋势 → 逐时 → 七天，由实到细。
+
+      .pane__section 落在每个子组件的根节点上（Vue 的 class fallthrough，
+      钓点页的 FullscreenMap 也是这么用的），所以动画归每个分区自己所有，
+      页面只负责按顺序给不同的延迟。切面板时整组重建，入场跟着重放一遍 ——
+      这正是要的效果：新面板的内容落位，而不是旧面板消失后新面板凭空出现。
+    -->
     <view v-if="pane === 'weather'" class="pane">
-      <MetricChart />
-      <HourlyWeather />
-      <WeekStrip />
-      <WeatherCard />
+      <MetricChart class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
+      <HourlyWeather class="pane__section" :style="{ animationDelay: enterDelay(1) }" />
+      <WeekStrip class="pane__section" :style="{ animationDelay: enterDelay(2) }" />
+      <WeatherCard class="pane__section" :style="{ animationDelay: enterDelay(3) }" />
     </view>
 
     <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
     <view v-else-if="pane === 'tide'" class="pane">
-      <TideCard />
+      <TideCard class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
     </view>
 
     <!-- 指数构成：九项子特征各自贡献多少 -->
     <view v-else class="pane">
-      <FeatureBreakdown />
+      <FeatureBreakdown class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
     </view>
 
     <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
@@ -103,6 +110,7 @@ import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
+import { enterDelay } from '@/utils/motion';
 
 /** 特征详情两档：半屏 / 大半屏 */
 const FEATURE_SNAP_POINTS = [50, 82] as const;
@@ -169,51 +177,81 @@ function openFeedback() {
 </script>
 
 <style lang="scss" scoped>
+/* 页面底色 = systemGroupedBackground。App.vue 里给 page 也上了同一个色，
+   这里再写一遍是为了让「内容区」和「切换瞬间露出的底色」保证同色 */
 .data {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: $fish-grouped;
 }
 
+/*
+ * 证据切换 —— 全页唯一的分段控件。
+ *
+ * 轨道是中性填充而非品牌色底：iOS 的 segmented 从不给轨道上色，
+ * 彩色只留给选中项。选中块白底 + 浅投影，读作「浮在轨道上的一层」。
+ */
 .segment {
   display: flex;
-  margin: 28rpx 32rpx 0;
+  margin: 24rpx 32rpx 0;
   padding: 4rpx;
   border-radius: $fish-radius-lg;
-  background-color: $fish-blue-50;
+  background-color: $fish-fill;
 }
 
 .segment__item {
   flex: 1;
-  padding: 14rpx 0;
-  border-radius: 18rpx;
+  padding: 16rpx 0;
+  border-radius: 14rpx;
   text-align: center;
+  @include fish-press-dim;
 }
 
 .segment__item--active {
   background-color: $fish-page;
-  box-shadow: 0 2rpx 6rpx rgba(32, 33, 36, 0.12);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .segment__text {
   color: $fish-muted;
-  font-size: 26rpx;
+  @include fish-type(callout);
 }
 
 .segment__text--active {
-  color: $fish-blue-600;
+  color: $fish-ink;
   font-weight: 600;
 }
 
-/* 一屏内的分区。左右留白统一 32rpx，结论头是满宽的，两者的关系是「带内容的一层」 */
+/*
+ * 一屏内的分区。
+ *
+ * 左右留白 32rpx 统一在这里给，内容组件（WeekStrip / TideCard / WeatherCard /
+ * HourlyWeather）自己不再带内边距 —— 留白是页面级的，留在组件里就等于
+ * 同一个数抄了三份。结论头是满宽的，它和 .pane 的关系是「带内容的一层」。
+ */
 .pane {
   padding: 32rpx;
+}
+
+/*
+ * 分区入场。
+ *
+ * 规则写在页面而不是各组件里：延迟取决于这一组里第几个分区（由模板给），
+ * 组件自己不知道自己排在第几位。规则也只有这一条，各分区长得一样。
+ *
+ * 这里没有退场动画。退场要留住旧内容等它走完，小程序端 v-if 直接销毁节点，
+ * 挂一个退场等于让新旧两块同时占位，面板切换时会看到两层内容叠着。
+ * 切换本来就是一次「换」，入场把新内容交代清楚就够了。
+ */
+.pane__section {
+  @include fish-enter;
 }
 
 .data__foot {
   display: block;
   padding: 16rpx 0 48rpx;
   color: $fish-muted-60;
-  font-size: 22rpx;
+  @include fish-type(caption2);
+
   text-align: center;
 }
 
@@ -222,17 +260,17 @@ function openFeedback() {
   padding: 0 40rpx 24rpx;
 }
 
+/* 与另外两个抽屉头部保持同一级（title2），三个抽屉必须长得一样 */
 .feature__title {
   display: block;
   color: $fish-ink;
-  font-size: 32rpx;
-  font-weight: 600;
+  @include fish-type(title2);
 }
 
 .feature__subtitle {
   display: block;
   margin-top: 4rpx;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 </style>

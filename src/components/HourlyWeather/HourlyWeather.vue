@@ -52,28 +52,27 @@ const hours = computed(() => state.weatherHourly.slice(0, 24));
 </script>
 
 <style lang="scss" scoped>
+/* 分区间距：统一走 $fish-space-section，理由见 uni.scss。
+   原来这里靠一个空规则占位，现已改成真正生效的分区间距 */
 .hourly {
-  /* 原先这段内边距是为了把自己缩进 .card 里（卡片自带 24rpx 内边距，
-     再补 8rpx 才和别的卡片标题对齐）。数据页改成无卡片的分区布局后，
-     没有卡片可缩进了，内边距统一交给页面的 .pane，这里归零。 */
+  margin-top: $fish-space-section;
 }
 
 .hourly__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
 }
 
 .hourly__title {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 600;
+  @include fish-type(headline);
 }
 
 .hourly__meta {
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .hourly__scroll {
@@ -97,14 +96,23 @@ const hours = computed(() => state.weatherHourly.slice(0, 24));
 
 .hourly__time {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
 }
 
+/* 「现在」这一格靠字重站出来，不靠颜色 —— 加了颜色就变成在提示，
+   而它其实是状态，不是提醒 */
 .hourly__cell--now .hourly__time {
-  color: $fish-ink;
+  color: $fish-accent;
+  font-weight: 600;
 }
 
+/*
+ * 图标字形不走字阶。
+ *
+ * 和风图标是字体字形，没有「字重 / 字距 / 行高」的排版语义 ——
+ * 套 fish-type 会把行高顶到 1.25，在字形下面多留一截空白，
+ * 整排格子跟着往下坠。字形只认 font-size 和 line-height: 1。
+ */
 .hourly__icon {
   margin: 12rpx 0;
   font-size: 40rpx;
@@ -115,12 +123,13 @@ const hours = computed(() => state.weatherHourly.slice(0, 24));
 
 .hourly__temp {
   color: $fish-ink;
-  font-size: 26rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
 }
 
 .hourly__skeleton {
-  border-radius: 8rpx;
+  border-radius: $fish-radius-sm;
   background-color: $fish-surface;
   animation: hourly-pulse 1.8s ease-in-out infinite;
 }
@@ -142,13 +151,15 @@ const hours = computed(() => state.weatherHourly.slice(0, 24));
   height: 14rpx;
 }
 
+/* 与 SkeletonCard 的同名 keyframes 保持同一档呼吸幅度（0.35），
+   否则同一个页面里两种加载态一深一浅，像两套组件 */
 @keyframes hourly-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 </style>

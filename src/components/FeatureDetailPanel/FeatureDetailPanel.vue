@@ -98,31 +98,38 @@ function onClose() {
   flex-direction: column;
 }
 
+/* 浮层的标题比页面内的分区标题大一档：它现在就是这一屏的主角 */
 .feature-detail__title {
   color: $fish-ink;
-  font-size: 32rpx;
-  font-weight: 600;
+  @include fish-type(title2);
 }
 
 .feature-detail__subtitle {
   margin-top: 4rpx;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
+/* 关闭键：圆形热区 + 按下反馈。iOS 的关闭键是纯文字符号，
+   尺寸靠热区撑而不是靠字大 */
 .feature-detail__close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72rpx;
-  height: 72rpx;
+  width: 64rpx;
+  height: 64rpx;
   flex-shrink: 0;
+  margin: -8rpx -8rpx 0 0;
   border-radius: 50%;
+  background-color: $fish-surface;
+  @include fish-press-dim;
 }
 
+/* ✕ 是字形不是文字，理由见 HourlyWeather 的 .hourly__icon */
 .feature-detail__close-icon {
   color: $fish-muted;
   font-size: 32rpx;
+  line-height: 1;
 }
 
 .feature-detail__grid {
@@ -158,23 +165,27 @@ function onClose() {
 
 .feature-detail__tile-label {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
 }
 
 .feature-detail__tile-value {
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(callout);
+
   font-weight: 600;
 }
 
+/*
+ * 进度条。轨道不能和卡片底色同色 —— 这一格底就是 $fish-surface，
+ * 轨道若也用它，整条进度会「消失」，只剩里面那截彩色。
+ */
 .feature-detail__gauge {
   position: relative;
   width: 100%;
   height: 12rpx;
   overflow: hidden;
-  border-radius: 999rpx;
-  background-color: rgba(32, 33, 36, 0.1);
+  border-radius: $fish-radius-pill;
+  background-color: $fish-border;
 }
 
 .feature-detail__gauge-fill {
@@ -182,9 +193,10 @@ function onClose() {
   top: 0;
   left: 0;
   height: 100%;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-pill;
 }
 
+/* 这一列全是填充语义（进度条），所以用未压深的填充档色值 */
 .feature-detail__gauge-fill--success {
   background-color: $fish-success;
 }
@@ -202,6 +214,6 @@ function onClose() {
 }
 
 .feature-detail__gauge-fill--muted {
-  background-color: $fish-border;
+  background-color: $fish-muted-60;
 }
 </style>

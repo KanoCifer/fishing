@@ -110,12 +110,14 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 地图页没有自己的底色 —— 整屏都是地图，任何底色都只在首帧露一下。
+   这里给的是地图瓦片还没加载时的兜底，等同于 App.vue 的 page 色 */
 .fishing {
   position: relative;
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: $fish-page;
+  background: $fish-grouped;
 }
 
 .fishing__map-area {

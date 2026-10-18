@@ -25,9 +25,11 @@ from PIL import Image, ImageDraw
 SIZE = 81
 SS = 4  # 超采样倍数
 
-# 未选中 / 选中两态的色值，必须与 uni.scss 的 $fish-muted-60 / $fish-blue 对齐
-COLOR_IDLE = (154, 154, 154, 255)  # #9a9a9a
-COLOR_ACTIVE = (66, 133, 244, 255)  # #4285f4 = $fish-blue
+# 未选中 / 选中两态的色值，必须与 uni.scss 的 $fish-muted / $fish-blue 对齐，
+# 也必须与 pages.json 里 tabBar 的 color / selectedColor 对齐 ——
+# 三个地方是同一件事的三个出处，漏改一处，选中时的图标和文字就会一个蓝一个旧蓝。
+COLOR_IDLE = (60, 60, 67, 255)  # #3c3c43 = $fish-muted（secondaryLabel）
+COLOR_ACTIVE = (0, 122, 255, 255)  # #007aff = $fish-blue（systemBlue）
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "src" / "static" / "tabbar"
 

@@ -184,28 +184,33 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
 .tide-card {
-  /* 原先这段内边距是为了把自己缩进 .card 里（卡片自带 24rpx 内边距，
-     再补 8rpx 才和别的卡片标题对齐）。数据页改成无卡片的分区布局后，
-     没有卡片可缩进了，内边距统一交给页面的 .pane，这里归零。 */
+  margin-top: $fish-space-section;
 }
 
 .tide-card__header {
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
 }
 
 .tide-card__title {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 600;
+  @include fish-type(headline);
 }
 
+/*
+ * 港口切换：iOS segmented control。
+ * 轨道是中性填充、选中块是白底浮在上面 —— 轨道不给品牌色是刻意的，
+ * 彩色留给选中项，整排才不会一起抢注意力。轨道带一层投影是因为它
+ * 浮在页面灰底之上，不投影会和下面的内容糊在一起。
+ */
 .tide-card__segmented {
   width: 100%;
   margin-bottom: 16rpx;
   white-space: nowrap;
   border-radius: $fish-radius-lg;
-  background-color: $fish-blue-50;
+  background-color: $fish-fill;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06);
 }
 
 .tide-card__segmented-track {
@@ -221,21 +226,25 @@ watch(
   flex: 1;
   flex-shrink: 0;
   padding: 0 24rpx;
-  border-radius: 10rpx;
+  border-radius: 14rpx;
+  /* 分段按下是变暗不是缩小：缩小会让整排的选中块位置跳一下，
+     读起来像换了一项 */
+  @include fish-press-dim;
 }
 
 .tide-card__segment--active {
   background-color: $fish-page;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .tide-card__segment-text {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(callout);
 }
 
 .tide-card__segment-text--active {
   color: $fish-ink;
+  font-weight: 600;
 }
 
 .tide-card__dates {
@@ -249,6 +258,14 @@ watch(
   padding: 4rpx;
 }
 
+/*
+ * 日期 chip。
+ *
+ * 选中态是胶囊形的实色按钮 + 一道底边 —— iOS 的 chip/标签选中就是
+ * 「填满 + 颜色反转」，而不是「描边加粗」。高度 72rpx = 36pt，
+ * 比 44pt 的可点按热区小，但它是横向滚动的密集选择器，
+ * 加上内边距后的实际命中高度已经够，跟不出 88rpx 的理由只有「显得大」。
+ */
 .tide-card__chip {
   display: flex;
   align-items: center;
@@ -256,9 +273,10 @@ watch(
   min-height: 72rpx;
   flex-shrink: 0;
   margin-right: 12rpx;
-  padding: 0 24rpx;
-  border-radius: 999rpx;
+  padding: 0 28rpx;
+  border-radius: $fish-radius-pill;
   background-color: $fish-surface;
+  @include fish-press(0.94);
 }
 
 .tide-card__chip--active {
@@ -267,8 +285,12 @@ watch(
 
 .tide-card__chip-text {
   color: $fish-ink;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
+}
+
+.tide-card__chip-text--active {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .tide-card__body {
@@ -279,10 +301,15 @@ watch(
   padding: 16rpx 0 32rpx;
 }
 
+/*
+ * 高潮 / 低潮并排。
+ * 容器底色是分隔线色 —— 它在这套结构里露出的是「卡与卡之间那道缝」，
+ * 两张白卡从缝里浮起来才读得成一个分组。
+ */
 .tide-card__peaks {
   display: flex;
-  border-radius: $fish-radius-xl;
   overflow: hidden;
+  border-radius: $fish-radius-xl;
   background-color: $fish-border-40;
 }
 
@@ -302,24 +329,22 @@ watch(
 
 .tide-card__peak-label {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
 }
 
 .tide-card__peak-time {
   margin-left: 12rpx;
   color: $fish-ink;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .tide-card__peak-height {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 600;
+  @include fish-type(title3);
 }
 
 .tide-card__empty {
   color: $fish-muted;
-  font-size: 28rpx;
+  @include fish-type(callout);
 }
 </style>

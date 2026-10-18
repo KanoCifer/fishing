@@ -141,10 +141,10 @@ let progress = 1;
  * 所以这里只能硬编码。改主题时 uni.scss 和这四行要一起改 ——
  * 漏改的话图表会和卡片配色对不上，而这种不一致在编译期完全看不出来。
  */
-const TIDE_COLOR = '#4285f4'; // $fish-tide（Material Blue 500）
-const GRID_COLOR = '#dadce0'; // $fish-border
-const TEXT_COLOR = '#5f6368'; // $fish-muted
-const WARNING_COLOR = '#fbbc04'; // $fish-warning
+const TIDE_COLOR = '#007aff'; // $fish-tide（systemBlue）
+const GRID_COLOR = 'rgba(60, 60, 67, 0.29)'; // $fish-border（separator）
+const TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
+const WARNING_COLOR = '#ff9500'; // $fish-warning（systemOrange）
 
 const PAD = { left: 56, right: 16, top: 16, bottom: 48 };
 
@@ -262,9 +262,9 @@ function draw() {
 
   // 面积渐变（竖直方向：上浓下淡）。底色跟 TIDE_COLOR 同源，见上面「必须同步」的说明
   const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-  gradient.addColorStop(0, 'rgba(66, 133, 244, 0.24)');
-  gradient.addColorStop(0.7, 'rgba(66, 133, 244, 0.05)');
-  gradient.addColorStop(1, 'rgba(66, 133, 244, 0)');
+  gradient.addColorStop(0, 'rgba(0, 122, 255, 0.24)');
+  gradient.addColorStop(0.7, 'rgba(0, 122, 255, 0.05)');
+  gradient.addColorStop(1, 'rgba(0, 122, 255, 0)');
 
   // 入场动画：只画到 progress 对应的位置，曲线像被"画"出来
   const cut = progress * (len - 1);
@@ -314,7 +314,7 @@ function draw() {
     ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
   }
   ctx.strokeStyle = TIDE_COLOR;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 3; // 与 iOS Charts 的默认线宽（3pt）对齐，2.5 在小画布上偏细
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -657,26 +657,32 @@ function onTouchEnd() {
   display: block; // 微信端必须是 block，否则 canvas 是 inline 元素，尺寸计算会偏
 }
 
+/*
+ * 数值浮层。浮在 canvas 上所以必须深色，宽度给死 120px —— tooltipStyle
+ * 按这个宽度做边界收拢（见脚本里那段），改这里要同步改那边的 120。
+ */
 .tide-chart__tooltip {
   position: absolute;
   z-index: 10;
   min-width: 120px;
-  padding: 8rpx 12rpx;
-  background: rgba(0, 0, 0, 0.75);
-  border-radius: 8rpx;
+  padding: 10rpx 16rpx;
+  border-radius: $fish-radius-sm;
+  background-color: $fish-material-dark;
   pointer-events: none;
 }
 
 .tide-chart__tooltip-time {
   display: block;
-  margin-bottom: 4rpx;
-  color: #fff;
-  font-size: 22rpx;
+  margin-bottom: 6rpx;
+  /* 半透明材质上的文字要更重一点才不被背景打散 */
+  color: rgba(255, 255, 255, 0.65);
+  @include fish-type(caption2);
+  font-weight: 500;
 }
 
 .tide-chart__tooltip-row {
-  color: #fff;
-  font-size: 22rpx;
+  color: #ffffff;
+  @include fish-type(caption);
 }
 
 .tide-chart__tooltip-value {

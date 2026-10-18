@@ -325,7 +325,6 @@ function onClose() {
 <style lang="scss" scoped>
 .spot-detail__header {
   padding: 0 40rpx 24rpx;
-  border-bottom: 2rpx solid $fish-border-40;
 }
 
 .spot-detail__header-text {
@@ -334,12 +333,13 @@ function onClose() {
   flex-direction: column;
 }
 
+/* 抽屉的标题比页面内的分区标题大一档：这一屏只有它一个主角 */
 .spot-detail__title {
   max-width: 560rpx;
   overflow: hidden;
   color: $fish-ink;
-  font-size: 32rpx;
-  font-weight: 600;
+  @include fish-type(title2);
+
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -347,7 +347,7 @@ function onClose() {
 .spot-detail__date {
   margin-top: 4rpx;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .spot-detail__content,
@@ -362,12 +362,16 @@ function onClose() {
   margin-bottom: 32rpx;
 }
 
+/* ★ 是字形不是文字，理由见 HourlyWeather 的 .hourly__icon */
 .spot-detail__star {
   margin-right: 8rpx;
-  color: rgba(32, 33, 36, 0.15);
-  font-size: 48rpx;
+  font-size: 44rpx;
+  line-height: 1;
+  color: $fish-border;
 }
 
+/* 选中星用 systemOrange 而非 systemYellow(#ffcc00)：1pt 的星在白底上
+   用 Yellow 会淡到看不出填充和空白的区别 */
 .spot-detail__star--on {
   color: $fish-warning;
 }
@@ -375,16 +379,17 @@ function onClose() {
 .spot-detail__rating-value {
   margin-left: 12rpx;
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .spot-detail__description {
   display: block;
   margin-bottom: 32rpx;
   color: $fish-ink;
-  font-size: 30rpx;
-  line-height: 1.7;
+  @include fish-type(body);
 }
 
 .spot-detail__tags {
@@ -393,19 +398,21 @@ function onClose() {
   margin-bottom: 32rpx;
 }
 
+/* 标签是「静态标记」不是「可选中的 chip」：中性填充 + 圆角矩形，
+   胶囊会让人以为能点 */
 .spot-detail__tag {
   margin: 0 12rpx 12rpx 0;
   padding: 8rpx 24rpx;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-sm;
   background-color: $fish-surface;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .spot-detail__group {
   margin-bottom: 32rpx;
-  border-radius: $fish-radius-xl;
   overflow: hidden;
+  border-radius: $fish-radius-xl;
   background-color: $fish-page;
 }
 
@@ -413,8 +420,8 @@ function onClose() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 32rpx;
-  border-bottom: 2rpx solid $fish-border-40;
+  padding: 22rpx 32rpx;
+  border-bottom: 1rpx solid $fish-border;
 }
 
 .spot-detail__row:last-child {
@@ -423,14 +430,14 @@ function onClose() {
 
 .spot-detail__row-label {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(subhead);
 }
 
 .spot-detail__row-value {
   color: $fish-ink;
-  font-size: 26rpx;
-  font-weight: 500;
+  @include fish-type(subhead);
+
+  font-variant-numeric: tabular-nums;
 }
 
 /* 操作 */
@@ -443,6 +450,13 @@ function onClose() {
   margin-top: 32rpx;
 }
 
+/*
+ * 按钮。
+ *
+ * 三档：ghost（中性填充）/ primary（主色实心）/ danger（淡红底）。
+ * danger 实心只留给「确认删除」那一步 —— iOS 的 destructive 按钮永远
+ * 出现在最终确认上，而不是放在让用户先点一下看看的地方。
+ */
 .spot-detail__btn {
   display: flex;
   flex: 1;
@@ -450,7 +464,8 @@ function onClose() {
   justify-content: center;
   min-height: 88rpx;
   margin: 0 8rpx;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-pill;
+  @include fish-press(0.97);
 }
 
 .spot-detail__btn--ghost {
@@ -462,7 +477,7 @@ function onClose() {
 }
 
 .spot-detail__btn--danger {
-  background-color: rgba(234, 67, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.12);
 }
 
 .spot-detail__btn--danger-solid {
@@ -470,27 +485,37 @@ function onClose() {
 }
 
 .spot-detail__btn--disabled {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .spot-detail__btn-text {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 500;
+  @include fish-type(callout);
+}
+
+/* 实心按钮上的文字必须反色：pill 的蓝底和红底都够深，
+   沿用深色文字会糊在底色里 */
+.spot-detail__btn--primary .spot-detail__btn-text,
+.spot-detail__btn--danger-solid .spot-detail__btn-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.spot-detail__btn--danger .spot-detail__btn-text {
+  color: $fish-destructive;
 }
 
 /* 删除确认 */
 .spot-detail__confirm {
   margin-top: 40rpx;
   padding-top: 32rpx;
-  border-top: 2rpx solid $fish-border-40;
+  border-top: 1rpx solid $fish-border;
 }
 
 .spot-detail__confirm-text {
   display: block;
   color: $fish-muted;
-  font-size: 26rpx;
-  line-height: 1.6;
+  @include fish-type(subhead);
 }
 
 /* 表单 */
@@ -502,37 +527,45 @@ function onClose() {
   display: block;
   margin-bottom: 12rpx;
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 500;
+  @include fish-type(caption);
 }
 
+/*
+ * 输入框。
+ *
+ * iOS 的输入框是「填充」不是「描边」：浅灰底 + 10pt 圆角，没有边框。
+ * 描边是 Material 的做法，在白卡片上会显出一圈多余的线。
+ */
 .spot-detail__input {
   width: 100%;
   height: 88rpx;
   padding: 0 28rpx;
-  border: 2rpx solid $fish-border;
+  border: none;
   border-radius: $fish-radius-lg;
-  background-color: $fish-page;
+  background-color: $fish-surface;
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(body);
+
   box-sizing: border-box;
 }
 
 .spot-detail__textarea {
   width: 100%;
-  height: 160rpx;
+  height: 200rpx;
   padding: 20rpx 28rpx;
-  border: 2rpx solid $fish-border;
+  border: none;
   border-radius: $fish-radius-lg;
-  background-color: $fish-page;
+  background-color: $fish-surface;
   color: $fish-ink;
-  font-size: 28rpx;
-  line-height: 1.6;
+  @include fish-type(body);
+
   box-sizing: border-box;
 }
 
+/* placeholder 要比正文更淡一档，否则「没填」和「填了」读起来一样重 */
 .spot-detail__placeholder {
-  color: $uni-text-color-placeholder;
+  color: $fish-muted-60;
+  font-size: 30rpx;
 }
 
 .spot-detail__stars {

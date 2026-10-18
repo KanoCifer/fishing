@@ -172,21 +172,21 @@ function onCancel() {
 .feedback-form__title {
   display: block;
   color: $fish-ink;
-  font-size: 32rpx;
-  font-weight: 600;
+  @include fish-type(title2);
 }
 
 .feedback-form__subtitle {
   display: block;
   margin-top: 4rpx;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .feedback-form__body {
   padding: 24rpx 40rpx 64rpx;
 }
 
+/* 上下文回显：次级填充的小卡，让用户在作答前先确认自己在给谁打分 */
 .feedback-form__context {
   margin-bottom: 32rpx;
   padding: 20rpx 24rpx;
@@ -197,36 +197,42 @@ function onCancel() {
 .feedback-form__context-place {
   display: block;
   color: $fish-muted;
-  font-size: 24rpx;
+  @include fish-type(caption);
 }
 
 .feedback-form__context-index {
   display: block;
   margin-top: 4rpx;
   color: $fish-ink;
-  font-size: 28rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
 }
 
 .feedback-form__context-level {
   color: $fish-muted;
-  font-size: 24rpx;
-  font-weight: 400;
+  @include fish-type(caption);
 }
 
 .feedback-form__label {
   display: block;
   margin-bottom: 16rpx;
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 500;
+  @include fish-type(subhead);
 }
 
+/*
+ * 五个选项横排。
+ *
+ * 这是「单选一组」，不是分段控件 —— 段控件的隐含语义是切视图，
+ * 而这里是作答。选中态给一枚实心蓝胶囊，比白块更明确地表示「我选了这个」，
+ * 白块 + 蓝字在五个挨着的选项里容易看成「高亮了一行」。
+ */
 .feedback-form__options {
   display: flex;
   padding: 4rpx;
   border-radius: $fish-radius-lg;
-  background-color: $fish-blue-50;
+  background-color: $fish-fill;
 }
 
 .feedback-form__option {
@@ -235,21 +241,22 @@ function onCancel() {
   align-items: center;
   justify-content: center;
   min-height: 72rpx;
-  border-radius: 10rpx;
+  border-radius: $fish-radius-pill;
+  @include fish-press-dim;
 }
 
 .feedback-form__option--active {
-  background-color: $fish-page;
+  background-color: $fish-accent;
 }
 
 .feedback-form__option-text {
   color: $fish-muted;
-  font-size: 26rpx;
-  font-weight: 500;
+  @include fish-type(callout);
 }
 
 .feedback-form__option-text--active {
-  color: $fish-ink;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .feedback-form__actions {
@@ -257,6 +264,7 @@ function onCancel() {
   margin-top: 48rpx;
 }
 
+/* 44pt 命中高度；按下即缩，抬手回弹比按下慢两倍（见 uni.scss 的 fish-press） */
 .feedback-form__btn {
   display: flex;
   flex: 1;
@@ -264,7 +272,8 @@ function onCancel() {
   justify-content: center;
   min-height: 88rpx;
   margin: 0 8rpx;
-  border-radius: 999rpx;
+  border-radius: $fish-radius-pill;
+  @include fish-press(0.97);
 }
 
 .feedback-form__btn--ghost {
@@ -276,12 +285,16 @@ function onCancel() {
 }
 
 .feedback-form__btn--disabled {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .feedback-form__btn-text {
   color: $fish-ink;
-  font-size: 28rpx;
-  font-weight: 500;
+  @include fish-type(callout);
+}
+
+.feedback-form__btn--primary .feedback-form__btn-text {
+  color: #ffffff;
+  font-weight: 600;
 }
 </style>
