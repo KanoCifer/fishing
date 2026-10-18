@@ -4,11 +4,7 @@
       <text class="feedback-banner__title">钓完了？告诉我们今天实际如何</text>
       <text class="feedback-banner__subtitle">三个问题，三十秒 —— 您的反馈会帮系统下次更准</text>
     </view>
-    <view
-      class="feedback-banner__btn"
-      :class="{ 'feedback-banner__btn--disabled': disabled }"
-      @tap="onTap"
-    >
+    <view class="feedback-banner__btn" :class="{ 'feedback-banner__btn--disabled': disabled }" @tap="onTap">
       <text class="feedback-banner__btn-text">反馈今日指数</text>
     </view>
   </view>
@@ -24,20 +20,20 @@
 const props = withDefaults(
   defineProps<{
     /** 无钓鱼指数数据时禁用 */
-    disabled?: boolean
+    disabled?: boolean;
   }>(),
   {
     disabled: false,
   },
-)
+);
 
 const emit = defineEmits<{
-  (e: 'submit'): void
-}>()
+  (e: 'submit'): void;
+}>();
 
 function onTap() {
-  if (props.disabled) return
-  emit('submit')
+  if (props.disabled) return;
+  emit('submit');
 }
 </script>
 

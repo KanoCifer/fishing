@@ -121,25 +121,7 @@
       <text v-else class="card__empty">{{ featureEmpty }}</text>
     </view>
 
-    <!-- 我的钓鱼记录 -->
-    <view class="card">
-      <view class="card__header">
-        <text class="card__title">我的钓鱼记录</text>
-      </view>
-
-      <view class="stats">
-        <view class="stats__item">
-          <text class="stats__value">{{ recordsText }}</text>
-          <text class="stats__label">累计反馈</text>
-        </view>
-        <view class="stats__item stats__item--wide">
-          <text class="stats__value stats__value--time">{{ lastRecordText }}</text>
-          <text class="stats__label">最近一条</text>
-        </view>
-      </view>
-    </view>
-
-    <text class="data__foot">数据来自和风天气 · 国家海洋预报台 · 渔录服务端</text>
+    <text class="data__foot">数据来自和风天气 · 渔录服务端</text>
 
     <!--
       以下两个是浮层，不占页面流。SnapSheet 是 fixed 全屏遮罩，
@@ -147,12 +129,7 @@
     -->
 
     <!-- 钓鱼指数的特征详情（feature_breakdown 九项子特征） -->
-    <SnapSheet
-      :open="featureOpen"
-      :snap-points="FEATURE_SNAP_POINTS"
-      :initial-snap="0"
-      @close="featureOpen = false"
-    >
+    <SnapSheet :open="featureOpen" :snap-points="FEATURE_SNAP_POINTS" :initial-snap="0" @close="featureOpen = false">
       <template #header>
         <view class="feature__header">
           <text class="feature__title">特征详情</text>
@@ -180,53 +157,53 @@
  * scroll-view 必须给确定高度，而这里内容高度随接口返回的条数变化，
  * 给死高度要么留白要么裁切。
  */
-import { computed, onMounted, ref } from 'vue'
-import { onPageShow } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue';
+import { onPageShow } from '@dcloudio/uni-app';
 
-import FeatureDetailPanel from '@/components/FeatureDetailPanel/FeatureDetailPanel.vue'
-import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue'
-import FishingIndexCard from '@/components/FishingIndexCard/FishingIndexCard.vue'
-import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue'
-import LineChart from '@/components/LineChart/LineChart.vue'
-import QuickFeedbackBanner from '@/components/QuickFeedbackBanner/QuickFeedbackBanner.vue'
-import SnapSheet from '@/components/SnapSheet/SnapSheet.vue'
-import TideCard from '@/components/TideCard/TideCard.vue'
-import WeatherCard from '@/components/WeatherCard/WeatherCard.vue'
-import WeatherHero from '@/components/WeatherHero/WeatherHero.vue'
-import { fishingApi } from '@/api/fishing'
-import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore'
-import { toFeatureTiles, type FishingStats } from '@/types/fishing'
-import { parseFxTime, shortDate } from '@/utils/date'
-import { num } from '@/utils/weather'
+import FeatureDetailPanel from '@/components/FeatureDetailPanel/FeatureDetailPanel.vue';
+import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
+import FishingIndexCard from '@/components/FishingIndexCard/FishingIndexCard.vue';
+import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
+import LineChart from '@/components/LineChart/LineChart.vue';
+import QuickFeedbackBanner from '@/components/QuickFeedbackBanner/QuickFeedbackBanner.vue';
+import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
+import TideCard from '@/components/TideCard/TideCard.vue';
+import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
+import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
+import { fishingApi } from '@/api/fishing';
+import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
+import { toFeatureTiles, type FishingStats } from '@/types/fishing';
+import { parseFxTime, shortDate } from '@/utils/date';
+import { num } from '@/utils/weather';
 
 /** 卡片内边距 24rpx × 2 + 页面左右留白 24rpx × 2 = 750 - 96 */
-const CHART_WIDTH = 654
+const CHART_WIDTH = 654;
 
 /** 特征详情两档：半屏 / 大半屏 */
-const FEATURE_SNAP_POINTS = [50, 82] as const
+const FEATURE_SNAP_POINTS = [50, 82] as const;
 
 interface Metric {
   /** 直接对应 WeatherHourly 的字段名 */
-  key: 'temp' | 'precip' | 'windSpeed'
-  label: string
-  unit: string
+  key: 'temp' | 'precip' | 'windSpeed';
+  label: string;
+  unit: string;
 }
 
 const METRICS: ReadonlyArray<Metric> = [
   { key: 'temp', label: '气温', unit: '°C' },
   { key: 'precip', label: '降水', unit: 'mm' },
   { key: 'windSpeed', label: '风速', unit: 'km/h' },
-]
+];
 
-const { state, fetchWeatherAndFishing } = useFishingMapStore()
+const { state, fetchWeatherAndFishing } = useFishingMapStore();
 
-const metric = ref<Metric['key']>('temp')
-const stats = ref<FishingStats | null>(null)
-const statsLoading = ref(false)
+const metric = ref<Metric['key']>('temp');
+const stats = ref<FishingStats | null>(null);
+const statsLoading = ref(false);
 
 /** 钓鱼指数的特征详情（指数卡上的「详情」按钮） */
-const featureOpen = ref(false)
-const feedbackOpen = ref(false)
+const featureOpen = ref(false);
+const feedbackOpen = ref(false);
 
 /**
  * 反馈关联的钓点 id，取自钓点页共享过来的选中态。
@@ -235,14 +212,14 @@ const feedbackOpen = ref(false)
  * 没选过就是 'default'（后端约定）。
  */
 const locationId = computed(() => {
-  const spot = state.selectedMarker?.extraData
-  return spot ? String(spot.id) : 'default'
-})
+  const spot = state.selectedMarker?.extraData;
+  return spot ? String(spot.id) : 'default';
+});
 
-const placeName = computed(() => state.locationName || '钓鱼地点')
+const placeName = computed(() => state.locationName || '钓鱼地点');
 
 /** 实况观测时刻，形如 2026-10-18T11:00+08:00，只取时分 */
-const updatedAt = computed(() => parseFxTime(state.liveWeather?.obsTime ?? '')?.time ?? '')
+const updatedAt = computed(() => parseFxTime(state.liveWeather?.obsTime ?? '')?.time ?? '');
 
 /**
  * 把取值域按 step 向上/下取整，并各留 margin 的余量。
@@ -250,17 +227,14 @@ const updatedAt = computed(() => parseFxTime(state.liveWeather?.obsTime ?? '')?.
  * 返回 null 表示没有数据，调用方据此不传 min/max，
  * 交给 LineChart 按原来的规则自动取整（从 0 起）。
  */
-function paddedAxis(
-  values: number[],
-  options: { step: number; margin: number },
-): { min: number; max: number } | null {
-  if (!values.length) return null
+function paddedAxis(values: number[], options: { step: number; margin: number }): { min: number; max: number } | null {
+  if (!values.length) return null;
 
-  const { step, margin } = options
+  const { step, margin } = options;
   return {
     min: Math.floor((Math.min(...values) - margin) / step) * step,
     max: Math.ceil((Math.max(...values) + margin) / step) * step,
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -275,18 +249,13 @@ const weekDays = computed(() =>
       max: num(day.tempMax),
       min: num(day.tempMin),
     }))
-    .filter(
-      (day): day is { fxDate: string; max: number; min: number } =>
-        day.max !== null && day.min !== null,
-    ),
-)
+    .filter((day): day is { fxDate: string; max: number; min: number } => day.max !== null && day.min !== null),
+);
 
-const weekCategories = computed(() =>
-  weekDays.value.map((day, i) => (i === 0 ? '今天' : shortDate(day.fxDate))),
-)
+const weekCategories = computed(() => weekDays.value.map((day, i) => (i === 0 ? '今天' : shortDate(day.fxDate))));
 
 const weekSeries = computed(() => {
-  if (!weekDays.value.length) return []
+  if (!weekDays.value.length) return [];
   return [
     {
       name: '最高',
@@ -295,23 +264,21 @@ const weekSeries = computed(() => {
       color: '#ea4335',
     },
     { name: '最低', data: weekDays.value.map((day) => day.min), color: '#4285f4' },
-  ]
-})
+  ];
+});
 
 const weekAxis = computed(() =>
   paddedAxis([...weekDays.value.map((d) => d.max), ...weekDays.value.map((d) => d.min)], {
     step: 5,
     margin: 2,
   }),
-)
+);
 
 // ---------------------------------------------------------------------------
 // 未来 24 小时
 // ---------------------------------------------------------------------------
 
-const activeMetric = computed(
-  () => METRICS.find((m) => m.key === metric.value) ?? METRICS[0],
-)
+const activeMetric = computed(() => METRICS.find((m) => m.key === metric.value) ?? METRICS[0]);
 
 /** 逐时数据同样先筛脏值：降水字段偶尔是空串，直接 Number() 会得到 0，把曲线拽到底 */
 const hours = computed(() =>
@@ -319,17 +286,15 @@ const hours = computed(() =>
     .slice(0, 24)
     .map((hour) => ({ fxTime: hour.fxTime, value: num(hour[metric.value]) }))
     .filter((row): row is { fxTime: string; value: number } => row.value !== null),
-)
+);
 
-const hourlyCategories = computed(() =>
-  hours.value.map((hour) => parseFxTime(hour.fxTime)?.time ?? ''),
-)
+const hourlyCategories = computed(() => hours.value.map((hour) => parseFxTime(hour.fxTime)?.time ?? ''));
 
 const hourlySeries = computed(() =>
   hours.value.length
     ? [{ name: activeMetric.value.label, data: hours.value.map((h) => h.value), color: '#4285f4' }]
     : [],
-)
+);
 
 /**
  * 纵轴取值域：按 step 向上/下取整，并留 margin 的余量。
@@ -338,56 +303,50 @@ const hourlySeries = computed(() =>
  * 降水是绝对量、从 0 起最诚实，交给 LineChart 自己取整即可（返回 null）。
  */
 const hourlyAxis = computed(() => {
-  const values = hours.value.map((h) => h.value)
-  if (!values.length) return null
-  if (metric.value === 'precip') return null
+  const values = hours.value.map((h) => h.value);
+  if (!values.length) return null;
+  if (metric.value === 'precip') return null;
 
-  const axis = paddedAxis(values, { step: 5, margin: 2 })
+  const axis = paddedAxis(values, { step: 5, margin: 2 });
   // 风速下界别落到负数
-  return axis ? { ...axis, min: Math.max(0, axis.min) } : null
-})
+  return axis ? { ...axis, min: Math.max(0, axis.min) } : null;
+});
 
 // ---------------------------------------------------------------------------
 // 钓鱼指数构成 / 记录
 // ---------------------------------------------------------------------------
 
-const featureTiles = computed(() => toFeatureTiles(state.indexData?.feature_breakdown))
-const featureCategories = computed(() => featureTiles.value.map((tile) => tile.label))
+const featureTiles = computed(() => toFeatureTiles(state.indexData?.feature_breakdown));
+const featureCategories = computed(() => featureTiles.value.map((tile) => tile.label));
 const featureSeries = computed(() =>
   featureTiles.value.length
     ? [{ name: '相对水位', data: featureTiles.value.map((tile) => tile.percent), color: '#34a853' }]
     : [],
-)
+);
 
 const recordsText = computed(() => {
-  const total = stats.value?.total_records
-  return typeof total === 'number' ? String(total) : '—'
-})
+  const total = stats.value?.total_records;
+  return typeof total === 'number' ? String(total) : '—';
+});
 
 const lastRecordText = computed(() => {
-  const raw = stats.value?.latest_record_time
-  if (!raw) return '暂无'
-  const parsed = parseFxTime(raw)
-  return parsed ? `${parsed.date} ${parsed.time}` : raw
-})
+  const raw = stats.value?.latest_record_time;
+  if (!raw) return '暂无';
+  const parsed = parseFxTime(raw);
+  return parsed ? `${parsed.date} ${parsed.time}` : raw;
+});
 
 // ---------------------------------------------------------------------------
 // 空态与取数
 // ---------------------------------------------------------------------------
 
-const firstLoading = computed(
-  () => (state.weatherLoading || state.indexLoading) && !state.indexData,
-)
+const firstLoading = computed(() => (state.weatherLoading || state.indexLoading) && !state.indexData);
 
 const weekEmpty = computed(() =>
   firstLoading.value ? '加载中…' : state.forecasts.length ? '预报数据不完整' : '暂无预报数据',
-)
-const hourlyEmpty = computed(() =>
-  firstLoading.value ? '加载中…' : '暂无逐时数据',
-)
-const featureEmpty = computed(() =>
-  firstLoading.value ? '加载中…' : '暂无指数构成数据',
-)
+);
+const hourlyEmpty = computed(() => (firstLoading.value ? '加载中…' : '暂无逐时数据'));
+const featureEmpty = computed(() => (firstLoading.value ? '加载中…' : '暂无指数构成数据'));
 
 /**
  * 取数。
@@ -397,36 +356,36 @@ const featureEmpty = computed(() =>
  */
 async function ensureData(): Promise<void> {
   if (!state.indexData && !state.weatherLoading && !state.indexLoading) {
-    void fetchWeatherAndFishing(MAP_CENTER)
+    void fetchWeatherAndFishing(MAP_CENTER);
   }
 
-  if (statsLoading.value) return
-  statsLoading.value = true
+  if (statsLoading.value) return;
+  statsLoading.value = true;
   try {
-    stats.value = await fishingApi.getStats()
+    stats.value = await fishingApi.getStats();
   } catch {
     // 统计拿不到不影响天气和指数，页面上以「—」呈现即可，就不弹 toast 了
-    stats.value = null
+    stats.value = null;
   } finally {
-    statsLoading.value = false
+    statsLoading.value = false;
   }
 }
 
 // onPageShow 在 tab 切回本页时也会触发，所以两个钩子都挂；
 // ensureData 内部有 loading 守卫，首帧两次调用只会真的发一次请求。
 onMounted(() => {
-  void ensureData()
-})
+  void ensureData();
+});
 onPageShow(() => {
-  void ensureData()
-})
+  void ensureData();
+});
 
 function openDetail() {
-  featureOpen.value = true
+  featureOpen.value = true;
 }
 
 function openFeedback() {
-  feedbackOpen.value = true
+  feedbackOpen.value = true;
 }
 </script>
 

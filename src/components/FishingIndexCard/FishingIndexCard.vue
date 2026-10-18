@@ -5,11 +5,7 @@
         <text class="index-card__title">钓鱼指数</text>
         <text class="index-card__subtitle">基于实时天气、潮汐综合计算</text>
       </view>
-      <view
-        class="index-card__refresh"
-        :class="{ 'index-card__refresh--busy': state.indexLoading }"
-        @tap="onRefresh"
-      >
+      <view class="index-card__refresh" :class="{ 'index-card__refresh--busy': state.indexLoading }" @tap="onRefresh">
         <text class="index-card__refresh-icon">↻</text>
       </view>
     </view>
@@ -61,11 +57,7 @@
         <view class="index-card__btn index-card__btn--primary" @tap="onFeedback">
           <text class="index-card__btn-text">反馈今日指数</text>
         </view>
-        <view
-          v-if="hasBreakdown"
-          class="index-card__btn index-card__btn--ghost"
-          @tap="onDetail"
-        >
+        <view v-if="hasBreakdown" class="index-card__btn index-card__btn--ghost" @tap="onDetail">
           <text class="index-card__btn-text">详情</text>
         </view>
       </view>
@@ -82,43 +74,41 @@
  * 刷新按钮复用 store 的 fetchWeatherAndFishing：钓鱼指数和天气潮汐来自同一个
  * enriched 接口，两者同生共死，分开刷新只会多打一次后端。
  */
-import { computed } from 'vue'
+import { computed } from 'vue';
 
-import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore'
-import { levelTone } from '@/utils/weather'
+import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
+import { levelTone } from '@/utils/weather';
 
-import SkeletonCard from '../SkeletonCard/SkeletonCard.vue'
+import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
 const emit = defineEmits<{
-  (e: 'feedback'): void
-  (e: 'detail'): void
-}>()
+  (e: 'feedback'): void;
+  (e: 'detail'): void;
+}>();
 
-const { state, fetchWeatherAndFishing } = useFishingMapStore()
+const { state, fetchWeatherAndFishing } = useFishingMapStore();
 
-const tone = computed(() => levelTone(state.indexData?.level))
+const tone = computed(() => levelTone(state.indexData?.level));
 
 /** 后端可能给负残差，负号自带，正数补 + 号，两者视觉上才是一个量级的对齐 */
 const residualText = computed(() => {
-  const residual = state.indexData?.residual ?? 0
-  return `${residual > 0 ? '+' : ''}${residual}`
-})
+  const residual = state.indexData?.residual ?? 0;
+  return `${residual > 0 ? '+' : ''}${residual}`;
+});
 
-const hasBreakdown = computed(
-  () => Object.keys(state.indexData?.feature_breakdown ?? {}).length > 0,
-)
+const hasBreakdown = computed(() => Object.keys(state.indexData?.feature_breakdown ?? {}).length > 0);
 
 function onRefresh() {
-  if (state.indexLoading) return
-  void fetchWeatherAndFishing(MAP_CENTER)
+  if (state.indexLoading) return;
+  void fetchWeatherAndFishing(MAP_CENTER);
 }
 
 function onFeedback() {
-  emit('feedback')
+  emit('feedback');
 }
 
 function onDetail() {
-  emit('detail')
+  emit('detail');
 }
 </script>
 

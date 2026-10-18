@@ -14,11 +14,7 @@
 
     <!-- 三列分组 -->
     <view class="skeleton-card__group">
-      <view
-        v-for="i in 3"
-        :key="i"
-        class="skeleton-card__cell"
-      >
+      <view v-for="i in 3" :key="i" class="skeleton-card__cell">
         <view class="skeleton-card__bar skeleton-card__bar--xs" />
         <view class="skeleton-card__bar skeleton-card__bar--sm" />
       </view>
@@ -29,11 +25,7 @@
 
     <!-- 可选底部双列 -->
     <view v-if="hasBottomRow" class="skeleton-card__group">
-      <view
-        v-for="i in 2"
-        :key="i"
-        class="skeleton-card__cell skeleton-card__cell--left"
-      >
+      <view v-for="i in 2" :key="i" class="skeleton-card__cell skeleton-card__cell--left">
         <view class="skeleton-card__bar skeleton-card__bar--xs" />
         <view class="skeleton-card__bar skeleton-card__bar--md" />
       </view>
@@ -54,15 +46,15 @@
 withDefaults(
   defineProps<{
     /** 是否含图表占位 */
-    hasChart?: boolean
+    hasChart?: boolean;
     /** 是否含底部双列占位 */
-    hasBottomRow?: boolean
+    hasBottomRow?: boolean;
   }>(),
   {
     hasChart: false,
     hasBottomRow: false,
   },
-)
+);
 </script>
 
 <style lang="scss" scoped>

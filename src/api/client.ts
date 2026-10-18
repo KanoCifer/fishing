@@ -11,13 +11,13 @@
  * 接口基址只从 `ENV.apiBaseUrl` 读，不在调用点写死域名 —— 见 `src/config/env.ts`。
  */
 
-import { ENV } from '@/config/env'
+import { ENV } from '@/config/env';
 
 /** token 在本地存储中的键 */
-const TOKEN_KEY = 'fishing_token'
+const TOKEN_KEY = 'fishing_token';
 
 /** 与源项目 apiClient 的 10s 对齐 */
-const DEFAULT_TIMEOUT = 10000
+const DEFAULT_TIMEOUT = 10000;
 
 /**
  * 后端统一响应信封。
@@ -26,10 +26,10 @@ const DEFAULT_TIMEOUT = 10000
  * 这里按实际形状收窄后再往下传，不让 any 渗进业务代码。
  */
 interface ApiEnvelope<T> {
-  message?: string
-  data: T
-  code?: number
-  errors?: Record<string, unknown>
+  message?: string;
+  data: T;
+  code?: number;
+  errors?: Record<string, unknown>;
 }
 
 /** HTTP 状态码 → 兜底文案。后端没给 message 时用 */
@@ -43,7 +43,7 @@ const STATUS_TEXT: Record<number, string> = {
   502: '网关异常，请稍后再试',
   503: '服务暂不可用，请稍后再试',
   504: '网关超时，请稍后再试',
-}
+};
 
 /**
  * 请求失败。
@@ -52,29 +52,29 @@ const STATUS_TEXT: Record<number, string> = {
  * 和服务端返回的业务错误是两回事 —— 前者提示"检查网络"，后者提示具体问题。
  */
 export class ApiError extends Error {
-  readonly statusCode: number
+  readonly statusCode: number;
 
   constructor(message: string, statusCode: number) {
-    super(message)
-    this.name = 'ApiError'
-    this.statusCode = statusCode
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
   }
 }
 
 export function getToken(): string {
   try {
-    const stored = uni.getStorageSync(TOKEN_KEY)
-    return typeof stored === 'string' ? stored : ''
+    const stored = uni.getStorageSync(TOKEN_KEY);
+    return typeof stored === 'string' ? stored : '';
   } catch {
-    return ''
+    return '';
   }
 }
 
 export function setToken(token: string): void {
   if (token) {
-    uni.setStorageSync(TOKEN_KEY, token)
+    uni.setStorageSync(TOKEN_KEY, token);
   } else {
-    uni.removeStorageSync(TOKEN_KEY)
+    uni.removeStorageSync(TOKEN_KEY);
   }
 }
 
@@ -88,18 +88,18 @@ export function setToken(token: string): void {
  * 浏览器端 axios 能发 PATCH，小程序端发不出去。看到后端有 PATCH 路由时，
  * 先想清楚这条能不能在小程序里被调用，再照着写。
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD';
 
-type QueryValue = string | number | boolean | undefined | null
+type QueryValue = string | number | boolean | undefined | null;
 
 export interface RequestOptions {
   /** 相对路径，不带基址，如 `v2/fishing/index` */
-  url: string
-  method?: HttpMethod
+  url: string;
+  method?: HttpMethod;
   /** 请求体。GET 时 uni 会把它拼到 query 上，所以 GET 的参数走 params 更清楚 */
-  data?: Record<string, unknown>
-  params?: Record<string, QueryValue>
-  timeout?: number
+  data?: Record<string, unknown>;
+  params?: Record<string, QueryValue>;
+  timeout?: number;
 }
 
 /**
@@ -108,39 +108,33 @@ export interface RequestOptions {
  * 后端拿到的是字符串 "undefined"，不会报错但结果不对，是很难查的一类坑。
  */
 function withQuery(url: string, params?: Record<string, QueryValue>): string {
-  if (!params) return url
+  if (!params) return url;
 
-  const parts: string[] = []
+  const parts: string[] = [];
   Object.keys(params).forEach((key) => {
-    const value = params[key]
-    if (value === undefined || value === null || value === '') return
-    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-  })
+    const value = params[key];
+    if (value === undefined || value === null || value === '') return;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  });
 
-  return parts.length > 0 ? `${url}?${parts.join('&')}` : url
+  return parts.length > 0 ? `${url}?${parts.join('&')}` : url;
 }
 
 /** 统一走这一层发请求。resolve 出去的是信封里的 `data`，调用点拿到的就是业务对象 */
 export function request<T>(options: RequestOptions): Promise<T> {
-  const {
-    url,
-    method = 'GET',
-    data,
-    params,
-    timeout = DEFAULT_TIMEOUT,
-  } = options
+  const { url, method = 'GET', data, params, timeout = DEFAULT_TIMEOUT } = options;
 
   const header: Record<string, string> = {
     'Content-Type': 'application/json',
-  }
+  };
 
-  const token = getToken()
+  const token = getToken();
   if (token) {
-    header.Authorization = `Bearer ${token}`
+    header.Authorization = `Bearer ${token}`;
   }
 
-  const base = ENV.apiBaseUrl.replace(/\/+$/, '')
-  const fullUrl = withQuery(`${base}/${url.replace(/^\/+/, '')}`, params)
+  const base = ENV.apiBaseUrl.replace(/\/+$/, '');
+  const fullUrl = withQuery(`${base}/${url.replace(/^\/+/, '')}`, params);
 
   return new Promise<T>((resolve, reject) => {
     uni.request({
@@ -152,35 +146,31 @@ export function request<T>(options: RequestOptions): Promise<T> {
       // 显式指定，否则后端漏发 Content-Type 时拿到的是字符串，res.data.data 直接是 undefined
       dataType: 'json',
       success: (res) => {
-        const envelope = res.data as ApiEnvelope<T> | undefined
+        const envelope = res.data as ApiEnvelope<T> | undefined;
 
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(envelope?.data as T)
-          return
+          resolve(envelope?.data as T);
+          return;
         }
 
         reject(
           new ApiError(
-            envelope?.message ||
-              STATUS_TEXT[res.statusCode] ||
-              `请求失败（${res.statusCode}）`,
+            envelope?.message || STATUS_TEXT[res.statusCode] || `请求失败（${res.statusCode}）`,
             res.statusCode,
           ),
-        )
+        );
       },
       fail: (err) => {
         // fail 是网络层失败，压根没有 HTTP 响应体，errMsg 里没有可读的业务信息
-        const message = /timeout/i.test(err.errMsg)
-          ? '请求超时，请检查网络'
-          : '网络异常，请检查网络连接'
+        const message = /timeout/i.test(err.errMsg) ? '请求超时，请检查网络' : '网络异常，请检查网络连接';
 
         if (ENV.enableLog) {
-          console.warn('[api] 请求未到达服务端', fullUrl, err.errMsg)
+          console.warn('[api] 请求未到达服务端', fullUrl, err.errMsg);
         }
 
         // statusCode 0：标记为"没到服务端"，调用方可据此区分提示文案
-        reject(new ApiError(message, 0))
+        reject(new ApiError(message, 0));
       },
-    })
-  })
+    });
+  });
 }

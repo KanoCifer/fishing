@@ -39,18 +39,18 @@
  * 拖拽容器属于步骤 4 的交互外壳范围，本步骤只交付内容，
  * 所以这里出的是无容器的内容面板，由页面决定怎么摆进浮层。
  */
-import { computed } from 'vue'
+import { computed } from 'vue';
 
-import { toFeatureTiles, type FishingIndexData } from '@/types/fishing'
+import { toFeatureTiles, type FishingIndexData } from '@/types/fishing';
 
 const props = defineProps<{
-  data: FishingIndexData | null
-  visible?: boolean
-}>()
+  data: FishingIndexData | null;
+  visible?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+  (e: 'close'): void;
+}>();
 
 /**
  * 进度条填充色按"这一项在全部特征里的相对水位"分档，而不是按绝对值。
@@ -61,11 +61,11 @@ const emit = defineEmits<{
  * 归一化本身在 types 里（toFeatureTiles），数据页的构成图要用同一套。
  */
 function gaugeTone(percent: number): string {
-  if (percent >= 85) return 'success'
-  if (percent >= 70) return 'accent'
-  if (percent >= 50) return 'warning'
-  if (percent <= 30) return 'destructive'
-  return 'muted'
+  if (percent >= 85) return 'success';
+  if (percent >= 70) return 'accent';
+  if (percent >= 50) return 'warning';
+  if (percent <= 30) return 'destructive';
+  return 'muted';
 }
 
 const tiles = computed(() =>
@@ -73,10 +73,10 @@ const tiles = computed(() =>
     ...tile,
     tone: gaugeTone(tile.percent),
   })),
-)
+);
 
 function onClose() {
-  emit('close')
+  emit('close');
 }
 </script>
 

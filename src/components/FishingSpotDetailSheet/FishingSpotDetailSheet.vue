@@ -1,10 +1,5 @@
 <template>
-  <SnapSheet
-    :open="open && !!marker"
-    :snap-points="SNAP_POINTS"
-    :initial-snap="0"
-    @close="onClose"
-  >
+  <SnapSheet :open="open && !!marker" :snap-points="SNAP_POINTS" :initial-snap="0" @close="onClose">
     <template #header>
       <view class="spot-detail__header">
         <view class="spot-detail__header-text">
@@ -121,19 +116,14 @@
         <view class="spot-detail__btn spot-detail__btn--ghost" @tap="startEdit">
           <text class="spot-detail__btn-text">编辑</text>
         </view>
-        <view
-          class="spot-detail__btn spot-detail__btn--danger"
-          @tap="deleteOpen = true"
-        >
+        <view class="spot-detail__btn spot-detail__btn--danger" @tap="deleteOpen = true">
           <text class="spot-detail__btn-text">删除</text>
         </view>
       </view>
 
       <!-- 删除确认：二次确认放在原地，不弹第二个 modal 打断上下文 -->
       <view v-if="deleteOpen" class="spot-detail__confirm">
-        <text class="spot-detail__confirm-text">
-          删除钓点「{{ spot?.name ?? '' }}」？软删可在后端恢复。
-        </text>
+        <text class="spot-detail__confirm-text"> 删除钓点「{{ spot?.name ?? '' }}」？软删可在后端恢复。 </text>
         <view class="spot-detail__form-actions">
           <view class="spot-detail__btn spot-detail__btn--ghost" @tap="deleteOpen = false">
             <text class="spot-detail__btn-text">取消</text>
@@ -165,80 +155,80 @@
  * - lucide 图标换 emoji / 纯文本
  * - 删除确认内联展开，不套第二层 modal
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue';
 
-import { fishingSpotApi } from '@/api/fishing'
-import { toErrorMessage } from '@/composables/useFishingMapStore'
-import type { MapMarker, UpdateFishingSpotPayload } from '@/types/fishing'
+import { fishingSpotApi } from '@/api/fishing';
+import { toErrorMessage } from '@/composables/useFishingMapStore';
+import type { MapMarker, UpdateFishingSpotPayload } from '@/types/fishing';
 
-import SnapSheet from '../SnapSheet/SnapSheet.vue'
+import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
-const SNAP_POINTS = [50, 78] as const
+const SNAP_POINTS = [50, 78] as const;
 
 const props = defineProps<{
-  open: boolean
+  open: boolean;
   /** 完整 MapMarker：extraData 供展示，position 供坐标行 */
-  marker: MapMarker | null
-}>()
+  marker: MapMarker | null;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'updated', marker: MapMarker): void
-  (e: 'deleted', id: string): void
-}>()
+  (e: 'close'): void;
+  (e: 'updated', marker: MapMarker): void;
+  (e: 'deleted', id: string): void;
+}>();
 
-const spot = computed(() => props.marker?.extraData)
+const spot = computed(() => props.marker?.extraData);
 
-const editing = ref(false)
-const editName = ref('')
-const editDescription = ref('')
-const editTags = ref('')
-const editRating = ref(0)
-const saving = ref(false)
+const editing = ref(false);
+const editName = ref('');
+const editDescription = ref('');
+const editTags = ref('');
+const editRating = ref(0);
+const saving = ref(false);
 
-const deleteOpen = ref(false)
-const deleting = ref(false)
+const deleteOpen = ref(false);
+const deleting = ref(false);
 
 /** 每次打开重置编辑态 —— 上一次没保存完的草稿不该带进来 */
 watch(
   () => props.open,
   (open) => {
     if (!open) {
-      editing.value = false
-      deleteOpen.value = false
+      editing.value = false;
+      deleteOpen.value = false;
     }
   },
-)
+);
 
 const dateLabel = computed(() => {
-  const created = spot.value?.created_at
-  if (!created) return ''
-  return `记于 ${created.slice(0, 10)}`
-})
+  const created = spot.value?.created_at;
+  if (!created) return '';
+  return `记于 ${created.slice(0, 10)}`;
+});
 
 const createdLabel = computed(() => {
-  const created = spot.value?.created_at
-  if (!created) return ''
-  return created.slice(0, 16).replace('T', ' ')
-})
+  const created = spot.value?.created_at;
+  if (!created) return '';
+  return created.slice(0, 16).replace('T', ' ');
+});
 
 const coordinateLabel = computed(() => {
-  const position = props.marker?.position
-  if (!position) return ''
-  return `${position[0].toFixed(4)}, ${position[1].toFixed(4)}`
-})
+  const position = props.marker?.position;
+  if (!position) return '';
+  return `${position[0].toFixed(4)}, ${position[1].toFixed(4)}`;
+});
 
 function startEdit() {
-  if (!spot.value) return
-  editName.value = spot.value.name ?? ''
-  editDescription.value = spot.value.description ?? ''
-  editTags.value = (spot.value.tags ?? []).join(', ')
-  editRating.value = spot.value.rating ?? 0
-  editing.value = true
+  if (!spot.value) return;
+  editName.value = spot.value.name ?? '';
+  editDescription.value = spot.value.description ?? '';
+  editTags.value = (spot.value.tags ?? []).join(', ');
+  editRating.value = spot.value.rating ?? 0;
+  editing.value = true;
 }
 
 function cancelEdit() {
-  editing.value = false
+  editing.value = false;
 }
 
 // ── input 事件 ──
@@ -247,25 +237,25 @@ function cancelEdit() {
 // 官方 @dcloudio/types 缺这一项，补全的原因见那个文件的注释。
 
 function onNameInput(e: InputEvent) {
-  editName.value = e.detail.value
+  editName.value = e.detail.value;
 }
 
 function onDescriptionInput(e: InputEvent) {
-  editDescription.value = e.detail.value
+  editDescription.value = e.detail.value;
 }
 
 function onTagsInput(e: InputEvent) {
-  editTags.value = e.detail.value
+  editTags.value = e.detail.value;
 }
 
 async function saveEdit() {
-  const current = spot.value
-  if (!current || saving.value) return
+  const current = spot.value;
+  if (!current || saving.value) return;
 
-  const name = editName.value.trim()
+  const name = editName.value.trim();
   if (!name) {
-    uni.showToast({ title: '名称不能为空', icon: 'none' })
-    return
+    uni.showToast({ title: '名称不能为空', icon: 'none' });
+    return;
   }
 
   // 半角逗号切分，前后空白和空项都要滤掉：
@@ -273,20 +263,20 @@ async function saveEdit() {
   const tags = editTags.value
     .split(',')
     .map((tag) => tag.trim())
-    .filter(Boolean)
+    .filter(Boolean);
 
   const payload: UpdateFishingSpotPayload = {
     name,
     description: editDescription.value.trim(),
     tags,
     rating: editRating.value,
-  }
+  };
 
-  saving.value = true
+  saving.value = true;
   try {
-    await fishingSpotApi.update(current.id, payload)
-    editing.value = false
-    uni.showToast({ title: '已保存', icon: 'success' })
+    await fishingSpotApi.update(current.id, payload);
+    editing.value = false;
+    uni.showToast({ title: '已保存', icon: 'success' });
 
     emit('updated', {
       ...(props.marker as MapMarker),
@@ -295,40 +285,40 @@ async function saveEdit() {
         ...payload,
         tags,
       },
-    })
+    });
   } catch (err) {
     uni.showToast({
       title: toErrorMessage(err, '更新钓点失败'),
       icon: 'none',
-    })
+    });
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function doDelete() {
-  const current = spot.value
-  if (!current || deleting.value) return
+  const current = spot.value;
+  if (!current || deleting.value) return;
 
-  deleting.value = true
+  deleting.value = true;
   try {
-    await fishingSpotApi.remove(current.id)
-    deleteOpen.value = false
-    emit('deleted', current.id)
-    emit('close')
-    uni.showToast({ title: '已删除', icon: 'success' })
+    await fishingSpotApi.remove(current.id);
+    deleteOpen.value = false;
+    emit('deleted', current.id);
+    emit('close');
+    uni.showToast({ title: '已删除', icon: 'success' });
   } catch (err) {
     uni.showToast({
       title: toErrorMessage(err, '删除钓点失败'),
       icon: 'none',
-    })
+    });
   } finally {
-    deleting.value = false
+    deleting.value = false;
   }
 }
 
 function onClose() {
-  emit('close')
+  emit('close');
 }
 </script>
 

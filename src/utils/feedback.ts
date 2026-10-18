@@ -13,23 +13,23 @@
  * 这里改成直接切字符串求分钟差，不做任何时区换算。
  */
 
-import type { TideData } from '@/types/fishing'
+import type { TideData } from '@/types/fishing';
 
 /** 风力等级（1-3）：风速等级除以 3 向上取整再夹到 [1, 3] */
 export function deriveWindLevel(windScale: string | number | undefined): number {
-  const scale = Number(windScale) || 1
-  return Math.min(3, Math.max(1, Math.ceil(scale / 3)))
+  const scale = Number(windScale) || 1;
+  return Math.min(3, Math.max(1, Math.ceil(scale / 3)));
 }
 
 export interface TideMeta {
   /** 当前潮位（米） */
-  level: number
+  level: number;
   /** 涨潮 / 退潮 */
-  type?: '涨潮' | '退潮'
+  type?: '涨潮' | '退潮';
   /** 潮差（米） */
-  range: number
+  range: number;
   /** 距下一潮的小时数 */
-  hoursToNext: number
+  hoursToNext: number;
 }
 
 /** 无潮汐数据时的兜底值，与源项目一致 */
@@ -38,7 +38,7 @@ const TIDE_FALLBACK: TideMeta = {
   type: undefined,
   range: 1.5,
   hoursToNext: 3.0,
-}
+};
 
 /**
  * 把 `2026-10-17T14:00+08:00` 换成「距 1970-01-01 的分钟数」。
@@ -50,12 +50,12 @@ const TIDE_FALLBACK: TideMeta = {
  * Date.UTC 当纯日历运算用，不涉及时区：喂进去的全是数字，不含任何本地时间语义。
  */
 function minutesSinceEpoch(fxTime: string): number | null {
-  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(fxTime)
-  if (!matched) return null
+  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(fxTime);
+  if (!matched) return null;
 
-  const [, year, month, day, hour, minute] = matched.map(Number)
-  const days = Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24)
-  return days * 24 * 60 + hour * 60 + minute
+  const [, year, month, day, hour, minute] = matched.map(Number);
+  const days = Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24);
+  return days * 24 * 60 + hour * 60 + minute;
 }
 
 /**
@@ -65,17 +65,17 @@ function minutesSinceEpoch(fxTime: string): number | null {
  * 第一条即当前潮位，第二条即下一潮。
  */
 export function deriveTideMeta(tideData: TideData | null): TideMeta {
-  const table = tideData?.tideTable
-  if (!table || !table.length) return { ...TIDE_FALLBACK }
+  const table = tideData?.tideTable;
+  if (!table || !table.length) return { ...TIDE_FALLBACK };
 
-  const current = table[0]
-  const next = table[1]
+  const current = table[0];
+  const next = table[1];
 
-  const rawLevel = Number(current.height)
-  const level = Number.isFinite(rawLevel) ? rawLevel : TIDE_FALLBACK.level
+  const rawLevel = Number(current.height);
+  const level = Number.isFinite(rawLevel) ? rawLevel : TIDE_FALLBACK.level;
 
   // 表中 H=高潮（过后转退潮），L=低潮（过后转涨潮）
-  const type: '涨潮' | '退潮' = current.type === 'H' ? '退潮' : '涨潮'
+  const type: '涨潮' | '退潮' = current.type === 'H' ? '退潮' : '涨潮';
 
   if (!next) {
     return {
@@ -83,22 +83,20 @@ export function deriveTideMeta(tideData: TideData | null): TideMeta {
       type,
       range: TIDE_FALLBACK.range,
       hoursToNext: TIDE_FALLBACK.hoursToNext,
-    }
+    };
   }
 
-  const nextLevel = Number(next.height)
-  const currentTime = minutesSinceEpoch(current.fxTime)
-  const nextTime = minutesSinceEpoch(next.fxTime)
+  const nextLevel = Number(next.height);
+  const currentTime = minutesSinceEpoch(current.fxTime);
+  const nextTime = minutesSinceEpoch(next.fxTime);
 
   const hoursToNext =
-    currentTime !== null && nextTime !== null
-      ? (nextTime - currentTime) / 60
-      : TIDE_FALLBACK.hoursToNext
+    currentTime !== null && nextTime !== null ? (nextTime - currentTime) / 60 : TIDE_FALLBACK.hoursToNext;
 
   return {
     level,
     type,
     range: Number.isFinite(nextLevel) ? Math.abs(nextLevel - level) : TIDE_FALLBACK.range,
     hoursToNext,
-  }
+  };
 }

@@ -16,30 +16,24 @@
  * 钓点水体类型 —— 与 go-backend `document.Kind*` 常量共用同一组字面量。
  * 三值封闭：新增类型须同步后端校验枚举。
  */
-export type FishingSpotKind = 'lake' | 'river' | 'reservoir'
+export type FishingSpotKind = 'lake' | 'river' | 'reservoir';
 
 /** 有序全集 —— kind 过滤 chips 按此顺序渲染 */
-export const FISHING_SPOT_KINDS: readonly FishingSpotKind[] = [
-  'lake',
-  'river',
-  'reservoir',
-] as const
+export const FISHING_SPOT_KINDS: readonly FishingSpotKind[] = ['lake', 'river', 'reservoir'] as const;
 
 /** 中文展示 label —— UI 层唯一文案来源，勿在组件内内联硬编码 */
-export const FISHING_SPOT_KIND_LABELS: Readonly<
-  Record<FishingSpotKind, string>
-> = {
+export const FISHING_SPOT_KIND_LABELS: Readonly<Record<FishingSpotKind, string>> = {
   lake: '湖泊',
   river: '溪流·江',
   reservoir: '水库',
-}
+};
 
 export interface FishingSpot {
-  id: string
-  name: string
-  description: string
+  id: string;
+  name: string;
+  description: string;
   /** [lng, lat]，GCJ-02 */
-  location: [number, number]
+  location: [number, number];
   /**
    * 水体类型。
    *
@@ -50,33 +44,33 @@ export interface FishingSpot {
    *
    * 别把它当必填 —— 真按必填写，map 上按 kind 上色的逻辑会在第一条数据上就崩。
    */
-  kind?: FishingSpotKind | null
-  tags: string[]
-  rating: number
-  images: string[]
-  created_at?: string
-  updated_at?: string
+  kind?: FishingSpotKind | null;
+  tags: string[];
+  rating: number;
+  images: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** 钓点业务字段（location 除外）—— MapMarker.extraData 的精确类型 */
-export type SpotDetail = Omit<FishingSpot, 'location'>
+export type SpotDetail = Omit<FishingSpot, 'location'>;
 
 /**
  * 创建钓点载荷。name / location / kind 必填（后端 oneof 校验），其余可选。
  */
 export interface CreateFishingSpotPayload {
-  name: string
+  name: string;
   /** [lng, lat] */
-  location: [number, number]
-  kind: FishingSpotKind
-  description?: string
-  tags?: string[]
-  rating?: number
-  images?: string[]
+  location: [number, number];
+  kind: FishingSpotKind;
+  description?: string;
+  tags?: string[];
+  rating?: number;
+  images?: string[];
 }
 
 /** 更新钓点载荷。全字段可选：未传 = 不动，传了 = 显式覆盖。 */
-export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>
+export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>;
 
 // ---------------------------------------------------------------------------
 // 地图标记
@@ -91,11 +85,11 @@ export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>
  */
 export interface MapMarker {
   /** [lng, lat]，GCJ-02 */
-  position: [number, number]
+  position: [number, number];
   /** 水体类型 —— 标记配色 / 过滤的唯一依据，故提升到顶层而非只藏在 extraData 里 */
-  kind: FishingSpotKind | null
+  kind: FishingSpotKind | null;
   /** 钓点业务数据，缺省时说明这条 marker 不是从钓点列表来的（如用户当前位置） */
-  extraData?: SpotDetail
+  extraData?: SpotDetail;
 }
 
 /**
@@ -109,17 +103,17 @@ export interface MapMarker {
  * 纯函数、无副作用。
  */
 export function toMapMarker(spot: FishingSpot): MapMarker {
-  const { location, ...rest } = spot
+  const { location, ...rest } = spot;
   return {
     position: location,
     kind: spot.kind ?? null,
     extraData: rest,
-  }
+  };
 }
 
 /** 批量 transform —— `fishingSpotApi.list()` 的结果直接喂给本函数 */
 export function toMapMarkers(spots: FishingSpot[]): MapMarker[] {
-  return spots.map(toMapMarker)
+  return spots.map(toMapMarker);
 }
 
 // ---------------------------------------------------------------------------
@@ -127,23 +121,23 @@ export function toMapMarkers(spots: FishingSpot[]): MapMarker[] {
 // ---------------------------------------------------------------------------
 
 export interface TideTableItem {
-  fxTime: string
+  fxTime: string;
   /** 后端返回数字或字符串，消费方一律过 Number() */
-  height: number | string
+  height: number | string;
   /** H 高潮 / L 低潮 */
-  type: 'H' | 'L'
+  type: 'H' | 'L';
 }
 
 export interface TideData {
-  updateTime: string
-  tideTable: TideTableItem[]
-  tideHourly: Array<{ fxTime: string; height: number | string }>
+  updateTime: string;
+  tideTable: TideTableItem[];
+  tideHourly: Array<{ fxTime: string; height: number | string }>;
 }
 
 /** v3 潮汐接口的包装层：data 内含缓存命中标记 */
 export interface TideApiEnvelope {
-  data: TideData
-  fromCache: boolean
+  data: TideData;
+  fromCache: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,108 +150,108 @@ export interface TideApiEnvelope {
  * 免得某一处转了另一处没转，出错时找不到源头。
  */
 export interface WeatherNow {
-  obsTime: string
-  temp: string
-  feelsLike: string
-  icon: string
-  text: string
-  wind360: string
-  windDir: string
-  windScale: string
-  windSpeed: string
-  humidity: string
-  precip: string
-  pressure: string
-  vis: string
-  cloud: string
-  dew: string
+  obsTime: string;
+  temp: string;
+  feelsLike: string;
+  icon: string;
+  text: string;
+  wind360: string;
+  windDir: string;
+  windScale: string;
+  windSpeed: string;
+  humidity: string;
+  precip: string;
+  pressure: string;
+  vis: string;
+  cloud: string;
+  dew: string;
 }
 
 export interface WeatherHourly {
-  fxTime: string
-  temp?: string
-  precip?: string
-  humidity?: string
-  pressure?: string
-  windDir?: string
-  windScale?: string
-  windSpeed?: string
-  text?: string
-  icon?: string
+  fxTime: string;
+  temp?: string;
+  precip?: string;
+  humidity?: string;
+  pressure?: string;
+  windDir?: string;
+  windScale?: string;
+  windSpeed?: string;
+  text?: string;
+  icon?: string;
 }
 
 export interface WeatherDay {
-  fxDate: string
-  sunrise: string
-  sunset: string
-  moonrise: string
-  moonset: string
-  moonPhase: string
-  tempMax: string
-  tempMin: string
-  iconDay: string
-  textDay: string
-  iconNight: string
-  textNight: string
-  wind360Day: string
-  windDirDay: string
-  windScaleDay: string
-  windSpeedDay: string
-  wind360Night: string
-  windDirNight: string
-  windScaleNight: string
-  windSpeedNight: string
-  humidity: string
-  precip: string
-  pressure: string
-  vis: string
-  cloud: string
-  uvIndex: string
+  fxDate: string;
+  sunrise: string;
+  sunset: string;
+  moonrise: string;
+  moonset: string;
+  moonPhase: string;
+  tempMax: string;
+  tempMin: string;
+  iconDay: string;
+  textDay: string;
+  iconNight: string;
+  textNight: string;
+  wind360Day: string;
+  windDirDay: string;
+  windScaleDay: string;
+  windSpeedDay: string;
+  wind360Night: string;
+  windDirNight: string;
+  windScaleNight: string;
+  windSpeedNight: string;
+  humidity: string;
+  precip: string;
+  pressure: string;
+  vis: string;
+  cloud: string;
+  uvIndex: string;
 }
 
 /** 生活指数 —— `FishingIndexCard` 的指标列表数据源 */
 export interface WeatherIndex {
-  date: string
-  type: string
-  name: string
-  level: string
-  category: string
-  text: string
+  date: string;
+  type: string;
+  name: string;
+  level: string;
+  category: string;
+  text: string;
 }
 
 // ---------------------------------------------------------------------------
 // 钓鱼指数 / 反馈
 // ---------------------------------------------------------------------------
 
-export type FishingLevel = '爆护' | '好' | '一般' | '差' | '空军'
-export type FishingIndexLevel = FishingLevel | '极好'
-export type FishingFeedbackLevel = FishingLevel
+export type FishingLevel = '爆护' | '好' | '一般' | '差' | '空军';
+export type FishingIndexLevel = FishingLevel | '极好';
+export type FishingFeedbackLevel = FishingLevel;
 
 /**
  * `enriched=true` 时后端会顺带回传天气和潮汐数据，
  * 省掉一次 weather/full 请求 —— 后端对同一 location 重复取数。
  */
 export interface FishingIndexData {
-  fishing_index: number
-  expert_score: number
-  residual: number
-  level: FishingIndexLevel
-  feature_breakdown: Record<string, number>
-  current_weather?: WeatherNow
-  forecasts?: WeatherDay[]
-  location_name?: string
-  tide_data?: TideData
-  hourly_weather?: { hourly?: WeatherHourly[] }
+  fishing_index: number;
+  expert_score: number;
+  residual: number;
+  level: FishingIndexLevel;
+  feature_breakdown: Record<string, number>;
+  current_weather?: WeatherNow;
+  forecasts?: WeatherDay[];
+  location_name?: string;
+  tide_data?: TideData;
+  hourly_weather?: { hourly?: WeatherHourly[] };
 }
 
 /** 一项子特征的展示形态 —— 原始值 + 归一化后的相对水位 */
 export interface FeatureTile {
-  key: string
-  label: string
+  key: string;
+  label: string;
   /** 后端原始值，量纲随子项而变（气温是 20、湿度是 80） */
-  value: number
+  value: number;
   /** 0~100，相对本组内最大值的比例 */
-  percent: number
+  percent: number;
 }
 
 /**
@@ -277,7 +271,7 @@ export const FEATURE_BREAKDOWN_LABELS: Readonly<Record<string, string>> = {
   w7_hours_to_tide: '距潮',
   w8_tide_range: '潮差',
   w9_indices: '指数',
-}
+};
 
 /**
  * 特征明细归一化。
@@ -286,14 +280,12 @@ export const FEATURE_BREAKDOWN_LABELS: Readonly<Record<string, string>> = {
  * 只有换成「本组内的相对水位」才能横向比较和上色。
  * 进度条分档和构成图的纵轴共用这一份算法，别在两处各算一遍。
  */
-export function toFeatureTiles(
-  breakdown: Record<string, number> | undefined,
-): FeatureTile[] {
-  const entries = Object.entries(breakdown ?? {})
-  if (!entries.length) return []
+export function toFeatureTiles(breakdown: Record<string, number> | undefined): FeatureTile[] {
+  const entries = Object.entries(breakdown ?? {});
+  if (!entries.length) return [];
 
   // 一次算出最大值，避免每个 tile 里重算整组
-  const max = Math.max(...entries.map(([, value]) => value))
+  const max = Math.max(...entries.map(([, value]) => value));
 
   return entries.map(([key, value]) => ({
     key,
@@ -301,36 +293,36 @@ export function toFeatureTiles(
     label: FEATURE_BREAKDOWN_LABELS[key] ?? key,
     value,
     percent: max > 0 ? Math.round((value / max) * 100) : 50,
-  }))
+  }));
 }
 
 export interface FishingFeedbackPayload {
-  location_id: string
-  location_name: string
-  fishing_time: string
-  temperature?: number
-  humidity?: number
-  pressure?: number
-  wind_speed?: number
-  precipitation?: number
-  indices?: number
-  tide_level?: number
-  tide_type?: '涨潮' | '退潮'
-  tide_range?: number
-  hours_to_next_tide?: number
-  feedback: FishingFeedbackLevel
+  location_id: string;
+  location_name: string;
+  fishing_time: string;
+  temperature?: number;
+  humidity?: number;
+  pressure?: number;
+  wind_speed?: number;
+  precipitation?: number;
+  indices?: number;
+  tide_level?: number;
+  tide_type?: '涨潮' | '退潮';
+  tide_range?: number;
+  hours_to_next_tide?: number;
+  feedback: FishingFeedbackLevel;
 }
 
 export interface FishingFeedbackResponse {
-  success: boolean
-  record_id: string
-  expert_score: number
-  residual: number
+  success: boolean;
+  record_id: string;
+  expert_score: number;
+  residual: number;
 }
 
 export interface FishingStats {
-  total_records: number
-  latest_record_time: string | null
+  total_records: number;
+  latest_record_time: string | null;
 }
 
 /*

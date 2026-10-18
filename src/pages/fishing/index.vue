@@ -36,14 +36,14 @@
  * 这一页只管「在哪」：地图和 marker 是空间关系，别的都不归它管。
  * 地图铺满整屏，浮在上面的只有钓点计数和详情浮层。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from 'vue';
 
-import FishingSpotDetailSheet from "@/components/FishingSpotDetailSheet/FishingSpotDetailSheet.vue";
-import FullscreenMap from "@/components/FullscreenMap/FullscreenMap.vue";
-import { useMapMarkers } from "@/composables/useMapMarkers";
-import { useNavMetrics } from "@/composables/useNavMetrics";
-import { MAP_CENTER, useFishingMapStore } from "@/composables/useFishingMapStore";
-import type { MapMarker } from "@/types/fishing";
+import FishingSpotDetailSheet from '@/components/FishingSpotDetailSheet/FishingSpotDetailSheet.vue';
+import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
+import { useMapMarkers } from '@/composables/useMapMarkers';
+import { useNavMetrics } from '@/composables/useNavMetrics';
+import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
+import type { MapMarker } from '@/types/fishing';
 
 const nav = useNavMetrics();
 const { state, fetchSpots, setMarkers, setSelectedMarker } = useFishingMapStore();

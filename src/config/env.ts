@@ -5,7 +5,7 @@
  * 并在此处做一次类型收窄，避免各处散落着字符串比较。
  */
 
-const env = import.meta.env
+const env = import.meta.env;
 
 export const ENV = {
   /** 环境标识：development / production */
@@ -18,11 +18,11 @@ export const ENV = {
   enableLog: env.VITE_ENABLE_LOG === 'true',
   /** 构建目标平台，例如 mp-weixin */
   platform: env.UNI_PLATFORM,
-} as const
+} as const;
 
 /** 是否为生产构建 */
-export const isProd = ENV.appEnv === 'production'
+export const isProd = ENV.appEnv === 'production';
 
 if (ENV.enableLog) {
-  console.log(`[env] ${ENV.appEnv} → ${ENV.platform}, api: ${ENV.apiBaseUrl}`)
+  console.log(`[env] ${ENV.appEnv} → ${ENV.platform}, api: ${ENV.apiBaseUrl}`);
 }

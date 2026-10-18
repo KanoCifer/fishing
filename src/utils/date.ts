@@ -11,10 +11,10 @@
 
 /** 今天的日期，格式 `YYYYMMDD`，用作潮汐接口的 date 参数 */
 export function formatCompactDate(date: Date = new Date()): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}${m}${d}`
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
 }
 
 /**
@@ -25,18 +25,18 @@ export function formatCompactDate(date: Date = new Date()): string {
  * 潮汐表会整体偏几个小时，而且只在真机上复现。
  */
 export function parseFxTime(fxTime: string): {
-  date: string
-  time: string
+  date: string;
+  time: string;
 } | null {
   // 期望形如 2026-10-17T14:00+08:00 或 2026-10-17T14:00
-  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(fxTime)
-  if (!matched) return null
+  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(fxTime);
+  if (!matched) return null;
 
-  const [, , month, day, hour, minute] = matched
+  const [, , month, day, hour, minute] = matched;
   return {
     date: `${month}-${day}`,
     time: `${hour}:${minute}`,
-  }
+  };
 }
 
 /**
@@ -45,5 +45,5 @@ export function parseFxTime(fxTime: string): {
  * 后端 fxDate 形如 `2026-10-17`，不带时区，这里同样只切字符串。
  */
 export function shortDate(fxDate: string): string {
-  return fxDate.slice(5)
+  return fxDate.slice(5);
 }

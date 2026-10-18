@@ -7,9 +7,9 @@
  * "从数组下标推 id"、"按 kind 选图标" 这类和业务无关的细节。
  */
 
-import { computed } from 'vue'
+import { computed } from 'vue';
 
-import type { FishingSpotKind, MapMarker } from '@/types/fishing'
+import type { FishingSpotKind, MapMarker } from '@/types/fishing';
 
 /**
  * <map> 组件的 markers 元素没有官方类型（@dcloudio/types 里只有 MapContext 的方法，
@@ -20,20 +20,20 @@ export interface MapMarkerItem {
    * marker 标识，markertap 回调只给这个值。
    * 微信要求它是非 0 的 number —— 用数组下标 +1 既满足要求又天然唯一。
    */
-  id: number
-  latitude: number
-  longitude: number
+  id: number;
+  latitude: number;
+  longitude: number;
   /** 本地图片路径。marker 只吃图片，塞不进 HTML —— 这是高德 JS API 时代作废的那套做法 */
-  iconPath: string
+  iconPath: string;
   /** 屏幕上显示的边长，单位 px。marker 尺寸不走 rpx */
-  width: number
-  height: number
+  width: number;
+  height: number;
   /** 锚点，0~1 相对图片宽高。落在针尖上，缩放时钉点才不会飘 */
-  anchor: { x: number; y: number }
+  anchor: { x: number; y: number };
 }
 
 /** marker 显示边长。图标源文件是 80px，缩到 40 显示在高分屏上不糊 */
-const MARKER_SIZE = 40
+const MARKER_SIZE = 40;
 
 /**
  * kind → 图标。
@@ -45,15 +45,13 @@ const ICON_BY_KIND: Record<FishingSpotKind, string> = {
   lake: '/static/markers/lake.png',
   river: '/static/markers/river.png',
   reservoir: '/static/markers/reservoir.png',
-}
+};
 
 /** 未分类（后端 omitempty 把 kind 整个省略了，见 FishingSpot.kind 注释） */
-const ICON_UNKNOWN = '/static/markers/unknown.png'
+const ICON_UNKNOWN = '/static/markers/unknown.png';
 
-export function markerIconFor(
-  kind: FishingSpotKind | null | undefined,
-): string {
-  return kind ? ICON_BY_KIND[kind] ?? ICON_UNKNOWN : ICON_UNKNOWN
+export function markerIconFor(kind: FishingSpotKind | null | undefined): string {
+  return kind ? (ICON_BY_KIND[kind] ?? ICON_UNKNOWN) : ICON_UNKNOWN;
 }
 
 /**
@@ -63,7 +61,7 @@ export function markerIconFor(
 export function useMapMarkers(source: () => MapMarker[]) {
   const markerItems = computed<MapMarkerItem[]>(() =>
     source().map((marker, index) => {
-      const [lng, lat] = marker.position
+      const [lng, lat] = marker.position;
       return {
         id: index + 1,
         latitude: lat,
@@ -72,17 +70,17 @@ export function useMapMarkers(source: () => MapMarker[]) {
         width: MARKER_SIZE,
         height: MARKER_SIZE,
         anchor: { x: 0.5, y: 1 },
-      }
+      };
     }),
-  )
+  );
 
   /**
    * markertap 只回传 markerId，靠"id = 下标 + 1"这条约定换回领域对象。
    * 约定只在 markerItems 里建立一次，两边不会错位。
    */
   function resolveMarker(markerId: number): MapMarker | null {
-    return source()[markerId - 1] ?? null
+    return source()[markerId - 1] ?? null;
   }
 
-  return { markerItems, resolveMarker }
+  return { markerItems, resolveMarker };
 }

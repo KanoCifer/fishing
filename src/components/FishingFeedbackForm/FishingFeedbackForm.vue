@@ -60,62 +60,62 @@
  * 提交载荷在 submit() 里现拼：把实时天气和潮汐派生值一起带上，
  * 后端据此校准模型。具体派生规则见 utils/feedback.ts。
  */
-import { computed, ref } from 'vue'
+import { computed, ref } from 'vue';
 
-import { fishingApi } from '@/api/fishing'
-import { useFishingMapStore, toErrorMessage } from '@/composables/useFishingMapStore'
-import type { FishingFeedbackLevel, FishingIndexData } from '@/types/fishing'
-import { deriveTideMeta, deriveWindLevel } from '@/utils/feedback'
+import { fishingApi } from '@/api/fishing';
+import { useFishingMapStore, toErrorMessage } from '@/composables/useFishingMapStore';
+import type { FishingFeedbackLevel, FishingIndexData } from '@/types/fishing';
+import { deriveTideMeta, deriveWindLevel } from '@/utils/feedback';
 
-import SnapSheet from '../SnapSheet/SnapSheet.vue'
+import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
-const SNAP_POINTS = [45, 85] as const
+const SNAP_POINTS = [45, 85] as const;
 
 const FEEDBACK_OPTIONS: ReadonlyArray<{
-  value: FishingFeedbackLevel
-  label: string
+  value: FishingFeedbackLevel;
+  label: string;
 }> = [
   { value: '爆护', label: '爆护' },
   { value: '好', label: '好' },
   { value: '一般', label: '一般' },
   { value: '差', label: '差' },
   { value: '空军', label: '空军' },
-]
+];
 
 const props = defineProps<{
-  open: boolean
+  open: boolean;
   /** 打开时由父组件传入的当前钓鱼指数快照 */
-  data: FishingIndexData | null
+  data: FishingIndexData | null;
   /** 关联钓点 id；无关联钓点时传 'default' */
-  locationId: string
-}>()
+  locationId: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'success'): void
-}>()
+  (e: 'close'): void;
+  (e: 'success'): void;
+}>();
 
-const { state } = useFishingMapStore()
+const { state } = useFishingMapStore();
 
-const selected = ref<FishingFeedbackLevel | null>(null)
-const loading = ref(false)
+const selected = ref<FishingFeedbackLevel | null>(null);
+const loading = ref(false);
 
 /** 地点名优先用 enriched 响应带回的，退化到通用文案 */
-const locationName = computed(() => state.locationName || '钓鱼地点')
+const locationName = computed(() => state.locationName || '钓鱼地点');
 
 async function submit() {
-  const current = props.data
-  if (!current || loading.value) return
+  const current = props.data;
+  if (!current || loading.value) return;
 
   if (!selected.value) {
-    uni.showToast({ title: '请选择钓鱼体验', icon: 'none' })
-    return
+    uni.showToast({ title: '请选择钓鱼体验', icon: 'none' });
+    return;
   }
 
-  const weather = state.liveWeather
-  const tideMeta = deriveTideMeta(state.tideData)
+  const weather = state.liveWeather;
+  const tideMeta = deriveTideMeta(state.tideData);
 
-  loading.value = true
+  loading.value = true;
   try {
     await fishingApi.submitFeedback({
       location_id: props.locationId,
@@ -138,29 +138,29 @@ async function submit() {
       tide_type: tideMeta.type,
       tide_range: tideMeta.range,
       hours_to_next_tide: tideMeta.hoursToNext,
-    })
+    });
 
-    selected.value = null
-    uni.showToast({ title: '反馈已提交，感谢分享', icon: 'success' })
-    emit('success')
-    emit('close')
+    selected.value = null;
+    uni.showToast({ title: '反馈已提交，感谢分享', icon: 'success' });
+    emit('success');
+    emit('close');
   } catch (err) {
     uni.showToast({
       title: toErrorMessage(err, '提交反馈失败，请重试'),
       icon: 'none',
-    })
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function finiteOr(value: number, fallback: number): number {
-  return Number.isFinite(value) ? value : fallback
+  return Number.isFinite(value) ? value : fallback;
 }
 
 function onCancel() {
-  selected.value = null
-  emit('close')
+  selected.value = null;
+  emit('close');
 }
 </script>
 

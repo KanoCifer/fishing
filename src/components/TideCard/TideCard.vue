@@ -56,11 +56,7 @@
     -->
     <view class="tide-card__body">
       <view v-show="hasHourly" class="tide-card__chart">
-        <TideChart
-          :points="chartPoints"
-          :labels="chartLabels"
-          :now-index="nowIndex"
-        />
+        <TideChart :points="chartPoints" :labels="chartLabels" :now-index="nowIndex" />
       </view>
 
       <!-- 骨架屏只在首屏还没数据时出现：已有数据时留着旧曲线，
@@ -100,18 +96,18 @@
  *   样式和尺寸，混进 segmented control 里会多出边距和边框，得靠 ::after 伪元素清掉，
  *   不如直接用 view，语义标签也更干净
  */
-import { computed, watch } from 'vue'
+import { computed, watch } from 'vue';
 
-import { HARBOR_OPTIONS, useFishingMapStore } from '@/composables/useFishingMapStore'
-import { parseFxTime } from '@/utils/date'
-import type { TideTableItem } from '@/types/fishing'
+import { HARBOR_OPTIONS, useFishingMapStore } from '@/composables/useFishingMapStore';
+import { parseFxTime } from '@/utils/date';
+import type { TideTableItem } from '@/types/fishing';
 
-import SkeletonCard from '../SkeletonCard/SkeletonCard.vue'
-import TideChart from '../TideChart/TideChart.vue'
+import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
+import TideChart from '../TideChart/TideChart.vue';
 
-const { state, fetchPanelTide, setSelectedHarbor, setSelectedDate } = useFishingMapStore()
+const { state, fetchPanelTide, setSelectedHarbor, setSelectedDate } = useFishingMapStore();
 
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 /**
  * 今日起 8 天。
@@ -120,29 +116,27 @@ const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
  * 只有解析后端 fxTime 才需要避时区换算。
  */
 const dateOptions = computed(() => {
-  const today = new Date()
+  const today = new Date();
   return Array.from({ length: 8 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i)
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return {
       value: `${d.getFullYear()}${month}${day}`,
       label: `${month}-${day}`,
       weekday: WEEKDAYS[d.getDay()],
-    }
-  })
-})
+    };
+  });
+});
 
-const hourly = computed(() => state.panelTideData?.tideHourly ?? [])
+const hourly = computed(() => state.panelTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */
-const hasHourly = computed(() => hourly.value.length > 0)
+const hasHourly = computed(() => hourly.value.length > 0);
 
-const chartPoints = computed(() => hourly.value)
+const chartPoints = computed(() => hourly.value);
 
-const chartLabels = computed(() =>
-  hourly.value.map((point) => parseFxTime(point.fxTime)?.time ?? ''),
-)
+const chartLabels = computed(() => hourly.value.map((point) => parseFxTime(point.fxTime)?.time ?? ''));
 
 /**
  * 当前时刻落在逐时序列里的下标，画「现在」竖线用。
@@ -152,46 +146,41 @@ const chartLabels = computed(() =>
  * 开发者工具和真机时区不一致时整条标线会偏几小时，且只在真机复现。
  */
 const nowIndex = computed(() => {
-  const now = new Date()
-  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}`
-  return hourly.value.findIndex((point) => point.fxTime.slice(0, 14) === stamp)
-})
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}`;
+  return hourly.value.findIndex((point) => point.fxTime.slice(0, 14) === stamp);
+});
 
-const highTide = computed(() => extremeTide('H', 'max'))
-const lowTide = computed(() => extremeTide('L', 'min'))
+const highTide = computed(() => extremeTide('H', 'max'));
+const lowTide = computed(() => extremeTide('L', 'min'));
 
 /** 取高潮最高 / 低潮最低的那一条 */
-function extremeTide(
-  type: 'H' | 'L',
-  pick: 'max' | 'min',
-): { time: string; height: string } | null {
-  const table = state.panelTideData?.tideTable ?? []
-  const filtered = table.filter((item: TideTableItem) => item.type === type)
-  if (!filtered.length) return null
+function extremeTide(type: 'H' | 'L', pick: 'max' | 'min'): { time: string; height: string } | null {
+  const table = state.panelTideData?.tideTable ?? [];
+  const filtered = table.filter((item: TideTableItem) => item.type === type);
+  if (!filtered.length) return null;
 
   const best = filtered.reduce((prev, curr) => {
-    const prevValue = Number(prev.height)
-    const currValue = Number(curr.height)
-    return (pick === 'max' ? currValue > prevValue : currValue < prevValue)
-      ? curr
-      : prev
-  })
+    const prevValue = Number(prev.height);
+    const currValue = Number(curr.height);
+    return (pick === 'max' ? currValue > prevValue : currValue < prevValue) ? curr : prev;
+  });
 
-  const height = Number(best.height)
+  const height = Number(best.height);
   return {
     time: parseFxTime(best.fxTime)?.time ?? '--',
     height: Number.isFinite(height) ? height.toFixed(2) : '--',
-  }
+  };
 }
 
 // 首屏进页面时还没有面板潮汐数据，切港口/日期由 store 内部触发，这里只补首屏这一次
 watch(
   () => [state.selectedHarbor, state.selectedDate],
   () => {
-    void fetchPanelTide()
+    void fetchPanelTide();
   },
   { immediate: true },
-)
+);
 </script>
 
 <style lang="scss" scoped>

@@ -11,40 +11,40 @@
 
 export interface NavMetrics {
   /** 状态栏高度（px）。刘海屏机型 > 0，非刘海为 0 */
-  statusBarHeight: number
+  statusBarHeight: number;
   /** 导航栏本体高度（px），不含状态栏 */
-  navBarHeight: number
+  navBarHeight: number;
   /** 导航栏底边的 y 坐标（px）。浮在导航栏下面的内容该从这条线往下排 */
-  navBarBottom: number
+  navBarBottom: number;
   /** 胶囊按钮左侧到屏幕右边缘的距离（px）。标题要居中就得给它让出这段 */
-  capsuleInsetRight: number
+  capsuleInsetRight: number;
 }
 
 // 胶囊按钮和状态栏高度在一次启动内不会变，算一次就够，避免每个组件重复调 API
-let cached: NavMetrics | null = null
+let cached: NavMetrics | null = null;
 
 function measure(): NavMetrics {
-  if (cached) return cached
+  if (cached) return cached;
 
-  const { statusBarHeight, windowWidth } = uni.getWindowInfo()
+  const { statusBarHeight, windowWidth } = uni.getWindowInfo();
 
   // 胶囊按钮矩形是微信小程序独有的 API，基础库 2.7.1 起提供。
   // 本项目只有小程序端，不存在"拿不到胶囊"的运行环境，所以直接用，不写兑底值。
-  const capsule = uni.getMenuButtonBoundingClientRect()
+  const capsule = uni.getMenuButtonBoundingClientRect();
 
   // 微信官方那条公式：导航栏高度 = 胶囊上下留白对称推算。
   // 胶囊顶部到状态栏底部的空隙记作 gap，那么上下各留一个 gap，导航栏 = gap*2 + 胶囊高。
-  const navBarHeight = (capsule.top - statusBarHeight) * 2 + capsule.height
+  const navBarHeight = (capsule.top - statusBarHeight) * 2 + capsule.height;
 
   cached = {
     statusBarHeight,
     navBarHeight,
     navBarBottom: statusBarHeight + navBarHeight,
     capsuleInsetRight: windowWidth - capsule.left,
-  }
-  return cached
+  };
+  return cached;
 }
 
 export function useNavMetrics(): Readonly<NavMetrics> {
-  return measure()
+  return measure();
 }

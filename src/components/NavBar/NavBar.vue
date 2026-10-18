@@ -4,14 +4,8 @@
     微信已支持同层渲染（map 自基础库 2.8.3 起），不再需要 cover-view，
     所以 box-shadow / transform / 渐变这些现在都能用了。
   -->
-  <view
-    class="navbar"
-    :style="{ paddingTop: statusBarHeight + 'px', backgroundColor: background }"
-  >
-    <view
-      class="navbar__bar"
-      :style="{ height: navBarHeight + 'px' }"
-    >
+  <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px', backgroundColor: background }">
+    <view class="navbar__bar" :style="{ height: navBarHeight + 'px' }">
       <view v-if="showBack" class="navbar__back" @tap="onBack">‹ 返回</view>
 
       <!--
@@ -26,45 +20,45 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useNavMetrics } from '@/composables/useNavMetrics'
+import { computed } from 'vue';
+import { useNavMetrics } from '@/composables/useNavMetrics';
 
 const props = withDefaults(
   defineProps<{
     /** 导航栏标题 */
-    title?: string
+    title?: string;
     /** 是否显示返回入口。首页这类根页面不要开 */
-    showBack?: boolean
+    showBack?: boolean;
     /** 背景色，默认半透明黑——要盖在地图上看清白字 */
-    background?: string
+    background?: string;
   }>(),
   {
     title: '',
     showBack: false,
     background: 'rgba(0, 0, 0, 0.35)',
   },
-)
+);
 
 const emit = defineEmits<{
-  (e: 'back'): void
-}>()
+  (e: 'back'): void;
+}>();
 
 // 这些值来自运行时 API，单位是 px，只能以 px 绑定；
 // 手写常量仍然是 rpx（manifest 里 transformPx: false，px 不会被换算）。
-const nav = useNavMetrics()
-const statusBarHeight = nav.statusBarHeight
-const navBarHeight = nav.navBarHeight
-const capsuleInsetRight = computed(() => nav.capsuleInsetRight)
+const nav = useNavMetrics();
+const statusBarHeight = nav.statusBarHeight;
+const navBarHeight = nav.navBarHeight;
+const capsuleInsetRight = computed(() => nav.capsuleInsetRight);
 
-const title = computed(() => props.title)
-const showBack = computed(() => props.showBack)
+const title = computed(() => props.title);
+const showBack = computed(() => props.showBack);
 
 function onBack() {
   // 有页面栈就退回上一页；首页栈里只有自己，退了会白屏，所以直接不发。
-  const pages = getCurrentPages()
+  const pages = getCurrentPages();
   if (pages.length > 1) {
-    uni.navigateBack()
-    emit('back')
+    uni.navigateBack();
+    emit('back');
   }
 }
 </script>

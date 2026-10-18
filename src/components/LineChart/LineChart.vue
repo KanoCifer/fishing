@@ -21,15 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  getCurrentInstance,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface Series {
   name: string;
@@ -44,7 +36,7 @@ interface Series {
 interface CanvasNode2D {
   width: number;
   height: number;
-  getContext(type: "2d"): CanvasRenderingContext2D;
+  getContext(type: '2d'): CanvasRenderingContext2D;
   /**
    * 基础库 2.7.0+ 由 canvas 节点提供的 rAF。
    * 本项目只有小程序端，`type="2d"` 本身就要求 2.9.0+，所以这两个方法一定在，
@@ -89,9 +81,9 @@ const props = withDefaults(
   {
     width: 690,
     height: 360,
-    gridColor: "#dadce0",
-    axisColor: "#dadce0",
-    textColor: "#5f6368",
+    gridColor: '#dadce0',
+    axisColor: '#dadce0',
+    textColor: '#5f6368',
     animate: true,
     duration: 700,
   },
@@ -107,7 +99,7 @@ const canvasId = `line-chart-${uid}`;
  *
  * 同样是 canvas 硬编码，改主题时要和 uni.scss 的 $fish-* 一起看。
  */
-const PALETTE = ["#4285f4", "#ea4335", "#fbbc04", "#34a853", "#8f5fd6"];
+const PALETTE = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#8f5fd6'];
 const colors = computed(() => PALETTE);
 
 /**
@@ -220,9 +212,9 @@ function draw() {
   ctx.strokeStyle = props.gridColor;
   ctx.fillStyle = props.textColor;
   ctx.lineWidth = 1;
-  ctx.font = "10px sans-serif";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
 
   const lines = 4;
   for (let i = 0; i <= lines; i++) {
@@ -237,8 +229,8 @@ function draw() {
   }
 
   // X 轴标签
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
   const labelGap = len > 1 ? plotW / (len - 1) : 0;
   const stride = labelStride(len);
   props.categories.forEach((c, i) => {
@@ -260,8 +252,8 @@ function draw() {
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
     // 入场动画：只画到 progress 对应的位置，线像被"画"出来一样
     const cut = progress * (points.length - 1);
@@ -278,7 +270,7 @@ function draw() {
     ctx.stroke();
 
     // 数据点：随动画进度逐个出现
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = '#fff';
     points.forEach((p, i) => {
       if (i > cut + 0.5) return;
       ctx.beginPath();
@@ -298,7 +290,7 @@ function draw() {
  * 第一次查不到就放弃的话，那张图会一直空白，且没有任何报错可查 ——
  * 只有切数据（触发重新挂载）才恢复。同一页三个图时这不是偶发，是常态。
  */
-const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const
+const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
 
 /** 同时只允许一次初始化在飞，避免重试和数据变化叠在一起重复建 ctx */
 let initializing = false;
@@ -319,9 +311,7 @@ function scheduleRetry(): void {
   if (delay === undefined) {
     // 重试用尽还是拿不到节点，画布会一直空白。留一条 warn，
     // 下次再遇到空图能直接分清是「节点没进 DOM」还是「绘制逻辑出错」。
-    console.warn(
-      `[LineChart] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`,
-    );
+    console.warn(`[LineChart] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`);
     return;
   }
   retryIndex += 1;
@@ -347,7 +337,7 @@ function queryCanvas(): Promise<CanvasNode2D | null> {
       .fields({ node: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;
         const node = (item as { node?: unknown } | undefined)?.node;
-        resolve(typeof node === "object" && node !== null ? (node as CanvasNode2D) : null);
+        resolve(typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null);
       })
       .exec();
   });
@@ -377,7 +367,7 @@ async function initCanvas() {
 
     sizeRef.value = { width, height };
     dprRef.value = dpr;
-    ctxRef.value = canvas.getContext("2d");
+    ctxRef.value = canvas.getContext('2d');
     canvasNode = canvas;
     initialized = true;
     clearRetryTimer();

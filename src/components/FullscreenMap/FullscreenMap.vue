@@ -41,7 +41,7 @@
         </view>
       </view>
 
-      <view class="btn" @tap="recenter">{{ locating ? "定位中…" : statusText }}</view>
+      <view class="btn" @tap="recenter">{{ locating ? '定位中…' : statusText }}</view>
 
       <!--
         自绘指南针。
@@ -54,20 +54,18 @@
         只在旋转时出现：地图 enable-rotate 开着，用户能拧，拧完得给条回来的路。
         MapContext 没有重置角度的接口，只能把 rotate 绑成受控属性手动置 0。
       -->
-      <view v-if="isRotated" class="btn btn--compass" @tap="resetRotation">
-        回正北 {{ rotationLabel }}°
-      </view>
+      <view v-if="isRotated" class="btn btn--compass" @tap="resetRotation"> 回正北 {{ rotationLabel }}° </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
-import type { MapMarkerItem } from "@/composables/useMapMarkers";
+import type { MapMarkerItem } from '@/composables/useMapMarkers';
 
 /** 底图模式：标准 / 卫星影像 / 实时路况 */
-type BaseMapMode = "standard" | "satellite" | "traffic";
+type BaseMapMode = 'standard' | 'satellite' | 'traffic';
 
 interface BaseMapOption {
   value: BaseMapMode;
@@ -85,9 +83,9 @@ interface BaseMapOption {
  * 官方明确不支持动态修改，切不动。
  */
 const BASE_MAP_OPTIONS: BaseMapOption[] = [
-  { value: "standard", label: "地图" },
-  { value: "satellite", label: "卫星" },
-  { value: "traffic", label: "路况" },
+  { value: 'standard', label: '地图' },
+  { value: 'satellite', label: '卫星' },
+  { value: 'traffic', label: '路况' },
 ];
 
 /**
@@ -139,16 +137,13 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: "regionchange", payload: { latitude: number; longitude: number; scale: number }): void;
+  (e: 'regionchange', payload: { latitude: number; longitude: number; scale: number }): void;
   /** marker 被点中。只回传 markerId，由调用方用 useMapMarkers 的 resolveMarker 换回领域对象 */
-  (e: "markertap", payload: { markerId: number }): void;
-  (e: "update:satellite", value: boolean): void;
-  (e: "update:traffic", value: boolean): void;
+  (e: 'markertap', payload: { markerId: number }): void;
+  (e: 'update:satellite', value: boolean): void;
+  (e: 'update:traffic', value: boolean): void;
   /** 底图整体切了一档。想把选择持久化的页面听这个就够 */
-  (
-    e: "base-map-change",
-    payload: { mode: BaseMapMode; satellite: boolean; traffic: boolean },
-  ): void;
+  (e: 'base-map-change', payload: { mode: BaseMapMode; satellite: boolean; traffic: boolean }): void;
 }>();
 
 const latitude = ref(props.latitude);
@@ -171,11 +166,11 @@ const rotate = ref(0);
 
 const locating = ref(false);
 const hasLocation = ref(false);
-const statusText = ref("定位中…");
+const statusText = ref('定位中…');
 
 /** 由两个布尔反推当前档位，供 segmented 高亮 */
 const activeBaseMap = computed<BaseMapMode>(() =>
-  satellite.value ? "satellite" : traffic.value ? "traffic" : "standard",
+  satellite.value ? 'satellite' : traffic.value ? 'traffic' : 'standard',
 );
 
 /**
@@ -209,15 +204,15 @@ const tipTop = computed(() => {
  * 「本来就在的位置」，不会把用户弹回定位点。
  */
 function selectBaseMap(mode: BaseMapMode) {
-  const nextSatellite = mode === "satellite";
-  const nextTraffic = mode === "traffic";
+  const nextSatellite = mode === 'satellite';
+  const nextTraffic = mode === 'traffic';
 
   satellite.value = nextSatellite;
   traffic.value = nextTraffic;
 
-  emit("update:satellite", nextSatellite);
-  emit("update:traffic", nextTraffic);
-  emit("base-map-change", { mode, satellite: nextSatellite, traffic: nextTraffic });
+  emit('update:satellite', nextSatellite);
+  emit('update:traffic', nextTraffic);
+  emit('base-map-change', { mode, satellite: nextSatellite, traffic: nextTraffic });
 }
 
 /**
@@ -259,25 +254,25 @@ watch(
 
 function locate() {
   locating.value = true;
-  statusText.value = "定位中…";
+  statusText.value = '定位中…';
 
   uni.getLocation({
     // 必须是 gcj02 —— 小程序 <map> 组件用的是 GCJ-02 火星坐标系。
     // 传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
-    type: "gcj02",
+    type: 'gcj02',
     success: (res) => {
       latitude.value = res.latitude;
       longitude.value = res.longitude;
       scale.value = 16;
       hasLocation.value = true;
-      statusText.value = "回到我的位置";
+      statusText.value = '回到我的位置';
     },
     fail: () => {
       // 授权被拒或系统定位不可用：保留默认坐标，界面上给提示。
       // 不在这里弹 openSetting —— 用户可能只是定位信号不好，
       // 上来就抢设置页很突兀，按钮点一下再去。
       hasLocation.value = false;
-      statusText.value = "重新定位";
+      statusText.value = '重新定位';
     },
     complete: () => {
       locating.value = false;
@@ -295,22 +290,49 @@ function locate() {
 function openLocationSetting() {
   uni.openSetting({
     success: (res) => {
-      if (res.authSetting?.["scope.userLocation"]) {
+      if (res.authSetting?.['scope.userLocation']) {
         locate();
       } else {
-        statusText.value = "重新定位";
+        statusText.value = '重新定位';
       }
     },
     fail: () => {
       // 用户没走完设置流程，退回手动重试
-      statusText.value = "重新定位";
+      statusText.value = '重新定位';
     },
   });
 }
 
+/**
+ * 定位按钮。
+ *
+ * 已经拿到过坐标就直接重新定位；拿过且失败说明多半是权限被拒，
+ * 这时 getLocation 再调一百遍也是同样的结果，直接带去设置页。
+ */
 function recenter() {
   if (locating.value) return;
+  if (!hasLocation.value) {
+    openLocationSetting();
+    return;
+  }
   locate();
+}
+
+/**
+ * 视口数值的比对阈值。
+ *
+ * 微信回报的中心点是浮点，和上一步 setData 进去的值可能只差最后一位。
+ * 不设阈值的话，每次 regionchange 都会被判成「变了」而触发一次 patch，
+ * 而 patch 本身又会引出 causedBy=update 的 regionchange —— 能绕成死循环。
+ * 1e-6 在经纬度上约合 0.1 米，远小于一个像素，不影响观感。
+ */
+const VIEWPORT_EPSILON = 1e-6;
+
+/** 值没真的变就不赋值，省掉一次无意义的 patch */
+function syncViewport(target: Ref<number>, next: number | undefined): void {
+  if (typeof next !== 'number') return;
+  if (Math.abs(target.value - next) < VIEWPORT_EPSILON) return;
+  target.value = next;
 }
 
 /**
@@ -325,6 +347,12 @@ function recenter() {
  * 把 detail 里的值全量同步后，受控属性始终等于地图内部的真实视口，
  * 之后任何一次 patch 传下去的都是「本来就在的位置」，等于没动。
  *
+ * **中心点在 detail.centerLocation 里，不在 detail 顶层。**
+ * 官方结构是 {causedBy, type, detail: {rotate, skew, scale, centerLocation, region}}，
+ * 顶层没有 latitude/longitude。之前读顶层拿到的是 undefined，经纬度压根没同步，
+ * 于是捏合缩放改了 scale 却留着旧中心 —— 这正是弹回用户位置的直接原因。
+ * 顶层那两个字段只是兜底，应对个别基础库把中心拍平的情况。
+ *
  * rotate 同样要在这儿同步：它为了回正北被绑成了受控属性，适用同一条规则。
  * 漏了它，用户转完地图点任意一处触发 patch，角度就被拽回上一次的值。
  *
@@ -332,17 +360,24 @@ function recenter() {
  * 不构成回弹来源。倾斜也只有开了 enable-overlooking 才会有，这里没开。
  */
 function onRegionChange(e: {
-  detail?: { latitude?: number; longitude?: number; scale?: number; rotate?: number };
+  detail?: {
+    centerLocation?: { latitude?: number; longitude?: number };
+    latitude?: number;
+    longitude?: number;
+    scale?: number;
+    rotate?: number;
+  };
 }) {
-  const { latitude: lat, longitude: lng, scale: nextScale, rotate: nextRotate } = e.detail ?? {};
+  const detail = e.detail ?? {};
+  const center = detail.centerLocation;
 
   // 同步赋值落在同一批次，微信只会收到一次合并后的更新，中途不会瞬移
-  if (typeof lat === "number") latitude.value = lat;
-  if (typeof lng === "number") longitude.value = lng;
-  if (typeof nextScale === "number") scale.value = nextScale;
-  if (typeof nextRotate === "number") rotate.value = nextRotate;
+  syncViewport(latitude, center?.latitude ?? detail.latitude);
+  syncViewport(longitude, center?.longitude ?? detail.longitude);
+  syncViewport(scale, detail.scale);
+  syncViewport(rotate, detail.rotate);
 
-  emit("regionchange", {
+  emit('regionchange', {
     latitude: latitude.value,
     longitude: longitude.value,
     scale: scale.value,
@@ -357,8 +392,8 @@ function onRegionChange(e: {
  */
 function onMarkerTap(e: { detail?: { markerId?: number } }) {
   const markerId = e.detail?.markerId;
-  if (typeof markerId !== "number") return;
-  emit("markertap", { markerId });
+  if (typeof markerId !== 'number') return;
+  emit('markertap', { markerId });
 }
 
 onMounted(() => {

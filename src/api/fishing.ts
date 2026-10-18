@@ -7,7 +7,7 @@
  * - 其余端点路径、参数格式、返回形状一律照抄后端契约，不做"顺手优化"
  */
 
-import { request } from './client'
+import { request } from './client';
 import type {
   CreateFishingSpotPayload,
   FishingFeedbackPayload,
@@ -18,10 +18,10 @@ import type {
   TideApiEnvelope,
   TideData,
   UpdateFishingSpotPayload,
-} from '@/types/fishing'
+} from '@/types/fishing';
 
 /** 经度在前，和源项目保持一致 —— 写反了会定位到地球另一侧，但不报错 */
-export type LngLat = [number, number]
+export type LngLat = [number, number];
 
 /**
  * 查询参数用的坐标串。
@@ -30,8 +30,8 @@ export type LngLat = [number, number]
  * 后端按两位小数做缓存和降级，位数变了缓存全部 miss。
  */
 function toLocationParam(location: LngLat): string {
-  const [lng, lat] = location
-  return `${lng.toFixed(2)},${lat.toFixed(2)}`
+  const [lng, lat] = location;
+  return `${lng.toFixed(2)},${lat.toFixed(2)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,23 +56,21 @@ export const fishingApi = {
         location: toLocationParam(location),
         enriched: String(enriched),
       },
-    })
+    });
   },
 
   /** 提交钓鱼反馈 */
-  submitFeedback(
-    payload: FishingFeedbackPayload,
-  ): Promise<FishingFeedbackResponse> {
+  submitFeedback(payload: FishingFeedbackPayload): Promise<FishingFeedbackResponse> {
     return request<FishingFeedbackResponse>({
       url: 'v2/fishing/feedback',
       method: 'POST',
       data: payload as unknown as Record<string, unknown>,
-    })
+    });
   },
 
   /** 钓鱼记录统计 */
   getStats(): Promise<FishingStats> {
-    return request<FishingStats>({ url: 'v2/fishing/stats' })
+    return request<FishingStats>({ url: 'v2/fishing/stats' });
   },
 
   /** 潮汐。接口返回带缓存标记的包装层，取不取由调用方决定 */
@@ -80,18 +78,15 @@ export const fishingApi = {
     return request<TideApiEnvelope>({
       url: 'v3/weather/tide',
       params: { harbor: payload.harbor, date: payload.date },
-    })
+    });
   },
 
   /** 只要潮汐本体，不要缓存标记 —— 面板展示用不到 fromCache */
-  async getTideData(payload: {
-    harbor: string
-    date: string
-  }): Promise<TideData> {
-    const envelope = await fishingApi.getTide(payload)
-    return envelope.data
+  async getTideData(payload: { harbor: string; date: string }): Promise<TideData> {
+    const envelope = await fishingApi.getTide(payload);
+    return envelope.data;
   },
-}
+};
 
 // ---------------------------------------------------------------------------
 // 钓点 CRUD
@@ -100,19 +95,19 @@ export const fishingApi = {
 /** 删除方式：软删只置 DeletedAt，物理删彻底移除数据 */
 export interface DeleteFishingSpotOptions {
   /** true = 物理删除；省略 / false = 软删 */
-  hard?: boolean
+  hard?: boolean;
 }
 
-const SPOTS_BASE = 'v3/fish/spots'
+const SPOTS_BASE = 'v3/fish/spots';
 
 export const fishingSpotApi = {
   /** 钓点列表 */
   list(): Promise<FishingSpot[]> {
-    return request<FishingSpot[]>({ url: SPOTS_BASE })
+    return request<FishingSpot[]>({ url: SPOTS_BASE });
   },
 
   getById(id: string): Promise<FishingSpot> {
-    return request<FishingSpot>({ url: `${SPOTS_BASE}/${id}` })
+    return request<FishingSpot>({ url: `${SPOTS_BASE}/${id}` });
   },
 
   create(payload: CreateFishingSpotPayload): Promise<void> {
@@ -121,7 +116,7 @@ export const fishingSpotApi = {
       method: 'POST',
       // location 是元组，序列化成 JSON 交给后端解
       data: payload as unknown as Record<string, unknown>,
-    })
+    });
   },
 
   /**
@@ -141,7 +136,7 @@ export const fishingSpotApi = {
       url: `${SPOTS_BASE}/${id}`,
       method: 'PUT',
       data: payload as unknown as Record<string, unknown>,
-    })
+    });
   },
 
   remove(id: string, options: DeleteFishingSpotOptions = {}): Promise<void> {
@@ -151,6 +146,6 @@ export const fishingSpotApi = {
       // 只在物理删时带 hard=true，软删不带 —— 带成字符串 "false" 后端一样会当软删，
       // 但这种"写了跟没写一样"的参数最容易在排查时把人带偏
       params: options.hard ? { hard: 'true' } : undefined,
-    })
+    });
   },
-}
+};

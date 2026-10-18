@@ -7,7 +7,7 @@
         src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW5uZWQgcHJldmlldy1pY29uIj48cGF0aCBkPSJNMTggOGMwIDMuNjEzLTMuODY5IDcuNDI5LTUuMzkzIDguNzk1YTEgMSAwIDAxLTEuMjE0IDBDOS44NyAxNS40MjkgNiAxMS42MTMgNiA4YTYgNiAwIDAxMTIgMCIvPjxwYXRoIGQ9Ik00LjQ3NCAxNWgtLjE5N2ExIDEgMCAwMC0uOTY5Ljc1M2wtMS4wOTcgNC4zNWExLjUgMS41IDAgMDAxLjQ0NCAxLjg5OEwyMC4zNDQgMjJhMS41IDEuNSAwIDAwMS40NDYtMS44OTdsLTEuMDk4LTQuMzVhMSAxIDAgMDAtLjk2OS0uNzUzaC0uMTk3Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSIyIi8+PC9zdmc+"
       />
       <text class="weather-hero__place-name">
-        {{ state.locationName || "钓鱼地点" }}
+        {{ state.locationName || '钓鱼地点' }}
       </text>
     </view>
 
@@ -76,10 +76,10 @@
  * 按钮留着会是个点了没反应的死控件，不如先摘掉。
  * 等步骤 5 把流式方案定下来再加回，那时它才有意义。
  */
-import { computed } from "vue";
+import { computed } from 'vue';
 
-import { useFishingMapStore } from "@/composables/useFishingMapStore";
-import { levelTone, levelVerdict, weatherIconClass } from "@/utils/weather";
+import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { levelTone, levelVerdict, weatherIconClass } from '@/utils/weather';
 
 const { state } = useFishingMapStore();
 

@@ -6,12 +6,14 @@
     "dev": "uni -p mp-weixin",
     "build": "uni build -p mp-weixin",
     "type-check": "vue-tsc --noEmit",
-    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "format": "oxfmt ."
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5020620260917001",
     "@dcloudio/uni-components": "3.0.0-5020620260917001",
     "@dcloudio/uni-mp-weixin": "3.0.0-5020620260917001",
+    "oxfmt": "^0.73.0",
     "vue": "^3.5.44"
   },
   "devDependencies": {

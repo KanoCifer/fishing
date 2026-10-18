@@ -1,31 +1,31 @@
 {
-    "name" : "渔录",
+  "name": "渔录",
+  "appid": "wxe310d6eacdda4d66",
+  "description": "",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
     "appid": "wxe310d6eacdda4d66",
-    "description" : "",
-    "versionName" : "1.0.0",
-    "versionCode" : "100",
-    "transformPx" : false,
-    "mp-weixin" : {
-        "appid": "wxe310d6eacdda4d66",
-        "setting" : {
-            "urlCheck" : false,
-            "es6" : true,
-            "postcss" : false,
-            "minified" : true
-        },
-        "usingComponents" : true,
-        "permission" : {
-            "scope.userLocation" : {
-                "desc" : "用于在地图上显示你的位置并标记钓点"
-            }
-        },
-        "lazyCodeLoading" : "requiredComponents",
-        "optimization" : {
-            "subPackages" : true
-        }
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": false,
+      "minified": true
     },
-    "uniStatistics" : {
-        "enable" : false
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于在地图上显示你的位置并标记钓点"
+      }
     },
-    "vueVersion" : "3"
+    "lazyCodeLoading": "requiredComponents",
+    "optimization": {
+      "subPackages": true
+    }
+  },
+  "uniStatistics": {
+    "enable": false
+  },
+  "vueVersion": "3"
 }

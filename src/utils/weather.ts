@@ -18,7 +18,7 @@
  */
 
 /** 兜底码：和风的「未知」字形，字体子集里保留着 */
-export const FALLBACK_ICON_CODE = '999'
+export const FALLBACK_ICON_CODE = '999';
 
 /**
  * 字体子集里存在的天气码区间。
@@ -36,11 +36,11 @@ const SUPPORTED_RANGES: ReadonlyArray<readonly [number, number]> = [
   [507, 515], // 沙尘暴 / 浓雾 / 中重度霾 / 大雾
   [900, 901], // 热 / 冷
   [999, 999], // 未知
-]
+];
 
 /** 字体子集里是否存在该码 */
 function isSupportedCode(n: number): boolean {
-  return SUPPORTED_RANGES.some(([lo, hi]) => n >= lo && n <= hi)
+  return SUPPORTED_RANGES.some(([lo, hi]) => n >= lo && n <= hi);
 }
 
 /**
@@ -52,17 +52,17 @@ function isSupportedCode(n: number): boolean {
  * 未知 class 不会被静默忽略，而是照实画出一个豆腐块。
  */
 export function weatherIconCode(icon: string | undefined | null): string {
-  if (icon === undefined || icon === null || icon === '') return FALLBACK_ICON_CODE
+  if (icon === undefined || icon === null || icon === '') return FALLBACK_ICON_CODE;
 
-  const n = Number(icon)
-  if (!Number.isInteger(n) || !isSupportedCode(n)) return FALLBACK_ICON_CODE
+  const n = Number(icon);
+  if (!Number.isInteger(n) || !isSupportedCode(n)) return FALLBACK_ICON_CODE;
 
-  return String(n)
+  return String(n);
 }
 
 /** 天气码 → 图标 class，如 `qi qi-104` */
 export function weatherIconClass(icon: string | undefined | null): string {
-  return `qi qi-${weatherIconCode(icon)}`
+  return `qi qi-${weatherIconCode(icon)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ export function weatherIconClass(icon: string | undefined | null): string {
  * 用 CSS class 名而不是具体色值，组件里直接拼 class —— 小程序 scss 不支持
  * 运行时生成色值，而 class 拼接是静态可分析的。
  */
-export type Tone = 'success' | 'ink' | 'warning' | 'destructive' | 'muted'
+export type Tone = 'success' | 'ink' | 'warning' | 'destructive' | 'muted';
 
 const TONE_BY_LEVEL: Readonly<Record<string, Tone>> = {
   极好: 'success',
@@ -84,11 +84,11 @@ const TONE_BY_LEVEL: Readonly<Record<string, Tone>> = {
   一般: 'warning',
   差: 'destructive',
   空军: 'muted',
-}
+};
 
 export function levelTone(level: string | undefined): Tone {
-  if (!level) return 'muted'
-  return TONE_BY_LEVEL[level] ?? 'muted'
+  if (!level) return 'muted';
+  return TONE_BY_LEVEL[level] ?? 'muted';
 }
 
 /** 等级 → 一句话结论。把"数值"翻译成"该不该去"，是这块 UI 的落点 */
@@ -99,31 +99,31 @@ const VERDICT_BY_LEVEL: Readonly<Record<string, string>> = {
   一般: '今日可一试',
   差: '今日不宜出钓',
   空军: '今日恐空军',
-}
+};
 
 export function levelVerdict(level: string | undefined): string {
-  if (!level) return '钓鱼指数计算中'
-  return VERDICT_BY_LEVEL[level] ?? '钓鱼指数计算中'
+  if (!level) return '钓鱼指数计算中';
+  return VERDICT_BY_LEVEL[level] ?? '钓鱼指数计算中';
 }
 
 // ---------------------------------------------------------------------------
 // 气压
 // ---------------------------------------------------------------------------
 
-export type PressureLabel = '偏低' | '正常' | '偏高' | '很高'
+export type PressureLabel = '偏低' | '正常' | '偏高' | '很高';
 
 /**
  * 气压分级。钓鱼上气压是核心变量之一：
  * 气压回升鱼口变好，持续走低通常意味着要空军。
  */
 export function pressureLevel(pressure: number): {
-  label: PressureLabel
-  tone: Tone
+  label: PressureLabel;
+  tone: Tone;
 } {
-  if (pressure < 1000) return { label: '偏低', tone: 'warning' }
-  if (pressure < 1020) return { label: '正常', tone: 'success' }
-  if (pressure < 1030) return { label: '偏高', tone: 'warning' }
-  return { label: '很高', tone: 'destructive' }
+  if (pressure < 1000) return { label: '偏低', tone: 'warning' };
+  if (pressure < 1020) return { label: '正常', tone: 'success' };
+  if (pressure < 1030) return { label: '偏高', tone: 'warning' };
+  return { label: '很高', tone: 'destructive' };
 }
 
 /**
@@ -133,7 +133,7 @@ export function pressureLevel(pressure: number): {
  * 转不动时返回 null，让调用方走"暂无数据"分支。
  */
 export function num(value: string | number | undefined): number | null {
-  if (value === undefined || value === null || value === '') return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

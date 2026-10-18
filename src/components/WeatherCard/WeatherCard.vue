@@ -79,36 +79,35 @@
  *   图标只是冗余。唯一保留的是气压状态点 —— 它承载的是颜色语义。
  * - 去掉跳转和风天气的外链。
  */
-import { computed } from 'vue'
+import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore'
-import { shortDate } from '@/utils/date'
-import { num, pressureLevel, weatherIconClass } from '@/utils/weather'
+import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { shortDate } from '@/utils/date';
+import { num, pressureLevel, weatherIconClass } from '@/utils/weather';
 
-import SkeletonCard from '../SkeletonCard/SkeletonCard.vue'
+import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
-const { state } = useFishingMapStore()
+const { state } = useFishingMapStore();
 
-const forecasts = computed(() => state.forecasts.slice(0, 3))
+const forecasts = computed(() => state.forecasts.slice(0, 3));
 /**
  * 和风给的风速是 km/h，钓鱼看的是 m/s。转不动时留空串，
  * 免得模板渲染成 "NaN m/s"。
  */
 const windSpeedText = computed(() => {
-  const kmh = num(state.liveWeather?.windSpeed)
-  if (kmh === null) return ''
-  return `${(kmh / 3.6).toFixed(1)} m/s`
-})
+  const kmh = num(state.liveWeather?.windSpeed);
+  if (kmh === null) return '';
+  return `${(kmh / 3.6).toFixed(1)} m/s`;
+});
 
 const pressure = computed(() => {
-  const hpa = num(state.liveWeather?.pressure)
-  if (hpa === null) return null
-  return pressureLevel(hpa)
-})
+  const hpa = num(state.liveWeather?.pressure);
+  if (hpa === null) return null;
+  return pressureLevel(hpa);
+});
 
-const pressureLabel = computed(() => pressure.value?.label ?? '--')
-const pressureTone = computed(() => pressure.value?.tone ?? 'muted')
-
+const pressureLabel = computed(() => pressure.value?.label ?? '--');
+const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 </script>
 
 <style lang="scss" scoped>

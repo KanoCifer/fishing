@@ -14,7 +14,7 @@
           :class="{ 'hourly__cell--now': i === 0 }"
         >
           <text class="hourly__time">
-            {{ i === 0 ? '现在' : parseFxTime(hour.fxTime)?.time ?? '' }}
+            {{ i === 0 ? '现在' : (parseFxTime(hour.fxTime)?.time ?? '') }}
           </text>
           <text :class="['hourly__icon', weatherIconClass(hour.icon)]" />
           <text class="hourly__temp">{{ hour.temp }}°</text>
@@ -40,15 +40,15 @@
  * 小程序端必须用 `<scroll-view>` 而不是 CSS overflow-x：
  * 横向滚动的惯性、边界回弹都是原生组件给的，用 view + overflow 模拟不出来。
  */
-import { computed } from 'vue'
+import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore'
-import { parseFxTime } from '@/utils/date'
-import { weatherIconClass } from '@/utils/weather'
+import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { parseFxTime } from '@/utils/date';
+import { weatherIconClass } from '@/utils/weather';
 
-const { state } = useFishingMapStore()
+const { state } = useFishingMapStore();
 
-const hours = computed(() => state.weatherHourly.slice(0, 24))
+const hours = computed(() => state.weatherHourly.slice(0, 24));
 </script>
 
 <style lang="scss" scoped>

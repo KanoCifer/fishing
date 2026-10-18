@@ -1,6 +1,6 @@
-export {}
+export {};
 
-declare module "vue" {
+declare module 'vue' {
   type Hooks = App.AppInstance & Page.PageInstance;
   interface ComponentCustomOptions extends Hooks {}
 }
@@ -21,7 +21,7 @@ declare module "vue" {
 declare global {
   interface InputEvent {
     detail: {
-      value: string
-    }
+      value: string;
+    };
   }
 }
