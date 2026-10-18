@@ -185,9 +185,9 @@ watch(
 
 <style lang="scss" scoped>
 .tide-card {
-  /* 底部留白原本是 DashboardSheet 里相邻卡片的间距；本卡片现在位于数据页的
-     .card 内部，卡片自己给了内边距，这里收窄，避免卡片底部多出一块空白 */
-  padding: 8rpx 8rpx 16rpx;
+  /* 原先这段内边距是为了把自己缩进 .card 里（卡片自带 24rpx 内边距，
+     再补 8rpx 才和别的卡片标题对齐）。数据页改成无卡片的分区布局后，
+     没有卡片可缩进了，内边距统一交给页面的 .pane，这里归零。 */
 }
 
 .tide-card__header {

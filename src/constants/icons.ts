@@ -1,0 +1,48 @@
+/**
+ * 内联图标 —— 由 scripts/gen-icons.mjs 从 lucide-static 生成，不要手改。
+ *
+ * 用法见 @/constants/icons 的注释。改图标或改色值都回去跑 `pnpm icons`，
+ * 这里只保存生成结果。
+ */
+
+/** 图标名与颜色档位。取值与 uni.scss 的同名变量一致 */
+export type IconName = 'fish' | 'info' | 'map-pin' | 'message-square' | 'refresh-cw' | 'thermometer' | 'waves' | 'wind';
+export type IconColor = 'ink' | 'muted' | 'blue' | 'blue600' | 'success' | 'destructive' | 'onAccent';
+
+/** 已生成的图标数据 URI，键为 `图标名__颜色档位` */
+export const ICONS = {
+  /** 实况地点 */
+  'map-pin__muted':
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzVmNjM2OCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMjAgMTBjMCA0Ljk5My01LjUzOSAxMC4xOTMtNy4zOTkgMTEuNzk5YTEgMSAwIDAgMS0xLjIwMiAwQzkuNTM5IDIwLjE5MyA0IDE0Ljk5MyA0IDEwYTggOCAwIDAgMSAxNiAwIiAvPgogIDxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjMiIC8+Cjwvc3ZnPg==',
+  /** 刷新天气与指数 */
+  'refresh-cw__muted':
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzVmNjM2OCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMyAxMmE5IDkgMCAwIDEgOS05IDkuNzUgOS43NSAwIDAgMSA2Ljc0IDIuNzRMMjEgOCIgLz4KICA8cGF0aCBkPSJNMjEgM3Y1aC01IiAvPgogIDxwYXRoIGQ9Ik0yMSAxMmE5IDkgMCAwIDEtOSA5IDkuNzUgOS43NSAwIDAgMS02Ljc0LTIuNzRMMyAxNiIgLz4KICA8cGF0aCBkPSJNOCAxNkgzdjUiIC8+Cjwvc3ZnPg==',
+  /** 钓鱼指数标记 */
+  fish__success:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzM0YTg1MyIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNNi41IDEyYy45NC0zLjQ2IDQuOTQtNiA4LjUtNiAzLjU2IDAgNi4wNiAyLjU0IDcgNi0uOTQgMy40Ny0zLjQ0IDYtNyA2cy03LjU2LTIuNTMtOC41LTZaIiAvPgogIDxwYXRoIGQ9Ik0xOCAxMnYuNSIgLz4KICA8cGF0aCBkPSJNMTYgMTcuOTNhOS43NyA5Ljc3IDAgMCAxIDAtMTEuODYiIC8+CiAgPHBhdGggZD0iTTcgMTAuNjdDNyA4IDUuNTggNS45NyAyLjczIDUuNWMtMSAxLjUtMSA1IC4yMyA2LjUtMS4yNCAxLjUtMS4yNCA1LS4yMyA2LjVDNS41OCAxOC4wMyA3IDE2IDcgMTMuMzMiIC8+CiAgPHBhdGggZD0iTTEwLjQ2IDcuMjZDMTAuMiA1Ljg4IDkuMTcgNC4yNCA4IDNoNS44YTIgMiAwIDAgMSAxLjk4IDEuNjdsLjIzIDEuNCIgLz4KICA8cGF0aCBkPSJtMTYuMDEgMTcuOTMtLjIzIDEuNEEyIDIgMCAwIDEgMTMuOCAyMUg5LjVhNS45NiA1Ljk2IDAgMCAwIDEuNDktMy45OCIgLz4KPC9zdmc+',
+  /** 气温信号 */
+  thermometer__destructive:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iI2VhNDMzNSIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTQgNHYxMC41NGE0IDQgMCAxIDEtNCAwVjRhMiAyIDAgMCAxIDQgMFoiIC8+Cjwvc3ZnPg==',
+  /** 潮汐信号 */
+  waves__blue:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzQyODVmNCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMiAxMnEyLjUgMiA1IDB0NSAwIDUgMCA1IDAiIC8+CiAgPHBhdGggZD0iTTIgMTlxMi41IDIgNSAwdDUgMCA1IDAgNSAwIiAvPgogIDxwYXRoIGQ9Ik0yIDVxMi41IDIgNSAwdDUgMCA1IDAgNSAwIiAvPgo8L3N2Zz4=',
+  /** 风速信号 */
+  wind__blue600:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzFhNzNlOCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIuOCAxOS42QTIgMiAwIDEgMCAxNCAxNkgyIiAvPgogIDxwYXRoIGQ9Ik0xNy41IDhhMi41IDIuNSAwIDEgMSAyIDRIMiIgLz4KICA8cGF0aCBkPSJNOS44IDQuNEEyIDIgMCAxIDEgMTEgOEgyIiAvPgo8L3N2Zz4=',
+  /** 反馈按钮 */
+  'message-square__onAccent':
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iI2ZmZmZmZiIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMjIgMTdhMiAyIDAgMCAxLTIgMkg2LjgyOGEyIDIgMCAwIDAtMS40MTQuNTg2bC0yLjIwMiAyLjIwMkEuNzEuNzEgMCAwIDEgMiAyMS4yODZWNWEyIDIgMCAwIDEgMi0yaDE2YTIgMiAwIDAgMSAyIDJ6IiAvPgo8L3N2Zz4=',
+  /** 特征详情按钮 */
+  info__ink:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjU5LjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzIwMjEyNCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgLz4KICA8cGF0aCBkPSJNMTIgMTZ2LTQiIC8+CiAgPHBhdGggZD0iTTEyIDhoLjAxIiAvPgo8L3N2Zz4=',
+} as const;
+
+/**
+ * 取图标数据 URI，给 <image> 的 src 用。
+ *
+ * 没有对应配色时退回 muted —— 图标缺色最多是「不显眼」，
+ * 缺图标则整块内容塌掉，所以这里保底而不是抛错。
+ */
+export function icon(name: IconName, color: IconColor = 'muted'): string {
+  return ICONS[`${name}__${color}` as keyof typeof ICONS] ?? ICONS[`${name}__muted` as keyof typeof ICONS];
+}

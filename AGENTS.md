@@ -1,4 +1,4 @@
-# 渔录
+# 渔碌
 
 uni-app + Vue 3 + TypeScript，**只有微信小程序（mp-weixin）一个目标平台**。使用`pnpm`
 

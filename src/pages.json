@@ -9,13 +9,13 @@
     {
       "path": "pages/data/index",
       "style": {
-        "navigationBarTitleText": "数据"
+        "navigationStyle": "custom"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "渔录",
+    "navigationBarTitleText": "渔碌",
     "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#FFFFFF"
   },
