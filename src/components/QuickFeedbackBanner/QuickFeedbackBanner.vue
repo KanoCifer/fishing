@@ -45,7 +45,8 @@ function onTap() {
 .feedback-banner {
   display: flex;
   align-items: center;
-  margin: 48rpx 8rpx;
+  /* 上下 48rpx 是原先 DashboardSheet 里相邻卡片的间距，数据页的卡片节奏是 24rpx */
+  margin: 24rpx 8rpx;
   padding: 28rpx 32rpx;
   border-radius: $fish-radius-xl;
   background-color: $fish-page;

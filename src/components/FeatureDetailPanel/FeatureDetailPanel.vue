@@ -41,7 +41,7 @@
  */
 import { computed } from 'vue'
 
-import type { FishingIndexData } from '@/types/fishing'
+import { toFeatureTiles, type FishingIndexData } from '@/types/fishing'
 
 const props = defineProps<{
   data: FishingIndexData | null
@@ -52,24 +52,13 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-/** 后端 feature_breakdown 的 key → 中文 label */
-const LABELS: Readonly<Record<string, string>> = {
-  w1_temp: '气温',
-  w2_humidity: '湿度',
-  w3_pressure: '气压',
-  w4_wind: '风速',
-  w5_rain: '降水',
-  w6_tide_rising: '涨潮',
-  w7_hours_to_tide: '距潮',
-  w8_tide_range: '潮差',
-  w9_indices: '指数',
-}
-
 /**
  * 进度条填充色按"这一项在全部特征里的相对水位"分档，而不是按绝对值。
  *
  * 钓鱼指数是加权求和，各子项量纲不一（气温 20 和湿度 80 不能比），
  * 只有归一化后的相对位置才能横向比较颜色。
+ *
+ * 归一化本身在 types 里（toFeatureTiles），数据页的构成图要用同一套。
  */
 function gaugeTone(percent: number): string {
   if (percent >= 85) return 'success'
@@ -79,22 +68,12 @@ function gaugeTone(percent: number): string {
   return 'muted'
 }
 
-const tiles = computed(() => {
-  const breakdown = props.data?.feature_breakdown ?? {}
-  const entries = Object.entries(breakdown)
-  if (!entries.length) return []
-
-  // 一次算出最大值，避免每个 tile 里重算整组
-  const max = Math.max(...entries.map(([, value]) => value))
-
-  return entries.map(([key, value]) => ({
-    key,
-    label: LABELS[key] ?? key,
-    value,
-    percent: max > 0 ? Math.round((value / max) * 100) : 50,
-    tone: gaugeTone(max > 0 ? (value / max) * 100 : 50),
-  }))
-})
+const tiles = computed(() =>
+  toFeatureTiles(props.data?.feature_breakdown).map((tile) => ({
+    ...tile,
+    tone: gaugeTone(tile.percent),
+  })),
+)
 
 function onClose() {
   emit('close')

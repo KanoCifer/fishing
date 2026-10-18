@@ -46,6 +46,7 @@
  * - 取帧用 canvas 节点自带的 requestAnimationFrame，没有全局 rAF
  * - 取消必须走同一个节点，且在 onBeforeUnmount 里做
  */
+import { onPageShow } from '@dcloudio/uni-app'
 import {
   computed,
   getCurrentInstance,
@@ -95,9 +96,9 @@ interface Props {
   width?: number
   /** 画布高（rpx） */
   height?: number
-  /** 是否播放入场动画 */
+  /** 数据切换时是否播放入场动画（首次出图始终直接展示，不播） */
   animate?: boolean
-  /** 入场时长（ms） */
+  /** 入场时长（ms），仅数据切换的动画用 */
   duration?: number
 }
 
@@ -113,6 +114,7 @@ const instance = getCurrentInstance()!
 const uid = Math.random().toString(36).slice(2, 8)
 // canvasId 必须页面内唯一，同一页面可能画多个图
 const canvasId = `tide-chart-${uid}`
+;((globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, { setup: (((globalThis as any).__probe||{}).setup||0)+1 }))
 
 /**
  * 画布的 CSS 尺寸（px）。
@@ -354,20 +356,28 @@ function draw() {
 /**
  * 初始化画布。
  *
- * 重试只针对「查不到节点」：本组件挂在 `v-else-if` 分支里，切换数据时才首次渲染，
- * 那一刻节点确实可能还没进 DOM，延时重试能救回来。
+ * 宽高**不**从 SelectorQuery 要 —— 那是布局测量值，画布的 CSS 宽高
+ * 本来就由我们按 rpx 算好绑在节点上，数值在手上，问布局是引入了一个
+ * 既不必要又会失败的依赖。
  *
- * 宽高**不**从 SelectorQuery 要 —— 那是布局测量值。本组件由
- * `DashboardSheet` 的 `v-else-if` 承载，sheet 展开后潮位数据到达才挂载，
- * canvas 节点刚进 DOM、布局尚未跑完，size 恒为 0；这个 0 不是「还没好」，
- * 等多久都不会自己变（重试是在等一个不会到来的事件）。
- *
- * 画布的 CSS 宽高本来就由我们按 rpx 算好绑在节点上，数值在手上，
- * 问布局是引入了一个既不必要又会失败的依赖。之前把 size 为 0 当成失败条件，
- * 结果就是重试耗尽 → 图表永久空白 → 控制台只留一条 warn，界面上完全看不出原因。
+ * 拿不到节点时按 INIT_RETRY_DELAYS 的节奏继续试，**不**一次就放弃：
+ * 本组件挂在 TideCard 的 `v-else-if` 分支里，节点是在「数据到了、
+ * 面板正在展开」那一刻创建的。面板展开带 0.28s 的高度过渡，节点和
+ * 布局就绪的时间点会飘 —— 之前只重试 3 次（约 360ms）就永久放弃，
+ * 放弃之后没有任何东西会再触发一次，图表就一直空白，只有切港口/日期
+ * 触发重新挂载才恢复。数据变化时会把整条重试链重新武装一次。
  */
-const INIT_RETRY = 3
-const INIT_RETRY_DELAY = 120
+const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const
+
+/**
+ * 布局落定后补画。
+ *
+ * 画布建好时如果容器还在过渡、或节点还没进入合成，首帧会画上但不显示，
+ * 而布局稳定之后小程序不会自己补画 —— 表现就是「进页面图表空白，
+ * 点一下港口/日期才出来」。这几个时间点各补画一次，覆盖过渡结束
+ * 和节点合成；补画直接落到最终态，不再重播入场动画。
+ */
+const SETTLE_REDRAW_DELAYS = [0, 320, 800] as const
 
 function queryCanvas(): Promise<CanvasQueryResult | null> {
   return new Promise((resolve) => {
@@ -388,44 +398,117 @@ function queryCanvas(): Promise<CanvasQueryResult | null> {
   })
 }
 
-async function initCanvas(attempt = 0): Promise<void> {
-  await nextTick()
+/** ctx 是否就绪。没就绪时 play()/draw() 都是空转，调用方要先看这个 */
+let initialized = false
+/**
+ * 是否已经出过「有数据的」图。
+ *
+ * 决定数据变化时是播入场动画还是直接出最终态：第一次拿到数据直接出图
+ * （那一帧 progress=0，曲线还没画出来，用户看到的是一块空白等它慢慢画），
+ * 之后切港口/日期才播动画。
+ *
+ * 只认「有数据」这一种出图：卡片先于潮位数据挂载，画布会先画一张空图
+ * （画布被 v-show 藏着，看不见），那时如果就把标记置上，首屏真正出图时
+ * 就会走动画路径，又变回空白等它慢慢画。
+ */
+let hasPaintedData = false
+/** 同时只允许一次初始化在飞，避免数据变化和重试叠在一起重复建 ctx */
+let initializing = false
+/** 已经排到第几次重试 */
+let retryIndex = 0
+let retryTimer = 0
+const settleTimers: number[] = []
 
-  const item = await queryCanvas()
-  if (!item?.node) {
-    if (attempt < INIT_RETRY) {
-      await new Promise((resolve) => setTimeout(resolve, INIT_RETRY_DELAY))
-      await initCanvas(attempt + 1)
-      return
-    }
+function clearRetryTimer(): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = 0
+  }
+}
+
+function clearSettleTimers(): void {
+  while (settleTimers.length) {
+    clearTimeout(settleTimers.pop()!)
+  }
+}
+
+function scheduleRetry(): void {
+  const delay = INIT_RETRY_DELAYS[retryIndex]
+  if (delay === undefined) {
     // 重试用尽还是拿不到节点，画布会一直空白。留一条 warn，
     // 下次再遇到空图能直接分清是「节点没进 DOM」还是「绘制逻辑出错」。
-    console.warn(`[TideChart] 画布节点获取失败（已重试 ${INIT_RETRY} 次）：未查到 canvas 节点`)
+    console.warn(
+      `[TideChart] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`,
+    )
     return
   }
+  retryIndex += 1
+  retryTimer = setTimeout(() => {
+    retryTimer = 0
+    void initCanvas()
+  }, delay)
+}
 
-  const canvas = item.node
-  // getSystemInfoSync 在微信端已废弃，dpr 从 getWindowInfo 取
-  const dpr = uni.getWindowInfo().pixelRatio || 1
-  const width = cssWidthPx.value
-  const height = cssHeightPx.value
+/** 布局落定后补画，见 SETTLE_REDRAW_DELAYS */
+function scheduleSettleRedraw(): void {
+  clearSettleTimers()
+  for (const delay of SETTLE_REDRAW_DELAYS) {
+    settleTimers.push(
+      setTimeout(() => {
+        if (!initialized) return
+        progress = 1
+        draw()
+      }, delay),
+    )
+  }
+}
 
-  // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定。
-  // 位图尺寸取整：小屏换算下来可能是小数（622rpx @414pt = 343.36），
-  // 位图尺寸按整数给，绘制仍按 CSS 像素走 setTransform，肉眼无差。
-  canvas.width = Math.round(width * dpr)
-  canvas.height = Math.round(height * dpr)
+async function initCanvas(): Promise<void> {
+  if (initializing || initialized) return
+  initializing = true
 
-  sizeRef.value = { width, height }
-  dprRef.value = dpr
-  ctxRef.value = canvas.getContext('2d')
-  canvasNode = canvas
+  try {
+    await nextTick()
 
-  if (props.animate) {
-    play()
-  } else {
+    const item = await queryCanvas()
+    if (!item?.node) {
+      scheduleRetry()
+      return
+    }
+
+    const canvas = item.node
+    // getSystemInfoSync 在微信端已废弃，dpr 从 getWindowInfo 取
+    const dpr = uni.getWindowInfo().pixelRatio || 1
+    const width = cssWidthPx.value
+    const height = cssHeightPx.value
+
+    // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定。
+    // 位图尺寸取整：小屏换算下来可能是小数（622rpx @414pt = 343.36），
+    // 位图尺寸按整数给，绘制仍按 CSS 像素走 setTransform，肉眼无差。
+    canvas.width = Math.round(width * dpr)
+    canvas.height = Math.round(height * dpr)
+
+    sizeRef.value = { width, height }
+    dprRef.value = dpr
+    ctxRef.value = canvas.getContext('2d')
+    canvasNode = canvas
+    initialized = true
+    clearRetryTimer()
+
+    scheduleSettleRedraw()
+
+    // 首帧直接出最终态，不播入场动画。
+    //
+    // 首次出图发生在「数据到位 + 面板正在展开」那一刻，动画的第一帧
+    // progress=0、曲线还没画出来（见 draw 里 pathPoints 不足两点就 return
+    // 的那段），用户看到的是一块空白等它慢慢画出来。切数据是用户主动
+    // 操作，动画才有表达意义，所以动画只留给那一条路径。
     progress = 1
     draw()
+    if (props.points.length > 0) hasPaintedData = true
+  ;(globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, { init: (((globalThis as any).__probe||{}).init||0)+1 })
+  } finally {
+    initializing = false
   }
 }
 
@@ -464,6 +547,7 @@ function play() {
     }
   }
 
+  ;(globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, { play: (((globalThis as any).__probe||{}).play||0)+1 })
   rafId = node.requestAnimationFrame(tick)
 }
 
@@ -476,19 +560,51 @@ watch(
   () => {
     activeIndex.value = -1
     activePoint.value = null
-    if (props.animate) {
+
+    // 画布还没拿到就先补拿。之前这里无条件走 play()，而 play() 拿不到
+    // 节点就直接 return，等于白等 —— 数据变了但图表还是空的。
+    if (!initialized) {
+      retryIndex = 0
+      void initCanvas()
+      return
+    }
+
+    scheduleSettleRedraw()
+
+    // 切港口/日期是用户主动操作，这里才播入场动画；
+    // 第一次拿到数据（hasPainted 还没置位）直接出最终态。
+    if (props.animate && hasPaintedData) {
       play()
     } else {
       progress = 1
       draw()
+      if (props.points.length > 0) hasPaintedData = true
     }
   },
   { deep: true },
 )
 
-// 页面反复进出会持续漏帧，不取消就一路漏下去
+/**
+ * 页面回到前台时补画。
+ *
+ * 小程序切后台期间 rAF 会停，回来后不会自动续画 —— 曲线会停在半截，
+ * 或者节点在后台被回收后彻底空白。这里直接补一帧最终态。
+ */
+onPageShow(() => {
+  if (!initialized) {
+    retryIndex = 0
+    void initCanvas()
+    return
+  }
+  progress = 1
+  draw()
+})
+
+// 页面反复进出会持续漏帧，不取消就一路漏下去；定时器同理
 onBeforeUnmount(() => {
   cancelFrame()
+  clearRetryTimer()
+  clearSettleTimers()
 })
 
 const activeTime = computed(() => props.labels[activeIndex.value] ?? '')

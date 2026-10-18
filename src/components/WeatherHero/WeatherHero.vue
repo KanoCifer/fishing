@@ -92,7 +92,9 @@ const verdict = computed(() => levelVerdict(state.indexData?.level));
 
 <style lang="scss" scoped>
 .weather-hero {
-  padding: 16rpx 8rpx 48rpx;
+  /* 底部留白原本是 DashboardSheet 里相邻卡片的间距；这些卡片现在都进了
+     数据页的 .card 内部，卡片自己给了内边距，这里收窄 */
+  padding: 8rpx 8rpx 16rpx;
 }
 
 .weather-hero__place {

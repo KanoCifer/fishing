@@ -3,22 +3,40 @@
     {
       "path": "pages/fishing/index",
       "style": {
-        "navigationBarTitleText": "钓点",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/index/index",
+      "path": "pages/data/index",
       "style": {
-        "navigationBarTitleText": "渔录",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "数据"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "渔录",
-    "navigationBarBackgroundColor": "#F8F8F8",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FFFFFF"
+  },
+  "tabBar": {
+    "color": "#9A9A9A",
+    "selectedColor": "#4285F4",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/fishing/index",
+        "text": "钓点",
+        "iconPath": "static/tabbar/spots.png",
+        "selectedIconPath": "static/tabbar/spots-active.png"
+      },
+      {
+        "pagePath": "pages/data/index",
+        "text": "数据",
+        "iconPath": "static/tabbar/data.png",
+        "selectedIconPath": "static/tabbar/data-active.png"
+      }
+    ]
   }
 }

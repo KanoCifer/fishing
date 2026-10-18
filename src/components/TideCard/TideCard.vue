@@ -44,16 +44,18 @@
       </view>
     </scroll-view>
 
-    <view v-if="state.tideLoading" class="tide-card__body">
-      <SkeletonCard has-chart has-bottom-row />
-    </view>
-
     <!--
-      只有拿到潮位表才画曲线。tideHourly 可能为空数组（后端当日无数据），
-      这时显示空态文案而不是空白画布。
+      画布挂在卡片上、跟着卡片一起活着，不跟着 loading 分支销毁重建。
+
+      切港口/日期时 tideLoading 翻转会整段换掉 body，图表组件被销毁、
+      数据回来时重新挂载 —— 新实例走的是「首次出图」那条路，直接出最终态，
+      切数据就没有动画了。节点保持存活，数据变化才会走到组件内部的
+      watch，那里才有入场动画。显隐用 v-show，不影响实例。
+
+      tideHourly 可能为空数组（后端当日无数据），这时给空态文案而不是空白画布。
     -->
-    <view v-else-if="hasHourly" class="tide-card__body">
-      <view class="tide-card__chart">
+    <view class="tide-card__body">
+      <view v-show="hasHourly" class="tide-card__chart">
         <TideChart
           :points="chartPoints"
           :labels="chartLabels"
@@ -61,8 +63,12 @@
         />
       </view>
 
+      <!-- 骨架屏只在首屏还没数据时出现：已有数据时留着旧曲线，
+           切港口/日期不会先白一下再画 -->
+      <SkeletonCard v-if="state.tideLoading && !hasHourly" has-chart has-bottom-row />
+
       <!-- 高潮 / 低潮 -->
-      <view class="tide-card__peaks">
+      <view v-if="hasHourly" class="tide-card__peaks">
         <view class="tide-card__peak">
           <view class="tide-card__peak-head">
             <text class="tide-card__peak-label">最高潮</text>
@@ -78,10 +84,8 @@
           <text class="tide-card__peak-height">{{ lowTide?.height ?? '--' }} m</text>
         </view>
       </view>
-    </view>
 
-    <view v-else class="tide-card__body">
-      <text class="tide-card__empty">暂无潮汐数据</text>
+      <text v-else-if="!state.tideLoading" class="tide-card__empty">暂无潮汐数据</text>
     </view>
   </view>
 </template>
@@ -192,7 +196,9 @@ watch(
 
 <style lang="scss" scoped>
 .tide-card {
-  padding: 16rpx 8rpx 48rpx;
+  /* 底部留白原本是 DashboardSheet 里相邻卡片的间距；本卡片现在位于数据页的
+     .card 内部，卡片自己给了内边距，这里收窄，避免卡片底部多出一块空白 */
+  padding: 8rpx 8rpx 16rpx;
 }
 
 .tide-card__header {

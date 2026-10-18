@@ -124,7 +124,9 @@ function onDetail() {
 
 <style lang="scss" scoped>
 .index-card {
-  padding: 16rpx 8rpx 48rpx;
+  /* 底部留白原本是 DashboardSheet 里相邻卡片的间距；本卡片现在位于数据页的
+     .card 内部，卡片自己给了内边距，这里收窄，避免卡片底部多出一块空白 */
+  padding: 8rpx 8rpx 16rpx;
 }
 
 .index-card__header {

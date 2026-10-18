@@ -82,6 +82,7 @@
 import { computed } from 'vue'
 
 import { useFishingMapStore } from '@/composables/useFishingMapStore'
+import { shortDate } from '@/utils/date'
 import { num, pressureLevel, weatherIconClass } from '@/utils/weather'
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue'
@@ -108,15 +109,13 @@ const pressure = computed(() => {
 const pressureLabel = computed(() => pressure.value?.label ?? '--')
 const pressureTone = computed(() => pressure.value?.tone ?? 'muted')
 
-/** 后端 fxDate 形如 2026-10-17，切出 MM-DD。不 new Date()，理由同 utils/date.ts */
-function shortDate(fxDate: string): string {
-  return fxDate.slice(5).replace('-', '-')
-}
 </script>
 
 <style lang="scss" scoped>
 .weather-card {
-  padding: 16rpx 8rpx 48rpx;
+  /* 底部留白原本是 DashboardSheet 里相邻卡片的间距；现在本组件只出现在数据页的
+     卡片内部，卡片自己给了内边距，这里收窄，避免卡片底部多出一块空白 */
+  padding: 8rpx 8rpx 16rpx;
 }
 
 .weather-card__header {

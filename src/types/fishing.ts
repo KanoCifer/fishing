@@ -250,6 +250,60 @@ export interface FishingIndexData {
   hourly_weather?: { hourly?: WeatherHourly[] }
 }
 
+/** 一项子特征的展示形态 —— 原始值 + 归一化后的相对水位 */
+export interface FeatureTile {
+  key: string
+  label: string
+  /** 后端原始值，量纲随子项而变（气温是 20、湿度是 80） */
+  value: number
+  /** 0~100，相对本组内最大值的比例 */
+  percent: number
+}
+
+/**
+ * `feature_breakdown` 的 key → 中文 label。
+ *
+ * 和 FISHING_SPOT_KIND_LABELS 一个道理：中文文案只在 types 里定义一次。
+ * 特征明细面板和数据页的构成图都要展示这些 key，两边各写一张表，
+ * 迟早会出现「面板改了、图没改」的不一致。
+ */
+export const FEATURE_BREAKDOWN_LABELS: Readonly<Record<string, string>> = {
+  w1_temp: '气温',
+  w2_humidity: '湿度',
+  w3_pressure: '气压',
+  w4_wind: '风速',
+  w5_rain: '降水',
+  w6_tide_rising: '涨潮',
+  w7_hours_to_tide: '距潮',
+  w8_tide_range: '潮差',
+  w9_indices: '指数',
+}
+
+/**
+ * 特征明细归一化。
+ *
+ * 为什么必须归一化：钓鱼指数是加权求和，各子项量纲不一（气温 20 和湿度 80 不能直接比），
+ * 只有换成「本组内的相对水位」才能横向比较和上色。
+ * 进度条分档和构成图的纵轴共用这一份算法，别在两处各算一遍。
+ */
+export function toFeatureTiles(
+  breakdown: Record<string, number> | undefined,
+): FeatureTile[] {
+  const entries = Object.entries(breakdown ?? {})
+  if (!entries.length) return []
+
+  // 一次算出最大值，避免每个 tile 里重算整组
+  const max = Math.max(...entries.map(([, value]) => value))
+
+  return entries.map(([key, value]) => ({
+    key,
+    // 后端加了新特征而这张表还没跟上时退回 key 本身，总好过渲染成空白
+    label: FEATURE_BREAKDOWN_LABELS[key] ?? key,
+    value,
+    percent: max > 0 ? Math.round((value / max) * 100) : 50,
+  }))
+}
+
 export interface FishingFeedbackPayload {
   location_id: string
   location_name: string

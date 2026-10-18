@@ -1,7 +1,7 @@
 /**
  * 日期工具。
  *
- * 只有两个函数，却没引 dayjs：主包 2MB 上限，加一个日期库不划算，
+ * 只有三个函数，却没引 dayjs：主包 2MB 上限，加一个日期库不划算，
  * 而这里要的也就是"今天是哪天"和"把后端时间戳拆成年月日"。
  *
  * 后端潮汐的 fxTime 形如 `2026-10-17T14:00+08:00` —— 带时区偏移，不能直接 `new Date()`
@@ -37,4 +37,13 @@ export function parseFxTime(fxTime: string): {
     date: `${month}-${day}`,
     time: `${hour}:${minute}`,
   }
+}
+
+/**
+ * 把 `YYYY-MM-DD` 形式的日期切出 `MM-DD`，图表轴和预报行用。
+ *
+ * 后端 fxDate 形如 `2026-10-17`，不带时区，这里同样只切字符串。
+ */
+export function shortDate(fxDate: string): string {
+  return fxDate.slice(5)
 }

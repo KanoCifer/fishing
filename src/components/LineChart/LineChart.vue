@@ -4,7 +4,7 @@
       :id="canvasId"
       type="2d"
       class="line-chart__canvas"
-      :style="{ width: cssWidth, height: cssHeight }"
+      :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"
@@ -54,13 +54,6 @@ interface CanvasNode2D {
   cancelAnimationFrame(requestId: number): void;
 }
 
-/** SelectorQuery 的 fields 回调返回，按实际用到的字段局部声明（宽高依赖 size: true 才带） */
-interface CanvasQueryResult {
-  node?: CanvasNode2D;
-  width?: number;
-  height?: number;
-}
-
 const props = withDefaults(
   defineProps<{
     categories: string[];
@@ -77,6 +70,21 @@ const props = withDefaults(
     animate?: boolean;
     /** 入场动画时长，毫秒 */
     duration?: number;
+    /**
+     * 纵轴下界。不传时从 0 起。
+     *
+     * 为什么需要：默认的「把最大值向上取整」会把 22~31℃ 的气温曲线顶到
+     * 0~50 轴的最上面两成，7 天的起伏看着像一条直线。气温这类本身就在
+     * 高位波动的量必须给一个贴近数据的下界才有信息量。
+     */
+    min?: number;
+    /** 纵轴上界。不传时按数据自动取整 */
+    max?: number;
+    /**
+     * X 轴每隔几个点画一个标签。不传时 8 个点以内全画、超过就隔一个画一个。
+     * 点多且标签长（如 24 小时的时刻）时显式传 3~4，否则标签会糊成一片。
+     */
+    labelStep?: number;
   }>(),
   {
     width: 690,
@@ -102,10 +110,20 @@ const canvasId = `line-chart-${uid}`;
 const PALETTE = ["#4285f4", "#ea4335", "#fbbc04", "#34a853", "#8f5fd6"];
 const colors = computed(() => PALETTE);
 
-/** rpx 只对样式有效，canvas 内部坐标要用 px，这里先记下 px 值 */
-const cssWidth = ref("");
-const cssHeight = ref("");
-const canvasRef = ref<{ width: number; height: number } | null>(null);
+/**
+ * 画布的 CSS 尺寸（px）。
+ *
+ * rpx 只对样式有效，canvas 内部坐标和位图尺寸都得用 px。
+ *
+ * 在 setup 里算好直接绑定，而不是 onMounted 里写进 ref：少一次
+ * 「先按空串渲染、再补值」的往返，节点首帧就带着确定宽高 ——
+ * 首帧没有尺寸时布局测量会拿到 0，画布就再也画不出来了。
+ */
+const cssWidthPx = computed(() => uni.upx2px(props.width));
+const cssHeightPx = computed(() => uni.upx2px(props.height));
+
+/** 绘图用的像素尺寸。同样自己算，不问 SelectorQuery 要布局测量值 */
+const sizeRef = ref<{ width: number; height: number } | null>(null);
 const ctxRef = ref<CanvasRenderingContext2D | null>(null);
 const dprRef = ref(1);
 /**
@@ -124,9 +142,10 @@ let geo: {
   top: number;
   plotW: number;
   plotH: number;
+  min: number;
   max: number;
   len: number;
-} = { left: 0, top: 0, plotW: 0, plotH: 0, max: 1, len: 0 };
+} = { left: 0, top: 0, plotW: 0, plotH: 0, min: 0, max: 1, len: 0 };
 
 /** 入场动画进度 0→1 */
 let progress = 1;
@@ -144,9 +163,33 @@ function niceMax(value: number): number {
   return step * base;
 }
 
+/** 数据里的最大点。没给 max 时用它推纵轴上界 */
+function dataMax(): number {
+  return props.series.reduce((acc, s) => Math.max(acc, ...s.data.map((v) => v || 0)), 0);
+}
+
+/**
+ * 纵轴取值域。
+ *
+ * 只给 min 不给 max 没用：上界仍会被 niceMax 推到 50，气温 22~31 还是贴着顶。
+ * 所以给了 min 就默认也把 max 收到贴近数据（span 至少留 1，避免上下界相等除零）。
+ */
+function axisRange(): { min: number; max: number } {
+  if (props.min !== undefined && props.max !== undefined) {
+    return { min: props.min, max: Math.max(props.max, props.min + 1) };
+  }
+  const max = props.max ?? niceMax(dataMax());
+  return { min: props.min ?? 0, max: Math.max(max, (props.min ?? 0) + 1) };
+}
+
+/** X 轴标签的绘制间隔 */
+function labelStride(len: number): number {
+  return Math.max(1, props.labelStep ?? (len > 8 ? 2 : 1));
+}
+
 function draw() {
   const ctx = ctxRef.value;
-  const size = canvasRef.value;
+  const size = sizeRef.value;
   if (!ctx || !size) return;
 
   const { width, height } = size;
@@ -165,12 +208,13 @@ function draw() {
   const plotW = right - left;
   const plotH = bottom - top;
 
-  const max = niceMax(
-    props.series.reduce((acc, s) => Math.max(acc, ...s.data.map((v) => v || 0)), 0),
-  );
+  const { min, max } = axisRange();
   const len = props.categories.length;
 
-  geo = { left, top, plotW, plotH, max, len };
+  geo = { left, top, plotW, plotH, min, max, len };
+
+  /** 纵轴跨度，至少 1，避免上下界相等时除零 */
+  const span = Math.max(1e-6, max - min);
 
   // 网格 + Y 轴刻度
   ctx.strokeStyle = props.gridColor;
@@ -187,17 +231,19 @@ function draw() {
     ctx.moveTo(left, y);
     ctx.lineTo(right, y);
     ctx.stroke();
-    ctx.fillText(String(Math.round((max / lines) * (lines - i))), left - 6, y);
+    // 刻度值要从 min 起算，不能再从 0 平分，否则非零基线时轴标签会骗人
+    const value = max - (span / lines) * i;
+    ctx.fillText(String(Math.round(value * 10) / 10), left - 6, y);
   }
 
   // X 轴标签
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   const labelGap = len > 1 ? plotW / (len - 1) : 0;
+  const stride = labelStride(len);
   props.categories.forEach((c, i) => {
+    if (i % stride !== 0) return;
     const x = len > 1 ? left + labelGap * i : left + plotW / 2;
-    // 标签太密时隔一个画一个
-    if (len > 8 && i % 2 === 1) return;
     ctx.fillText(c, x, bottom + 6);
   });
 
@@ -208,7 +254,7 @@ function draw() {
     const color = s.color || PALETTE[si % PALETTE.length];
     const points = s.data.map((v, i) => ({
       x: len > 1 ? left + labelGap * i : left + plotW / 2,
-      y: bottom - ((v || 0) / max) * plotH,
+      y: bottom - (((v || 0) - min) / span) * plotH,
     }));
     if (!points.length) return;
 
@@ -245,35 +291,106 @@ function draw() {
   });
 }
 
+/**
+ * 拿节点的重试节奏（毫秒）。
+ *
+ * 为什么必须重试：同一页挂了多个图时，节点进入合成的时间会飘，
+ * 第一次查不到就放弃的话，那张图会一直空白，且没有任何报错可查 ——
+ * 只有切数据（触发重新挂载）才恢复。同一页三个图时这不是偶发，是常态。
+ */
+const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const
+
+/** 同时只允许一次初始化在飞，避免重试和数据变化叠在一起重复建 ctx */
+let initializing = false;
+let initialized = false;
+/** 已经排到第几次重试 */
+let retryIndex = 0;
+let retryTimer = 0;
+
+function clearRetryTimer(): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = 0;
+  }
+}
+
+function scheduleRetry(): void {
+  const delay = INIT_RETRY_DELAYS[retryIndex];
+  if (delay === undefined) {
+    // 重试用尽还是拿不到节点，画布会一直空白。留一条 warn，
+    // 下次再遇到空图能直接分清是「节点没进 DOM」还是「绘制逻辑出错」。
+    console.warn(
+      `[LineChart] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`,
+    );
+    return;
+  }
+  retryIndex += 1;
+  retryTimer = setTimeout(() => {
+    retryTimer = 0;
+    void initCanvas();
+  }, delay);
+}
+
+/**
+ * 查 canvas 节点。
+ *
+ * 回调参数交给上下文推断、再在内部收窄：官方 `fields` 的回调类型是 NodeInfo，
+ * 而 node 在 NodeCallbackResult 里（官方标成 any），NodeInfo 本身在应用代码里
+ * 也无法按名引用。写法与 TideChart.queryCanvas 保持一致。
+ */
+function queryCanvas(): Promise<CanvasNode2D | null> {
+  return new Promise((resolve) => {
+    uni
+      .createSelectorQuery()
+      .in(instance)
+      .select(`#${canvasId}`)
+      .fields({ node: true }, (res) => {
+        const item = Array.isArray(res) ? res[0] : res;
+        const node = (item as { node?: unknown } | undefined)?.node;
+        resolve(typeof node === "object" && node !== null ? (node as CanvasNode2D) : null);
+      })
+      .exec();
+  });
+}
+
 async function initCanvas() {
-  await nextTick();
-  uni
-    .createSelectorQuery()
-    .in(instance)
-    .select(`#${canvasId}`)
-    .fields({ node: true, size: true }, (res: CanvasQueryResult | CanvasQueryResult[]) => {
-      const item = Array.isArray(res) ? res[0] : res;
-      // 宽高只在 fields 里声明了 size 时才返回，缺了就画不了，别拿 NaN 去设位图尺寸
-      if (!item?.node || !item.width || !item.height) return;
-      const canvas = item.node;
-      const dpr = uni.getWindowInfo().pixelRatio || 1;
+  if (initializing || initialized) return;
+  initializing = true;
 
-      canvas.width = item.width * dpr;
-      canvas.height = item.height * dpr;
+  try {
+    await nextTick();
 
-      canvasRef.value = { width: item.width, height: item.height };
-      dprRef.value = dpr;
-      ctxRef.value = canvas.getContext("2d");
-      canvasNode = canvas;
+    const canvas = await queryCanvas();
+    if (!canvas) {
+      scheduleRetry();
+      return;
+    }
 
-      if (props.animate) {
-        play();
-      } else {
-        progress = 1;
-        draw();
-      }
-    })
-    .exec();
+    const dpr = uni.getWindowInfo().pixelRatio || 1;
+    const width = cssWidthPx.value;
+    const height = cssHeightPx.value;
+
+    // 位图尺寸按 dpr 放大、CSS 尺寸不变，否则高分屏发虚。
+    // 位图尺寸取整：小屏换算下来可能是小数，按整数给绘制无差。
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
+    sizeRef.value = { width, height };
+    dprRef.value = dpr;
+    ctxRef.value = canvas.getContext("2d");
+    canvasNode = canvas;
+    initialized = true;
+    clearRetryTimer();
+
+    if (props.animate) {
+      play();
+    } else {
+      progress = 1;
+      draw();
+    }
+  } finally {
+    initializing = false;
+  }
 }
 
 function cancelFrame() {
@@ -315,15 +432,14 @@ function play() {
 }
 
 onMounted(() => {
-  // rpx → px：canvas 内部坐标只能用 px
-  cssWidth.value = `${uni.upx2px(props.width)}px`;
-  cssHeight.value = `${uni.upx2px(props.height)}px`;
-  initCanvas();
+  // 尺寸在 setup 里就算好了，这里只管把节点拿到手
+  void initCanvas();
 });
 
 // 数据变化时重播动画（除非显式关掉动画，那就直接画最终态）
+// 纵轴上下界也要 watch：数据没变、只是把基线挪了（比如切了指标换量纲）时同样要重画
 watch(
-  () => [props.categories, props.series],
+  () => [props.categories, props.series, props.min, props.max],
   () => {
     if (props.animate) {
       play();
@@ -337,6 +453,8 @@ watch(
 
 onBeforeUnmount(() => {
   cancelFrame();
+  // 重试定时器也得停：节点已经没了，再重试只会白白查一个不存在的节点
+  clearRetryTimer();
 });
 
 const tooltipStyle = computed(() => {

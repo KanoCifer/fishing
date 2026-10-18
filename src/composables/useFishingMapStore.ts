@@ -83,6 +83,15 @@ interface FishingMapState {
   markers: MapMarker[]
   spotsLoading: boolean
   spotsError: string
+
+  /**
+   * 当前选中的钓点。
+   *
+   * 放 store 而不是地图页的局部 state：选中动作发生在钓点页（点 marker），
+   * 消费方却是数据页的钓鱼反馈表单，两边跨页了。跨页只能靠 URL 传，
+   * 而 URL 带 marker 还得额外处理刷新和失效，不如共享状态直接。
+   */
+  selectedMarker: MapMarker | null
 }
 
 const state = reactive<FishingMapState>({
@@ -109,6 +118,8 @@ const state = reactive<FishingMapState>({
   markers: [],
   spotsLoading: false,
   spotsError: '',
+
+  selectedMarker: null,
 })
 
 /**
@@ -214,6 +225,16 @@ function setMarkers(
       : updater
 }
 
+/**
+ * 记录当前选中的钓点（点 marker 时调用），传 null 表示取消选中。
+ *
+ * 与 setMarkers 分开而不是合成一个，是因为选中态只改一个引用，
+ * 不该顺带触发地图标记的全量 diff。
+ */
+function setSelectedMarker(marker: MapMarker | null): void {
+  state.selectedMarker = marker
+}
+
 /** 把网络层错误转成可展示文案，页面里不用重复判断 ApiError */
 export function toErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) return err.message
@@ -230,5 +251,6 @@ export function useFishingMapStore() {
     setSelectedDate,
     fetchSpots,
     setMarkers,
+    setSelectedMarker,
   }
 }
