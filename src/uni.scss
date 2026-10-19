@@ -157,6 +157,20 @@ $fish-radius-xl: 24rpx; // 12pt inset 分组容器
 $fish-radius-sheet: 68rpx; // 34pt 抽屉上沿
 $fish-radius-pill: 999rpx;
 
+/* 阴影 */
+$shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.08);
+$shadow-drawer: -16px 0 40px rgba(0, 0, 0, 0.1);
+$smooth-shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+$smooth-shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02),
+    0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+$smooth-shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02),
+    0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+$smooth-shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03),
+    0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+$smooth-shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0, 0.05), 0 10px 20px 0 rgba(0, 0, 0, 0.04),
+    0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+$smooth-shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05),
+    0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
 /* ── 间距 ── */
 /**
  * 分区之间的纵向间距。
@@ -299,6 +313,18 @@ $fish-dur-fast: 100ms; // 按下
 $fish-dur-base: 260ms; // 状态切换
 $fish-dur-slow: 420ms; // 面板出入场
 
+/**
+ * 交叉淡入（两个状态彼此替换）。
+ *
+ * 比 $fish-dur-base 短一档，因为它的使用场景只有一个：内容在**同一位置**
+ * 上换了一组值 —— 读数轨道在「当日概览」和「当前读数」之间切换。
+ * 面板出入场是位移一大截、观众要重新找落点的，260ms 才够；
+ * 这里位置不动，只是两组文字互相让位，拖久了就变成两行字叠着闪烁。
+ *
+ * 收在这一处而不是各组件写各自的 160ms：理由同 $fish-space-section ——
+ * 「同一位置换内容」是一个全局约定，散开写必然漂移。
+ */
+$fish-dur-cross: 160ms;
 /**
  * 按下反馈。
  *

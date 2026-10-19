@@ -9,13 +9,40 @@
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"
     />
-    <view v-if="activeIndex >= 0 && activePoint" class="line-chart__tooltip" :style="tooltipStyle">
-      <text class="line-chart__tooltip-title">{{ categories[activeIndex] }}</text>
-      <text v-for="(s, i) in series" :key="i" class="line-chart__tooltip-row">
-        <text class="line-chart__tooltip-dot" :style="{ backgroundColor: s.color || colors[i] }" />
-        <text class="line-chart__tooltip-name">{{ s.name }}</text>
-        <text class="line-chart__tooltip-value">{{ activePoint[i] }}</text>
-      </text>
+
+    <!--
+      读数轨道。
+
+      为什么是「轨道」而不是浮在曲线上的气泡：气泡要压在绘图区里，就得
+      自己算翻转、自己算边界、自己算一个宽度上限（这一版的旧实现为了做
+      边界收拢，把 120px 这个数同时写进了 CSS 和脚本两处）。轨道是图表
+      下面的一条固定行，它不遮挡任何数据，也不需要任何落位逻辑 ——
+      所有几何都在 CSS 里，写完了就不会再坏。
+
+      两组内容叠在同一个格子里交叉淡入。用 position: absolute 叠过一版，
+      结果常态那组一转绝对定位就退出了 flex 流，「当日概览」被挤走、
+      布局塌掉；grid 叠同一个单元就没有这个问题。
+    -->
+    <view class="line-chart__rail">
+      <!-- 常态：没有选中任何点时显示当日概览，而不是留一条空轨道 -->
+      <view class="line-chart__slot" :class="{ 'line-chart__slot--idle': !isActive }">
+        <text class="line-chart__rail-label">当日概览</text>
+        <text class="line-chart__rail-summary">{{ summaryText }}</text>
+      </view>
+
+      <!-- 激活：当前时刻的读数 -->
+      <view class="line-chart__slot" :class="{ 'line-chart__slot--active': isActive }">
+        <text class="line-chart__rail-label">{{ activeLabel }}</text>
+        <view class="line-chart__rows">
+          <view v-for="row in activeRows" :key="row.key" class="line-chart__row">
+            <view class="line-chart__dot" :style="{ backgroundColor: row.color }" />
+            <!-- 单系列时系列名是废话：标题上已经写着「气温 · 未来 24 小时」 -->
+            <text v-if="isMultiSeries" class="line-chart__name">{{ row.name }}</text>
+            <text class="line-chart__number">{{ row.text }}</text>
+            <text v-if="unit" class="line-chart__unit">{{ unit }}</text>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -46,6 +73,14 @@ interface CanvasNode2D {
   cancelAnimationFrame(requestId: number): void;
 }
 
+/** 轨道上的一行读数 */
+interface ActiveRow {
+  key: string;
+  name: string;
+  color: string;
+  text: string;
+}
+
 const props = withDefaults(
   defineProps<{
     categories: string[];
@@ -58,6 +93,13 @@ const props = withDefaults(
     gridColor?: string;
     axisColor?: string;
     textColor?: string;
+    /**
+     * 数值单位，显示在读数轨道上。
+     *
+     * 为什么不留在图表外面当脚注：脚注是「这张图是 °C」，
+     * 轨道上跟数字挨着的是「这个点是 27.5 °C」。用户读的是后者。
+     */
+    unit?: string;
     /** 是否播放入场动画（逐段绘制） */
     animate?: boolean;
     /** 入场动画时长，毫秒 */
@@ -84,6 +126,7 @@ const props = withDefaults(
     gridColor: 'rgba(60, 60, 67, 0.29)',
     axisColor: 'rgba(60, 60, 67, 0.29)',
     textColor: 'rgba(60, 60, 67, 0.6)',
+    unit: '',
     animate: true,
     duration: 700,
   },
@@ -100,7 +143,6 @@ const canvasId = `line-chart-${uid}`;
  * 同样是 canvas 硬编码，改主题时要和 uni.scss 的 $fish-* 一起看。
  */
 const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
-const colors = computed(() => PALETTE);
 
 /**
  * 画布的 CSS 尺寸（px）。
@@ -126,18 +168,30 @@ let canvasNode: CanvasNode2D | null = null;
 let rafId = 0;
 
 const activeIndex = ref(-1);
-const activePoint = ref<number[] | null>(null);
+const isActive = computed(() => activeIndex.value >= 0);
+const isMultiSeries = computed(() => props.series.length > 1);
 
-/** 记录绘图时的像素几何，触摸换算要用 */
-let geo: {
-  left: number;
-  top: number;
-  plotW: number;
-  plotH: number;
-  min: number;
-  max: number;
-  len: number;
-} = { left: 0, top: 0, plotW: 0, plotH: 0, min: 0, max: 1, len: 0 };
+/**
+ * 绘图区相对画布左边的偏移与宽度，触摸换算要用。
+ *
+ * 之前连 Y 一起记在一个 geo 里，是因为旧的气泡要跟着数据点的 Y 走；
+ * 轨道固定在图表下方、位置与数据无关，这两个值就是全部了。
+ */
+let plotLeft = 0;
+let plotWidth = 0;
+
+/**
+ * 画布在**视口**里的左边距。
+ *
+ * 触摸换算必须先减掉它：touches[0].clientX 是视口坐标，而 plotLeft /
+ * plotWidth 是画布坐标，两者差的就是这个值。之前直接拿 clientX 去减
+ * 画布坐标，整条曲线的取值都偏右了整整一个画布宽度 —— 贴着右端按，
+ * 选中的却是倒数第二三个点。
+ *
+ * 只测一次：画布是定宽块、在页面里横向居中，位置不会变。
+ * 每次 touchmove 都走一遍 SelectorQuery 得不偿失。
+ */
+let canvasLeft = 0;
 
 /** 入场动画进度 0→1 */
 let progress = 1;
@@ -179,6 +233,45 @@ function labelStride(len: number): number {
   return Math.max(1, props.labelStep ?? (len > 8 ? 2 : 1));
 }
 
+/** 数值格式。跟 Y 轴刻度用同一套：四舍五入到一位小数，再按整数输出 */
+function formatValue(value: unknown): string {
+  return typeof value === 'number' && Number.isFinite(value) ? String(Math.round(value * 10) / 10) : '—';
+}
+
+const activeLabel = computed(() => (activeIndex.value >= 0 ? (props.categories[activeIndex.value] ?? '') : ''));
+
+const activeRows = computed<ActiveRow[]>(() => {
+  const i = activeIndex.value;
+  if (i < 0) return [];
+  return props.series.map((s, si) => ({
+    key: String(si),
+    name: s.name,
+    color: s.color || PALETTE[si % PALETTE.length],
+    text: formatValue(s.data[i]),
+  }));
+});
+
+/**
+ * 常态读数：当日最高 / 最低。
+ *
+ * 跨所有系列取极值。这只在**各系列同单位**时成立 —— 现在唯一的调用方
+ * MetricChart 一次只画一条线，成立。将来若要多线共用一张图，这里得换成
+ * 真正的图例（每系列一个小色块 + 当前值），而不是一句「最高 / 最低」。
+ */
+const summaryText = computed(() => {
+  const values: number[] = [];
+  for (const s of props.series) {
+    for (const v of s.data) {
+      if (typeof v === 'number' && Number.isFinite(v)) values.push(v);
+    }
+  }
+  if (!values.length) return '—';
+  const suffix = props.unit;
+  const high = formatValue(Math.max(...values));
+  const low = formatValue(Math.min(...values));
+  return `最高 ${high}${suffix}　最低 ${low}${suffix}`;
+});
+
 function draw() {
   const ctx = ctxRef.value;
   const size = sizeRef.value;
@@ -203,7 +296,8 @@ function draw() {
   const { min, max } = axisRange();
   const len = props.categories.length;
 
-  geo = { left, top, plotW, plotH, min, max, len };
+  plotLeft = left;
+  plotWidth = plotW;
 
   /** 纵轴跨度，至少 1，避免上下界相等时除零 */
   const span = Math.max(1e-6, max - min);
@@ -225,7 +319,7 @@ function draw() {
     ctx.stroke();
     // 刻度值要从 min 起算，不能再从 0 平分，否则非零基线时轴标签会骗人
     const value = max - (span / lines) * i;
-    ctx.fillText(String(Math.round(value * 10) / 10), left - 6, y);
+    ctx.fillText(formatValue(value), left - 6, y);
   }
 
   // X 轴标签
@@ -269,18 +363,57 @@ function draw() {
     });
     ctx.stroke();
 
-    // 数据点：随动画进度逐个出现。白心 + 彩色描边，和 iOS Charts 的数据点一致
-    ctx.fillStyle = '#ffffff';
+    // 数据点：随动画进度逐个出现。白心 + 彩色描边，和 iOS Charts 的数据点一致。
+    // 有选中点时把其余压到 0.3 —— 读数轨道的数字是给某一个点写的，
+    // 眼睛却要在二十几个点里找哪一个是它，这是读数层最费劲的地方。
     points.forEach((p, i) => {
       if (i > cut + 0.5) return;
+      if (activeIndex.value >= 0 && i !== activeIndex.value) {
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+      }
       ctx.beginPath();
       ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.stroke();
+      if (activeIndex.value >= 0 && i !== activeIndex.value) {
+        ctx.restore();
+      }
     });
+
+    // 选中点的两笔：底下圈白底把点从线上「拔」出来，上面点本色。
+    // 没有底下那圈，准星交点上的点和线上其它点分不出主次。
+    if (activeIndex.value >= 0 && activeIndex.value < points.length) {
+      const p = points[activeIndex.value];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
   });
+
+  // 准星：画在所有系列之后（它属于当前选中点，是这一次的焦点），
+  // 但用低透明度，视觉上退到数据后面。
+  if (activeIndex.value >= 0 && activeIndex.value < len) {
+    ctx.save();
+    const primary = props.series[0];
+    ctx.strokeStyle = primary?.color || PALETTE[0];
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1;
+    const x = Math.round(len > 1 ? left + labelGap * activeIndex.value : left + plotW / 2) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 /**
@@ -322,22 +455,29 @@ function scheduleRetry(): void {
 }
 
 /**
- * 查 canvas 节点。
+ * 查 canvas 节点，同时量出它相对视口的左边距。
  *
  * 回调参数交给上下文推断、再在内部收窄：官方 `fields` 的回调类型是 NodeInfo，
  * 而 node 在 NodeCallbackResult 里（官方标成 any），NodeInfo 本身在应用代码里
  * 也无法按名引用。写法与 TideChart.queryCanvas 保持一致。
+ *
+ * 量不到矩形（left 为 undefined）时按 0 处理：这时取值会整体偏右，
+ * 但总比拿 NaN 去算索引、把选中态彻底弄丢要好。
  */
-function queryCanvas(): Promise<CanvasNode2D | null> {
+function queryCanvas(): Promise<{ node: CanvasNode2D | null; left: number }> {
   return new Promise((resolve) => {
     uni
       .createSelectorQuery()
       .in(instance)
       .select(`#${canvasId}`)
-      .fields({ node: true }, (res) => {
+      .fields({ node: true, rect: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;
         const node = (item as { node?: unknown } | undefined)?.node;
-        resolve(typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null);
+        const left = (item as { left?: unknown } | undefined)?.left;
+        resolve({
+          node: typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null,
+          left: typeof left === 'number' && Number.isFinite(left) ? left : 0,
+        });
       })
       .exec();
   });
@@ -350,11 +490,12 @@ async function initCanvas() {
   try {
     await nextTick();
 
-    const canvas = await queryCanvas();
+    const { node: canvas, left } = await queryCanvas();
     if (!canvas) {
       scheduleRetry();
       return;
     }
+    canvasLeft = left;
 
     const dpr = uni.getWindowInfo().pixelRatio || 1;
     const width = cssWidthPx.value;
@@ -431,6 +572,8 @@ onMounted(() => {
 watch(
   () => [props.categories, props.series, props.min, props.max],
   () => {
+    // 换数据后旧的选中点不再有意义，留着会显示另一组数据里的下标
+    activeIndex.value = -1;
     if (props.animate) {
       play();
     } else {
@@ -447,29 +590,32 @@ onBeforeUnmount(() => {
   clearRetryTimer();
 });
 
-const tooltipStyle = computed(() => {
-  const { left, plotW, len } = geo;
-  const gap = len > 1 ? plotW / (len - 1) : plotW;
-  const x = len > 1 ? left + gap * activeIndex.value : left + plotW / 2;
-  return {
-    left: `${Math.max(0, Math.min(x - 60, geo.left + geo.plotW - 120))}px`,
-    top: `${Math.max(0, geo.top - 4)}px`,
-  };
-});
-
+/**
+ * 触摸换算。
+ *
+ * clientX 是**视口**坐标，plotLeft / plotWidth 是**画布**坐标，
+ * 两者之间隔着画布自己的左边距 canvasLeft —— 不减它，整条曲线偏右一个画布宽。
+ *
+ * 选中后必须重绘：准星和选中点都画在 canvas 上，而 draw() 之前只在挂载和
+ * 数据变化时跑，光改 activeIndex 的话轨道上的数字会变、图上却毫无反应。
+ */
 function pick(clientX: number) {
-  const { left, plotW, len } = geo;
-  if (!len) return;
-  const gap = len > 1 ? plotW / (len - 1) : plotW;
-  const rel = (clientX - left) / (len > 1 ? gap : plotW);
+  const len = props.categories.length;
+  if (!len || plotWidth <= 0) return;
+  const gap = len > 1 ? plotWidth / (len - 1) : plotWidth;
+  const x = clientX - canvasLeft - plotLeft;
+  const rel = len > 1 ? x / gap : 0;
   const i = Math.round(rel);
   if (i < 0 || i >= len) {
-    activeIndex.value = -1;
-    activePoint.value = null;
+    if (activeIndex.value !== -1) {
+      activeIndex.value = -1;
+      draw();
+    }
     return;
   }
+  if (i === activeIndex.value) return;
   activeIndex.value = i;
-  activePoint.value = props.series.map((s) => s.data[i] ?? 0);
+  draw();
 }
 
 function onTouchStart(e: any) {
@@ -479,7 +625,10 @@ function onTouchMove(e: any) {
   pick(e.touches[0].clientX);
 }
 function onTouchEnd() {
-  // 保留高亮，方便用户看清数值；如需恢复初始态在这里加 setTimeout 清空
+  // 保留选中态，方便用户看清数值。
+  // 抬手就收是错的：抬手正是要读数的时刻，一抬手数字没了，
+  // 等于逼用户用一根手指同时看和记。iOS 的 Health / Stocks 也是留着的。
+  // 回到常态只需要切指标或重新挂载。
 }
 </script>
 
@@ -493,56 +642,105 @@ function onTouchEnd() {
 }
 
 /*
- * 数值浮层。
+ * 读数轨道。
  *
- * 浮在 canvas 上，所以必须是深色材质 —— 白底会被曲线和网格线打散，读不出来。
- * 底色用 $fish-material-dark 而不是纯黑：纯黑贴在白底图表上像贴纸，
- * 带一点暖的黑才像「浮起来的一层」。
- *
- * 宽度给死 120px 是因为 tooltipStyle 在脚本里按这个宽度做边界收拢（见那段注释），
- * 改这里必须同步改那边的 120。
+ * 用 $fish-fill 而不是卡片白底：这一节本身就直接坐在页面灰底上，
+ * 给它一块白底会凭空多出一层「卡片里还有一块卡片」的套嵌感。
+ * 轨道是 secondarySystemFill 这一档 —— 浅、有边界、不抢戏。
  */
-.line-chart__tooltip {
+.line-chart__rail {
+  position: relative;
+  overflow: hidden; // 切槽位时不至于溢到圆角外面
+  height: 88rpx;
+  margin-top: 12rpx;
+  border-radius: $fish-radius-lg;
+  background-color: $fish-fill;
+}
+
+/*
+ * 两个状态叠在同一个格子里交叉淡入。
+ *
+ * 基态是「藏起来并下移 4rpx」，两个修饰类都是「显出来」。
+ * 写成这样而不是给两个状态各写一套显隐，是因为两边的可见态完全相同 ——
+ * 差异只在从哪个方向进来，由基态的位移天然承担。
+ *
+ * 位移只有 4rpx。再大就从「换了一组值」读作「飞进来了」，
+ * 而且拖动的时候一直有东西在动，反而看不清当前读数。
+ */
+.line-chart__slot {
   position: absolute;
-  z-index: 10;
-  min-width: 120px;
-  padding: 10rpx 16rpx;
-  border-radius: $fish-radius-sm;
-  background-color: $fish-material-dark;
-  pointer-events: none;
-}
-
-.line-chart__tooltip-title {
-  display: block;
-  margin-bottom: 6rpx;
-  @include fish-type(caption2);
-
-  /* 半透明材质上的文字要比平时更重一点，否则会被背景打散 */
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 500;
-}
-
-.line-chart__tooltip-row {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
-  line-height: 1.5;
-  color: #ffffff;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  opacity: 0;
+  transform: translateY(4rpx);
+
+  @if $fish-motion {
+    transition:
+      opacity $fish-dur-cross $fish-ease-out,
+      transform $fish-dur-cross $fish-ease-out;
+  }
+}
+
+.line-chart__slot--idle,
+.line-chart__slot--active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.line-chart__rail-label {
+  color: $fish-muted;
   @include fish-type(caption);
 }
 
-.line-chart__tooltip-dot {
+.line-chart__rail-summary {
+  color: $fish-muted;
+  @include fish-type(subhead);
+}
+
+/* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效，
+   这里跟着全项目的做法走 margin */
+.line-chart__rows {
+  display: flex;
+  align-items: baseline;
+}
+
+.line-chart__row {
+  display: flex;
+  align-items: baseline;
+}
+
+.line-chart__row + .line-chart__row {
+  margin-left: 24rpx;
+}
+
+.line-chart__dot {
+  align-self: center;
   width: 12rpx;
   height: 12rpx;
   margin-right: 10rpx;
   border-radius: 50%;
 }
 
-.line-chart__tooltip-name {
-  flex: 1;
+.line-chart__name {
   margin-right: 20rpx;
+  color: $fish-muted;
+  @include fish-type(caption);
 }
 
-.line-chart__tooltip-value {
-  font-weight: 600;
+.line-chart__number {
+  color: $fish-ink;
+  @include fish-type(title3);
+}
+
+.line-chart__unit {
+  margin-left: 6rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
 }
 </style>

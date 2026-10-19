@@ -17,31 +17,36 @@
       @touchend="onTouchEnd"
     />
 
-    <view v-if="activeIndex >= 0 && activePoint" class="tide-chart__tooltip" :style="tooltipStyle">
-      <text class="tide-chart__tooltip-time">{{ activeTime }}</text>
-      <text class="tide-chart__tooltip-row">
-        潮高
-        <text class="tide-chart__tooltip-value">{{ activePoint.toFixed(2) }} m</text>
-      </text>
+    <!--
+      读数轨道。与 LineChart 同一套形状（见那边的注释），两处必须一起改：
+      同一个应用里两张图、同一套交互，读数却在两个地方。
+
+      常态这一行显示「现在」而不是最高/最低 —— 潮汐卡片下方本来就有一块
+      最高潮 / 最低潮（带时刻和潮高），再放一遍是重复；而「此刻的潮高」
+      全页没有任何地方说过，它才是缺的。语义上也正对图上那条橙色虚线。
+
+      没有落位逻辑：位置与数据无关，所有几何都在 CSS 里。
+      旧的浮层为了不出界，把 120px 这个数同时写进了 CSS 和脚本两处，
+      改文案就得记得改两个地方 —— 换成轨道之后这个坑直接没了。
+    -->
+    <view class="tide-chart__rail">
+      <view class="tide-chart__slot" :class="{ 'tide-chart__slot--idle': !isActive }">
+        <text class="tide-chart__rail-label">现在</text>
+        <text class="tide-chart__rail-summary">{{ nowHeight }} m</text>
+      </view>
+
+      <view class="tide-chart__slot" :class="{ 'tide-chart__slot--active': isActive }">
+        <text class="tide-chart__rail-label">{{ activeTime }}</text>
+        <view class="tide-chart__rows">
+          <text class="tide-chart__number">{{ activeHeight }}</text>
+          <text class="tide-chart__unit">m</text>
+        </view>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-/**
- * 潮汐曲线 —— 手写 Canvas 2d，替代源项目的 ECharts。
- *
- * 为什么不用 ECharts：它依赖 DOM 和完整 canvas API，小程序端两者都不具备，
- * 而且整包体积会顶穿 2MB 主包上限。这里按 LineChart 已验证的 Canvas 2d 管道实现。
- *
- * 平台约束（详见 docs/miniprogram-gotchas.md「Canvas 2d 绘制」）：
- * - 宽高必须具体数值，rpx 只对样式有效，绘制前过 upx2px
- * - 画布宽高自己算，不要问 SelectorQuery 要：布局未完成时它恒返回 0，重试也救不回来
- * - 位图尺寸按 dpr 放大，CSS 尺寸不变，否则高分屏发虚
- * - 缩放只能用 setTransform（覆盖式），用 scale（累乘式）会叠成 dpr^n
- * - 取帧用 canvas 节点自带的 requestAnimationFrame，没有全局 rAF
- * - 取消必须走同一个节点，且在 onBeforeUnmount 里做
- */
 import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -60,7 +65,7 @@ interface CanvasNode2D {
 type CanvasFrameCallback = () => void;
 
 /**
- * SelectorQuery 里取出来的 canvas 节点。
+ * SelectorQuery 里取出来的 canvas 节点，以及它相对视口的左边距。
  *
  * 官方 `fields` 回调的类型是 `NodeInfo`，但它里面没有 `node` 字段
  * （node 在 `NodeCallbackResult` 里，官方把它标成了 any），而 `NodeInfo` 本身
@@ -71,6 +76,7 @@ type CanvasFrameCallback = () => void;
  */
 interface CanvasQueryResult {
   node?: CanvasNode2D;
+  left?: number;
 }
 
 interface Props {
@@ -102,17 +108,14 @@ const instance = getCurrentInstance()!;
 const uid = Math.random().toString(36).slice(2, 8);
 // canvasId 必须页面内唯一，同一页面可能画多个图
 const canvasId = `tide-chart-${uid}`;
-(globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, {
-  setup: (((globalThis as any).__probe || {}).setup || 0) + 1,
-});
 
 /**
  * 画布的 CSS 尺寸（px）。
  *
  * rpx 只对样式有效，canvas 内部坐标和位图尺寸都得用 px。
  *
- * 在 setup 里就算好直接绑定，而不是 onMounted 里写进 ref —— 少一次
- * 「先按空串渲染、再补值」的往返，节点首帧就带着确定宽高。
+ * 在 setup 里就算好直接绑定，而不是 onMounted 里算完再写进 ref —— 少一次
+ * 「先空串渲染、再补值」的往返，节点首帧就带着确定宽高。
  */
 const cssWidthPx = computed(() => uni.upx2px(props.width));
 const cssHeightPx = computed(() => uni.upx2px(props.height));
@@ -126,10 +129,29 @@ let canvasNode: CanvasNode2D | null = null;
 let rafId = 0;
 
 const activeIndex = ref(-1);
-const activePoint = ref<number | null>(null);
+const isActive = computed(() => activeIndex.value >= 0);
 
-/** 绘图时的像素几何，触摸换算要用 */
-let geo = { left: 0, top: 0, plotW: 0, plotH: 0, gap: 0, min: 0, max: 1 };
+/**
+ * 绘图区左边界与相邻点的像素间距，触摸换算要用。
+ *
+ * 之前连 Y、min/max 一起记在一个 geo 里，是因为旧的浮层要跟着数据点的 Y 走；
+ * 轨道固定在图表下方、位置与数据无关，这两个值就是全部了。
+ */
+let plotLeft = 0;
+let pointGap = 0;
+
+/**
+ * 画布在**视口**里的左边距。
+ *
+ * 触摸换算必须先减掉它：touches[0].clientX 是视口坐标，而 plotLeft /
+ * pointGap 是画布坐标。之前直接拿 clientX 去减画布坐标，整条曲线的取值
+ * 都偏右了整整一个画布宽度 —— 贴着右端按，选中的却是倒数第二三个点。
+ * （这里一度被当成「LineChart 的折算范本」写在注释里，其实两个都错。）
+ *
+ * 只测一次：画布是定宽块、在卡片里横向居中，位置不会变。
+ * 每次 touchmove 都走一遍 SelectorQuery 得不偿失。
+ */
+let canvasLeft = 0;
 
 /** 入场动画进度 0→1 */
 let progress = 1;
@@ -169,6 +191,20 @@ function niceBounds(values: number[]): { min: number; max: number } {
 }
 
 /**
+ * 潮高文案。
+ *
+ * `height` 的后端类型是 `number | string`，实测会出现 `""` / `null`。
+ * 这里必须逐个判空：直接 `Number(x)` 会把 `""` 和 `null` 都变成 0，
+ * 读数轨道上于是显示「0.00 m」——一个凭空长出来的、看着还挺可信的数字。
+ * 脏值一律显示破折号，和图上「跳过该点」的处理保持一致。
+ */
+function formatHeight(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(2) : '—';
+}
+
+/**
  * 把逐时潮高清洗成可绘制的数值数组。
  *
  * 为什么必须清洗：后端 `height` 字段类型是 `number | string`，实测会出现
@@ -177,6 +213,10 @@ function niceBounds(values: number[]): { min: number; max: number } {
  * 「潮汐卡片一片空白」。改为逐点剔除非有限值：脏点跳过、其余照常画，
  * 曲线最多短一截，而不会整张图消失。
  */
+function finiteValues(): number[] {
+  return props.points.map((point) => Number(point.height)).filter((value) => Number.isFinite(value));
+}
+
 /**
  * 画布内空态：数据全脏时给一行说明，别让用户对着空白猜。
  *
@@ -190,9 +230,20 @@ function drawEmptyHint(ctx: CanvasRenderingContext2D, width: number, height: num
   ctx.fillText('暂无潮位数据', width / 2, height / 2);
 }
 
-function finiteValues(): number[] {
-  return props.points.map((point) => Number(point.height)).filter((value) => Number.isFinite(value));
-}
+/** 轨道常态：此刻的潮高 */
+const nowHeight = computed(() => {
+  const i = props.nowIndex;
+  if (i < 0 || i >= props.points.length) return '—';
+  return formatHeight(props.points[i].height);
+});
+
+/** 轨道激活：选中时刻与该时刻的潮高 */
+const activeTime = computed(() => props.labels[activeIndex.value] ?? '');
+const activeHeight = computed(() => {
+  const i = activeIndex.value;
+  if (i < 0 || i >= props.points.length) return '—';
+  return formatHeight(props.points[i].height);
+});
 
 function draw() {
   const ctx = ctxRef.value;
@@ -209,6 +260,9 @@ function draw() {
   const values = finiteValues();
   // 只有全是脏值才没得画；零星脏值上面已经滤掉了
   if (!values.length) {
+    // 几何作废：上一轮的数据可能画过，触摸换算不能继续用旧的间距
+    plotLeft = 0;
+    pointGap = 0;
     drawEmptyHint(ctx, width, height);
     return;
   }
@@ -224,7 +278,8 @@ function draw() {
   const plotH = bottom - top;
   const gap = len > 1 ? plotW / (len - 1) : plotW;
 
-  geo = { left, top, plotW, plotH, gap, min, max };
+  plotLeft = left;
+  pointGap = gap;
 
   const valueToY = (v: number) => bottom - ((v - min) / (max - min)) * plotH;
   const indexToX = (i: number) => (len > 1 ? left + gap * i : left + plotW / 2);
@@ -319,7 +374,7 @@ function draw() {
   ctx.lineCap = 'round';
   ctx.stroke();
 
-  // 「现在」标线：只在当前时刻落在数据范围内时画
+  // 「现在」标线：只在当前时刻落在数据范围内、且曲线已画完时画
   if (props.nowIndex >= 0 && props.nowIndex < len && progress >= 1) {
     const x = Math.round(indexToX(props.nowIndex)) + 0.5;
     ctx.beginPath();
@@ -338,6 +393,40 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText('现在', x, top - 2);
+  }
+
+  // 选中标记：准星 + 曲线上的点。
+  //
+  // 必须重绘才能有：这些画在 canvas 上，而 draw() 平时只在挂载、数据变化、
+  // 布局落定时跑。光改 activeIndex 的话轨道数字会变、图却纹丝不动。
+  //
+  // 与上面那条橙色虚线可以共存、语义也不同：「现在」是时间参照，
+  // 准星是当前正在看的位置。两者可能重合，准星画在上层。
+  if (activeIndex.value >= 0 && activeIndex.value < len && progress >= 1) {
+    const x = indexToX(activeIndex.value);
+    const y = valueToY(values[activeIndex.value]);
+
+    ctx.save();
+    ctx.strokeStyle = TIDE_COLOR;
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1;
+    const crossX = Math.round(x) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(crossX, top);
+    ctx.lineTo(crossX, bottom);
+    ctx.stroke();
+    ctx.restore();
+
+    // 底下圈一圈白底把点从曲线和渐变上「拔」出来，
+    // 没有它，处在渐变最浓处的那个点几乎看不见。
+    ctx.beginPath();
+    ctx.arc(x, y, 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = TIDE_COLOR;
+    ctx.fill();
   }
 }
 
@@ -367,18 +456,32 @@ const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
  */
 const SETTLE_REDRAW_DELAYS = [0, 320, 800] as const;
 
+/**
+ * 取节点，顺便量出它相对视口的左边距（触摸换算要用，见 canvasLeft）。
+ *
+ * 量不到时按 0 处理：这时取值会整体偏右，但总比拿 NaN 去算下标、
+ * 把选中态彻底弄丢要好。
+ */
 function queryCanvas(): Promise<CanvasQueryResult | null> {
   return new Promise((resolve) => {
     uni
       .createSelectorQuery()
       .in(instance)
       .select(`#${canvasId}`)
-      .fields({ node: true }, (res) => {
+      .fields({ node: true, rect: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;
         // node 在官方类型里是 any，这里收窄成本组件实际用到的形状；
         // 顺手做一次判空，省得把 undefined 交给后面 getContext
         const node = (item as { node?: unknown } | undefined)?.node;
-        resolve(typeof node === 'object' && node !== null ? { node: node as CanvasNode2D } : null);
+        if (typeof node !== 'object' || node === null) {
+          resolve(null);
+          return;
+        }
+        const left = (item as { left?: unknown } | undefined)?.left;
+        resolve({
+          node: node as CanvasNode2D,
+          left: typeof left === 'number' && Number.isFinite(left) ? left : 0,
+        });
       })
       .exec();
   });
@@ -461,6 +564,7 @@ async function initCanvas(): Promise<void> {
     }
 
     const canvas = item.node;
+    canvasLeft = item.left ?? 0;
     // getSystemInfoSync 在微信端已废弃，dpr 从 getWindowInfo 取
     const dpr = uni.getWindowInfo().pixelRatio || 1;
     const width = cssWidthPx.value;
@@ -490,9 +594,6 @@ async function initCanvas(): Promise<void> {
     progress = 1;
     draw();
     if (props.points.length > 0) hasPaintedData = true;
-    (globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, {
-      init: (((globalThis as any).__probe || {}).init || 0) + 1,
-    });
   } finally {
     initializing = false;
   }
@@ -533,9 +634,6 @@ function play() {
     }
   };
 
-  (globalThis as any).__probe = Object.assign((globalThis as any).__probe || {}, {
-    play: (((globalThis as any).__probe || {}).play || 0) + 1,
-  });
   rafId = node.requestAnimationFrame(tick);
 }
 
@@ -546,8 +644,8 @@ onMounted(() => {
 watch(
   () => [props.points, props.labels, props.nowIndex],
   () => {
+    // 换数据后旧的选中下标不再有意义，留着会显示另一组数据里的点
     activeIndex.value = -1;
-    activePoint.value = null;
 
     // 画布还没拿到就先补拿。之前这里无条件走 play()，而 play() 拿不到
     // 节点就直接 return，等于白等 —— 数据变了但图表还是空的。
@@ -595,44 +693,33 @@ onBeforeUnmount(() => {
   clearSettleTimers();
 });
 
-const activeTime = computed(() => props.labels[activeIndex.value] ?? '');
-
-const tooltipStyle = computed(() => {
-  const { left, plotW, gap, len } = { ...geo, len: props.points.length };
-  const x = len > 1 ? left + gap * activeIndex.value : left + plotW / 2;
-  // 贴边时把 tooltip 收回来，避免溢出容器
-  const clamped = Math.max(0, Math.min(x - 60, widthPx() - 120));
-  return {
-    left: `${clamped}px`,
-    top: `${Math.max(0, geo.top - 8)}px`,
-  };
-});
-
-function widthPx(): number {
-  return sizeRef.value?.width ?? 0;
-}
-
+/**
+ * 触摸换算。
+ *
+ * clientX 是**视口**坐标，plotLeft / pointGap 是**画布**坐标，
+ * 两者之间隔着画布自己的左边距 canvasLeft —— 不减它，整条曲线偏右一个画布宽。
+ *
+ * 选中后必须重绘：准星和选中点都画在 canvas 上，见 draw 里那段。
+ */
 function pick(clientX: number) {
   const len = props.points.length;
-  if (!len || !geo.gap) return;
+  if (!len || pointGap <= 0) return;
 
-  const rel = (clientX - geo.left) / geo.gap;
+  const rel = (clientX - canvasLeft - plotLeft) / pointGap;
   const i = Math.round(rel);
   if (i < 0 || i >= len) {
-    activeIndex.value = -1;
-    activePoint.value = null;
+    if (activeIndex.value !== -1) {
+      activeIndex.value = -1;
+      draw();
+    }
     return;
   }
-
+  if (i === activeIndex.value) return;
   activeIndex.value = i;
-  const value = Number(props.points[i].height);
-  activePoint.value = Number.isFinite(value) ? value : null;
+  draw();
 }
 
 /**
- * 触摸换算：绘图几何是相对画布的，而 touches[0].clientX 是相对视口的，
- * 两者差一个画布左边距 —— LineChart 用 `geo.left` 折算，这里同理。
- *
  * 用 `@dcloudio/types` 声明的 TouchEvent，不另造局部 interface。
  */
 function onTouchStart(e: TouchEvent) {
@@ -644,7 +731,9 @@ function onTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd() {
-  // 保留高亮，方便用户看清数值
+  // 保留选中态，方便用户看清数值。
+  // 抬手就收是错的：抬手正是要读数的时刻，一抬手数字没了，
+  // 等于逼用户用一根手指同时看和记。回到常态靠切港口/日期。
 }
 </script>
 
@@ -658,34 +747,74 @@ function onTouchEnd() {
 }
 
 /*
- * 数值浮层。浮在 canvas 上所以必须深色，宽度给死 120px —— tooltipStyle
- * 按这个宽度做边界收拢（见脚本里那段），改这里要同步改那边的 120。
+ * 读数轨道。形状与 LineChart 的同名件一致，两处要一起改。
+ *
+ * 用 $fish-fill：这一节坐在卡片白底上，浅灰轨道在白底上才分得出来；
+ * 给它白底会和卡片糊成一片。
  */
-.tide-chart__tooltip {
+.tide-chart__rail {
+  position: relative;
+  overflow: hidden; // 切槽位时不至于溢到圆角外面
+  height: 88rpx;
+  margin-top: 12rpx;
+  border-radius: $fish-radius-lg;
+  background-color: $fish-fill;
+}
+
+/*
+ * 基态是「藏起来并下移 4rpx」，两个修饰类都是「显出来」。
+ * 位移只有 4rpx：再大就从「换了一组值」读作「飞进来了」。
+ */
+.tide-chart__slot {
   position: absolute;
-  z-index: 10;
-  min-width: 120px;
-  padding: 10rpx 16rpx;
-  border-radius: $fish-radius-sm;
-  background-color: $fish-material-dark;
-  pointer-events: none;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  opacity: 0;
+  transform: translateY(4rpx);
+
+  @if $fish-motion {
+    transition:
+      opacity $fish-dur-cross $fish-ease-out,
+      transform $fish-dur-cross $fish-ease-out;
+  }
 }
 
-.tide-chart__tooltip-time {
-  display: block;
-  margin-bottom: 6rpx;
-  /* 半透明材质上的文字要更重一点才不被背景打散 */
-  color: rgba(255, 255, 255, 0.65);
-  @include fish-type(caption2);
-  font-weight: 500;
+.tide-chart__slot--idle,
+.tide-chart__slot--active {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.tide-chart__tooltip-row {
-  color: #ffffff;
+.tide-chart__rail-label {
+  color: $fish-muted;
   @include fish-type(caption);
 }
 
-.tide-chart__tooltip-value {
-  font-weight: 600;
+.tide-chart__rail-summary {
+  color: $fish-muted;
+  @include fish-type(subhead);
+}
+
+/* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效 */
+.tide-chart__rows {
+  display: flex;
+  align-items: baseline;
+}
+
+.tide-chart__number {
+  color: $fish-ink;
+  @include fish-type(title3);
+}
+
+.tide-chart__unit {
+  margin-left: 6rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
 }
 </style>

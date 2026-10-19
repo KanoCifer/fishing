@@ -31,8 +31,8 @@
         :label-step="4"
         :width="CHART_WIDTH"
         :height="300"
+        :unit="active.unit"
       />
-      <text class="metric__empty-note">单位 {{ active.unit }}</text>
     </template>
 
     <text v-else class="metric__empty">{{ emptyText }}</text>
@@ -193,12 +193,5 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
   color: $fish-muted-60;
   @include fish-type(subhead);
   text-align: center;
-}
-
-.metric__empty-note {
-  display: block;
-  margin-top: 12rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
 }
 </style>
