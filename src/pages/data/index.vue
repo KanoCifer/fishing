@@ -1,79 +1,64 @@
 <template>
-  <!--
-    数据页 —— tabBar 的第二个页签。
-
-    结构上的取舍：这一页原本是八张等权卡片从上到下排开，每张回答一个子问题，
-    用户得自己滚完、把四类数据在脑子里拼成一个判断。现在改成两层：
-
-      第一层  结论头。一屏之内给出「今天行不行」，以及支撑它的三个成因。
-      第二层  证据。按天气 / 潮汐 / 指数构成切换，每次只看一类，需要时才进来。
-
-    分工也跟着变了：钓点页回答「在哪、这个地方行不行」，这一页回答「数据长什么样」。
-    钓点页则只剩地图和 marker，不跟这里抢内容。
-  -->
-
   <view class="data">
-    <!-- 结论 -->
-    <VerdictHeader @feedback="openFeedback" />
+    <view class="data__ambient" />
 
-    <!--
-      证据切换。三个固定项，不需要 scroll-view。
-      刻意用分段控件而不是纵向堆叠：三类数据互不相干，同屏出现只会互相稀释，
-      而一次只需要认真看一类。
-    -->
-    <view class="segment">
-      <view
-        v-for="option in PANES"
-        :key="option.key"
-        class="segment__item"
-        :class="{ 'segment__item--active': pane === option.key }"
-        @tap="pane = option.key"
-      >
-        <text class="segment__text" :class="{ 'segment__text--active': pane === option.key }">
-          {{ option.label }}
-        </text>
+    <view class="data__content">
+      <VerdictBar
+        v-if="mapStore.indexData"
+        :visible="barVisible"
+        :score="score"
+        :level="level"
+        :tone="tone"
+        :place="placeName"
+        @refresh="onRefresh"
+      />
+
+      <!-- 结论 -->
+      <VerdictHeader @feedback="openFeedback" @conclusion-bottom="onConclusionBottom" />
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
+
+        <MetricChart class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+        <HourlyWeather class="sect__card" :style="{ animationDelay: enterDelay(2) }" />
+        <WeekStrip class="sect__card" :style="{ animationDelay: enterDelay(3) }" />
       </view>
+
+      <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">潮汐</text>
+
+        <TideCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+      </view>
+
+      <!-- 指数构成：九项子特征各自贡献多少 -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">指数构成</text>
+
+        <FeatureBreakdown class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+      </view>
+
+      <!-- 天气详情：实况的逐项读数 -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气详情</text>
+
+        <WeatherCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+      </view>
+
+      <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
+
+      <!--
+        以下浮层不占页面流。SnapSheet 是 fixed 全屏遮罩，
+        在可滚动页面上同样成立（浮层固定在视口，不随内容滚走）。
+      -->
+
+      <!-- 钓鱼反馈 -->
+      <FishingFeedbackForm
+        :open="feedbackOpen"
+        :data="mapStore.indexData"
+        :location-id="locationId"
+        @close="feedbackOpen = false"
+      />
     </view>
-
-    <!--
-      天气：实况 → 趋势 → 逐时 → 七天，由实到细。
-
-      .pane__section 落在每个子组件的根节点上（Vue 的 class fallthrough，
-      钓点页的 FullscreenMap 也是这么用的），所以动画归每个分区自己所有，
-      页面只负责按顺序给不同的延迟。切面板时整组重建，入场跟着重放一遍 ——
-      这正是要的效果：新面板的内容落位，而不是旧面板消失后新面板凭空出现。
-    -->
-    <view v-if="pane === 'weather'" class="pane">
-      <MetricChart class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
-      <HourlyWeather class="pane__section" :style="{ animationDelay: enterDelay(1) }" />
-      <WeekStrip class="pane__section" :style="{ animationDelay: enterDelay(2) }" />
-      <WeatherCard class="pane__section" :style="{ animationDelay: enterDelay(3) }" />
-    </view>
-
-    <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
-    <view v-else-if="pane === 'tide'" class="pane">
-      <TideCard class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
-    </view>
-
-    <!-- 指数构成：九项子特征各自贡献多少 -->
-    <view v-else class="pane">
-      <FeatureBreakdown class="pane__section" :style="{ animationDelay: enterDelay(0) }" />
-    </view>
-
-    <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
-
-    <!--
-      以下浮层不占页面流。SnapSheet 是 fixed 全屏遮罩，
-      在可滚动页面上同样成立（浮层固定在视口，不随内容滚走）。
-    -->
-
-    <!-- 钓鱼反馈 -->
-    <FishingFeedbackForm
-      :open="feedbackOpen"
-      :data="mapStore.indexData"
-      :location-id="locationId"
-      @close="feedbackOpen = false"
-    />
   </view>
 </template>
 
@@ -86,31 +71,26 @@
  * 给死高度要么留白要么裁切。
  */
 import { computed, onMounted, ref } from 'vue';
-import { onPageShow } from '@dcloudio/uni-app';
+import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
 
 import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
+import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
+import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterDelay } from '@/utils/motion';
-
-type PaneKey = 'weather' | 'tide' | 'feature';
-
-const PANES: ReadonlyArray<{ key: PaneKey; label: string }> = [
-  { key: 'weather', label: '天气' },
-  { key: 'tide', label: '潮汐' },
-  { key: 'feature', label: '指数构成' },
-];
+import { levelTone } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
-/** 默认落在天气：进页面最常被问的是「现在什么天气」 */
-const pane = ref<PaneKey>('weather');
+/** px。结论条的位置判断要用它，见 useNavMetrics */
+const { navBarBottom } = useNavMetrics();
 
 /** 钓鱼反馈浮层 */
 const feedbackOpen = ref(false);
@@ -126,6 +106,46 @@ const locationId = computed(() => {
   return spot ? String(spot.id) : 'default';
 });
 
+/* ── 常驻结论条 ──────────────────────────────────────────────────────── */
+
+/** 当前滚动位置（px）。onPageScroll 给的 */
+const scrollTop = ref(0);
+
+/**
+ * 结论卡底边在文档坐标里的 y（px）。由 VerdictHeader 量出来报给这里 ——
+ * 谁拥有结论，谁就知道结论在哪儿；页面只管滚动。
+ */
+const conclusionBottom = ref(0);
+
+/**
+ * 结论条什么时候浮出来。
+ *
+ * 判据是「结论已经被结论条盖住了」：结论卡底边滚到导航栏下沿的那一帧，
+ * 顶上就该出现那条窄栏接手结论。再晚一点，用户会有一段「结论没了、
+ * 窄栏也没来」的空窗。
+ */
+const barVisible = computed(() => scrollTop.value >= conclusionBottom.value - navBarBottom);
+
+onPageScroll((event) => {
+  scrollTop.value = event.scrollTop;
+});
+
+function onConclusionBottom(bottom: number) {
+  conclusionBottom.value = bottom;
+}
+
+/* ── 结论条上的那几个值 ──────────────────────────────────────────────── */
+
+const score = computed(() => mapStore.indexData?.fishing_index ?? 0);
+const level = computed(() => mapStore.indexData?.level ?? '');
+const tone = computed(() => levelTone(mapStore.indexData?.level));
+const placeName = computed(() => mapStore.locationName || '钓鱼地点');
+
+function onRefresh() {
+  if (mapStore.indexLoading) return;
+  void mapStore.refreshIndexData();
+}
+
 /**
  * 取数。
  *
@@ -133,7 +153,7 @@ const locationId = computed(() => {
  * 没有用户坐标时才退回默认中心（定位被拒 / 定位不可用）。
  *
  * 潮汐面板由 TideCard 自己在 onShow / 切港口日期时取，这里不重复触发 ——
- * 三个面板都挂载着，若页面也去取，切一次面板就是两个请求。
+ * 面板一直挂载着，若页面也去取，切一次港口就是两个请求。
  */
 
 // onPageShow 在 tab 切回本页时也会触发，所以两个钩子都挂；
@@ -153,77 +173,92 @@ function openFeedback() {
 
 <style lang="scss" scoped>
 /* 页面底色 = systemGroupedBackground。App.vue 里给 page 也上了同一个色，
-   这里再写一遍是为了让「内容区」和「切换瞬间露出的底色」保证同色 */
+   这里再写一遍是为了让「内容区」和「切换瞬间露出的底色」保证同色。
+   真正的底色是下面那层固定的环境色渐层。 */
 .data {
   min-height: 100vh;
   background-color: $fish-grouped;
 }
 
 /*
- * 证据切换 —— 全页唯一的分段控件。
+ * 环境色底：固定在视口上，不随内容滚走。
  *
- * 轨道是中性填充而非品牌色底：iOS 的 segmented 从不给轨道上色，
- * 彩色只留给选中项。选中块白底 + 浅投影，读作「浮在轨道上的一层」。
+ * z-index 0 而不是负数：内容层（.data__content）是 z-index 1 的定位元素，
+ * 两者都在同一个层叠上下文里比大小，0 < 1，内容一定在上面。
+ * 负数会掉到 page 的背景色下面去，那层渐变就白画了。
  */
-.segment {
-  display: flex;
-  margin: 24rpx 32rpx 0;
-  padding: 4rpx;
-  border-radius: $fish-radius-lg;
-  background-color: $fish-fill;
+.data__ambient {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  background: $fish-page-bg;
+  pointer-events: none;
 }
 
-.segment__item {
-  flex: 1;
-  padding: 16rpx 0;
-  border-radius: 14rpx;
-  text-align: center;
-  @include fish-press-dim;
-}
-
-.segment__item--active {
-  background-color: $fish-page;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
-}
-
-.segment__text {
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-.segment__text--active {
-  color: $fish-ink;
-  font-weight: 600;
+/* 内容层。定位 + z-index 是为了压在环境色底之上 */
+.data__content {
+  position: relative;
+  z-index: 1;
 }
 
 /*
- * 一屏内的分区。
+ * 一个分区。
  *
  * 左右留白 32rpx 统一在这里给，内容组件（WeekStrip / TideCard / WeatherCard /
  * HourlyWeather）自己不再带内边距 —— 留白是页面级的，留在组件里就等于
- * 同一个数抄了三份。结论头是满宽的，它和 .pane 的关系是「带内容的一层」。
+ * 同一个数抄了三份。结论头是满宽的，它和这一层的关系是「带内容的一层」。
  */
-.pane {
-  padding: 32rpx;
+.sect {
+  padding: 0 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-top: $fish-space-sectitle;
 }
 
 /*
- * 分区入场。
+ * 分组标题。
  *
- * 规则写在页面而不是各组件里：延迟取决于这一组里第几个分区（由模板给），
- * 组件自己不知道自己排在第几位。规则也只有这一条，各分区长得一样。
- *
- * 这里没有退场动画。退场要留住旧内容等它走完，小程序端 v-if 直接销毁节点，
- * 挂一个退场等于让新旧两块同时占位，面板切换时会看到两层内容叠着。
- * 切换本来就是一次「换」，入场把新内容交代清楚就够了。
+ * 不套字阶：它是一枚「眉标」—— 12pt、字重 600、字距放开。
+ * 跟标题那一级的字距（负值）方向正好相反，套上去字距会被覆盖，
+ * 而这里要的正是那点放开的字距。
  */
-.pane__section {
+.sect__title {
+  display: block;
+  margin-bottom: 20rpx;
+  color: $fish-muted-60;
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
   @include fish-enter;
+}
+
+/*
+ * 分区里的卡片。
+ *
+ * 卡片之间的间距是 32rpx（16pt），和「卡片 → 下一个分组标题」的 40rpx
+ * 刻意不同：同段内是并列，分段之间是分组，间距要能读出这个差别。
+ *
+ * 最后一张卡不留下边距 —— 段与段之间的留白统一由 .sect 的 margin-top 给，
+ * 两处都留就变成 72rpx，段与段会被拉得太散。
+ */
+.sect__card {
+  margin-bottom: $fish-space-section;
+  @include fish-enter;
+}
+
+.sect__card:last-child {
+  margin-bottom: 0;
 }
 
 .data__foot {
   display: block;
-  padding: 16rpx 0 48rpx;
+  margin-top: 40rpx;
+  padding-bottom: 64rpx;
   color: $fish-muted-60;
   @include fish-type(caption2);
 

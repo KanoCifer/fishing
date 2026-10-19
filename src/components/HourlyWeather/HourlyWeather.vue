@@ -52,10 +52,14 @@ const hours = computed(() => mapStore.weatherHourly.slice(0, 24));
 </script>
 
 <style lang="scss" scoped>
-/* 分区间距：统一走 $fish-space-section，理由见 uni.scss。
-   原来这里靠一个空规则占位，现已改成真正生效的分区间距 */
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ */
 .hourly {
-  margin-top: $fish-space-section;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .hourly__header {

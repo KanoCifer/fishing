@@ -6,7 +6,6 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>;
   export default component;
 }
-
 /**
  * .env.* 中定义的变量类型声明
  * 读取方式：import.meta.env.VITE_APP_TITLE

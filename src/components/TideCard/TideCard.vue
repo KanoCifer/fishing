@@ -184,9 +184,14 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ */
 .tide-card {
-  margin-top: $fish-space-section;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .tide-card__header {
@@ -303,13 +308,13 @@ watch(
 
 /*
  * 高潮 / 低潮并排。
- * 容器底色是分隔线色 —— 它在这套结构里露出的是「卡与卡之间那道缝」，
- * 两张白卡从缝里浮起来才读得成一个分组。
+ * 容器底色是发丝线色 —— 它在这套结构里露出的是「两张面板之间那道缝」，
+ * 两张面板从缝里浮起来才读得成一个分组。
  */
 .tide-card__peaks {
   display: flex;
   overflow: hidden;
-  border-radius: $fish-radius-xl;
+  border-radius: $fish-radius-lg;
   background-color: $fish-border-40;
 }
 
@@ -318,7 +323,9 @@ watch(
   flex: 1;
   flex-direction: column;
   padding: 24rpx 32rpx;
-  background-color: $fish-page;
+  /* 面板底色比外层卡片更实一档：同一张卡里，面与面之间还要再分一层。
+     用半透明白而不是纯白 —— 纯白压在半透明卡上会读成「贴了一张纸」。 */
+  background-color: $fish-glass-strong;
 }
 
 .tide-card__peak-head {

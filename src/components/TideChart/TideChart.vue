@@ -98,7 +98,12 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   nowIndex: -1,
-  width: 622,
+  /**
+   * 画布宽（rpx）：750 − 页面留白 32rpx × 2 − 卡片内边距 28rpx × 2。
+   * 跟 MetricChart 的 CHART_WIDTH 是同一个数 —— 两张图要一样宽，
+   * 摆在同一列里才不会一个胖一个瘦。
+   */
+  width: 630,
   height: 400,
   animate: true,
   duration: 700,

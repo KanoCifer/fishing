@@ -59,9 +59,14 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
 </script>
 
 <style lang="scss" scoped>
-/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ */
 .features {
-  margin-top: $fish-space-section;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .features__head {

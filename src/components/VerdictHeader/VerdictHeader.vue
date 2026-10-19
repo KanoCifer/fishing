@@ -4,6 +4,9 @@
 
     取向：钓鱼指数是「值不值得去」的答案，天气、潮汐、风是支撑这个答案的三个成因。
     所以三者同处一屏、成因在下结论在旁，而不是拆成四张等权卡片让人自己拼。
+
+    结论本身是一把 0–100 的刻度盘（见 FishingGauge）：单独一个「86」是
+    孤零零的字，多大算好全靠读的人自己心里补一把尺；有了环，86 才有位置。
   -->
   <view class="verdict" :style="{ paddingTop: navBarBottom + 'px' }">
     <view class="verdict__top">
@@ -35,21 +38,18 @@
     <!-- 有数据 -->
     <template v-else-if="mapStore.indexData">
       <!--
-        三段依次落位：先给结论（分数），再给依据（三条成因），最后给动作。
+        三段依次落位：先给结论（仪表），再给依据（三条成因），最后给动作。
         骨架屏换成实数据的这一下是最容易「闪」的地方 —— 整块内容突然出现，
         眼睛要重新找一遍。分三段递进，读的人跟着结论 → 依据 → 下一步走一遍。
 
         只在首次拿到数据时播一次：刷新时 indexData 还在，v-else-if 不会重新挂载，
         所以下拉/点刷新拿到新数据不会把这一屏重播一遍。
+
+        .verdict__conclusion 里的仪表卡高度是定死的（表盘 184rpx），
+        所以这一块的高度不随数据变化 —— 页面据此判断结论什么时候被滚走。
       -->
-      <view class="verdict__figure" :style="{ animationDelay: enterDelay(0) }">
-        <text class="verdict__score" :class="`verdict__score--${tone}`">
-          {{ mapStore.indexData.fishing_index }}
-        </text>
-        <view class="verdict__figure-side">
-          <text class="verdict__level" :class="`verdict__level--${tone}`">{{ mapStore.indexData.level }}</text>
-          <text class="verdict__verdict">{{ verdict }}</text>
-        </view>
+      <view class="verdict__conclusion" :style="{ animationDelay: enterDelay(0) }">
+        <FishingGauge :score="score" :tone="tone" :level="level" :verdict="verdict" />
       </view>
 
       <!-- 三个成因。少一条就少一半说服力，所以天气/潮汐/风缺哪条都还占位 -->
@@ -106,23 +106,33 @@
  * 页面内容从屏幕最顶端 y=0 开始排，状态栏和胶囊按钮都压在这块背景上。
  * 这里给 padding-top 让开 navBarBottom —— 只让 statusBarHeight 不够，
  * 胶囊按钮落在导航栏那一段，右上角的刷新键会和它撞在一起。
- * 背景渐变从 y=0 就铺下去，状态栏因此被染成和头部同一个颜色。
  */
-import { computed } from 'vue';
+import { computed, getCurrentInstance, nextTick, watch } from 'vue';
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
+import { toFeatureTiles } from '@/types/fishing';
 import { enterDelay } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
 import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
 
+import FishingGauge from '../FishingGauge/FishingGauge.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
 const emit = defineEmits<{
   (e: 'feedback'): void;
+  /**
+   * 结论卡底边在**文档坐标**里的 y（px）。
+   *
+   * 页面拿它算常驻结论条什么时候浮现：结论滚到顶部被导航栏盖住的那一刻，
+   * 顶上就该浮出那条窄栏。位置由这个组件报 —— 谁拥有结论，谁就知道结论在哪儿。
+   */
+  (e: 'conclusion-bottom', bottom: number): void;
 }>();
+
+const instance = getCurrentInstance()!;
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
@@ -137,6 +147,12 @@ const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
 
 const tone = computed(() => levelTone(mapStore.indexData?.level));
+
+/** 等级词。接口没给等级时先空着，别拿 undefined 去渲染 */
+const level = computed(() => mapStore.indexData?.level ?? '');
+
+/** 钓鱼指数。接口给的是 0–100 */
+const score = computed(() => mapStore.indexData?.fishing_index ?? 0);
 
 /** 一句话结论直接复用天气模块的等级映射，不在这里另写一套说法 */
 const verdict = computed(() => levelVerdict(mapStore.indexData?.level));
@@ -176,24 +192,56 @@ function onRefresh() {
   if (mapStore.indexLoading) return;
   void mapStore.refreshIndexData();
 }
+
+/**
+ * 量一次结论卡的底边，报给页面。
+ *
+ * 为什么要等 300ms：入场动画（fish-enter）带着 16rpx 的上移，动画没走完时
+ * 量到的是「还在往上飘」的位置，比终态低了 8pt。这点误差不影响判断，
+ * 但等它落定再量，量到的就是稳定值 —— 页面不必去猜动画什么时候结束。
+ */
+function measureConclusion() {
+  uni
+    .createSelectorQuery()
+    .in(instance)
+    .select('.verdict__conclusion')
+    .boundingClientRect()
+    .selectViewport()
+    // 回调不能省（类型要求必须传），但结果统一在 exec 的回调里拿，
+    // 这里传个空函数即可
+    .scrollOffset(() => {})
+    .exec((res) => {
+      const rect = res[0] as { bottom?: number } | null;
+      const offset = res[1] as { scrollTop?: number } | null;
+      if (!rect || typeof rect.bottom !== 'number') return;
+      // 视口坐标 + 当前滚动量 = 文档坐标
+      emit('conclusion-bottom', rect.bottom + (offset?.scrollTop ?? 0));
+    });
+}
+
+/** 数据换了一份就重量一次：高度会随骨架屏 → 实数据、刷新而变 */
+watch(
+  () => mapStore.indexData,
+  async () => {
+    await nextTick();
+    setTimeout(measureConclusion, 300);
+  },
+  { immediate: true },
+);
 </script>
 
 <style lang="scss" scoped>
 /*
  * 结论头。
  *
- * 底色是一层**很淡的蓝调 wash**，不是 Material 那种 #e8f0fe 的实色板。
- * 差别在于实色板会在这一屏铺开一大片有彩色的区域，把注意力从分数上抢走；
- * 淡 wash 只是给整屏一个冷调的空气，分数仍然站在最前面。
- *
- * 前 34% 保持实度：状态栏和胶囊都落在这块背景里，这一段若已经开始透明，
- * 顶部就会露出 App.vue 里 page 的灰底。
+ * 这里没有背景色了。原来是叠了一层很淡的蓝调 wash —— 那是给纯灰底做的一层空气，
+ * 现在页面底本身是环境色渐层（见 pages/data），wash 再叠上去就成了双份的蓝，
+ * 顶部会偏色。层次现在由渐层 + 玻璃卡承担。
  */
 .verdict {
-  padding-right: 24rpx;
+  padding-right: 32rpx;
   padding-bottom: 32rpx;
-  padding-left: 24rpx;
-  background: linear-gradient(180deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.1) 34%, rgba(0, 122, 255, 0) 100%);
+  padding-left: 32rpx;
 }
 
 .verdict__top {
@@ -275,102 +323,27 @@ function onRefresh() {
   min-height: 360rpx;
 }
 
-.verdict__figure {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 32rpx;
+/*
+ * 结论卡。仪表自带玻璃面，这里只管它和下面两块的间距。
+ *
+ * 高度是定死的（表盘 184rpx + 上下内边距），不随分数变化 ——
+ * 页面据此判断结论什么时候被滚走。
+ */
+.verdict__conclusion {
+  margin-bottom: 24rpx;
   @include fish-enter;
 }
 
 /*
- * 那个大数字。
+ * 三个成因 —— 和结论卡同一种材质的两块面。
  *
- * 不套 fish-type：这一处四项全都要覆盖（大到 76pt），套上去只会留下一串
- * 被覆盖掉的声明，读的人得逐条比对才知道哪个才是生效值。这里直写。
- *
- * 字距收 -0.025em：76pt 的数字，SF Pro 的默认字距在这个尺寸上偏松，
- * 两个位数之间会露出一道缝。但也别收到更紧 —— 数字本身还带着内边白，
- * 收到 -0.05em 两三位就会粘连。字重 300 是在「细得优雅」和「非 Apple 设备上
- * 退化成细体后发虚」之间取的折中。
- */
-.verdict__score {
-  font-size: 152rpx;
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: -0.025em;
-}
-
-/* 分数当文字用，所以走压深过的那一档绿，不是填充用的 systemGreen */
-.verdict__score--success {
-  color: $fish-success-ink;
-}
-
-.verdict__score--ink {
-  color: $fish-ink;
-}
-
-.verdict__score--warning {
-  color: $fish-warning;
-}
-
-.verdict__score--destructive {
-  color: $fish-destructive;
-}
-
-.verdict__score--muted {
-  color: $fish-muted;
-}
-
-.verdict__figure-side {
-  flex: 1;
-  min-width: 0;
-  padding-top: 12rpx;
-  padding-left: 28rpx;
-}
-
-.verdict__level {
-  display: block;
-  @include fish-type(title3);
-}
-
-.verdict__level--success {
-  color: $fish-success-ink;
-}
-
-.verdict__level--ink {
-  color: $fish-ink;
-}
-
-.verdict__level--warning {
-  color: $fish-warning;
-}
-
-.verdict__level--destructive {
-  color: $fish-destructive;
-}
-
-.verdict__level--muted {
-  color: $fish-muted;
-}
-
-.verdict__verdict {
-  display: block;
-  margin-top: 6rpx;
-  color: $fish-muted;
-  @include fish-type(subhead);
-}
-
-/*
- * 三个成因 —— inset-grouped 分组。
- *
- * 白底浮在带色 wash 上，卡与卡之间靠 1rpx 发丝线分隔，这条线要「几乎看不见」
- * 才不显得脏。分组容器不投影：它已经是白底浮在 tint 上了，再加投影就成了三层。
+ * 卡与卡之间靠 1rpx 发丝线分隔，这条线要「几乎看不见」才不显得脏。
+ * 底色是半透明白而不是纯白：它浮在环境色之上，透过来一点才读得出「一层材质」。
  */
 .verdict__signals {
   display: flex;
   overflow: hidden;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  @include fish-glass;
   @include fish-enter;
 }
 
@@ -379,8 +352,8 @@ function onRefresh() {
   align-items: center;
   flex: 1;
   min-width: 0;
-  padding: 20rpx 18rpx;
-  border-right: 1rpx solid $fish-border;
+  padding: 24rpx 20rpx;
+  border-right: 1rpx solid $fish-border-40;
 }
 
 .verdict__signal:last-child {
@@ -437,9 +410,11 @@ function onRefresh() {
   @include fish-press(0.97);
 }
 
+/* 主按钮用品牌渐变：一个方向上的三个色标读作同一种品牌色的切面 */
 .verdict__btn--primary {
   flex: 1;
-  background-color: $fish-accent;
+  background-image: $fish-gradient;
+  box-shadow: $smooth-shadow-sm;
 }
 
 .verdict__btn-text {

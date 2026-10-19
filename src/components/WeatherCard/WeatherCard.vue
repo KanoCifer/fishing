@@ -1,14 +1,14 @@
 <template>
-  <view class="weather-card">
-    <view class="weather-card__header">
-      <text class="weather-card__title">天气详情</text>
-      <!--
-        源版本这里是个跳转和风天气官网的链接（window.open）。
-        小程序没有 window.open，外链只能走 web-view 组件，
-        为一个版权署名开一整页 web-view 不值得，这里直接去掉。
-      -->
-    </view>
+  <!--
+    天气详情 —— 实况的逐项读数 + 三日预报。
 
+    卡片自己不带标题：这一段在数据页里已经有分组标题「天气详情」了，
+    卡片里再写一遍就成了「天气详情 / 天气详情」叠着说同一件事。
+    源版本这里还有个跳转和风天气官网的链接（window.open），
+    小程序没有 window.open，外链只能走 web-view 组件，
+    为一个版权署名开一整页 web-view 不值得，直接去掉。
+  -->
+  <view class="weather-card">
     <SkeletonCard v-if="mapStore.weatherLoading" has-bottom-row />
 
     <text v-else-if="mapStore.weatherError" class="weather-card__error">
@@ -111,22 +111,14 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
 </script>
 
 <style lang="scss" scoped>
-/* 分区间距：统一走 $fish-space-section，理由见 uni.scss。
-   左右留白不在这里：数据页是无卡片的分区布局，留白统一由页面的 .pane 给。 */
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ */
 .weather-card {
-  margin-top: $fish-space-section;
-}
-
-.weather-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-
-.weather-card__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .weather-card__body {
@@ -134,19 +126,25 @@ const pressureTone = computed(() => pressure.value?.tone ?? 'muted');
   flex-direction: column;
 }
 
-/* inset-grouped 分组：白底浮在页面灰底上，靠面分层而不是描边 */
+/*
+ * 逐项读数。
+ *
+ * 行直接坐在玻璃卡上，不套一层白底：卡面本身已经是「浮起来的一层」，
+ * 里面再垫一块实色白就变成贴纸了。行与行之间靠发丝线分。
+ */
 .weather-card__group {
-  overflow: hidden;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 行间 1rpx 发丝线。2rpx 在 375pt 机型上是 1pt，是 iOS 分隔线的三倍厚 */
+/* 行间 1rpx 发丝线。2rpx 在 375pt 机型上是 1pt，是 iOS 分隔线的三倍厚。
+   左右不留白：文字与卡片的内容边缘对齐，分隔线也就从卡片左边一直走到右边，
+   读起来是「这张卡里的一列行」，不是「卡里又嵌了一块白板」。 */
 .weather-card__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22rpx 32rpx;
+  padding: 22rpx 0;
   border-bottom: 1rpx solid $fish-border;
 }
 

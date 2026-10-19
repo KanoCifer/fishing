@@ -99,9 +99,18 @@ $uni-font-size-paragraph: 15px;
 // ===========================================================================
 
 /* ── 主色：systemBlue ── */
-$fish-blue: #007aff;
-$fish-blue-600: #0062cc; // 按下态 / 需要压深才读得清的小字
+$fish-blue: #007aff; // 填充：进度条、仪表弧
+$fish-blue-600: #0062cc; // 文字专用（等级词、说明文字）+ 按下态
 $fish-accent: $fish-blue;
+
+/**
+ * 品牌渐变。
+ *
+ * 只用在「主按钮」和「选中态」这类需要被一眼认出来的块上，
+ * 不当页面底色。三个色标（浅蓝 → 蓝 → 靛）都在同一片冷色里，
+ * 所以它读作「同一种品牌色的三个切面」，而不是彩虹。
+ */
+$fish-gradient: linear-gradient(135deg, #0a84ff 0%, #007aff 55%, #5e5ce6 100%);
 
 /* ── 语义色：iOS 系统色 ── */
 $fish-success: #34c759; // systemGreen
@@ -111,6 +120,8 @@ $fish-destructive: #ff3b30; // systemRed
  * 文字专用的绿。不用 $fish-success：#34c759 在白底上的对比度只有 2.2:1，
  * 而 success 要在大号分数、等级词上**当文字**用，那两个场合必须压深。
  * 填充（进度条、状态点）仍用 $fish-success，那是它的本职。
+ *
+ * 蓝这一档同理：$fish-blue 当文字用时压到 $fish-blue-600。
  */
 $fish-success-ink: #1d7a38;
 
@@ -146,6 +157,31 @@ $fish-border-40: rgba(60, 60, 67, 0.18); // 分组内部的浅一档线
 $fish-material-dark: rgba(28, 28, 30, 0.82); // 深色导航栏
 $fish-scrim: rgba(0, 0, 0, 0.4); // 模态遮罩
 
+/* ── 玻璃材质（数据页）──
+   卡片浮在页面环境色之上，层次靠**面 + 阴影**而不是描边。
+   底色是半透明白：底下那层环境色透上来一点，卡片就比背景亮一档。
+
+   模糊（backdrop-filter）是**增强不是依赖**：WXSS 不保证支持，
+   老基础库上这条声明会被直接丢掉。所以每块玻璃面都自带
+   半透明底色 + 一道顶边高光 + 多层阴影 —— 没有模糊它仍然
+   读得出「一层浮起来的材质」，层次靠阴影兜底，不靠模糊兜底。 */
+$fish-glass: rgba(255, 255, 255, 0.72);
+$fish-glass-strong: rgba(255, 255, 255, 0.86); // 分段控件的选中块
+$fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.85); // 顶边高光
+$fish-blur: 20px;
+
+/* ── 页面底：环境色渐层 ──
+   有了阴影之后，纯 #f2f2f7 的底会把阴影吃掉 —— 卡片像是浮在一张纸上。
+   给底加一层极淡的冷暖环境色，阴影才有东西可以压。
+
+   这层渐变只给数据页用（见 pages/data），别的页面底色不动：
+   全局 page 底色还得给 tabBar 切换时露出的那一帧兜底，
+   一旦全局换成渐变，钓点页的地图边缘会跟着染上颜色。 */
+$fish-page-bg: radial-gradient(130% 70% at 8% -6%, rgba(0, 122, 255, 0.18) 0%, rgba(0, 122, 255, 0) 58%),
+  radial-gradient(110% 55% at 94% 6%, rgba(147, 102, 255, 0.15) 0%, rgba(147, 102, 255, 0) 60%),
+  radial-gradient(140% 60% at 50% 106%, rgba(52, 199, 89, 0.13) 0%, rgba(52, 199, 89, 0) 62%),
+  #f3f4f9;
+
 /* ── 图表专用。canvas 侧硬编码的色值要与之手工保持一致 ── */
 $fish-tide: #007aff;
 $fish-temp: #ff3b30;
@@ -154,6 +190,8 @@ $fish-temp: #ff3b30;
 $fish-radius-sm: 8rpx; // 4pt  小标签 / 骨架块
 $fish-radius-lg: 18rpx; // 9pt  控件外壳（segmented）
 $fish-radius-xl: 24rpx; // 12pt inset 分组容器
+$fish-radius-card: 48rpx; // 24pt 玻璃卡
+$fish-radius-2xl: 64rpx; // 32pt 仪表卡 / 常驻结论条
 $fish-radius-sheet: 68rpx; // 34pt 抽屉上沿
 $fish-radius-pill: 999rpx;
 
@@ -171,6 +209,52 @@ $smooth-shadow-xl: 0 40px 80px 0 rgba(0, 0, 0, 0.06), 0 20px 40px 0 rgba(0, 0, 0
     0 5px 10px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
 $smooth-shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0, 0, 0.06), 0 15px 30px 0 rgba(0, 0, 0, 0.05),
     0 7.5px 15px 0 rgba(0, 0, 0, 0.04), 0 3px 6px 0 rgba(0, 0, 0, 0.03);
+
+/**
+ * 玻璃面。
+ *
+ * 「玻璃」在这里不是特效，是**材质**：一块半透明的浮面，靠面本身和底下的
+ * 环境色分层，而不是靠描边把两块区域隔开。这是 Apple 近年那套大圆角 +
+ * 半透明 + 多层阴影的观感的底层 —— 圆角和阴影只是它的外壳，材质才是本体。
+ *
+ * 三层各司其职，缺一层就得靠另一层顶上：
+ * - 半透明底色：让底下的环境色透上来一点，卡片就比背景亮一档
+ * - 顶边高光（inset）：一道 1rpx 的白线，是光从上方打在圆角边缘的结果
+ * - 多层阴影：把卡片从底上「抬」起来的那点厚度
+ *
+ * **这里刻意不写 backdrop-filter。** 两个理由：
+ * 1. 这些卡片背后是页面底色 —— 一层平滑的渐变。模糊一个平滑渐变，
+ *    结果几乎和没模糊一样，视觉上省不下任何东西。
+ * 2. 但代价是实打实的：每一块 backdrop-filter 都是一个独立的合成层，
+ *    滚动时要重新糊一遍。数据页一次屏里有七八块，滚动帧率会被它拖垮。
+ * 真正需要模糊的是「底下有内容在动」的面 —— 那种另写一条（见 fish-glass-blur）。
+ *
+ * 放在阴影段之后：mixin 里引用的 $smooth-shadow-md / $fish-glass-edge
+ * 必须先定义后使用，SCSS 变量没有前置声明的余地。
+ */
+@mixin fish-glass($radius: $fish-radius-card) {
+  border-radius: $radius;
+  background-color: $fish-glass;
+
+  // 先写一条只有外阴影的兜底：万一 inset 高光那条被解析器丢掉，
+  // 至少还留着抬升用的阴影，不会连卡片都贴回背景上。
+  box-shadow: $smooth-shadow-md;
+  box-shadow: $smooth-shadow-md, $fish-glass-edge;
+}
+
+/**
+ * 玻璃面 + 背景模糊。
+ *
+ * 只给「底下有内容在动」的面用 —— 目前只有常驻结论条（滚动内容从它底下过）。
+ * 静态卡片背后是平滑渐变，模糊它等于花钱买不到东西，所以那些卡片只用 fish-glass。
+ *
+ * 模糊是**增强不是依赖**：WXSS 不保证支持，老基础库上这条声明会被直接丢掉。
+ * 所以它单独成一条 —— 它坏了也不影响底色和阴影，层次靠阴影兜底。
+ */
+@mixin fish-glass-blur {
+  backdrop-filter: blur($fish-blur) saturate(1.6);
+  -webkit-backdrop-filter: blur($fish-blur) saturate(1.6);
+}
 /* ── 间距 ── */
 /**
  * 分区之间的纵向间距。
@@ -181,8 +265,21 @@ $smooth-shadow-2xl: 0 60px 120px 0 rgba(0, 0, 0, 0.07), 0 30px 60px 0 rgba(0, 0,
  *
  * 收在这一处而不是各组件写各自的数：这是「页面里几个区块如何分开」的约定，
  * 一旦散开就会各自漂移，最后又回到上面那种参差。
+ *
+ * 现在这一层由**页面**统一给（数据页改成「一屏」之后，区块和区块之间的
+ * 间距是页面的版式决定，不是各组件自己的事），组件不再自带 margin-top。
  */
 $fish-space-section: 32rpx;
+
+/**
+ * 小节标题上方的间距。
+ *
+ * 小节标题是「这一段讲什么」的分组标签，跟上一段的卡片之间要留出一段
+ * 明显的空白 —— 分组标签贴着上一张卡的下沿，就分不清它是新一段的开始
+ * 还是上一段的注脚。40rpx = 20pt，是能读出「另起一段」又不至于把两段
+ * 拉得太开的距离。
+ */
+$fish-space-sectitle: 40rpx;
 
 /* ── 字体 ── */
 /* -apple-system 在 iOS 上解析到 SF Pro（含光学字号与默认字距表），

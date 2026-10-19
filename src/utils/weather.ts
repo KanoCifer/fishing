@@ -72,15 +72,24 @@ export function weatherIconClass(icon: string | undefined | null): string {
 /**
  * 钓鱼等级 → 语义色调。
  *
+ * 这条色阶是五档，从好到差：**绿 → 蓝 → 橙 → 红 → 灰**。
+ *
+ * 为什么中间那档是蓝、不是黑：这条色阶要同时管两件事 —— 等级词（文字）
+ * 和仪表弧（图形）。黑色当一档等于「没有颜色」：弧画出来是黑的，读的人
+ * 拿不到任何颜色信号，只能回头去读那两个字；而这块弧本来就是整张卡上
+ * 唯一的图形信号，一黑就把这个位置浪费掉了。
+ *
+ * 蓝正好卡在绿和橙中间，也正是这套设计的主色，插进色阶里不突兀。
+ *
  * 用 CSS class 名而不是具体色值，组件里直接拼 class —— 小程序 scss 不支持
  * 运行时生成色值，而 class 拼接是静态可分析的。
  */
-export type Tone = 'success' | 'ink' | 'warning' | 'destructive' | 'muted';
+export type Tone = 'success' | 'blue' | 'warning' | 'destructive' | 'muted';
 
 const TONE_BY_LEVEL: Readonly<Record<string, Tone>> = {
   极好: 'success',
   爆护: 'success',
-  好: 'ink',
+  好: 'blue',
   一般: 'warning',
   差: 'destructive',
   空军: 'muted',
@@ -113,12 +122,18 @@ export function levelVerdict(level: string | undefined): string {
 export type PressureLabel = '偏低' | '正常' | '偏高' | '很高';
 
 /**
+ * 气压只用到色阶里的四档 —— 气压没有「好」这一说，
+ * 所以不套钓鱼等级那套 Tone，收窄成自己的子集。
+ */
+export type PressureTone = 'success' | 'warning' | 'destructive' | 'muted';
+
+/**
  * 气压分级。钓鱼上气压是核心变量之一：
  * 气压回升鱼口变好，持续走低通常意味着要空军。
  */
 export function pressureLevel(pressure: number): {
   label: PressureLabel;
-  tone: Tone;
+  tone: PressureTone;
 } {
   if (pressure < 1000) return { label: '偏低', tone: 'warning' };
   if (pressure < 1020) return { label: '正常', tone: 'success' };

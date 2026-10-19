@@ -58,8 +58,13 @@ import { num } from '@/utils/weather';
 import LineChart from '../LineChart/LineChart.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
-/** 图表可用宽度：750 − 面板左右留白 32rpx × 2 */
-const CHART_WIDTH = 686;
+/**
+ * 图表可用宽度：750 − 页面留白 32rpx × 2 − 卡片内边距 28rpx × 2
+ *
+ * 这三个数是一套的，改任何一处都要回来改这里。图表是定宽块，
+ * 给宽了会横向溢出卡片，给窄了右边会空出一条。
+ */
+const CHART_WIDTH = 630;
 
 interface Metric {
   /** 直接对应 WeatherHourly 的字段名 */
@@ -125,9 +130,15 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 </script>
 
 <style lang="scss" scoped>
-/* 分区间距：统一走 $fish-space-section，理由见 uni.scss */
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）——
+ * 那是页面的版式决定，不是各组件自己的事。
+ */
 .metric {
-  margin-top: $fish-space-section;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .metric__head {

@@ -129,8 +129,14 @@ function height(max: number, min: number, half: 'max' | 'min'): string {
 </script>
 
 <style lang="scss" scoped>
+/*
+ * 卡片外壳。
+ *
+ * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ */
 .week {
-  margin-top: $fish-space-section;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 .week__head {
