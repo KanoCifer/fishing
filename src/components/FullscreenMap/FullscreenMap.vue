@@ -208,10 +208,10 @@ const hasLocation = computed(() => mapStore.userLocation !== null);
 /**
  * 定位失败 / 权限被拒。
  *
- * 只驱动定位键的图标配色，不参与 recenter 的分支 —— 那条路由仍旧看
- * hasLocation，因为它要区分的是「有没有坐标可用」，不是「是不是被拒」。
- * 分成两个状态是因为首次进入时 hasLocation 也是 false（还没定位完），
- * 拿它当「被拒」的判据会让图标一进来就闪红。
+ * 两处用：给定位键染红，以及让 recenter 走授权补救那条路（见那个函数）。
+ *
+ * 之所以要和 hasLocation 分成两个状态：hasLocation 答的是「有没有坐标可用」，
+ * 首次进入时它也是 false（还没定位完），拿它当「被拒」的判据会让图标一进来就闪红。
  */
 const permissionDenied = computed(() => mapStore.locationDenied);
 
@@ -380,10 +380,15 @@ function openLocationSetting() {
  *
  * 已经拿到过坐标就直接重新定位；拿过且失败说明多半是权限被拒，
  * 这时 getLocation 再调一百遍也是同样的结果，直接带去设置页。
+ *
+ * 判据是「被拒」而不是「有没有坐标」：定位失败时 store 保留上一次的坐标
+ * （靠图标染红告诉用户「定位键按了没用」），hasLocation 因此一直为真。
+ * 只看它的话，授权页这条唯一的补救路径就再也进不去了 —— 用户在微信设置里
+ * 撤销过权限后，按键只会反复重试注定失败的 getLocation。
  */
 function recenter() {
   if (locating.value) return;
-  if (!hasLocation.value) {
+  if (!hasLocation.value || permissionDenied.value) {
     openLocationSetting();
     return;
   }
