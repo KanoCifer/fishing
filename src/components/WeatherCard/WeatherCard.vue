@@ -9,33 +9,33 @@
       -->
     </view>
 
-    <SkeletonCard v-if="state.weatherLoading" has-bottom-row />
+    <SkeletonCard v-if="mapStore.weatherLoading" has-bottom-row />
 
-    <text v-else-if="state.weatherError" class="weather-card__error">
-      {{ state.weatherError }}
+    <text v-else-if="mapStore.weatherError" class="weather-card__error">
+      {{ mapStore.weatherError }}
     </text>
 
-    <view v-else-if="state.liveWeather" class="weather-card__body">
+    <view v-else-if="mapStore.liveWeather" class="weather-card__body">
       <view class="weather-card__group">
         <view class="weather-card__row">
           <text class="weather-card__row-label">体感</text>
-          <text class="weather-card__row-value">{{ state.liveWeather.feelsLike }}°C</text>
+          <text class="weather-card__row-value">{{ mapStore.liveWeather.feelsLike }}°C</text>
         </view>
         <view class="weather-card__row">
           <text class="weather-card__row-label">能见度</text>
-          <text class="weather-card__row-value">{{ state.liveWeather.vis }} km</text>
+          <text class="weather-card__row-value">{{ mapStore.liveWeather.vis }} km</text>
         </view>
         <view class="weather-card__row">
-          <text class="weather-card__row-label">{{ state.liveWeather.windDir }}</text>
+          <text class="weather-card__row-label">{{ mapStore.liveWeather.windDir }}</text>
           <text class="weather-card__row-value">{{ windSpeedText }}</text>
         </view>
         <view class="weather-card__row">
           <text class="weather-card__row-label">湿度</text>
-          <text class="weather-card__row-value">{{ state.liveWeather.humidity }}%</text>
+          <text class="weather-card__row-value">{{ mapStore.liveWeather.humidity }}%</text>
         </view>
         <view class="weather-card__row">
           <text class="weather-card__row-label">气压</text>
-          <text class="weather-card__row-value">{{ state.liveWeather.pressure }} hPa</text>
+          <text class="weather-card__row-value">{{ mapStore.liveWeather.pressure }} hPa</text>
         </view>
         <view class="weather-card__row">
           <view class="weather-card__pressure">
@@ -81,27 +81,27 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { shortDate } from '@/utils/date';
 import { num, pressureLevel, weatherIconClass } from '@/utils/weather';
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
-const { state } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
-const forecasts = computed(() => state.forecasts.slice(0, 3));
+const forecasts = computed(() => mapStore.forecasts.slice(0, 3));
 /**
  * 和风给的风速是 km/h，钓鱼看的是 m/s。转不动时留空串，
  * 免得模板渲染成 "NaN m/s"。
  */
 const windSpeedText = computed(() => {
-  const kmh = num(state.liveWeather?.windSpeed);
+  const kmh = num(mapStore.liveWeather?.windSpeed);
   if (kmh === null) return '';
   return `${(kmh / 3.6).toFixed(1)} m/s`;
 });
 
 const pressure = computed(() => {
-  const hpa = num(state.liveWeather?.pressure);
+  const hpa = num(mapStore.liveWeather?.pressure);
   if (hpa === null) return null;
   return pressureLevel(hpa);
 });

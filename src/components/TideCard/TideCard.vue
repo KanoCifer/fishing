@@ -11,12 +11,12 @@
           v-for="opt in HARBOR_OPTIONS"
           :key="opt.code"
           class="tide-card__segment"
-          :class="{ 'tide-card__segment--active': state.selectedHarbor === opt.code }"
-          @tap="setSelectedHarbor(opt.code)"
+          :class="{ 'tide-card__segment--active': mapStore.selectedHarbor === opt.code }"
+          @tap="mapStore.setSelectedHarbor(opt.code)"
         >
           <text
             class="tide-card__segment-text"
-            :class="{ 'tide-card__segment-text--active': state.selectedHarbor === opt.code }"
+            :class="{ 'tide-card__segment-text--active': mapStore.selectedHarbor === opt.code }"
           >
             {{ opt.name }}
           </text>
@@ -31,12 +31,12 @@
           v-for="opt in dateOptions"
           :key="opt.value"
           class="tide-card__chip"
-          :class="{ 'tide-card__chip--active': state.selectedDate === opt.value }"
-          @tap="setSelectedDate(opt.value)"
+          :class="{ 'tide-card__chip--active': mapStore.selectedDate === opt.value }"
+          @tap="mapStore.setSelectedDate(opt.value)"
         >
           <text
             class="tide-card__chip-text"
-            :class="{ 'tide-card__chip-text--active': state.selectedDate === opt.value }"
+            :class="{ 'tide-card__chip-text--active': mapStore.selectedDate === opt.value }"
           >
             {{ opt.label }} {{ opt.weekday }}
           </text>
@@ -61,7 +61,7 @@
 
       <!-- 骨架屏只在首屏还没数据时出现：已有数据时留着旧曲线，
            切港口/日期不会先白一下再画 -->
-      <SkeletonCard v-if="state.tideLoading && !hasHourly" has-chart has-bottom-row />
+      <SkeletonCard v-if="mapStore.tideLoading && !hasHourly" has-chart has-bottom-row />
 
       <!-- 高潮 / 低潮 -->
       <view v-if="hasHourly" class="tide-card__peaks">
@@ -81,7 +81,7 @@
         </view>
       </view>
 
-      <text v-else-if="!state.tideLoading" class="tide-card__empty">暂无潮汐数据</text>
+      <text v-else-if="!mapStore.tideLoading" class="tide-card__empty">暂无潮汐数据</text>
     </view>
   </view>
 </template>
@@ -98,14 +98,14 @@
  */
 import { computed, watch } from 'vue';
 
-import { HARBOR_OPTIONS, useFishingMapStore } from '@/composables/useFishingMapStore';
-import { parseFxTime } from '@/utils/date';
+import { HARBOR_OPTIONS, useFishingMapStore } from '@/stores/fishingMap';
 import type { TideTableItem } from '@/types/fishing';
+import { parseFxTime } from '@/utils/date';
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 import TideChart from '../TideChart/TideChart.vue';
 
-const { state, fetchPanelTide, setSelectedHarbor, setSelectedDate } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -129,7 +129,7 @@ const dateOptions = computed(() => {
   });
 });
 
-const hourly = computed(() => state.panelTideData?.tideHourly ?? []);
+const hourly = computed(() => mapStore.panelTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */
 const hasHourly = computed(() => hourly.value.length > 0);
@@ -156,7 +156,7 @@ const lowTide = computed(() => extremeTide('L', 'min'));
 
 /** 取高潮最高 / 低潮最低的那一条 */
 function extremeTide(type: 'H' | 'L', pick: 'max' | 'min'): { time: string; height: string } | null {
-  const table = state.panelTideData?.tideTable ?? [];
+  const table = mapStore.panelTideData?.tideTable ?? [];
   const filtered = table.filter((item: TideTableItem) => item.type === type);
   if (!filtered.length) return null;
 
@@ -175,9 +175,9 @@ function extremeTide(type: 'H' | 'L', pick: 'max' | 'min'): { time: string; heig
 
 // 首屏进页面时还没有面板潮汐数据，切港口/日期由 store 内部触发，这里只补首屏这一次
 watch(
-  () => [state.selectedHarbor, state.selectedDate],
+  () => [mapStore.selectedHarbor, mapStore.selectedDate],
   () => {
-    void fetchPanelTide();
+    void mapStore.fetchPanelTide();
   },
   { immediate: true },
 );

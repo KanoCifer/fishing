@@ -158,7 +158,7 @@
 import { computed, ref, watch } from 'vue';
 
 import { fishingSpotApi } from '@/api/fishing';
-import { toErrorMessage } from '@/composables/useFishingMapStore';
+import { toErrorMessage } from '@/utils/error';
 import type { MapMarker, UpdateFishingSpotPayload } from '@/types/fishing';
 
 import SnapSheet from '../SnapSheet/SnapSheet.vue';

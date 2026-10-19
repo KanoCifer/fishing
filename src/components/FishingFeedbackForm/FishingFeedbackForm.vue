@@ -63,8 +63,9 @@
 import { computed, ref } from 'vue';
 
 import { fishingApi } from '@/api/fishing';
-import { useFishingMapStore, toErrorMessage } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import type { FishingFeedbackLevel, FishingIndexData } from '@/types/fishing';
+import { toErrorMessage } from '@/utils/error';
 import { deriveTideMeta, deriveWindLevel } from '@/utils/feedback';
 
 import SnapSheet from '../SnapSheet/SnapSheet.vue';
@@ -95,13 +96,13 @@ const emit = defineEmits<{
   (e: 'success'): void;
 }>();
 
-const { state } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 const selected = ref<FishingFeedbackLevel | null>(null);
 const loading = ref(false);
 
 /** 地点名优先用 enriched 响应带回的，退化到通用文案 */
-const locationName = computed(() => state.locationName || '钓鱼地点');
+const locationName = computed(() => mapStore.locationName || '钓鱼地点');
 
 async function submit() {
   const current = props.data;
@@ -112,8 +113,8 @@ async function submit() {
     return;
   }
 
-  const weather = state.liveWeather;
-  const tideMeta = deriveTideMeta(state.tideData);
+  const weather = mapStore.liveWeather;
+  const tideMeta = deriveTideMeta(mapStore.tideData);
 
   loading.value = true;
   try {

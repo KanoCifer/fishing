@@ -15,6 +15,7 @@
     "@dcloudio/uni-components": "3.0.0-5020620260917001",
     "@dcloudio/uni-mp-weixin": "3.0.0-5020620260917001",
     "oxfmt": "^0.73.0",
+    "pinia": "^3.0.4",
     "vue": "^3.5.44"
   },
   "devDependencies": {

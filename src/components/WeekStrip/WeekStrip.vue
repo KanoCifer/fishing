@@ -39,7 +39,7 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { shortDate } from '@/utils/date';
 import { num } from '@/utils/weather';
 
@@ -49,11 +49,11 @@ const BAR_HEIGHT = 68;
 /** 没有数据时的占位标尺，只为了让空态以外不出现除零 */
 const FALLBACK_AXIS = { lo: 0, hi: 10 };
 
-const { state } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 /** 挑出高低温都有值的日，脏数据整条丢掉，不参与作图 */
 const days = computed(() =>
-  state.forecasts
+  mapStore.forecasts
     .map((day) => ({
       fxDate: day.fxDate,
       max: num(day.tempMax),
@@ -62,10 +62,10 @@ const days = computed(() =>
     .filter((day): day is { fxDate: string; max: number; min: number } => day.max !== null && day.min !== null),
 );
 
-const loading = computed(() => state.weatherLoading);
+const loading = computed(() => mapStore.weatherLoading);
 
 const emptyText = computed(() =>
-  loading.value ? '加载中…' : state.forecasts.length ? '预报数据不完整' : '暂无预报数据',
+  loading.value ? '加载中…' : mapStore.forecasts.length ? '预报数据不完整' : '暂无预报数据',
 );
 
 function dayLabel(fxDate: string, index: number): string {

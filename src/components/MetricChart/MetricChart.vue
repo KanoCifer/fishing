@@ -51,7 +51,7 @@
  */
 import { computed, ref } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { parseFxTime } from '@/utils/date';
 import { num } from '@/utils/weather';
 
@@ -76,7 +76,7 @@ const METRICS: ReadonlyArray<Metric> = [
   { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#5ac8fa' }, // systemTeal
 ];
 
-const { state } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 const metric = ref<Metric['key']>('temp');
 
@@ -84,7 +84,7 @@ const active = computed(() => METRICS.find((m) => m.key === metric.value) ?? MET
 
 /** 逐时数据先筛脏值：降水字段偶尔是空串，直接 Number() 会得到 0，把曲线拽到底 */
 const hours = computed(() =>
-  state.weatherHourly
+  mapStore.weatherHourly
     .slice(0, 24)
     .map((hour) => ({ fxTime: hour.fxTime, value: num(hour[metric.value]) }))
     .filter((row): row is { fxTime: string; value: number } => row.value !== null),
@@ -100,7 +100,7 @@ const series = computed(() =>
 
 const hasData = computed(() => hours.value.length > 0);
 
-const loading = computed(() => state.weatherLoading);
+const loading = computed(() => mapStore.weatherLoading);
 
 /**
  * 取值域：按 step 向上/下取整，并各留 margin 的余量。返回 null 表示交给 LineChart 自己取整。

@@ -70,7 +70,7 @@
     <!-- 钓鱼反馈 -->
     <FishingFeedbackForm
       :open="feedbackOpen"
-      :data="state.indexData"
+      :data="mapStore.indexData"
       :location-id="locationId"
       @close="feedbackOpen = false"
     />
@@ -96,7 +96,7 @@ import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
-import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterDelay } from '@/utils/motion';
 
 type PaneKey = 'weather' | 'tide' | 'feature';
@@ -107,7 +107,7 @@ const PANES: ReadonlyArray<{ key: PaneKey; label: string }> = [
   { key: 'feature', label: '指数构成' },
 ];
 
-const { state, fetchWeatherAndFishing } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 /** 默认落在天气：进页面最常被问的是「现在什么天气」 */
 const pane = ref<PaneKey>('weather');
@@ -122,32 +122,28 @@ const feedbackOpen = ref(false);
  * 没选过就是 'default'（后端约定）。
  */
 const locationId = computed(() => {
-  const spot = state.selectedMarker?.extraData;
+  const spot = mapStore.selectedMarker?.extraData;
   return spot ? String(spot.id) : 'default';
 });
 
 /**
  * 取数。
  *
- * 天气和钓鱼指数不再打一遍：store 是单例，钓点 tab 首屏已经拉过，
- * 这里只在数据还没到时兜底补一次。
+ * 定位 → 按用户坐标取钓鱼指数（天气、潮汐随 enriched 响应一起带回）。
+ * 没有用户坐标时才退回默认中心（定位被拒 / 定位不可用）。
  *
  * 潮汐面板由 TideCard 自己在 onShow / 切港口日期时取，这里不重复触发 ——
  * 三个面板都挂载着，若页面也去取，切一次面板就是两个请求。
  */
-async function ensureData(): Promise<void> {
-  if (!state.indexData && !state.weatherLoading && !state.indexLoading) {
-    void fetchWeatherAndFishing(MAP_CENTER);
-  }
-}
 
 // onPageShow 在 tab 切回本页时也会触发，所以两个钩子都挂；
-// ensureData 内部有 loading 守卫，首帧两次调用只会真的发一次请求。
+// ensureWeatherAndFishing 内部有「已有当前坐标的那份数据就复用」的守卫，
+// 首帧两次调用只会真的发一次请求。
 onMounted(() => {
-  void ensureData();
+  void mapStore.ensureWeatherAndFishing();
 });
 onPageShow(() => {
-  void ensureData();
+  void mapStore.ensureWeatherAndFishing();
 });
 
 function openFeedback() {

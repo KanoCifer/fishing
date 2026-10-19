@@ -96,6 +96,7 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
 import type { MapMarkerItem } from '@/composables/useMapMarkers';
 import { icon } from '@/constants/icons';
+import { useFishingMapStore } from '@/stores/fishingMap';
 
 /** 底图模式：标准 / 卫星影像 / 实时路况 */
 type BaseMapMode = 'standard' | 'satellite' | 'traffic';
@@ -189,8 +190,20 @@ const traffic = ref(props.traffic);
  */
 const rotate = ref(0);
 
-const locating = ref(false);
-const hasLocation = ref(false);
+/**
+ * 坐标由 store 统一持有。
+ *
+ * 全应用只调一次 uni.getLocation（见 useFishingMapStore 的 locateUser）：
+ * 地图的定位键和天气取数用的是同一份坐标，两边各调一次会弹两次权限窗，
+ * 也会拿到两个略有差异的点。
+ */
+const mapStore = useFishingMapStore();
+
+/** 定位中。转圈状态也用 store 那一份，两处不必各记一个 */
+const locating = computed(() => mapStore.locating);
+
+/** 有没有坐标可用。区分的是「有没有点」，不是「是不是被拒」 */
+const hasLocation = computed(() => mapStore.userLocation !== null);
 
 /**
  * 定位失败 / 权限被拒。
@@ -200,7 +213,7 @@ const hasLocation = ref(false);
  * 分成两个状态是因为首次进入时 hasLocation 也是 false（还没定位完），
  * 拿它当「被拒」的判据会让图标一进来就闪红。
  */
-const permissionDenied = ref(false);
+const permissionDenied = computed(() => mapStore.locationDenied);
 
 /** 指南针图标。见模板里关于「为什么不跟着 rotate 转」那段 */
 const compassIcon = icon('compass', 'muted');
@@ -320,31 +333,23 @@ watch(
   },
 );
 
-function locate() {
-  locating.value = true;
+/**
+ * 定位：把视口挪到用户所在的位置。
+ *
+ * 坐标由 store 取，这里只负责挪地图 —— 天气取数用的是同一份坐标，
+ * 地图中心和数据页的地点名因此永远说的是同一个地方。
+ *
+ * force=true 是「重新定位」（定位键）：即便已经有坐标也再取一次，
+ * 用户可能已经换了个位置。
+ */
+async function locate(force = false): Promise<void> {
+  const location = await mapStore.locateUser(force);
+  if (!location) return;
 
-  uni.getLocation({
-    // 必须是 gcj02 —— 小程序 <map> 组件用的是 GCJ-02 火星坐标系。
-    // 传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
-    type: 'gcj02',
-    success: (res) => {
-      latitude.value = res.latitude;
-      longitude.value = res.longitude;
-      scale.value = 16;
-      hasLocation.value = true;
-      permissionDenied.value = false;
-    },
-    fail: () => {
-      // 授权被拒或系统定位不可用：保留默认坐标，靠图标染红告诉用户「定位键按了没用」。
-      // 不在这里弹 openSetting —— 用户可能只是定位信号不好，
-      // 上来就抢设置页很突兀，按键点一下再去。
-      hasLocation.value = false;
-      permissionDenied.value = true;
-    },
-    complete: () => {
-      locating.value = false;
-    },
-  });
+  const [lng, lat] = location;
+  latitude.value = lat;
+  longitude.value = lng;
+  scale.value = 16;
 }
 
 /**
@@ -358,14 +363,14 @@ function openLocationSetting() {
   uni.openSetting({
     success: (res) => {
       if (res.authSetting?.['scope.userLocation']) {
-        locate();
+        void locate(true);
       } else {
-        permissionDenied.value = true;
+        mapStore.markLocationDenied();
       }
     },
     fail: () => {
       // 用户没走完设置流程，退回手动重试
-      permissionDenied.value = true;
+      mapStore.markLocationDenied();
     },
   });
 }
@@ -382,7 +387,7 @@ function recenter() {
     openLocationSetting();
     return;
   }
-  locate();
+  void locate(true);
 }
 
 /**
@@ -464,7 +469,7 @@ function onMarkerTap(e: { detail?: { markerId?: number } }) {
 }
 
 onMounted(() => {
-  locate();
+  void locate();
 });
 </script>
 

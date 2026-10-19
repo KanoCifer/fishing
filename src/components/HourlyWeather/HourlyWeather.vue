@@ -42,13 +42,13 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/composables/useFishingMapStore';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { parseFxTime } from '@/utils/date';
 import { weatherIconClass } from '@/utils/weather';
 
-const { state } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
-const hours = computed(() => state.weatherHourly.slice(0, 24));
+const hours = computed(() => mapStore.weatherHourly.slice(0, 24));
 </script>
 
 <style lang="scss" scoped>

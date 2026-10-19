@@ -13,23 +13,27 @@
         <text v-if="updatedAt" class="verdict__updated">{{ updatedAt }} 更新</text>
       </view>
 
-      <view class="verdict__refresh" :class="{ 'verdict__refresh--busy': state.indexLoading }" @tap="onRefresh">
+      <view
+        class="verdict__refresh"
+        :class="{ 'verdict__refresh--busy': mapStore.indexLoading || mapStore.locating }"
+        @tap="onRefresh"
+      >
         <image class="verdict__icon" :src="refreshIcon" mode="widthFix" />
       </view>
     </view>
 
     <!-- 加载中 -->
-    <view v-if="state.indexLoading && !state.indexData" class="verdict__body">
+    <view v-if="mapStore.indexLoading && !mapStore.indexData" class="verdict__body">
       <SkeletonCard />
     </view>
 
     <!-- 错误 -->
-    <view v-else-if="state.indexError && !state.indexData" class="verdict__body">
-      <text class="verdict__error">{{ state.indexError }}</text>
+    <view v-else-if="mapStore.indexError && !mapStore.indexData" class="verdict__body">
+      <text class="verdict__error">{{ mapStore.indexError }}</text>
     </view>
 
     <!-- 有数据 -->
-    <template v-else-if="state.indexData">
+    <template v-else-if="mapStore.indexData">
       <!--
         三段依次落位：先给结论（分数），再给依据（三条成因），最后给动作。
         骨架屏换成实数据的这一下是最容易「闪」的地方 —— 整块内容突然出现，
@@ -40,10 +44,10 @@
       -->
       <view class="verdict__figure" :style="{ animationDelay: enterDelay(0) }">
         <text class="verdict__score" :class="`verdict__score--${tone}`">
-          {{ state.indexData.fishing_index }}
+          {{ mapStore.indexData.fishing_index }}
         </text>
         <view class="verdict__figure-side">
-          <text class="verdict__level" :class="`verdict__level--${tone}`">{{ state.indexData.level }}</text>
+          <text class="verdict__level" :class="`verdict__level--${tone}`">{{ mapStore.indexData.level }}</text>
           <text class="verdict__verdict">{{ verdict }}</text>
         </view>
       </view>
@@ -106,9 +110,9 @@
  */
 import { computed } from 'vue';
 
-import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterDelay } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
 import { parseFxTime } from '@/utils/date';
@@ -123,7 +127,7 @@ const emit = defineEmits<{
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
 
-const { state, fetchWeatherAndFishing } = useFishingMapStore();
+const mapStore = useFishingMapStore();
 
 const pinIcon = icon('map-pin', 'muted');
 const refreshIcon = icon('refresh-cw', 'muted');
@@ -132,17 +136,17 @@ const wavesIcon = icon('waves', 'blue');
 const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
 
-const tone = computed(() => levelTone(state.indexData?.level));
+const tone = computed(() => levelTone(mapStore.indexData?.level));
 
 /** 一句话结论直接复用天气模块的等级映射，不在这里另写一套说法 */
-const verdict = computed(() => levelVerdict(state.indexData?.level));
+const verdict = computed(() => levelVerdict(mapStore.indexData?.level));
 
-const placeName = computed(() => state.locationName || '钓鱼地点');
+const placeName = computed(() => mapStore.locationName || '钓鱼地点');
 
 /** 实况观测时刻，只取时分 */
-const updatedAt = computed(() => parseFxTime(state.liveWeather?.obsTime ?? '')?.time ?? '');
+const updatedAt = computed(() => parseFxTime(mapStore.liveWeather?.obsTime ?? '')?.time ?? '');
 
-const live = computed(() => state.liveWeather);
+const live = computed(() => mapStore.liveWeather);
 
 /** 风向标签（东南风）配风速数值（km/h），缺任一就不占这个位 */
 const windText = computed(() => {
@@ -151,7 +155,7 @@ const windText = computed(() => {
 });
 
 const trendText = computed(() => {
-  switch (tideTrend(state.tideData)) {
+  switch (tideTrend(mapStore.tideData)) {
     case 'rising':
       return '涨潮';
     case 'falling':
@@ -164,13 +168,13 @@ const trendText = computed(() => {
 });
 
 const tideMeta = computed(() => {
-  const high = nextHighTide(state.tideData);
+  const high = nextHighTide(mapStore.tideData);
   return high ? `高潮 ${high.time}` : '暂无潮汐';
 });
 
 function onRefresh() {
-  if (state.indexLoading) return;
-  void fetchWeatherAndFishing(MAP_CENTER);
+  if (mapStore.indexLoading) return;
+  void mapStore.refreshIndexData();
 }
 </script>
 
