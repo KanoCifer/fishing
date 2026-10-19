@@ -220,6 +220,30 @@ export interface WeatherIndex {
 }
 
 // ---------------------------------------------------------------------------
+// AI 分析
+// ---------------------------------------------------------------------------
+
+/**
+ * AI 分析的输入载荷 —— 对应 `POST /v2/llm/weather-analysis` 的 `weather_data`。
+ *
+ * 字段名与后端 DTO 保持一致（见文件头的裁剪原则），不做本地改名。
+ *
+ * 这份载荷是「把已经拿到的数据换个形状送出去」，不重新取数 ——
+ * 天气和潮汐都已经在 store 里了，再取一次是白花一次往返。
+ */
+export interface WeatherAnalysisPayload {
+  liveWeather?: WeatherNow | null;
+  forecasts?: WeatherDay[];
+  tideData?: TideData | null;
+  weatherIndices?: WeatherIndex[];
+  fishingIndex?: FishingIndexData;
+  locationName?: string;
+  tideSpotName?: string;
+  /** 生成时刻，字符串直传（后端不解析，只做展示） */
+  generatedAt?: string;
+}
+
+// ---------------------------------------------------------------------------
 // 钓鱼指数 / 反馈
 // ---------------------------------------------------------------------------
 
@@ -333,8 +357,8 @@ export interface FishingStats {
  * `fishing/index?enriched=true` 一个入口取天气（信封里那份 indices 后端也不填），
  * 单独再调 weather/full 只会多一次后端往返。真要拆开调时再把这几个类型加回来。
  *
- * WeatherAnalysisPayload / FishingScores / AnalysisChunk —— AI 分析链路，
- * 本期不做。
+ * FishingScores / AnalysisChunk —— 分数明细与分片类型，AI 分析链路用不到。
+ * AI 分析的载荷见上面的 WeatherAnalysisPayload。
  *
  * RouteInfo / SecurityKeyResponse / RegeoResponseData / PoiItem —— 路线规划
  * 和高德 JS API 的产物，本期不做。相关端点 `v3/amap/security-key` 也不用接了：

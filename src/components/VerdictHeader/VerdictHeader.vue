@@ -80,6 +80,16 @@
       </view>
 
       <view class="verdict__actions" :style="{ animationDelay: enterDelay(2) }">
+        <!--
+          AI 分析是次级动作：主按钮是「反馈今日指数」——
+          反馈是这个页面的日常动作，AI 分析是偶尔才想看一眼的补充。
+          所以次按钮不抢主色，排在左边。
+        -->
+        <view class="verdict__btn verdict__btn--secondary" @tap="emit('analysis')">
+          <image class="verdict__icon verdict__icon--accent" :src="sparklesIcon" mode="widthFix" />
+          <text class="verdict__btn-text">AI 分析</text>
+        </view>
+
         <view class="verdict__btn verdict__btn--primary" @tap="emit('feedback')">
           <image class="verdict__icon verdict__icon--onaccent" :src="messageIcon" mode="widthFix" />
           <text class="verdict__btn-text verdict__btn-text--onaccent">反馈今日指数</text>
@@ -123,6 +133,8 @@ import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
 const emit = defineEmits<{
   feedback: [];
+  /** 打开 AI 分析面板 */
+  analysis: [];
   /**
    * 结论卡底边在**文档坐标**里的 y（px）。
    *
@@ -144,6 +156,7 @@ const thermometerIcon = icon('thermometer', 'destructive');
 const wavesIcon = icon('waves', 'blue');
 const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
+const sparklesIcon = icon('sparkles', 'blue600');
 
 const tone = computed(() => levelTone(mapStore.indexData?.level));
 
@@ -275,6 +288,10 @@ watch(
 }
 
 .verdict__icon--onaccent {
+  margin-right: 10rpx;
+}
+
+.verdict__icon--accent {
   margin-right: 10rpx;
 }
 
@@ -414,6 +431,18 @@ watch(
   flex: 1;
   background-image: $fish-gradient;
   box-shadow: $smooth-shadow-sm;
+}
+
+/*
+ * 次按钮（AI 分析）。
+ *
+ * 宽度按内容走，不参与 flex 分配 —— 主按钮吃掉剩下的空间。
+ * 不抢主色：这一屏的主动作是反馈，AI 分析是偶尔才想看一眼的补充。
+ */
+.verdict__btn--secondary {
+  flex-shrink: 0;
+  margin-right: 16rpx;
+  padding: 0 32rpx;
 }
 
 .verdict__btn-text {

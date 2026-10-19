@@ -14,7 +14,7 @@
       />
 
       <!-- 结论 -->
-      <VerdictHeader @feedback="openFeedback" @conclusion-bottom="onConclusionBottom" />
+      <VerdictHeader @feedback="openFeedback" @analysis="openAnalysis" @conclusion-bottom="onConclusionBottom" />
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
 
@@ -58,6 +58,9 @@
         :location-id="locationId"
         @close="feedbackOpen = false"
       />
+
+      <!-- AI 分析 -->
+      <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
     </view>
   </view>
 </template>
@@ -74,6 +77,7 @@ import { computed, onMounted, ref } from 'vue';
 import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
 
 import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
+import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
@@ -95,6 +99,9 @@ const { navBarBottom } = useNavMetrics();
 
 /** 钓鱼反馈浮层 */
 const feedbackOpen = ref(false);
+
+/** AI 分析浮层 */
+const analysisOpen = ref(false);
 
 /**
  * 反馈关联的钓点 id，取自钓点页共享过来的选中态。
@@ -169,6 +176,10 @@ onPageShow(() => {
 
 function openFeedback() {
   feedbackOpen.value = true;
+}
+
+function openAnalysis() {
+  analysisOpen.value = true;
 }
 </script>
 

@@ -17,6 +17,12 @@ importers:
       '@dcloudio/uni-mp-weixin':
         specifier: 3.0.0-5020620260917001
         version: 3.0.0-5020620260917001(debug@4.4.3(supports-color@5.5.0))(postcss@8.5.30)(rollup@4.14.3)(supports-color@5.5.0)(vue@3.5.44(typescript@4.9.5))
+      marked:
+        specifier: ^18.1.1
+        version: 18.1.1
+      mp-html:
+        specifier: ^2.5.2
+        version: 2.5.2
       oxfmt:
         specifier: ^0.73.0
         version: 0.73.0
@@ -1986,6 +1992,11 @@ packages:
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
+  marked@18.1.1:
+    resolution: {integrity: sha512-zEGgrtUG8crk+TrMacJSVABU4DYDDkS8uqgU3ohrn/2fW9C2AEfUrO3m6IhpIpQpl7YcVpiXXC9cSMWDANT3dg==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -2059,6 +2070,9 @@ packages:
 
   module-alias@2.2.3:
     resolution: {integrity: sha512-23g5BFj4zdQL/b6tor7Ji+QY4pEfNH784BMslY9Qb0UnJWRAt+lQGLYmRaM0KDBwIG23ffEBELhZDP2rhi9f/Q==}
+
+  mp-html@2.5.2:
+    resolution: {integrity: sha512-45e8c32Qgux4YU4iC3qCSFsOh3y+RwPwZ+iz/vvLkDgSGWk+1zsL4WUzWWQc9w3AsAfkaD/QR0oIufIDngBmXA==}
 
   ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -5064,6 +5078,8 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  marked@18.1.1: {}
+
   math-intrinsics@1.1.0: {}
 
   media-typer@0.3.0: {}
@@ -5119,6 +5135,8 @@ snapshots:
       ufo: 1.6.4
 
   module-alias@2.2.3: {}
+
+  mp-html@2.5.2: {}
 
   ms@2.0.0: {}
 

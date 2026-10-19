@@ -47,3 +47,32 @@ export function parseFxTime(fxTime: string): {
 export function shortDate(fxDate: string): string {
   return fxDate.slice(5);
 }
+
+/**
+ * 把带时区的时间串压成「月-日 时:分」。
+ *
+ * 和 parseFxTime 用同一套切法，不 new Date() —— 理由见那个函数的注释：
+ * 换算成本地时区后，开发者工具和真机可能给出不同的读数。
+ */
+export function formatMoment(value: string | null | undefined): string {
+  const parsed = parseFxTime(value ?? '');
+  if (!parsed) return '';
+  return `${parsed.date} ${parsed.time}`;
+}
+
+/**
+ * 当前时刻，格式 `YYYY-MM-DD HH:mm:ss`。
+ *
+ * 送进 AI 分析载荷当时间戳用。后端只当字符串展示，不解析，
+ * 所以这里给的是设备本地时间 —— 展示给用户看的，设备本地时间才是对的。
+ */
+export function formatDateTime(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = date.getFullYear();
+  const mo = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const h = pad(date.getHours());
+  const mi = pad(date.getMinutes());
+  const s = pad(date.getSeconds());
+  return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+}

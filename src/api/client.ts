@@ -33,7 +33,7 @@ interface ApiEnvelope<T> {
 }
 
 /** HTTP 状态码 → 兜底文案。后端没给 message 时用 */
-const STATUS_TEXT: Record<number, string> = {
+export const STATUS_TEXT: Record<number, string> = {
   400: '请求参数有误',
   401: '登录状态已失效，请重新进入',
   403: '没有权限执行该操作',
@@ -90,7 +90,8 @@ export function setToken(token: string): void {
  */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD';
 
-type QueryValue = string | number | boolean | undefined | null;
+/** query 参数值 */
+export type QueryValue = string | number | boolean | undefined | null;
 
 export interface RequestOptions {
   /** 相对路径，不带基址，如 `v2/fishing/index` */
@@ -107,7 +108,7 @@ export interface RequestOptions {
  * 空值（undefined / null / 空串）的键直接丢掉 —— 不丢的话会拼出 `enriched=undefined`，
  * 后端拿到的是字符串 "undefined"，不会报错但结果不对，是很难查的一类坑。
  */
-function withQuery(url: string, params?: Record<string, QueryValue>): string {
+export function withQuery(url: string, params?: Record<string, QueryValue>): string {
   if (!params) return url;
 
   const parts: string[] = [];
