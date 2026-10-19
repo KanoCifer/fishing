@@ -122,19 +122,18 @@ import FishingGauge from '../FishingGauge/FishingGauge.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
 const emit = defineEmits<{
-  (e: 'feedback'): void;
+  feedback: [];
   /**
    * 结论卡底边在**文档坐标**里的 y（px）。
    *
    * 页面拿它算常驻结论条什么时候浮现：结论滚到顶部被导航栏盖住的那一刻，
    * 顶上就该浮出那条窄栏。位置由这个组件报 —— 谁拥有结论，谁就知道结论在哪儿。
    */
-  (e: 'conclusion-bottom', bottom: number): void;
+  'conclusion-bottom': [bottom: number];
 }>();
 
 const instance = getCurrentInstance()!;
 
-/** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
 
 const mapStore = useFishingMapStore();

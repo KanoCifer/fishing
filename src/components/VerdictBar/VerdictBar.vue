@@ -65,7 +65,7 @@ withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'refresh'): void;
+  refresh: [];
 }>();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */

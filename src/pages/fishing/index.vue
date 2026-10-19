@@ -8,12 +8,17 @@
       可以滚动的列表页，两边都不用在对方的地盘上做取舍。
     -->
     <view class="fishing__map-area">
+      <!--
+        浮层打开时关掉地图手势：抽屉的遮罩拦得住 WebView 层的事件，
+        拦不住 map 原生组件的平移 —— 不关的话，拖抽屉时背后的地图会跟着动。
+      -->
       <FullscreenMap
         class="fishing__map"
         :markers="markerItems"
         :latitude="focusedLat"
         :longitude="focusedLng"
         :top-inset="nav.navBarBottom"
+        :interactive="!spotDetailOpen"
         @markertap="onMarkerTap"
       />
     </view>

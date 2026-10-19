@@ -1,35 +1,47 @@
 <template>
-  <!--
-    节点是否渲染由 rendered 管，而不是 props.open。
-
-    v-if 直接绑 open 的话，open 一变 false 节点立刻被卸载，
-    退场动画还没来得及播就被拆掉了。所以 open 只作为"意图"，
-    真正摘节点交给退场动画播完的 rendered。
-    :key 让每次打开都是全新节点，入场 keyframes 必定重放，
-    否则「关一半又立刻开」会沿用上一次跑完的动画态。
-  -->
   <view v-if="rendered" :key="cycle" class="snap-sheet">
-    <!-- 遮罩 -->
-    <view class="snap-sheet__mask" :class="{ 'snap-sheet__mask--out': closing }" @tap="onMaskTap" />
-
     <!--
-      面板本体。
+      遮罩。
 
-      底边锚定在底部，只改 height 让它向上生长 —— 如果改 translateY，
-      面板会整体下移露出下面的地图，那正是源项目注释里要避开的行为。
+      catchtap / catchtouchmove：遮罩是全屏的，落在它上面的手势只属于这个浮层。
+      用 catch 截住，背后的页面才收不到 —— 否则在遮罩上随手一划，背后的列表
+      会跟着滚，背后的地图会跟着平移。
 
-      但出入场动画用 translateY 是安全的：此刻 height 已经是最终值，
-      translateY 只是个过渡期的视觉偏移，不是用来表示高度的，
-      面板仍是"贴在底边、就地滑入"，不会露出地图。
+      这里挡的是 WebView 层的事件。地图是原生组件，同层渲染下它的原生手势
+      不受这层拦截影响，那一半靠地图自身的 interactive 关掉，
+      见 FullscreenMap 的 interactive。
     -->
-    <view class="snap-sheet__panel" :class="{ 'snap-sheet__panel--out': closing }" :style="panelStyle">
-      <!-- 拖拽把手：只有这一条区域响应拖拽 -->
+    <view
+      class="snap-sheet__mask"
+      :class="{ 'snap-sheet__mask--out': closing }"
+      @tap.stop="onMaskTap"
+      @touchmove.stop="swallowGesture"
+    />
+    <!--
+      面板。
+
+      catchtap / catchtouchmove：浮层里的手势不外泄。touchmove 这一层还兼着
+      截断 scroll-view 冒泡到页面的路径 —— 面板内滑到底继续划，背景页不再跟着滚。
+    -->
+    <view
+      class="snap-sheet__panel"
+      :class="{ 'snap-sheet__panel--out': closing }"
+      :style="panelStyle"
+      @tap.stop="swallowGesture"
+      @touchmove.stop="swallowGesture"
+    >
+      <!--
+        拖拽把手：只有这一条区域响应拖拽。
+
+        四个事件全用 catch：拖拽是这一处的独占手势，一旦冒泡出去，
+        背后的页面会跟着滚、背后的地图会跟着动。
+      -->
       <view
         class="snap-sheet__handle"
-        @touchstart="onTouchStart"
-        @touchmove="onTouchMove"
-        @touchend="onTouchEnd"
-        @touchcancel="onTouchEnd"
+        @touchstart.stop="onTouchStart"
+        @touchmove.stop="onTouchMove"
+        @touchend.stop="onTouchEnd"
+        @touchcancel.stop="onTouchEnd"
       >
         <view class="snap-sheet__handle-bar" />
       </view>
@@ -38,14 +50,6 @@
       <view v-if="$slots.header" ref="headerRef" class="snap-sheet__header">
         <slot name="header" />
       </view>
-
-      <!--
-        内容：独立滚动，不受拖拽影响。
-
-        scroll-view 必须有确定高度 —— 小程序端它算不出 flex 父容器给的剩余高度，
-        用 flex: 1 会得到 0 高度，内容既不滚动也看不见。所以按
-        「面板高 − 把手 − 头部实测高」算好后直接绑定。
-      -->
       <scroll-view class="snap-sheet__body" scroll-y :style="{ height: bodyHeight + 'px' }">
         <slot />
       </scroll-view>
@@ -54,25 +58,6 @@
 </template>
 
 <script setup lang="ts">
-/**
- * SnapSheet —— iOS 风格多档底部抽屉。
- *
- * 对应源项目 SnapSheet.tsx。拖拽物理（阈值 + 速度判定 + 档位吸附）整体照搬，
- * 实现从 framer-motion 换成原生 touch 事件：
- * 小程序逻辑层没有 PointerEvent，也没有 requestAnimationFrame，
- * 手写 touchstart/touchmove/touchend 是这里唯一可行的路。
- *
- * 与源版本的差异：
- * - 无 backdrop 模糊。源版用 `backdrop-blur-[2px]`，小程序端毛玻璃只能靠
- *   `-webkit-backdrop-filter`；而遮罩背后是原生 map 的纹理，
- *   模糊大半张地图代价高、收益低，改成纯色半透明遮罩
- * - 无吸附的 spring 动画。档位切换直接落值：
- *   CSS transition 作用在 height 上能做过渡，但拖拽过程中每帧都在改 height，
- *   transition 会让面板"追不上手指"。改成拖拽跟手、抬手后过渡
- * - 出入场保留源版的动画语义，但换成 CSS keyframes（见模板与样式注释）：
- *   入场从底部滑入并轻微淡入，退场原路滑回，退场播完才摘节点
- * - 无 Esc 键关闭（触屏端无键盘）、无 lockScroll（scroll-view 自带滚动锁）
- */
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 'vue';
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
@@ -102,7 +87,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: 'close'): void;
+  close: [];
 }>();
 
 const nav = useNavMetrics();
@@ -245,6 +230,19 @@ watch(snap, (index) => {
 });
 
 // ── 拖拽 ──
+
+/**
+ * 空处理：把浮层内的手势截在这里。
+ *
+ * mp-weixin 的 catch 事件必须挂一个函数，函数本身做什么无所谓 ——
+ * 起作用的是 catch 前缀：事件不再往上冒泡，背后的页面也就收不到这次滑动/点击。
+ *
+ * 面板上挂它不会影响面板内 scroll-view 滚动：scroll-view 是区域滚动，
+ * 自己的滚动由组件自己处理，catch 只断冒泡，不取消这次滚动。
+ * 但面板上只挂 touchmove、不碰 touchstart —— catchtouchstart 会把
+ * scroll-view 的手势一起抢走，滚动就废了。
+ */
+function swallowGesture(): void {}
 
 /** 拖拽起点：手指 Y + 起始高度 */
 let startY = 0;

@@ -38,17 +38,18 @@ const logo = '/static/logo.png';
 
 <style lang="scss" scoped>
 /*
- * 卡片：白底浮在页面灰底上，靠面分层而不是描边和阴影，理由见 uni.scss 的分层说明。
- * 圆角用 $fish-radius-xl（12pt），和 WeatherCard 的 inset-grouped 分组同一级 ——
- * 这一页从上到下全是同一套圆角，出现第二个尺寸会让「分组」的边界变模糊。
+ * 卡片：玻璃面浮在环境色上，靠面分层而不是描边和阴影，理由见 uni.scss 的分层说明。
+ *
+ * 圆角用 $fish-radius-2xl（32pt），和钓鱼指数的仪表卡同一级 ——
+ * 它是关于页的「结论卡」，和数据页的结论卡是同一个位置上的东西，
+ * 圆角就该是同一个尺寸。其余卡片用 $fish-radius-card（24pt）。
  */
 .about-header {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 48rpx 40rpx 40rpx;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  @include fish-glass($fish-radius-2xl);
 }
 
 /*

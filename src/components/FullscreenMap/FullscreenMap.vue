@@ -6,86 +6,28 @@
       :longitude="longitude"
       :latitude="latitude"
       :scale="scale"
-      :rotate="rotate"
       :show-location="showLocation"
       :markers="markers"
       :enable-satellite="satellite"
       :enable-traffic="traffic"
-      enable-zoom
-      enable-scroll
-      enable-rotate
+      :enable-zoom="interactive"
+      :enable-scroll="interactive"
+      :enable-rotate="false"
+      :show-compass="false"
       :enable-poi="showLocation"
       @regionchange="onRegionChange"
       @markertap="onMarkerTap"
     />
 
-    <!--
-      浮在地图上的控件用普通 view + z-index。
-      微信已支持同层渲染（map 自基础库 2.8.3 起），不再需要 cover-view，
-      好处是 box-shadow / transform 这些样式都能用了。
-
-      地图操作收成**一列** toolbar：顶上是底图循环键，中间一根发丝线，
-      底下是定位和回正北两个动作。排右上角、贴着 topInset（导航栏底边）：
-      左侧留给手势，底部留给钓点计数浮层和 tabBar，只有右上角是长期空着的。
-
-      竖着摞在这里比横着排还稳：指南针只在地图转过之后才出现，竖排意味着
-      它是往下长一格，上面几项一动不动；横排则整条会往左顶，顶到手势区去。
-
-      之前这三块是各自独立的控件，各自带一套材质，读起来像三个不相干的浮层
-      而不是一组操作。合成一个外壳之后它们共享同一张皮，「换底图」和
-      「动地图」显然是同一件事。
-    -->
     <view class="toolbar" :style="{ top: topInset + 'px' }">
-      <!--
-        底图切换：点一下在三档之间循环，按钮上直接写着当前是哪一档。
-
-        原来三档并排摆着（~276rpx 宽），竖着摞的话列宽就由最宽的那一项说了算 ——
-        低频的「换底图」反而替整列决定了压在地图上的宽度。收成循环键之后最宽的
-        变成了下面的指南针键，这一列窄到 ~130rpx，只有原来的一半不到。
-
-        按下来说明的是「现在是什么」而不是「有哪些可选」，所以灰底那套选中态
-        一起去掉了：没有并列的兄弟项，就没有需要标出来的选中项。文案本身就是值。
-      -->
       <view class="toolbar__mode" @tap="cycleBaseMap">
         <image class="toolbar__mode-icon" :src="layersIcon" mode="aspectFit" />
         <text class="toolbar__mode-label">{{ activeBaseMapOption.label }}</text>
       </view>
 
-      <!-- 发丝线。不用 padding 把两组撑开 —— 撑开的只是一段空白，读起来还是一组 -->
       <view class="toolbar__divider" />
-
-      <!--
-        定位：图标键，不再挂文字。
-
-        原来三段文案（定位中… / 回到我的位置 / 重新定位）最长六个字，一行排下来
-        会比底图键还长，喧宾夺主 —— 定位是次要操作，不该比底图切换更抢眼。
-        换成图标正好压回去。状态改由图标自己说：定位中压暗，权限没开染红
-        （见 locateIcon）。
-      -->
       <view class="toolbar__action" :class="{ 'toolbar__action--busy': locating }" @tap="recenter">
         <image class="toolbar__action-icon" :src="locateIcon" mode="aspectFit" />
-      </view>
-
-      <!--
-        自绘指南针。
-
-        原生 show-compass 也能开，但它画死在地图右上角，而右上角被微信的胶囊
-        按钮常驻盖着 —— 那是个点不到也看不见的死位置。胶囊在小程序里永远在最上层，
-        页面内容盖不过去，只能换地方画。toolbar 已经排在胶囊下方（top 取 navBarBottom），
-        所以按钮挂这儿。
-
-        只在旋转时出现：地图 enable-rotate 开着，用户能拧，拧完得给条回来的路。
-        MapContext 没有重置角度的接口，只能把 rotate 绑成受控属性手动置 0。
-
-        角度跟着一起留着：光一个指南针图标只能告诉用户「地图歪了」，那个数字才
-        告诉他偏了多少、拧回去要多少度。图标本身不跟着 rotate 转 —— 一个会自转的
-        图标读起来像 loading，而且 needle 的初始指向是东北不是正北，套一层补偿
-        角度的常数纯属自找麻烦。角度排在图标正下方，和上面底图键同一套排法，
-        顺带把这个键的宽度也收下来（见 .toolbar__action--stack）。
-      -->
-      <view v-if="isRotated" class="toolbar__action toolbar__action--stack" @tap="resetRotation">
-        <image class="toolbar__action-icon" :src="compassIcon" mode="aspectFit" />
-        <text class="toolbar__angle">{{ rotationLabel }}°</text>
       </view>
     </view>
   </view>
@@ -149,6 +91,16 @@ const props = withDefaults(
     satellite?: boolean;
     /** 实时路况底图。v-model:traffic 双向绑定 */
     traffic?: boolean;
+    /**
+     * 地图是否响应手势（拖动 / 缩放）。
+     *
+     * 浮层盖在地图上时必须关掉。map 是原生组件，同层渲染只解决了层级，
+     * 它的平移手势仍是原生处理的，浮层那层 WebView 事件拦不住 ——
+     * 表现就是「拖抽屉的时候，背后的地图也跟着手指平移」。
+     * 这是 SnapSheet 把遮罩和把手的事件全改成 catch 之后，
+     * 唯一还需要单独处理的一环。
+     */
+    interactive?: boolean;
   }>(),
   {
     latitude: 30.2741,
@@ -159,17 +111,18 @@ const props = withDefaults(
     markers: () => [],
     satellite: false,
     traffic: false,
+    interactive: true,
   },
 );
 
 const emit = defineEmits<{
-  (e: 'regionchange', payload: { latitude: number; longitude: number; scale: number }): void;
+  regionchange: [payload: { latitude: number; longitude: number; scale: number }];
   /** marker 被点中。只回传 markerId，由调用方用 useMapMarkers 的 resolveMarker 换回领域对象 */
-  (e: 'markertap', payload: { markerId: number }): void;
-  (e: 'update:satellite', value: boolean): void;
-  (e: 'update:traffic', value: boolean): void;
+  markertap: [payload: { markerId: number }];
+  'update:satellite': [value: boolean];
+  'update:traffic': [value: boolean];
   /** 底图整体切了一档。想把选择持久化的页面听这个就够 */
-  (e: 'base-map-change', payload: { mode: BaseMapMode; satellite: boolean; traffic: boolean }): void;
+  'base-map-change': [payload: { mode: BaseMapMode; satellite: boolean; traffic: boolean }];
 }>();
 
 const latitude = ref(props.latitude);
@@ -179,16 +132,6 @@ const scale = ref(props.scale);
 /** 底图两个布尔属性，同样受控，父组件也能改 */
 const satellite = ref(props.satellite);
 const traffic = ref(props.traffic);
-
-/**
- * 地图旋转角（度）。
- *
- * 绑成受控属性是为了能一键回正北 —— MapContext 没有重置角度的接口，
- * 原生 show-compass 又被胶囊按钮挡在右上角，只能改 rotate 自己把它拧回去。
- * 代价是它和经纬度 / 缩放一样受 patch 管辖，所以必须跟着 onRegionChange 同步，
- * 规则见那个函数的注释。
- */
-const rotate = ref(0);
 
 /**
  * 坐标由 store 统一持有。
@@ -214,9 +157,6 @@ const hasLocation = computed(() => mapStore.userLocation !== null);
  * 首次进入时它也是 false（还没定位完），拿它当「被拒」的判据会让图标一进来就闪红。
  */
 const permissionDenied = computed(() => mapStore.locationDenied);
-
-/** 指南针图标。见模板里关于「为什么不跟着 rotate 转」那段 */
-const compassIcon = icon('compass', 'muted');
 
 /** 底图循环键的图层图标。压成 muted，让它和文案读成一个整体而不是「图标 + 标签」 */
 const layersIcon = icon('layers', 'muted');
@@ -258,22 +198,6 @@ const activeBaseMapOption = computed(
 function cycleBaseMap() {
   const order = BASE_MAP_OPTIONS.map((opt) => opt.value);
   selectBaseMap(order[(order.indexOf(activeBaseMap.value) + 1) % order.length]);
-}
-
-/**
- * 当前旋转角归一到 0~360 的整数。
- *
- * 先取整再取模：359.6° 在取整前当然算「转过」，但对用户来说就是回到正北了，
- * 不该还挂着一个让他去点的按钮。
- */
-const rotationLabel = computed(() => Math.round(rotate.value) % 360);
-
-/** 转过地图才显示指南针，归零之后自动收起 */
-const isRotated = computed(() => rotationLabel.value !== 0);
-
-/** 点指南针：把旋转角归零，地图自己会拧回正北 */
-function resetRotation() {
-  rotate.value = 0;
 }
 
 /**
@@ -413,7 +337,7 @@ function syncViewport(target: Ref<number>, next: number | undefined): void {
 }
 
 /**
- * 视口变化（缩放 / 拖动 / 旋转），这四个值必须**一起**同步回本地 ref。
+ * 视口变化（缩放 / 拖动），这三个值必须**一起**同步回本地 ref。
  *
  * 为什么缺一个就会弹回中心：<map> 的经纬度和缩放都是受控属性，微信收到
  * setData 时会以属性里的 longitude/latitude 为中心重新定位。所以只要有任意
@@ -430,11 +354,11 @@ function syncViewport(target: Ref<number>, next: number | undefined): void {
  * 于是捏合缩放改了 scale 却留着旧中心 —— 这正是弹回用户位置的直接原因。
  * 顶层那两个字段只是兜底，应对个别基础库把中心拍平的情况。
  *
- * rotate 同样要在这儿同步：它为了回正北被绑成了受控属性，适用同一条规则。
- * 漏了它，用户转完地图点任意一处触发 patch，角度就被拽回上一次的值。
+ * rotate 不在这儿：地图关了旋转（enable-rotate=false），角度恒为 0，
+ * 也没有绑成受控属性，不构成回弹来源。
  *
- * skew 不在这儿：组件没绑这个属性，它不受控，patch 不会触发重定位，
- * 不构成回弹来源。倾斜也只有开了 enable-overlooking 才会有，这里没开。
+ * skew 同理：组件没绑这个属性，它不受控，patch 不会触发重定位。
+ * 倾斜也只有开了 enable-overlooking 才会有，这里没开。
  */
 function onRegionChange(e: {
   detail?: {
@@ -442,7 +366,6 @@ function onRegionChange(e: {
     latitude?: number;
     longitude?: number;
     scale?: number;
-    rotate?: number;
   };
 }) {
   const detail = e.detail ?? {};
@@ -452,7 +375,6 @@ function onRegionChange(e: {
   syncViewport(latitude, center?.latitude ?? detail.latitude);
   syncViewport(longitude, center?.longitude ?? detail.longitude);
   syncViewport(scale, detail.scale);
-  syncViewport(rotate, detail.rotate);
 
   emit('regionchange', {
     latitude: latitude.value,
@@ -490,20 +412,6 @@ onMounted(() => {
   height: 100%;
 }
 
-/*
- * toolbar —— 整个地图操作区的**一个**外壳，横着一条。
- *
- * 浮在地图上的控件是**材质**：半透明 + 一层实投影。
- *
- * 没有 backdrop-filter（map 是原生组件，模糊它要重采样整屏纹理），所以
- * 靠「半透明的底 + 更重的投影」这两件事把它推离地图 —— 只做前者会像一块
- * 半透明的贴纸浮在瓦片上，做不到层次。投影要比页面内的卡片重，因为它压的
- * 是一张高对比度的地图，任何浅投影都会被底图吃掉。
- *
- * 竖着摞在这一列：三项从上到下是「换底图」「定位」「回正北」，高度统一，
- * 宽度由底图键决定。align-items: center 让下面两个窄的图标键居中，不贴着
- * 左边沿 —— 靠左对齐的话这一列会像个阶梯。
- */
 .toolbar {
   position: absolute;
   right: 24rpx;
@@ -512,31 +420,20 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6rpx;
+  padding: 0px;
   border-radius: $fish-radius-lg;
   background-color: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.16);
+  box-shadow: $smooth-shadow-md;
 }
 
-/*
- * 底图循环键：图标在上，档位文案落在图标正下方。
- *
- * 和下面两个动作键同一套尺寸（84rpx 高、14rpx 圆角）。图标+文案摞起来比纯图标
- * 高一截，所以三个键一起从 72rpx 抬到 84rpx —— 宁可一起长高，也不能让底图键
- * 单独凸出去，凸出去就读成三个不同的控件，而不是一组。
- *
- * 按下用缩放（fish-press）而不是分段控件那套变暗：它现在是个独立按钮了，
- * 跟下面两个动作键的手感保持一致更重要。
- */
 .toolbar__mode {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 84rpx;
-  padding: 0 16rpx;
+  padding: 0 4rpx;
   border-radius: 14rpx;
-
   @include fish-press(0.94);
 }
 
@@ -583,10 +480,10 @@ onMounted(() => {
  * 图标动作键。
  *
  * 84rpx ≈ 42pt，和底图键齐平（见上面那条为什么抬高）。没到 44pt 的原因是
- * 三个键摞在一起，再大会让这一列长得压到导航栏。定位是高频操作，这块尺寸
+ * 键摞在一起，再大会让这一列长得压到导航栏。定位是高频操作，这块尺寸
  * 是能接受的取舍。
  *
- * min-width 不是 44pt 那种安全尺寸，是拿这一列的总宽倒推的：三个键都得塞进
+ * min-width 不是 44pt 那种安全尺寸，是拿这一列的总宽倒推的：键都得塞进
  * 一条压在地图上的窄列里，宽度让位给高度。倒推出来的 76rpx ≈ 38pt 偏小，
  * 但仍然远大于图标本身（32rpx），不至于难点。
  *
@@ -625,26 +522,5 @@ onMounted(() => {
 .toolbar__action-icon {
   width: 32rpx;
   height: 32rpx;
-}
-
-/*
- * 指南针键：角度改到图标下面，图标和数字不再并排。
- *
- * 并排的时候这个键有 ~116rpx 宽，是整列最宽的一项 —— 列宽全被它撑着，
- * 底图键和定位键都在给它让位。摞起来之后它比底图键还窄，列宽就交回给
- * 底图键，同时和底图键读成同一套「图标 + 小字」排法。
- */
-.toolbar__action--stack {
-  flex-direction: column;
-}
-
-/* 旋转角。跟图标同色，读成一个整体，而不是「图标 + 一个黑数字」 */
-.toolbar__angle {
-  margin-top: 4rpx;
-  color: $fish-muted;
-  @include fish-type(caption2);
-
-  font-weight: 600;
-  line-height: 1;
 }
 </style>

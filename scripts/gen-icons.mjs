@@ -51,7 +51,7 @@ const ALPHA = { muted: 0.6, muted60: 0.3 };
  * 数量刻意压着不加 —— 图标一多，页面就从「读数据」滑向「看图标」。
  * 这里每个条目要么替掉了手搓的字形（↻、自绘的定位针），要么给一行只有
  * 文字标签的指标配了个锚点，要么是把一段文字按钮换成了图标（地图 toolbar
- * 上的定位 / 回正北）。其余地方不该加。
+ * 上的定位键）。其余地方不该加。
  */
 const ICONS = [
   // —— 结论头 ——
@@ -67,7 +67,6 @@ const ICONS = [
   { name: 'layers', color: 'muted', use: '底图循环键' },
   { name: 'crosshair', color: 'ink', use: '地图定位' },
   { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
-  { name: 'compass', color: 'muted', use: '地图回正北' },
   // —— 我的页 ——
   { name: 'chevron-right', color: 'muted60', use: '条目右侧的展开箭头' },
 ];

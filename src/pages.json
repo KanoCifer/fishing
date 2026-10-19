@@ -39,7 +39,7 @@
       },
       {
         "pagePath": "pages/data/index",
-        "text": "数据",
+        "text": "天气",
         "iconPath": "static/tabbar/data.png",
         "selectedIconPath": "static/tabbar/data-active.png"
       },

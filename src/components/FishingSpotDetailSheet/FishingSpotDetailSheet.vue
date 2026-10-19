@@ -92,7 +92,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
+  close: [];
 }>();
 
 const spot = computed(() => props.marker?.extraData);

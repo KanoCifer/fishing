@@ -1,9 +1,9 @@
 <template>
   <!--
-    条目列表 —— inset-grouped 分组，点开是文档抽屉。
+    条目列表 —— 一组可点开的条目，点开是文档抽屉。
 
-    分组容器不投影：它已经是白底浮在页面灰底上了（见 uni.scss 的分层说明），
-    再加投影就成了三层，行与行之间的层级会被投影带偏。
+    容器是玻璃面，浮在页面环境色上（见 uni.scss 的分层说明），
+    行与行之间只靠发丝线分，不再各加一层底。
   -->
   <view class="about-links">
     <view
@@ -43,19 +43,22 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'select', doc: AboutDoc): void;
+  select: [doc: AboutDoc];
 }>();
 
 const chevronIcon = icon('chevron-right', 'muted60');
 </script>
 
 <style lang="scss" scoped>
-/* overflow: hidden 让圆角把子节点的直角裁掉 ——
-   不裁的话每行自己的分隔线和白底会在四个角上溢出圆角 */
+/*
+ * 列表外壳：玻璃面 + 24pt 圆角，和数据页的卡片同一级。
+ *
+ * overflow: hidden 让圆角把子节点的直角裁掉 ——
+ * 不裁的话每行自己的白底会在四个角上溢出圆角。
+ */
 .about-links {
   overflow: hidden;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  @include fish-glass;
 }
 
 /*
@@ -67,17 +70,35 @@ const chevronIcon = icon('chevron-right', 'muted60');
  * 首行不要圆角容器自己的圆角 —— 它就在容器顶部，多一层圆角会露出底下的灰底。
  */
 .about-links__row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   /* 上下 24rpx + 文字行高，命中区约 88rpx，过 iOS 的 44pt 最小尺寸 */
   padding: 24rpx 32rpx;
-  border-top: 1rpx solid $fish-border;
   @include fish-press-dim;
 }
 
-.about-links__row--first {
-  border-top: none;
+/*
+ * 发丝线。
+ *
+ * 缩到与行首文字左对齐（左边让出 32rpx），一直走到卡片右边 ——
+ * 满宽的线读起来像表格；iOS 的 grouped list 用的就是这种缩进分隔线，
+ * 数据页卡片里的读数行也是同一套（见 WeatherCard）。
+ */
+.about-links__row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 32rpx;
+  height: 1rpx;
+  background-color: $fish-border;
+}
+
+/* 首行不要分隔线：它就在容器顶部，多一条会露出底下的环境色 */
+.about-links__row--first::before {
+  display: none;
 }
 
 .about-links__label {

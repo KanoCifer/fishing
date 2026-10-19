@@ -7,31 +7,50 @@
     在没有真实内容之前，把这一页做成一个正经的关于页 ——
     而不是塞一个登录按钮或空状态，那比不做更让人以为功能坏了。
 
+    这一页与数据页共用一套页面骨架（见 uni.scss 的 fish-section / fish-eyebrow /
+    fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、同样的分区眉标与
+    间距。两页是同一个 app 的两面 —— 数据页给结论，这一页给身份，
+    切页签时不该像换了个应用。
+
     关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
     内容从屏幕最顶端开始排，状态栏和胶囊按钮都压在这一屏上。
     这里给 padding-top 让开 navBarBottom，理由与 VerdictHeader 相同。
   -->
   <view class="mine">
-    <view class="mine__body" :style="{ paddingTop: navBarBottom + 'px' }">
-      <AboutHeader class="mine__enter" :style="{ animationDelay: enterDelay(0) }" />
+    <PageBackdrop />
 
-      <view class="mine__section mine__enter" :style="{ animationDelay: enterDelay(1) }">
-        <text class="mine__section-title">免责声明</text>
-        <view class="mine__disclaimer">
+    <view class="mine__body" :style="{ paddingTop: navBarBottom + 'px' }">
+      <!--
+        身份卡：这一页的「结论」。
+        它是全页唯一解释「这是什么」的地方，所以不做成卡片列表里的一条 ——
+        和数据页的仪表卡同级，撑起第一屏。
+      -->
+      <view class="sect sect--hero mine__enter" :style="{ animationDelay: enterDelay(0) }">
+        <AboutHeader />
+      </view>
+
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">免责声明</text>
+
+        <view class="sect__card mine__disclaimer" :style="{ animationDelay: enterDelay(2) }">
           <view v-for="(paragraph, i) in disclaimer" :key="i" class="mine__disclaimer-item">
             <text class="mine__disclaimer-text">{{ paragraph }}</text>
           </view>
         </view>
       </view>
 
-      <AboutLinks
-        class="mine__section mine__enter"
-        :docs="docs"
-        :style="{ animationDelay: enterDelay(2) }"
-        @select="openDoc"
-      />
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">协议与说明</text>
 
-      <view class="mine__footer mine__enter" :style="{ animationDelay: enterDelay(3) }">
+        <AboutLinks
+          class="sect__card"
+          :docs="docs"
+          :style="{ animationDelay: enterDelay(4) }"
+          @select="openDoc"
+        />
+      </view>
+
+      <view class="mine__footer mine__enter" :style="{ animationDelay: enterDelay(5) }">
         <text class="mine__footer-line">{{ footer.credit }}</text>
         <text class="mine__footer-line">{{ footer.copyright }}</text>
       </view>
@@ -65,6 +84,7 @@ import { ref } from 'vue';
 import AboutDoc from '@/components/AboutDoc/AboutDoc.vue';
 import AboutHeader from '@/components/AboutHeader/AboutHeader.vue';
 import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
+import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { ABOUT_DOCS, APP_FOOTER, DISCLAIMER } from '@/constants/about';
@@ -102,43 +122,47 @@ function closeDoc() {
   background-color: $fish-grouped;
 }
 
-/* padding-top 由行内样式给（navBarBottom 是 px），这里只管左右留白和下留白 */
+/* 内容层。定位 + z-index 是为了压在环境色底之上 */
 .mine__body {
-  padding-bottom: 48rpx;
+  position: relative;
+  z-index: 1;
 }
 
 /*
- * 分区入场。
+ * 一个分区。
  *
- * 规则写在页面而不是各组件里：延迟取决于这一组里第几个分区（由模板给），
- * 组件自己不知道自己排在第几位。这条规则与数据页的 .pane__section 是同一条。
+ * 缩进、眉标、卡间距全部走 uni.scss 的 fish-section ——
+ * 与数据页是同一条规则，两页的分块节奏因此必然一致。
+ */
+.sect {
+  @include fish-section;
+}
+
+/*
+ * 身份卡所在的分区不带上边距。
+ *
+ * 它是这一屏的第一件东西，紧贴在导航栏下面 —— 和数据页的结论头一样，
+ * 页面顶部不留一段没有内容的白。
+ */
+.sect--hero {
+  margin-top: 0;
+}
+
+/*
+ * 落位。
+ *
+ * 延迟按**阅读顺序**给：这一屏装得下整页，所以从身份卡到落款依次落位，
+ * 眼睛跟着往下走一遍。数据页一屏只装得下一部分，分区内的标题和卡片
+ * 各自按序给延迟即可 —— 那是同一条原则的两种排法。
  */
 .mine__enter {
   @include fish-enter;
 }
 
-/* 左右留白统一在 .mine__section 给：内容组件自己不再带内边距，
-   留白是页面级的，留在组件里就等于同一个数抄了三份 */
-.mine__section {
-  margin-top: $fish-space-section;
-  margin-right: 32rpx;
-  margin-left: 32rpx;
-}
-
-/* 分区标题压到 caption：免责声明是「读过就记住」的东西，
-   不该和顶部那张身份卡抢这一屏的注意力 */
-.mine__section-title {
-  display: block;
-  margin-bottom: 16rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
-}
-
-/* 免责段落：白卡浮在页面灰底上，靠面分层而不是描边（见 uni.scss） */
+/* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见 uni.scss 的分层说明） */
 .mine__disclaimer {
-  padding: 24rpx 32rpx;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  padding: 28rpx;
+  @include fish-glass;
 }
 
 /* 段间距交给容器：段落之间靠这一个数断开，段落本身不再各带 margin */
@@ -152,19 +176,13 @@ function closeDoc() {
   @include fish-type(footnote);
 }
 
-/*
- * 落款离列表更远（56rpx，比分区间距多一档）：
- * 它是这一屏的句号，不该紧贴着上面的条目读。
- */
+/* 落款 */
 .mine__footer {
-  margin-top: 56rpx;
-  text-align: center;
+  @include fish-foot;
 }
 
 .mine__footer-line {
   display: block;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
 
   /* 行高单独给：caption2 的 1.3 落款挤在一起，两行会读成一段 */
   line-height: 1.7;

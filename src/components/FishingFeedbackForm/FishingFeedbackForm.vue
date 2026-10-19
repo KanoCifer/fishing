@@ -92,8 +92,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'success'): void;
+  close: [];
+  success: [];
 }>();
 
 const mapStore = useFishingMapStore();

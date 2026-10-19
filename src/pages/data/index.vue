@@ -1,6 +1,6 @@
 <template>
   <view class="data">
-    <view class="data__ambient" />
+    <PageBackdrop />
 
     <view class="data__content">
       <VerdictBar
@@ -77,6 +77,7 @@ import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
+import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
@@ -182,21 +183,8 @@ function openFeedback() {
 
 /*
  * 环境色底：固定在视口上，不随内容滚走。
- *
- * z-index 0 而不是负数：内容层（.data__content）是 z-index 1 的定位元素，
- * 两者都在同一个层叠上下文里比大小，0 < 1，内容一定在上面。
- * 负数会掉到 page 的背景色下面去，那层渐变就白画了。
+ * 由 PageBackdrop 提供 —— 关于页用同一块底，两页切起来是连续的。
  */
-.data__ambient {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 0;
-  background: $fish-page-bg;
-  pointer-events: none;
-}
 
 /* 内容层。定位 + z-index 是为了压在环境色底之上 */
 .data__content {
@@ -207,61 +195,15 @@ function openFeedback() {
 /*
  * 一个分区。
  *
- * 左右留白 32rpx 统一在这里给，内容组件（WeekStrip / TideCard / WeatherCard /
- * HourlyWeather）自己不再带内边距 —— 留白是页面级的，留在组件里就等于
- * 同一个数抄了三份。结论头是满宽的，它和这一层的关系是「带内容的一层」。
+ * 缩进、眉标、卡间距全部走 uni.scss 的 fish-section ——
+ * 这一层的数是「页面怎么分块」的约定，不该各页各写一份。
  */
 .sect {
-  padding: 0 32rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  margin-top: $fish-space-sectitle;
+  @include fish-section;
 }
 
-/*
- * 分组标题。
- *
- * 不套字阶：它是一枚「眉标」—— 12pt、字重 600、字距放开。
- * 跟标题那一级的字距（负值）方向正好相反，套上去字距会被覆盖，
- * 而这里要的正是那点放开的字距。
- */
-.sect__title {
-  display: block;
-  margin-bottom: 20rpx;
-  color: $fish-muted-60;
-  font-size: 24rpx;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.3;
-  @include fish-enter;
-}
-
-/*
- * 分区里的卡片。
- *
- * 卡片之间的间距是 32rpx（16pt），和「卡片 → 下一个分组标题」的 40rpx
- * 刻意不同：同段内是并列，分段之间是分组，间距要能读出这个差别。
- *
- * 最后一张卡不留下边距 —— 段与段之间的留白统一由 .sect 的 margin-top 给，
- * 两处都留就变成 72rpx，段与段会被拉得太散。
- */
-.sect__card {
-  margin-bottom: $fish-space-section;
-  @include fish-enter;
-}
-
-.sect__card:last-child {
-  margin-bottom: 0;
-}
-
+/* 落款 */
 .data__foot {
-  display: block;
-  margin-top: 40rpx;
-  padding-bottom: 64rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-
-  text-align: center;
+  @include fish-foot;
 }
 </style>

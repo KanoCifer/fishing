@@ -15,9 +15,9 @@ export const APP_INFO = {
   /** 应用名。与 manifest.json 的 name、pages.json 的 navigationBarTitleText 保持一致 */
   name: '渔碌',
   /** 版本号。发布时与 manifest.json 的 versionName 同步 —— 那一处才是真正生效的版本 */
-  version: 'v0.1.5',
+  version: 'v0.2.0',
   /** 一句话介绍。放在图标下方，是这一屏里唯一说明「这是什么」的地方 */
-  tagline: '查潮汐、找钓点、看天气。为沿海与内陆钓友提供出行参考与垂钓记录。',
+  tagline: '查潮汐、找钓点、看天气。',
 } as const;
 
 /** 免责声明。分段给是因为条款本身有三条独立的责任边界，挤成一段会读不下去 */
