@@ -62,7 +62,7 @@ const ICONS = [
   { name: 'waves', color: 'blue', use: '潮汐信号' },
   { name: 'wind', color: 'blue600', use: '风速信号' },
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
-  { name: 'info', color: 'ink', use: '特征详情按钮' },
+  { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   // —— 地图 toolbar ——
   { name: 'layers', color: 'muted', use: '底图循环键' },
   { name: 'crosshair', color: 'ink', use: '地图定位' },

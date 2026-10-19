@@ -18,14 +18,8 @@
       />
     </view>
 
-    <!-- 钓点详情（编辑 / 删除） -->
-    <FishingSpotDetailSheet
-      :open="spotDetailOpen"
-      :marker="selectedMarker"
-      @close="closeSpotDetail"
-      @updated="onSpotUpdated"
-      @deleted="onSpotDeleted"
-    />
+    <!-- 钓点详情（导航） -->
+    <FishingSpotDetailSheet :open="spotDetailOpen" :marker="selectedMarker" @close="closeSpotDetail" />
   </view>
 </template>
 
@@ -43,7 +37,6 @@ import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
-import type { MapMarker } from '@/types/fishing';
 
 const nav = useNavMetrics();
 const mapStore = useFishingMapStore();
@@ -73,29 +66,6 @@ function onMarkerTap(payload: { markerId: number }) {
 
 function closeSpotDetail() {
   spotDetailOpen.value = false;
-}
-
-/** 按 id 局部换掉一条 marker，避免整数组替换触发地图全量重绘 */
-function onSpotUpdated(updated: MapMarker) {
-  const id = updated.extraData?.id;
-  if (!id) return;
-
-  mapStore.setMarkers((prev) =>
-    prev.map((marker) => {
-      const markerId = marker.extraData?.id;
-      return markerId === id ? updated : marker;
-    }),
-  );
-  mapStore.setSelectedMarker(updated);
-}
-
-function onSpotDeleted(id: string) {
-  mapStore.setMarkers((prev) => prev.filter((marker) => marker.extraData?.id !== id));
-
-  // 删掉的正是当前选中项时顺手清掉，否则数据页的反馈还会关联到一个已不存在的钓点
-  if (mapStore.selectedMarker?.extraData?.id === id) {
-    mapStore.setSelectedMarker(null);
-  }
 }
 
 /**

@@ -9,73 +9,7 @@
       </view>
     </template>
 
-    <!-- 编辑态 -->
-    <view v-if="editing" class="spot-detail__form">
-      <view class="spot-detail__field">
-        <text class="spot-detail__label">名称</text>
-        <input
-          class="spot-detail__input"
-          :value="editName"
-          placeholder="钓点名称"
-          placeholder-class="spot-detail__placeholder"
-          @input="onNameInput"
-        />
-      </view>
-
-      <view class="spot-detail__field">
-        <text class="spot-detail__label">描述</text>
-        <textarea
-          class="spot-detail__textarea"
-          :value="editDescription"
-          placeholder="这个钓点的情况"
-          placeholder-class="spot-detail__placeholder"
-          :maxlength="-1"
-          @input="onDescriptionInput"
-        />
-      </view>
-
-      <view class="spot-detail__field">
-        <text class="spot-detail__label">标签（逗号分隔）</text>
-        <input
-          class="spot-detail__input"
-          :value="editTags"
-          placeholder="例如：矶钓, 深岸, 禁钓区"
-          placeholder-class="spot-detail__placeholder"
-          @input="onTagsInput"
-        />
-      </view>
-
-      <view class="spot-detail__field">
-        <text class="spot-detail__label">评分</text>
-        <view class="spot-detail__stars">
-          <text
-            v-for="i in 5"
-            :key="i"
-            class="spot-detail__star"
-            :class="{ 'spot-detail__star--on': i <= editRating }"
-            @tap="editRating = i"
-          >
-            ★
-          </text>
-        </view>
-      </view>
-
-      <view class="spot-detail__form-actions">
-        <view class="spot-detail__btn spot-detail__btn--ghost" @tap="cancelEdit">
-          <text class="spot-detail__btn-text">取消</text>
-        </view>
-        <view
-          class="spot-detail__btn spot-detail__btn--primary"
-          :class="{ 'spot-detail__btn--disabled': saving || !editName.trim() }"
-          @tap="saveEdit"
-        >
-          <text class="spot-detail__btn-text">{{ saving ? '保存中…' : '保存' }}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 浏览态 -->
-    <view v-else class="spot-detail__content">
+    <view class="spot-detail__content">
       <!-- 评分 -->
       <view v-if="spot && spot.rating !== undefined" class="spot-detail__rating">
         <text
@@ -113,28 +47,9 @@
 
       <!-- 操作 -->
       <view class="spot-detail__actions">
-        <view class="spot-detail__btn spot-detail__btn--ghost" @tap="startEdit">
-          <text class="spot-detail__btn-text">编辑</text>
-        </view>
-        <view class="spot-detail__btn spot-detail__btn--danger" @tap="deleteOpen = true">
-          <text class="spot-detail__btn-text">删除</text>
-        </view>
-      </view>
-
-      <!-- 删除确认：二次确认放在原地，不弹第二个 modal 打断上下文 -->
-      <view v-if="deleteOpen" class="spot-detail__confirm">
-        <text class="spot-detail__confirm-text"> 删除钓点「{{ spot?.name ?? '' }}」？软删可在后端恢复。 </text>
-        <view class="spot-detail__form-actions">
-          <view class="spot-detail__btn spot-detail__btn--ghost" @tap="deleteOpen = false">
-            <text class="spot-detail__btn-text">取消</text>
-          </view>
-          <view
-            class="spot-detail__btn spot-detail__btn--danger-solid"
-            :class="{ 'spot-detail__btn--disabled': deleting }"
-            @tap="doDelete"
-          >
-            <text class="spot-detail__btn-text">{{ deleting ? '删除中…' : '确认删除' }}</text>
-          </view>
+        <view class="spot-detail__btn spot-detail__btn--primary" @tap="openNavigation">
+          <image class="spot-detail__btn-icon" :src="navIcon" mode="aspectFit" />
+          <text class="spot-detail__btn-text">导航</text>
         </view>
       </view>
     </view>
@@ -145,25 +60,30 @@
 /**
  * 钓点详情面板 —— 对应源项目 FishingSpotDetailSheet.tsx。
  *
- * 支持内联编辑：编辑保存调 fishingSpotApi.update，删除调 remove，
- * 两者都通过 emit 通知父组件同步地图标记。
+ * 面板只做两件事：把钓点的信息摊开，再给一个「去那儿」的动作。
+ *
+ * 导航走小程序自带的 `uni.openLocation`（微信侧是 wx.openLocation）：
+ * 跳到微信自己的地图页，那一页里有完整的路线规划与转向导航。
  *
  * 与源版本的差异：
- * - 导航按钮整个去掉。源版导航调 AMap.Driving 画 Polyline，
- *   小程序端没有路径规划能力（路线规划已确认本期不做），
- *   留一个点不动的按钮比没有更糟
+ * - 编辑与删除暂时下线。后端的 update 走 PUT，路由是否已注册还没实测确认
+ *   （见 api/fishing.ts 的注释），两个动作连同相关状态一并摘掉，
+ *   等后端契约落定再接回来
+ * - 源版导航调 AMap.Driving 画 Polyline，小程序端没有高德 JS SDK，
+ *   改用系统自带地图，不再自己算路线
  * - lucide 图标换 emoji / 纯文本
- * - 删除确认内联展开，不套第二层 modal
  */
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 
-import { fishingSpotApi } from '@/api/fishing';
-import { toErrorMessage } from '@/utils/error';
-import type { MapMarker, UpdateFishingSpotPayload } from '@/types/fishing';
+import { icon } from '@/constants/icons';
+import type { MapMarker } from '@/types/fishing';
 
 import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
 const SNAP_POINTS = [50, 78] as const;
+
+/** 导航键的箭头。压在主色按钮上，所以是白色 */
+const navIcon = icon('navigation', 'onAccent');
 
 const props = defineProps<{
   open: boolean;
@@ -173,32 +93,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'updated', marker: MapMarker): void;
-  (e: 'deleted', id: string): void;
 }>();
 
 const spot = computed(() => props.marker?.extraData);
-
-const editing = ref(false);
-const editName = ref('');
-const editDescription = ref('');
-const editTags = ref('');
-const editRating = ref(0);
-const saving = ref(false);
-
-const deleteOpen = ref(false);
-const deleting = ref(false);
-
-/** 每次打开重置编辑态 —— 上一次没保存完的草稿不该带进来 */
-watch(
-  () => props.open,
-  (open) => {
-    if (!open) {
-      editing.value = false;
-      deleteOpen.value = false;
-    }
-  },
-);
 
 const dateLabel = computed(() => {
   const created = spot.value?.created_at;
@@ -218,103 +115,37 @@ const coordinateLabel = computed(() => {
   return `${position[0].toFixed(4)}, ${position[1].toFixed(4)}`;
 });
 
-function startEdit() {
-  if (!spot.value) return;
-  editName.value = spot.value.name ?? '';
-  editDescription.value = spot.value.description ?? '';
-  editTags.value = (spot.value.tags ?? []).join(', ');
-  editRating.value = spot.value.rating ?? 0;
-  editing.value = true;
-}
+/**
+ * 打开微信内置地图的导航入口。
+ *
+ * 用的是小程序自带的 `uni.openLocation`：它把当前这个点摆到微信自己的地图页上，
+ * 用户在那页可以一键唤起路线规划与转向导航。系统那条链（看位置 → 选目的地 →
+ * 开始导航）本来就是完整的，自己再画一条 Polyline 只会多一层还少一半能力。
+ *
+ * 坐标直接传，不做转换：钓点的 location 是 GCJ-02，微信地图原生也用 GCJ-02，
+ * 换算错了会偏出几百米 —— 比偏个几十米糟糕得多。position 是 [lng, lat]，
+ * 而 openLocation 要的是 lat / lng 两个字段，写反了不会报错，只会落到地球另一侧。
+ *
+ * scale 16 是街道级：默认的 18 已经是楼栋级，钓点多半在水边、路边，
+ * 放到那个倍率反而看不见周围的地形。
+ */
+function openNavigation() {
+  const position = props.marker?.position;
+  if (!position) return;
 
-function cancelEdit() {
-  editing.value = false;
-}
+  const [lng, lat] = position;
 
-// ── input 事件 ──
-//
-// InputEvent 的 detail 形状由 src/shime-uni.d.ts 里的全局声明补齐，
-// 官方 @dcloudio/types 缺这一项，补全的原因见那个文件的注释。
-
-function onNameInput(e: InputEvent) {
-  editName.value = e.detail.value;
-}
-
-function onDescriptionInput(e: InputEvent) {
-  editDescription.value = e.detail.value;
-}
-
-function onTagsInput(e: InputEvent) {
-  editTags.value = e.detail.value;
-}
-
-async function saveEdit() {
-  const current = spot.value;
-  if (!current || saving.value) return;
-
-  const name = editName.value.trim();
-  if (!name) {
-    uni.showToast({ title: '名称不能为空', icon: 'none' });
-    return;
-  }
-
-  // 半角逗号切分，前后空白和空项都要滤掉：
-  // "a, b ,,c" 应该得到 ["a","b","c"] 而不是带空串的 4 项
-  const tags = editTags.value
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-
-  const payload: UpdateFishingSpotPayload = {
-    name,
-    description: editDescription.value.trim(),
-    tags,
-    rating: editRating.value,
-  };
-
-  saving.value = true;
-  try {
-    await fishingSpotApi.update(current.id, payload);
-    editing.value = false;
-    uni.showToast({ title: '已保存', icon: 'success' });
-
-    emit('updated', {
-      ...(props.marker as MapMarker),
-      extraData: {
-        ...current,
-        ...payload,
-        tags,
-      },
-    });
-  } catch (err) {
-    uni.showToast({
-      title: toErrorMessage(err, '更新钓点失败'),
-      icon: 'none',
-    });
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function doDelete() {
-  const current = spot.value;
-  if (!current || deleting.value) return;
-
-  deleting.value = true;
-  try {
-    await fishingSpotApi.remove(current.id);
-    deleteOpen.value = false;
-    emit('deleted', current.id);
-    emit('close');
-    uni.showToast({ title: '已删除', icon: 'success' });
-  } catch (err) {
-    uni.showToast({
-      title: toErrorMessage(err, '删除钓点失败'),
-      icon: 'none',
-    });
-  } finally {
-    deleting.value = false;
-  }
+  uni.openLocation({
+    latitude: lat,
+    longitude: lng,
+    name: spot.value?.name || '钓点',
+    scale: 16,
+    fail: () => {
+      // 正常不会走到这里（不涉及任何权限），但万一是环境不支持，
+      // 给个说法比按钮点了没反应强
+      uni.showToast({ title: '无法打开地图', icon: 'none' });
+    },
+  });
 }
 
 function onClose() {
@@ -350,8 +181,7 @@ function onClose() {
   @include fish-type(caption);
 }
 
-.spot-detail__content,
-.spot-detail__form {
+.spot-detail__content {
   padding: 32rpx 40rpx 64rpx;
 }
 
@@ -413,7 +243,7 @@ function onClose() {
   margin-bottom: 32rpx;
   overflow: hidden;
   border-radius: $fish-radius-xl;
-  background-color: $fish-page;
+  background-color: $fish-grouped;
 }
 
 .spot-detail__row {
@@ -445,17 +275,13 @@ function onClose() {
   display: flex;
 }
 
-.spot-detail__form-actions {
-  display: flex;
-  margin-top: 32rpx;
-}
-
 /*
  * 按钮。
  *
- * 三档：ghost（中性填充）/ primary（主色实心）/ danger（淡红底）。
- * danger 实心只留给「确认删除」那一步 —— iOS 的 destructive 按钮永远
- * 出现在最终确认上，而不是放在让用户先点一下看看的地方。
+ * 现在只剩导航这一个动作，于是这条规则塌成一个满宽的主色 pill：
+ * 独占一行、整条都是热区，比半宽的按钮好按得多。
+ * margin 归零也是为这个 —— 原来两个按钮并排时用 8rpx 外边距做间隙，
+ * 只剩一个按钮时那点间隙就变成了左右各缩进一截，白白窄一截。
  */
 .spot-detail__btn {
   display: flex;
@@ -463,29 +289,19 @@ function onClose() {
   align-items: center;
   justify-content: center;
   min-height: 88rpx;
-  margin: 0 8rpx;
   border-radius: $fish-radius-pill;
   @include fish-press(0.97);
-}
-
-.spot-detail__btn--ghost {
-  background-color: $fish-surface;
 }
 
 .spot-detail__btn--primary {
   background-color: $fish-accent;
 }
 
-.spot-detail__btn--danger {
-  background-color: rgba(255, 59, 48, 0.12);
-}
-
-.spot-detail__btn--danger-solid {
-  background-color: $fish-destructive;
-}
-
-.spot-detail__btn--disabled {
-  opacity: 0.4;
+/* 导航键上的箭头。与文字同一色（白），所以图标不另取色 */
+.spot-detail__btn-icon {
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 12rpx;
 }
 
 .spot-detail__btn-text {
@@ -493,82 +309,10 @@ function onClose() {
   @include fish-type(callout);
 }
 
-/* 实心按钮上的文字必须反色：pill 的蓝底和红底都够深，
+/* 实心按钮上的文字必须反色：pill 的蓝底够深，
    沿用深色文字会糊在底色里 */
-.spot-detail__btn--primary .spot-detail__btn-text,
-.spot-detail__btn--danger-solid .spot-detail__btn-text {
+.spot-detail__btn--primary .spot-detail__btn-text {
   color: #ffffff;
   font-weight: 600;
-}
-
-.spot-detail__btn--danger .spot-detail__btn-text {
-  color: $fish-destructive;
-}
-
-/* 删除确认 */
-.spot-detail__confirm {
-  margin-top: 40rpx;
-  padding-top: 32rpx;
-  border-top: 1rpx solid $fish-border;
-}
-
-.spot-detail__confirm-text {
-  display: block;
-  color: $fish-muted;
-  @include fish-type(subhead);
-}
-
-/* 表单 */
-.spot-detail__field {
-  margin-bottom: 28rpx;
-}
-
-.spot-detail__label {
-  display: block;
-  margin-bottom: 12rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
-}
-
-/*
- * 输入框。
- *
- * iOS 的输入框是「填充」不是「描边」：浅灰底 + 10pt 圆角，没有边框。
- * 描边是 Material 的做法，在白卡片上会显出一圈多余的线。
- */
-.spot-detail__input {
-  width: 100%;
-  height: 88rpx;
-  padding: 0 28rpx;
-  border: none;
-  border-radius: $fish-radius-lg;
-  background-color: $fish-surface;
-  color: $fish-ink;
-  @include fish-type(body);
-
-  box-sizing: border-box;
-}
-
-.spot-detail__textarea {
-  width: 100%;
-  height: 200rpx;
-  padding: 20rpx 28rpx;
-  border: none;
-  border-radius: $fish-radius-lg;
-  background-color: $fish-surface;
-  color: $fish-ink;
-  @include fish-type(body);
-
-  box-sizing: border-box;
-}
-
-/* placeholder 要比正文更淡一档，否则「没填」和「填了」读起来一样重 */
-.spot-detail__placeholder {
-  color: $fish-muted-60;
-  font-size: 30rpx;
-}
-
-.spot-detail__stars {
-  display: flex;
 }
 </style>

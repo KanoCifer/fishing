@@ -100,6 +100,13 @@ export interface DeleteFishingSpotOptions {
 
 const SPOTS_BASE = 'v3/fish/spots';
 
+/*
+ * 钓点写操作（create / update / remove）当前都没有 UI 调用方 ——
+ * 钓点详情面板暂时只留「导航」，编辑与删除都下线了（见 FishingSpotDetailSheet 的说明）。
+ *
+ * 端点留着，是因为它们是后端契约的记录：update 上面那两条疑问（PUT 路由是否已注册、
+ * Partial 语义会不会被当成全量替换）还悬着，等编辑接回来时照单验一遍就能用。
+ */
 export const fishingSpotApi = {
   /** 钓点列表 */
   list(): Promise<FishingSpot[]> {

@@ -328,15 +328,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   }
 
   /**
-   * 改标记。支持传新数组或 updater 函数 ——
-   * 钓点编辑/删除后要按 id 局部换掉一条，直接给整个数组等于把对象引用换掉，
-   * 地图层会收到一次全量 diff 重渲染。
-   */
-  function setMarkers(updater: MapMarker[] | ((prev: MapMarker[]) => MapMarker[])): void {
-    markers.value = typeof updater === 'function' ? updater(markers.value) : updater;
-  }
-
-  /**
    * 记录当前选中的钓点（点 marker 时调用），传 null 表示取消选中。
    *
    * 与标记集合分开而不是合成一个，是因为选中态只改一个引用，
@@ -387,7 +378,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     setSelectedHarbor,
     setSelectedDate,
     fetchSpots,
-    setMarkers,
     setSelectedMarker,
   };
 });
