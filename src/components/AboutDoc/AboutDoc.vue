@@ -2,8 +2,8 @@
   <!--
     抽屉里的文档正文：标题 + 一句话摘要 + 若干段落。
 
-    与 FeatureDetailPanel 同一级：SnapSheet 只提供容器和头部，
-    这里负责「这篇文档怎么排版」，标题区归页面（见关于页的 feature__header 同款写法）。
+    SnapSheet 只提供容器和头部，这里负责「这篇文档怎么排版」，标题区归页面
+    （见关于页的 doc__header 同款写法）。
   -->
   <view class="about-doc">
     <view class="about-doc__summary">

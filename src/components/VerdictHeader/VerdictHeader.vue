@@ -80,10 +80,6 @@
           <image class="verdict__icon verdict__icon--onaccent" :src="messageIcon" mode="widthFix" />
           <text class="verdict__btn-text verdict__btn-text--onaccent">反馈今日指数</text>
         </view>
-        <view class="verdict__btn" @tap="emit('detail')">
-          <image class="verdict__icon" :src="infoIcon" mode="widthFix" />
-          <text class="verdict__btn-text">特征详情</text>
-        </view>
       </view>
     </template>
 
@@ -122,7 +118,6 @@ import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
 const emit = defineEmits<{
   (e: 'feedback'): void;
-  (e: 'detail'): void;
 }>();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -136,7 +131,6 @@ const thermometerIcon = icon('thermometer', 'destructive');
 const wavesIcon = icon('waves', 'blue');
 const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
-const infoIcon = icon('info', 'ink');
 
 const tone = computed(() => levelTone(state.indexData?.level));
 
@@ -442,11 +436,6 @@ function onRefresh() {
 .verdict__btn--primary {
   flex: 1;
   background-color: $fish-accent;
-}
-
-/* 次要按钮只让出右边的间距，不吃掉一级按钮的宽度 */
-.verdict__btn + .verdict__btn {
-  margin-left: 16rpx;
 }
 
 .verdict__btn-text {

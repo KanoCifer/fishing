@@ -14,7 +14,7 @@
 
   <view class="data">
     <!-- 结论 -->
-    <VerdictHeader @feedback="openFeedback" @detail="openDetail" />
+    <VerdictHeader @feedback="openFeedback" />
 
     <!--
       证据切换。三个固定项，不需要 scroll-view。
@@ -63,20 +63,9 @@
     <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
 
     <!--
-      以下两个是浮层，不占页面流。SnapSheet 是 fixed 全屏遮罩，
+      以下浮层不占页面流。SnapSheet 是 fixed 全屏遮罩，
       在可滚动页面上同样成立（浮层固定在视口，不随内容滚走）。
     -->
-
-    <!-- 钓鱼指数的特征详情（feature_breakdown 九项子特征） -->
-    <SnapSheet :open="featureOpen" :snap-points="FEATURE_SNAP_POINTS" :initial-snap="0" @close="featureOpen = false">
-      <template #header>
-        <view class="feature__header">
-          <text class="feature__title">特征详情</text>
-          <text class="feature__subtitle">钓鱼指数是怎么算出来的</text>
-        </view>
-      </template>
-      <FeatureDetailPanel :data="state.indexData" />
-    </SnapSheet>
 
     <!-- 钓鱼反馈 -->
     <FishingFeedbackForm
@@ -100,20 +89,15 @@ import { computed, onMounted, ref } from 'vue';
 import { onPageShow } from '@dcloudio/uni-app';
 
 import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
-import FeatureDetailPanel from '@/components/FeatureDetailPanel/FeatureDetailPanel.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
-import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { MAP_CENTER, useFishingMapStore } from '@/composables/useFishingMapStore';
 import { enterDelay } from '@/utils/motion';
-
-/** 特征详情两档：半屏 / 大半屏 */
-const FEATURE_SNAP_POINTS = [50, 82] as const;
 
 type PaneKey = 'weather' | 'tide' | 'feature';
 
@@ -128,8 +112,7 @@ const { state, fetchWeatherAndFishing } = useFishingMapStore();
 /** 默认落在天气：进页面最常被问的是「现在什么天气」 */
 const pane = ref<PaneKey>('weather');
 
-/** 钓鱼指数的特征详情（结论头上的「特征详情」按钮） */
-const featureOpen = ref(false);
+/** 钓鱼反馈浮层 */
 const feedbackOpen = ref(false);
 
 /**
@@ -166,10 +149,6 @@ onMounted(() => {
 onPageShow(() => {
   void ensureData();
 });
-
-function openDetail() {
-  featureOpen.value = true;
-}
 
 function openFeedback() {
   feedbackOpen.value = true;
@@ -253,24 +232,5 @@ function openFeedback() {
   @include fish-type(caption2);
 
   text-align: center;
-}
-
-/* 特征详情浮层的头部。SnapSheet 只提供容器，标题区归页面 */
-.feature__header {
-  padding: 0 40rpx 24rpx;
-}
-
-/* 与另外两个抽屉头部保持同一级（title2），三个抽屉必须长得一样 */
-.feature__title {
-  display: block;
-  color: $fish-ink;
-  @include fish-type(title2);
-}
-
-.feature__subtitle {
-  display: block;
-  margin-top: 4rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
 }
 </style>

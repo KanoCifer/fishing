@@ -38,8 +38,8 @@
     </view>
 
     <!--
-      文档抽屉。容器用已有的 SnapSheet，与钓点详情、特征详情同一种浮层 ——
-      三处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
+      文档抽屉。容器用已有的 SnapSheet，与钓点详情同一种浮层 ——
+      两处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
     -->
     <SnapSheet :open="docOpen" :snap-points="DOC_SNAP_POINTS" :initial-snap="0" @close="closeDoc">
       <template #header>
@@ -170,7 +170,7 @@ function closeDoc() {
   line-height: 1.7;
 }
 
-/* 抽屉头部。SnapSheet 只提供容器，标题区归页面，与数据页的特征详情头部同一写法 */
+/* 抽屉头部。SnapSheet 只提供容器，标题区归页面 */
 .doc__header {
   padding: 0 40rpx 24rpx;
 }

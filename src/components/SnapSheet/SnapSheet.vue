@@ -124,7 +124,7 @@ const headerHeight = ref(0);
 /**
  * 量一次头部高度。
  *
- * header 是 slot 进来的，内容高度不定（钓点详情有标题+日期，特征详情只有标题），
+ * header 是 slot 进来的，内容高度不定（钓点详情有标题+日期，文档抽屉只有标题），
  * 写死常量必然对不上。用 SelectorQuery 量实际高度最稳。
  */
 function measureHeader(): void {
