@@ -1,5 +1,12 @@
 <template>
-  <view class="data">
+  <!--
+    最小高度绑 windowHeight（px），不用 100vh。
+
+    100vh 把原生 tabBar 的高度也算进去了，页面会比真正能显示的那部分
+    高出约 50px —— 滚到底之后还能再拖出去一截，脚下只剩底色。
+    详见 useViewport 的注释。
+  -->
+  <view class="data" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
     <view class="data__content">
@@ -88,6 +95,7 @@ import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterDelay } from '@/utils/motion';
 import { levelTone } from '@/utils/weather';
@@ -96,6 +104,9 @@ const mapStore = useFishingMapStore();
 
 /** px。结论条的位置判断要用它，见 useNavMetrics */
 const { navBarBottom } = useNavMetrics();
+
+/** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
+const { windowHeight } = useViewport();
 
 /** 钓鱼反馈浮层 */
 const feedbackOpen = ref(false);
@@ -186,9 +197,12 @@ function openAnalysis() {
 <style lang="scss" scoped>
 /* 页面底色 = systemGroupedBackground。App.vue 里给 page 也上了同一个色，
    这里再写一遍是为了让「内容区」和「切换瞬间露出的底色」保证同色。
-   真正的底色是下面那层固定的环境色渐层。 */
+   真正的底色是下面那层固定的环境色渐层。
+
+   最小高度不写在这里，由模板绑 windowHeight（px）—— 100vh 会把 tabBar
+   的高度算进来，页面就多出一截能拖出去的范围，滚到底之后脚下只剩底色。
+   详见 useViewport。 */
 .data {
-  min-height: 100vh;
   background-color: $fish-grouped;
 }
 

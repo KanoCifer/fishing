@@ -61,6 +61,7 @@
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 'vue';
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { useViewport } from '@/composables/useViewport';
 
 interface Props {
   open: boolean;
@@ -170,7 +171,7 @@ function clearExitTimer(): void {
 
 onUnmounted(clearExitTimer);
 
-const windowHeight = uni.getWindowInfo().windowHeight;
+const { windowHeight } = useViewport();
 
 /** 面板最大可用高度：视口减去导航栏高度 */
 const maxHeight = computed(() => windowHeight - nav.navBarBottom);

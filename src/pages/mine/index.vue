@@ -16,7 +16,7 @@
     内容从屏幕最顶端开始排，状态栏和胶囊按钮都压在这一屏上。
     这里给 padding-top 让开 navBarBottom，理由与 VerdictHeader 相同。
   -->
-  <view class="mine">
+  <view class="mine" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
     <view class="mine__body" :style="{ paddingTop: navBarBottom + 'px' }">
@@ -42,12 +42,7 @@
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">协议与说明</text>
 
-        <AboutLinks
-          class="sect__card"
-          :docs="docs"
-          :style="{ animationDelay: enterDelay(4) }"
-          @select="openDoc"
-        />
+        <AboutLinks class="sect__card" :docs="docs" :style="{ animationDelay: enterDelay(4) }" @select="openDoc" />
       </view>
 
       <view class="mine__footer mine__enter" :style="{ animationDelay: enterDelay(5) }">
@@ -87,6 +82,7 @@ import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { useViewport } from '@/composables/useViewport';
 import { ABOUT_DOCS, APP_FOOTER, DISCLAIMER } from '@/constants/about';
 import type { AboutDoc as AboutDocItem } from '@/constants/about';
 import { enterDelay } from '@/utils/motion';
@@ -96,6 +92,9 @@ const DOC_SNAP_POINTS = [62, 88] as const;
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
+
+/** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
+const { windowHeight } = useViewport();
 
 const docs = ABOUT_DOCS;
 const disclaimer = DISCLAIMER;
@@ -116,9 +115,12 @@ function closeDoc() {
 </script>
 
 <style lang="scss" scoped>
-/* 页面底色 = systemGroupedBackground，与 App.vue 的 page 同色，理由见数据页的同名注释 */
+/* 页面底色 = systemGroupedBackground，与 App.vue 的 page 同色，理由见数据页的同名注释
+
+   最小高度不写在这里，由模板绑 windowHeight（px）—— 100vh 会把 tabBar
+   的高度算进来，页面就多出一截能拖出去的范围，滚到底之后脚下只剩底色。
+   详见 useViewport。 */
 .mine {
-  min-height: 100vh;
   background-color: $fish-grouped;
 }
 
