@@ -1,19 +1,19 @@
 <template>
   <!--
-    条目列表 —— 一组可点开的条目，点开是文档抽屉。
+    条目列表 —— 一组可点开的条目，点开有下文（文档抽屉，或另一个页面）。
 
     容器是玻璃面，浮在页面环境色上（见 uni.scss 的分层说明），
     行与行之间只靠发丝线分，不再各加一层底。
   -->
   <view class="about-links">
     <view
-      v-for="(doc, i) in docs"
-      :key="doc.key"
+      v-for="(link, i) in links"
+      :key="link.key"
       class="about-links__row"
       :class="{ 'about-links__row--first': i === 0 }"
-      @tap="emit('select', doc)"
+      @tap="emit('select', link)"
     >
-      <text class="about-links__label">{{ doc.key }}</text>
+      <text class="about-links__label">{{ link.key }}</text>
 
       <!--
         箭头用 <image> 而不是文字符号 ›：
@@ -29,21 +29,23 @@
 /**
  * AboutLinks —— 一组可点开的条目。
  *
- * 列表内容由调用方给（关于页给的是 ABOUT_DOCS），这里只管排版和点击。
- * 这样别处要复用同一套条目样式时，不用把关于页的文案一起搬过来。
+ * 列表内容由调用方给，这里只管排版和点击。
+ * 两处在用：关于页给的是 ABOUT_DOCS（「我的」页给的是通往关于页的那一行），
+ * 两者是同一种行 —— 一行字 + 一个展开箭头 —— 所以共用一套排版，
+ * 不用把关于页的文案一起搬过来，也不用另写一个长得差不多的行。
  *
  * 箭头取 muted60（tertiaryLabel）而不是 muted：箭头是结构符号，
  * 压到第三档灰才不会和它指向的那行标题抢注意力。
  */
 import { icon } from '@/constants/icons';
-import type { AboutDoc } from '@/constants/about';
+import type { AboutLink } from '@/constants/about';
 
 defineProps<{
-  docs: readonly AboutDoc[];
+  links: readonly AboutLink[];
 }>();
 
 const emit = defineEmits<{
-  select: [doc: AboutDoc];
+  select: [link: AboutLink];
 }>();
 
 const chevronIcon = icon('chevron-right', 'muted60');

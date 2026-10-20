@@ -70,6 +70,11 @@ const ICONS = [
   { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
   // —— 我的页 ——
   { name: 'chevron-right', color: 'muted60', use: '条目右侧的展开箭头' },
+  { name: 'user', color: 'muted60', use: '未登录时的头像占位' },
+  { name: 'pencil', color: 'muted60', use: '编辑资料' },
+  { name: 'log-out', color: 'destructive', use: '退出登录' },
+  // —— 关于页 ——
+  { name: 'chevron-left', color: 'blue', use: '子页导航栏的返回按钮' },
 ];
 
 /**

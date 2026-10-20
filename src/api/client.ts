@@ -13,8 +13,11 @@
 
 import { ENV } from '@/config/env';
 
-/** token 在本地存储中的键 */
+/** access token 在本地存储中的键 */
 const TOKEN_KEY = 'fishing_token';
+
+/** refresh token 在本地存储中的键 */
+const REFRESH_TOKEN_KEY = 'fishing_refresh_token';
 
 /** 与源项目 apiClient 的 10s 对齐 */
 const DEFAULT_TIMEOUT = 10000;
@@ -25,7 +28,7 @@ const DEFAULT_TIMEOUT = 10000;
  * uni.request 的 success 回调把响应体塞在 `res.data`，但官方类型标成 `any`，
  * 这里按实际形状收窄后再往下传，不让 any 渗进业务代码。
  */
-interface ApiEnvelope<T> {
+export interface ApiEnvelope<T> {
   message?: string;
   data: T;
   code?: number;
@@ -76,6 +79,41 @@ export function setToken(token: string): void {
   } else {
     uni.removeStorageSync(TOKEN_KEY);
   }
+}
+
+/**
+ * 取 refresh token。
+ *
+ * 小程序端 `wx.request` 不管理 cookie，服务端下发的 HttpOnly cookie 这边收不到，
+ * 所以 refresh token 必须自己存在 Storage 里 —— 服务端的刷新接口是
+ * 「body 优先、cookie 回退」，body 里必须带上它。
+ */
+export function getRefreshToken(): string {
+  try {
+    const stored = uni.getStorageSync(REFRESH_TOKEN_KEY);
+    return typeof stored === 'string' ? stored : '';
+  } catch {
+    return '';
+  }
+}
+
+export function setRefreshToken(token: string): void {
+  if (token) {
+    uni.setStorageSync(REFRESH_TOKEN_KEY, token);
+  } else {
+    uni.removeStorageSync(REFRESH_TOKEN_KEY);
+  }
+}
+
+/**
+ * 清掉整个会话。
+ *
+ * 两个 token 一起清 —— 只清 access 会留下一枚 refresh，下次进小程序会拿着
+ * 一枚可能已被服务端轮换掉的 refresh 去刷新，然后卡在「刷新失败」上。
+ */
+export function clearSession(): void {
+  uni.removeStorageSync(TOKEN_KEY);
+  uni.removeStorageSync(REFRESH_TOKEN_KEY);
 }
 
 /**

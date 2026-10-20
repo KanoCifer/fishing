@@ -19,6 +19,9 @@
     "permission": {
       "scope.userLocation": {
         "desc": "用于在地图上显示你的位置并标记钓点"
+      },
+      "scope.userInfo": {
+        "desc": "用于设置你的昵称与头像，让钓友认出你"
       }
     },
     "lazyCodeLoading": "requiredComponents",

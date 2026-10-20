@@ -1,16 +1,14 @@
 <template>
   <!--
-    我的页 —— tabBar 的第三个页签，也是关于页。
+    我的页 —— tabBar 的第三个页签。
 
-    为什么这一页只有「关于」的内容：渔碌没有账号体系，也没有需要沉淀的个人数据，
-    钓点和反馈都是挂在钓点上的、跨设备同步的，不属于「某个人」。
-    在没有真实内容之前，把这一页做成一个正经的关于页 ——
-    而不是塞一个登录按钮或空状态，那比不做更让人以为功能坏了。
+    这一页只回答一件事：**我是谁**。
+    「这是什么」搬去了关于页（见 pages/about）：一个页面同时讲身份和讲应用，
+    两件事互相稀释，拆开各答各的更清楚。
 
-    这一页与数据页共用一套页面骨架（见 uni.scss 的 fish-section / fish-eyebrow /
-    fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、同样的分区眉标与
-    间距。两页是同一个 app 的两面 —— 数据页给结论，这一页给身份，
-    切页签时不该像换了个应用。
+    这一页与数据页、关于页共用一套页面骨架（见 uni.scss 的 fish-section /
+    fish-eyebrow / fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、
+    同样的分区眉标与间距。三页是同一个 app 的三面，切页签时不该像换了个应用。
 
     关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
     内容从屏幕最顶端开始排，状态栏和胶囊按钮都压在这一屏上。
@@ -21,74 +19,78 @@
 
     <view class="mine__body" :style="{ paddingTop: navBarBottom + 'px' }">
       <!--
-        身份卡：这一页的「结论」。
-        它是全页唯一解释「这是什么」的地方，所以不做成卡片列表里的一条 ——
+        身份卡：这一页的第一件东西。
+        它是全页唯一解释「我是谁」的地方，所以做成卡片而不是列表里的一条 ——
         和数据页的仪表卡同级，撑起第一屏。
       -->
       <view class="sect sect--hero mine__enter" :style="{ animationDelay: enterDelay(0) }">
-        <AboutHeader />
+        <UserCard
+          :user="session.user"
+          :busy="session.loggingIn || session.uploading"
+          @login="onLogin"
+          @edit="openProfile"
+          @logout="onLogout"
+          @choose-avatar="onChooseAvatar"
+        />
       </view>
 
+      <!--
+        关于：内容搬去了独立页面，这里只留一个入口。
+        「我的」页答「我是谁」，关于页答「这是什么」—— 一页一件事。
+      -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">免责声明</text>
+        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">{{ aboutEntry.section }}</text>
 
-        <view class="sect__card mine__disclaimer" :style="{ animationDelay: enterDelay(2) }">
-          <view v-for="(paragraph, i) in disclaimer" :key="i" class="mine__disclaimer-item">
-            <text class="mine__disclaimer-text">{{ paragraph }}</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">协议与说明</text>
-
-        <AboutLinks class="sect__card" :docs="docs" :style="{ animationDelay: enterDelay(4) }" @select="openDoc" />
-      </view>
-
-      <view class="mine__footer mine__enter" :style="{ animationDelay: enterDelay(5) }">
-        <text class="mine__footer-line">{{ footer.credit }}</text>
-        <text class="mine__footer-line">{{ footer.copyright }}</text>
+        <AboutLinks
+          class="sect__card"
+          :links="aboutLinks"
+          :style="{ animationDelay: enterDelay(2) }"
+          @select="openAbout"
+        />
       </view>
     </view>
 
     <!--
-      文档抽屉。容器用已有的 SnapSheet，与钓点详情同一种浮层 ——
-      两处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
+      资料编辑抽屉。容器用已有的 SnapSheet，与钓点详情、钓鱼反馈同一种浮层 ——
+      三处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
     -->
-    <SnapSheet :open="docOpen" :snap-points="DOC_SNAP_POINTS" :initial-snap="0" @close="closeDoc">
-      <template #header>
-        <view class="doc__header">
-          <text class="doc__title">{{ activeDoc?.key ?? '' }}</text>
-          <text class="doc__subtitle">渔碌 · 关于</text>
-        </view>
-      </template>
-      <AboutDoc v-if="activeDoc" :doc="activeDoc" />
-    </SnapSheet>
+    <ProfileSheet
+      :open="profileOpen"
+      :user="session.user"
+      :saving="savingNickname"
+      :uploading="session.uploading"
+      @close="closeProfile"
+      @choose-avatar="onChooseAvatar"
+      @save="onSaveNickname"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 /**
- * 我的页 —— 应用身份、免责声明与文档入口。
+ * 我的页 —— 账号身份，以及通往关于页的入口。
  *
  * 文案全部来自 @/constants/about，这个文件里只有排版和交互：
  * 文字要改，改那个文件，不要改这里。
+ *
+ * 账号相关的动作（登录、传头像、写昵称）都交给 @/stores/session，
+ * 这一层只负责把用户的意图翻译成对 store 的调用，并把结果讲给用户听。
  */
 import { ref } from 'vue';
+import { onPageShow } from '@dcloudio/uni-app';
 
-import AboutDoc from '@/components/AboutDoc/AboutDoc.vue';
-import AboutHeader from '@/components/AboutHeader/AboutHeader.vue';
 import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
-import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
+import ProfileSheet from '@/components/ProfileSheet/ProfileSheet.vue';
+import UserCard from '@/components/UserCard/UserCard.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_DOCS, APP_FOOTER, DISCLAIMER } from '@/constants/about';
-import type { AboutDoc as AboutDocItem } from '@/constants/about';
+import { ABOUT_ENTRY } from '@/constants/about';
+import type { AboutLink } from '@/constants/about';
+import { loginErrorMessage } from '@/api/auth';
+import { useSessionStore } from '@/stores/session';
+import { toErrorMessage } from '@/utils/error';
 import { enterDelay } from '@/utils/motion';
-
-/** 文档两档：够读一段 / 接近满屏。三处抽屉的档位不能各定各的 */
-const DOC_SNAP_POINTS = [62, 88] as const;
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
@@ -96,21 +98,120 @@ const { navBarBottom } = useNavMetrics();
 /** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
 const { windowHeight } = useViewport();
 
-const docs = ABOUT_DOCS;
-const disclaimer = DISCLAIMER;
-const footer = APP_FOOTER;
+const session = useSessionStore();
 
-/** 当前打开的文档。null 表示抽屉关着 —— 正文随之卸载，不占布局 */
-const activeDoc = ref<AboutDocItem | null>(null);
-const docOpen = ref(false);
+const aboutEntry = ABOUT_ENTRY;
 
-function openDoc(doc: AboutDocItem) {
-  activeDoc.value = doc;
-  docOpen.value = true;
+/** 通往关于页的那一行。AboutLinks 只管排版，点开了什么由页面决定 */
+const aboutLinks: readonly AboutLink[] = [{ key: aboutEntry.label }];
+
+/** 资料编辑抽屉是否打开 */
+const profileOpen = ref(false);
+
+/** 正在写昵称。用来锁住保存按钮 */
+const savingNickname = ref(false);
+
+function openProfile() {
+  profileOpen.value = true;
 }
 
-function closeDoc() {
-  docOpen.value = false;
+function closeProfile() {
+  profileOpen.value = false;
+}
+
+/**
+ * 去关于页。
+ *
+ * 关于页是子页不是 tab 页，所以走 navigateTo 而不是 switchTab。
+ */
+function openAbout() {
+  uni.navigateTo({ url: '/pages/about/index' });
+}
+
+/**
+ * 进页面先恢复会话。
+ *
+ * 小程序冷启动时内存里没有用户，但 Storage 里还留着上一轮的 token。
+ * 不恢复的话，用户看到的是「未登录」，而实际上他上一轮登录过 ——
+ * 一进「我的」就退登录是最容易失去信任的一种小毛病。
+ *
+ * 恢复失败（token 过期且刷新也失败）就退回未登录，不留一枚必然失败的 token。
+ */
+onPageShow(() => {
+  void session.restore();
+});
+
+/**
+ * 微信登录。
+ *
+ * 服务端在这次登录里自动建号，前端不需要先注册，所以这里没有「注册」分支。
+ */
+async function onLogin() {
+  try {
+    await session.login();
+    uni.showToast({ title: '登录成功', icon: 'success' });
+  } catch (err) {
+    uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
+  }
+}
+
+/**
+ * 上传新头像。
+ *
+ * 头像一选到就传，不等用户点保存：chooseAvatar 给的是临时地址，
+ * 1–5 分钟就失效，攒着必定传不上去。
+ *
+ * 上传端点需要鉴权，所以这一步只能在登录之后发生 —— 未登录时不会有这个事件。
+ */
+async function onChooseAvatar(tempPath: string) {
+  try {
+    await session.uploadAvatar(tempPath);
+    uni.showToast({ title: '头像已更新', icon: 'success' });
+  } catch (err) {
+    uni.showToast({ title: toErrorMessage(err, '头像上传失败，可稍后重试'), icon: 'none' });
+  }
+}
+
+/**
+ * 保存昵称。
+ *
+ * 服务端目前没有独立的改昵称接口，昵称只能在登录请求里带过去，
+ * 且仅在账号昵称为空时才写入（见 store 的 saveNickname）。
+ * 已有昵称时 store 会拦下来，这里只负责把那句话讲给用户听。
+ */
+async function onSaveNickname(nickname: string) {
+  if (savingNickname.value) return;
+
+  savingNickname.value = true;
+  try {
+    await session.saveNickname(nickname);
+    closeProfile();
+    uni.showToast({ title: '昵称已保存', icon: 'success' });
+  } catch (err) {
+    uni.showToast({ title: toErrorMessage(err, '保存失败，请重试'), icon: 'none' });
+  } finally {
+    savingNickname.value = false;
+  }
+}
+
+/**
+ * 退出登录。
+ *
+ * 退出会作废这一台设备的会话，属于不可逆操作，所以先确认一次。
+ * iOS 上退出登录是有确认弹窗的，不是随手一点就掉。
+ */
+function onLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '退出后本机不再保留登录状态，重新登录后才能同步你的钓点与反馈。',
+    confirmText: '退出',
+    confirmColor: '#ff3b30',
+    success: async (res) => {
+      if (!res.confirm) return;
+      await session.logout();
+      uni.showToast({ title: '已退出登录', icon: 'none' });
+    },
+  });
 }
 </script>
 
@@ -153,58 +254,11 @@ function closeDoc() {
 /*
  * 落位。
  *
- * 延迟按**阅读顺序**给：这一屏装得下整页，所以从身份卡到落款依次落位，
+ * 延迟按**阅读顺序**给：这一屏装得下整页，所以从身份卡到入口依次落位，
  * 眼睛跟着往下走一遍。数据页一屏只装得下一部分，分区内的标题和卡片
  * 各自按序给延迟即可 —— 那是同一条原则的两种排法。
  */
 .mine__enter {
   @include fish-enter;
-}
-
-/* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见 uni.scss 的分层说明） */
-.mine__disclaimer {
-  padding: 28rpx;
-  @include fish-glass;
-}
-
-/* 段间距交给容器：段落之间靠这一个数断开，段落本身不再各带 margin */
-.mine__disclaimer-item + .mine__disclaimer-item {
-  margin-top: 20rpx;
-}
-
-/* 免责文字压成辅助灰而不是主色：它是需要被同意的条款，不是页面要传达的主张 */
-.mine__disclaimer-text {
-  color: $fish-muted;
-  @include fish-type(footnote);
-}
-
-/* 落款 */
-.mine__footer {
-  @include fish-foot;
-}
-
-.mine__footer-line {
-  display: block;
-
-  /* 行高单独给：caption2 的 1.3 落款挤在一起，两行会读成一段 */
-  line-height: 1.7;
-}
-
-/* 抽屉头部。SnapSheet 只提供容器，标题区归页面 */
-.doc__header {
-  padding: 0 40rpx 24rpx;
-}
-
-.doc__title {
-  display: block;
-  color: $fish-ink;
-  @include fish-type(title2);
-}
-
-.doc__subtitle {
-  display: block;
-  margin-top: 4rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
 }
 </style>
