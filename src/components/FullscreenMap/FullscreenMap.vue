@@ -320,20 +320,70 @@ function recenter() {
 }
 
 /**
- * 视口数值的比对阈值。
+ * 视口数值的比对阈值：按当前缩放层级换算成「一个像素」。
  *
- * 微信回报的中心点是浮点，和上一步 setData 进去的值可能只差最后一位。
- * 不设阈值的话，每次 regionchange 都会被判成「变了」而触发一次 patch，
- * 而 patch 本身又会引出 causedBy=update 的 regionchange —— 能绕成死循环。
- * 1e-6 在经纬度上约合 0.1 米，远小于一个像素，不影响观感。
+ * 这个阈值回答的是「地图回报的视口和当前受控属性是不是同一个点」。
+ *
+ * 定得太小会出事：地图把视口中心换算回经纬度时必然带浮点误差 ——
+ * 不少实现是把视口中心吸附到像素网格上再换算回去的，
+ * 于是回报值和真实值最多差半个像素。阈值比它还小的话，
+ * 地图每次回报都被判成「用户又挪了地图」，于是又写回受控属性 →
+ * 又 setData → 地图重载 → 又回报……绕成死循环，电脑端尤其明显。
+ *
+ * 取「一个像素」而不是更小的数，有两个好处：
+ * 1. 误差一定被盖住 —— 像素级的换算误差不可能超过一个像素；
+ * 2. 阈值带来的滞后最多一个像素，地图重载时顶多偏一个像素，看不出来，
+ *    「受控属性始终贴着真实视口」这条性质也就保住了。
+ *
+ * 之所以要按缩放层级换算而不是写死一个度数：同一个度数在 12 级和 18 级
+ * 下差的米数差了几百倍，写死一个值要么在高层级上放得太松、
+ * 要么在低层级上放得太紧。
  */
-const VIEWPORT_EPSILON = 1e-6;
+function pixelTolerance(scale: number): number {
+  // 瓦片边长 256px，缩放层级每加 1 瓦片边长翻倍，
+  // 整个世界被摊成 256 * 2^scale 个像素宽
+  return 360 / (256 * Math.pow(2, scale));
+}
+
+/**
+ * 缩放层级的比对阈值。
+ *
+ * 缩放层级没有「亚像素」这回事，但同样有浮点误差
+ * （地图内部是 16，回报 16.000001 这种）。0.0001 级远小于一次捏合的幅度
+ * （捏一次至少半级），看不出来，但足以挡住这类噪声。
+ */
+const SCALE_EPSILON = 1e-4;
 
 /** 值没真的变就不赋值，省掉一次无意义的 patch */
-function syncViewport(target: Ref<number>, next: number | undefined): void {
+function syncViewport(target: Ref<number>, next: number | undefined, epsilon: number): void {
   if (typeof next !== 'number') return;
-  if (Math.abs(target.value - next) < VIEWPORT_EPSILON) return;
+  if (Math.abs(target.value - next) < epsilon) return;
   target.value = next;
+}
+
+/**
+ * 视口变化事件的形状。
+ *
+ * 官方结构是 {causedBy, type, detail: {rotate, skew, scale, centerLocation, region}}。
+ * causedBy 的取值见微信 map 组件文档「regionchange 返回值」：
+ * - begin 阶段：gesture（手势触发）、update（接口触发）
+ * - end 阶段：drag（拖动导致）、scale（缩放导致）、update（调用更新接口导致）
+ */
+interface RegionChangeEvent {
+  /**
+   * 视野变化的原因。
+   *
+   * update = 地图是被 setData 挪动的，也就是我们自己写回属性引发的回声。
+   */
+  causedBy?: string;
+  /** begin（视野开始变化）/ end（视野变化结束） */
+  type?: string;
+  detail?: {
+    centerLocation?: { latitude?: number; longitude?: number };
+    latitude?: number;
+    longitude?: number;
+    scale?: number;
+  };
 }
 
 /**
@@ -360,21 +410,34 @@ function syncViewport(target: Ref<number>, next: number | undefined): void {
  * skew 同理：组件没绑这个属性，它不受控，patch 不会触发重定位。
  * 倾斜也只有开了 enable-overlooking 才会有，这里没开。
  */
-function onRegionChange(e: {
-  detail?: {
-    centerLocation?: { latitude?: number; longitude?: number };
-    latitude?: number;
-    longitude?: number;
-    scale?: number;
-  };
-}) {
+function onRegionChange(e: RegionChangeEvent) {
   const detail = e.detail ?? {};
   const center = detail.centerLocation;
 
+  // 回声事件：视野的变化是我们自己改属性引起的，不是用户操作。
+  //
+  // 官方语义里 causedBy=update 就是「调用更新接口导致」——地图被 setData
+  // 挪动之后回报的那一次。必须把它和用户操作分开，否则就是这个死循环：
+  //   regionchange → 写回受控属性 → setData 挪地图 → 地图回报 update
+  //   → 又写回受控属性 → setData 挪地图 → ……
+  // 每一轮都让地图重新加载一遍瓦片，电脑端表现成地图一直转圈重载。
+  //
+  // 手机端不容易撞上：地图回报的中心点常常恰好等于写进去的值，
+  // 被阈值挡掉了。电脑端的窗口尺寸和缩放比跟手机不一样，
+  // 地图把视口中心换算回经纬度时误差更大（亚像素级），
+  // 每一轮都超过阈值，每一轮都被误判成「用户又挪了地图」，循环就停不下来。
+  //
+  // 直接丢掉：此刻受控属性里存的就是我们写进去的值，
+  // 也就是地图当前所在的位置，本来就不需要再写一遍。
+  if (e.causedBy === 'update') return;
+
   // 同步赋值落在同一批次，微信只会收到一次合并后的更新，中途不会瞬移
-  syncViewport(latitude, center?.latitude ?? detail.latitude);
-  syncViewport(longitude, center?.longitude ?? detail.longitude);
-  syncViewport(scale, detail.scale);
+  const tolerance = pixelTolerance(
+    typeof detail.scale === 'number' ? detail.scale : scale.value,
+  );
+  syncViewport(latitude, center?.latitude ?? detail.latitude, tolerance);
+  syncViewport(longitude, center?.longitude ?? detail.longitude, tolerance);
+  syncViewport(scale, detail.scale, SCALE_EPSILON);
 
   emit('regionchange', {
     latitude: latitude.value,
