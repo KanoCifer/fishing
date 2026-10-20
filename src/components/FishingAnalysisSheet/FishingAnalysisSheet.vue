@@ -38,7 +38,7 @@
           :class="{ 'analysis__btn--disabled': !hasData }"
           @tap="onGenerate"
         >
-          <text class="analysis__btn-text analysis__btn-text--onaccent">
+          <text class="analysis__btn-text">
             {{ hasGenerated ? '重新分析' : '生成分析' }}
           </text>
         </view>
@@ -349,6 +349,16 @@ watch(
   align-items: center;
   gap: 16rpx;
   margin-bottom: 28rpx;
+
+  /*
+   * 自己成为层叠上下文。
+   *
+   * 流光按钮的外发光是 z-index: -1 的伪元素。这里不成上下文的话，它会一路掉到
+   * .snap-sheet 那层去，被抽屉面板的白底盖住，光晕就一点也看不见。
+   * 成了上下文，光晕落在工具条这一层的底、按钮背景之上 —— 正好垫在按钮底下。
+   */
+  position: relative;
+  z-index: 0;
 }
 
 /* 模型名。做成一枚 chip：它是这一行的说明，不是可点的控件 */
@@ -369,8 +379,14 @@ watch(
  * 按钮。
  *
  * 88rpx = 44pt，正好是 Apple 判定为「可放心点按」的最小命中尺寸。
- * 按下即反馈（fish-press），抬手回弹用满 260ms ——
+ * 按下即反馈（fish-flow 内含），抬手回弹用满 260ms ——
  * 两段时长一短一长，是 iOS 按压手感的关键，缺一段立刻变塑料。
+ *
+ * 两个状态共用一个位置（生成中换成「停止」），所以流光也在两个状态之间延续：
+ * 面板里这一枚会动的描边，是「模型正在跑」这件事的视觉表态。
+ *
+ * 面色留白：这一屏的注意力给流光描边，不给色块。
+ * 阴影留着 —— 面板是块裸白底，白面按钮全靠它才浮得起来。
  */
 .analysis__btn {
   display: flex;
@@ -379,17 +395,23 @@ watch(
   justify-content: center;
   min-height: 88rpx;
   border-radius: $fish-radius-pill;
-  @include fish-press(0.97);
-}
-
-/* 主按钮用品牌渐变：一个方向上的三个色标读作同一种品牌色的切面 */
-.analysis__btn--primary {
-  background-image: $fish-gradient;
   box-shadow: $smooth-shadow-sm;
+
+  /*
+   * 声明写在 @include 之前：fish-flow 里有嵌套规则，
+   * 排在它后面的声明会触发 Sass 的 mixed-decls 弃用警告。
+   */
+  @include fish-flow;
 }
 
-.analysis__btn--stop {
-  background-color: $fish-surface;
+/*
+ * 主按钮的字重一档。
+ *
+ * 白面上没有色块撑着，两个状态（全白面）只能靠字重分：
+ * 主动作重一点，打断动作轻一点。
+ */
+.analysis__btn--primary .analysis__btn-text {
+  font-weight: 600;
 }
 
 .analysis__btn--disabled {
@@ -399,12 +421,6 @@ watch(
 .analysis__btn-text {
   color: $fish-ink;
   @include fish-type(callout);
-}
-
-/* 实心按钮上的文字必须反色：pill 的蓝底够深，沿用深色文字会糊在底色里 */
-.analysis__btn-text--onaccent {
-  color: #ffffff;
-  font-weight: 600;
 }
 
 /* 空态 */

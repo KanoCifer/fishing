@@ -53,4 +53,32 @@ page {
     transform: translateY(0);
   }
 }
+
+/*
+ * 流光：角度变量 + 关键帧 —— 全局一份，被 fish-flow mixin 引用。
+ *
+ * 放这里的理由同上面的 fish-enter：uni.scss 会被每个用到它的组件各注入一份，
+ * 写在那里的 @keyframes / @property 会跟着复制好几遍。
+ *
+ * @property 不是可选项：--fish-flow-angle 必须是注册过的 <angle>，
+ * 否则关键帧对它只能离散插值，在 0deg 和 360deg 之间硬跳一次 —— 而这两端的
+ * conic 渐变完全相同，等于流光根本不动，只是每 3 秒闪一下。
+ *
+ * inherits: false：角度只在本元素上生效，靠 --fish-flow 这条已替换好的渐变
+ * 往下传（自定义属性的计算值就是替换后的结果），不靠角度变量本身继承。
+ */
+@property --fish-flow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes fish-flow-spin {
+  from {
+    --fish-flow-angle: 0deg;
+  }
+  to {
+    --fish-flow-angle: 360deg;
+  }
+}
 </style>

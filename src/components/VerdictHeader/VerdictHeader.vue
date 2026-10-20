@@ -80,15 +80,7 @@
       </view>
 
       <view class="verdict__actions" :style="{ animationDelay: enterDelay(2) }">
-        <!--
-          AI 分析是次级动作：主按钮是「反馈今日指数」——
-          反馈是这个页面的日常动作，AI 分析是偶尔才想看一眼的补充。
-          所以次按钮不抢主色，排在左边。
-        -->
-        <view class="verdict__btn verdict__btn--secondary" @tap="emit('analysis')">
-          <image class="verdict__icon verdict__icon--accent" :src="sparklesIcon" mode="widthFix" />
-          <text class="verdict__btn-text">AI 分析</text>
-        </view>
+        <AIButton @analysis="emit('analysis')" />
 
         <view class="verdict__btn verdict__btn--primary" @tap="emit('feedback')">
           <image class="verdict__icon verdict__icon--onaccent" :src="messageIcon" mode="widthFix" />
@@ -129,6 +121,7 @@ import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
+import AIButton from '../AIButton/AIButton.vue';
 import FishingGauge from '../FishingGauge/FishingGauge.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 
@@ -403,6 +396,7 @@ watch(
 
 .verdict__actions {
   display: flex;
+  gap: 4px;
   margin-top: 28rpx;
   @include fish-enter;
 }
