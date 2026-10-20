@@ -7,6 +7,8 @@
   "transformPx": false,
   "mp-weixin": {
     "appid": "wxe310d6eacdda4d66",
+    "componentFramework": "glass-easel",
+    "glassEaselWebview": true,
     "setting": {
       "urlCheck": false,
       "es6": true,

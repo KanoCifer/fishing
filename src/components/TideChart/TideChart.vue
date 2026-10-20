@@ -50,6 +50,8 @@
 import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { createSelectorQuery } from '@/utils/selectorQuery';
+
 /**
  * `fields({ node: true })` 返回的 canvas 节点没有官方类型，按用到的成员局部声明。
  */
@@ -469,9 +471,7 @@ const SETTLE_REDRAW_DELAYS = [0, 320, 800] as const;
  */
 function queryCanvas(): Promise<CanvasQueryResult | null> {
   return new Promise((resolve) => {
-    uni
-      .createSelectorQuery()
-      .in(instance)
+    createSelectorQuery(instance)
       .select(`#${canvasId}`)
       .fields({ node: true, rect: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;

@@ -50,6 +50,8 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { createSelectorQuery } from '@/utils/selectorQuery';
+
 interface Series {
   name: string;
   data: number[];
@@ -466,9 +468,7 @@ function scheduleRetry(): void {
  */
 function queryCanvas(): Promise<{ node: CanvasNode2D | null; left: number }> {
   return new Promise((resolve) => {
-    uni
-      .createSelectorQuery()
-      .in(instance)
+    createSelectorQuery(instance)
       .select(`#${canvasId}`)
       .fields({ node: true, rect: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;

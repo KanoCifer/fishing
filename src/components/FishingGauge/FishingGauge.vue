@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { createSelectorQuery } from '@/utils/selectorQuery';
 import type { Tone } from '@/utils/weather';
 
 /**
@@ -208,9 +209,7 @@ function scheduleRetry(): void {
 
 function queryCanvas(): Promise<CanvasNode2D | null> {
   return new Promise((resolve) => {
-    uni
-      .createSelectorQuery()
-      .in(instance)
+    createSelectorQuery(instance)
       .select(`#${canvasId}`)
       .fields({ node: true }, (res) => {
         const item = Array.isArray(res) ? res[0] : res;

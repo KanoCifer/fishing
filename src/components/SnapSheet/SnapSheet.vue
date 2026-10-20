@@ -62,6 +62,7 @@ import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { createSelectorQuery } from '@/utils/selectorQuery';
 
 interface Props {
   open: boolean;
@@ -116,9 +117,7 @@ const headerHeight = ref(0);
 function measureHeader(): void {
   if (!instance) return;
 
-  uni
-    .createSelectorQuery()
-    .in(instance)
+  createSelectorQuery(instance)
     .select('.snap-sheet__header')
     .boundingClientRect((res) => {
       // 回调可能是单个矩形也可能是数组，与 canvas fields 同理

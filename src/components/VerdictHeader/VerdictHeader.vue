@@ -127,6 +127,7 @@ import { enterDelay } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
 import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
+import { createSelectorQuery } from '@/utils/selectorQuery';
 
 import FishingGauge from '../FishingGauge/FishingGauge.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
@@ -213,9 +214,7 @@ function onRefresh() {
  * 但等它落定再量，量到的就是稳定值 —— 页面不必去猜动画什么时候结束。
  */
 function measureConclusion() {
-  uni
-    .createSelectorQuery()
-    .in(instance)
+  createSelectorQuery(instance)
     .select('.verdict__conclusion')
     .boundingClientRect()
     .selectViewport()
