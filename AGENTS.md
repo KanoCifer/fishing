@@ -7,6 +7,9 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 只有一个目标平台：mp-weixin。
 
 平台能力一律走 `uni.*` 命名空间 —— `uni.request`、`uni.getWindowInfo`、`uni.getLocation`、`uni.loadFontFace`。小程序没有浏览器运行时（`document`、`window`、`localStorage`、`fetch`、全局 `requestAnimationFrame` 都不存在）；需要这类能力时，先查 `docs/mp-weixin-platform.md` 里的替代路径。
+
+**后端服务项目在`../Server-Go`,`../Server-Py`**
+
 ## 命令
 
 | 做什么   | 跑什么                                                                               |

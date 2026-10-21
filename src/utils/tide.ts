@@ -9,7 +9,7 @@
  */
 
 import { parseFxTime } from '@/utils/date';
-import type { TideData } from '@/types/fishing';
+import type { TideData, TideTableItem } from '@/types/fishing';
 
 export interface TideExtreme {
   /** 形如 15:20，取不到时 '--' */
@@ -25,13 +25,13 @@ function formatHeight(raw: number | string | undefined): string {
 }
 
 /**
- * 此刻之后的第一个高潮。
+ * 此刻之后的第一个高潮条目（原始条目）。
  *
- * 比对用的是 fxTime 字符串的前 14 位（`2026-10-18T15`），不 new Date()：
- * 后端 fxTime 自带 +08:00，转成 Date 会按设备时区重解释，
- * 开发者工具和真机时区不一致时整条判断会偏几小时，且只在真机复现。
+ * 「怎么从 tideTable 里挑出下一个满潮」只此一处：nextHighTide 拿它拼展示值，
+ * 钓点详情的钓况格拿它算「还有几小时到满潮」。两处各挑一遍的话，
+ * 后端哪天改了 tideTable 的结构，漏改的那处就会静默给出另一个高潮。
  */
-export function nextHighTide(tide: TideData | null | undefined): TideExtreme | null {
+export function nextHighTideItem(tide: TideData | null | undefined): TideTableItem | null {
   const table = tide?.tideTable ?? [];
   if (!table.length) return null;
 
@@ -44,6 +44,18 @@ export function nextHighTide(tide: TideData | null | undefined): TideExtreme | n
     .filter((item) => item.type === 'H' && item.fxTime.slice(0, 14) >= stamp)
     .sort((a, b) => a.fxTime.localeCompare(b.fxTime))[0];
 
+  return upcoming ?? null;
+}
+
+/**
+ * 此刻之后的第一个高潮。
+ *
+ * 比对用的是 fxTime 字符串的前 14 位（`2026-10-18T15`），不 new Date()：
+ * 后端 fxTime 自带 +08:00，转成 Date 会按设备时区重解释，
+ * 开发者工具和真机时区不一致时整条判断会偏几小时，且只在真机复现。
+ */
+export function nextHighTide(tide: TideData | null | undefined): TideExtreme | null {
+  const upcoming = nextHighTideItem(tide);
   if (!upcoming) return null;
   return { time: parseFxTime(upcoming.fxTime)?.time ?? '--', height: formatHeight(upcoming.height) };
 }

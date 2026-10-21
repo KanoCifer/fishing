@@ -28,6 +28,77 @@ export const FISHING_SPOT_KIND_LABELS: Readonly<Record<FishingSpotKind, string>>
   reservoir: '水库',
 };
 
+/**
+ * 收费情况 —— 与后端 `dto.FishingSpotRequest.FeeType` 的 oneof 校验同集合。
+ * 三值封闭：free / paid / unknown。
+ */
+export type FishingSpotFeeType = 'free' | 'paid' | 'unknown';
+
+/** 道路情况 —— 后端 oneof 校验同集合：good / fair / bad / unknown */
+export type FishingSpotRoadCondition = 'good' | 'fair' | 'bad' | 'unknown';
+
+/** 能否车到水边 —— 后端 oneof 校验同集合：yes / no / unknown */
+export type FishingSpotCarAccess = 'yes' | 'no' | 'unknown';
+
+/** 审核状态 —— 与后端 `model.FishingSpotStatus` 同集合。公开列表里恒为 approved */
+export type FishingSpotStatus = 'pending' | 'approved' | 'rejected';
+
+export const FISHING_SPOT_FEE_LABELS: Readonly<Record<FishingSpotFeeType, string>> = {
+  free: '免费',
+  paid: '收费',
+  unknown: '未知',
+};
+
+export const FISHING_SPOT_ROAD_LABELS: Readonly<Record<FishingSpotRoadCondition, string>> = {
+  good: '好 · 全程公路',
+  fair: '一般 · 部分土路',
+  bad: '差 · 需徒步',
+  unknown: '未知',
+};
+
+export const FISHING_SPOT_CAR_LABELS: Readonly<Record<FishingSpotCarAccess, string>> = {
+  yes: '能',
+  no: '车到不了',
+  unknown: '未知',
+};
+
+/**
+ * 收费 label。`fee_type` 是 paid 时把金额带上。
+ *
+ * 认不出的值一律按 unknown 兜底 —— 遗留行从 Mongo 迁过来时这几个字段可能是空串，
+ * 而空串不在 oneof 的三值里，不兜底就会在界面上留一个空白格。
+ */
+export function fishingSpotFeeLabel(fee: string | null | undefined, amount?: number | null): string {
+  const key = (fee ?? 'unknown') as FishingSpotFeeType;
+  if (key === 'paid') {
+    return amount !== null && amount !== undefined ? `收费 ¥${amount}` : '收费';
+  }
+  return FISHING_SPOT_FEE_LABELS[key] ?? FISHING_SPOT_FEE_LABELS.unknown;
+}
+
+/** 道路情况 label */
+export function fishingSpotRoadLabel(road: string | null | undefined): string {
+  const key = (road ?? 'unknown') as FishingSpotRoadCondition;
+  return FISHING_SPOT_ROAD_LABELS[key] ?? FISHING_SPOT_ROAD_LABELS.unknown;
+}
+
+/** 车到水边 label */
+export function fishingSpotCarLabel(car: string | null | undefined): string {
+  const key = (car ?? 'unknown') as FishingSpotCarAccess;
+  return FISHING_SPOT_CAR_LABELS[key] ?? FISHING_SPOT_CAR_LABELS.unknown;
+}
+
+/**
+ * 属主快照 —— 昵称与头像都存在钓点主表里（后端 fillOwner 冗余写入）。
+ * 快照让钓点在作者注销后仍显示"谁分享的"，列表查询也不必 JOIN user/profile。
+ */
+export interface FishingSpotOwner {
+  user_id: number;
+  name: string;
+  /** 头像 URL，omitempty —— 没设过头像时整个字段不发 */
+  avatar?: string;
+}
+
 export interface FishingSpot {
   id: string;
   name: string;
@@ -48,6 +119,40 @@ export interface FishingSpot {
   tags: string[];
   rating: number;
   images: string[];
+  /** 文字地址。后端 omitempty，没填就不发 */
+  address?: string;
+  /** 审核状态。公开接口恒为 approved，待审核 / 已驳回只有属主和管理员看得到 */
+  status?: FishingSpotStatus;
+  /** 审核备注 —— 管理员驳回时写给作者的原因 */
+  review_note?: string;
+  /** 归属。没有属主时为 nil，整个字段不发 */
+  owner?: FishingSpotOwner | null;
+  /** 收费情况 */
+  fee_type?: FishingSpotFeeType;
+  /** 收费金额（元）。只有 fee_type 为 paid 时才有值 */
+  fee_amount?: number | null;
+  /** 适合的钓法：路亚 / 手竿 / 夜钓 … */
+  suitable_for?: string[];
+  /** 道路情况 */
+  road_condition?: FishingSpotRoadCondition;
+  /** 能否车到水边 */
+  car_access?: FishingSpotCarAccess;
+  /** 开放时间，如"全天" / "06:00-18:00"。omitempty */
+  opening_hours?: string;
+  /** 参与评分人数 */
+  rating_count?: number;
+  /** 浏览量 */
+  view_count?: number;
+  /** 自由扩展位，后端原样透传展示 */
+  meta?: Record<string, unknown> | null;
+  /**
+   * 与调用方当前位置的距离（公里）。
+   *
+   * **只有列表请求带了定位中心才有值** —— 后端在 ListSpots 里按 hasCenter 填它，
+   * `GET /v3/fish/spots/{id}` 不填。所以详情页拿不到这个数，得自己算
+   * （见 utils/spot-conditions 的 distanceKm，公式与后端 util.DistanceKm 一致）。
+   */
+  distance_km?: number | null;
   created_at?: string;
   updated_at?: string;
 }

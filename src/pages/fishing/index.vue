@@ -15,36 +15,31 @@
       可以滚动的列表页，两边都不用在对方的地盘上做取舍。
     -->
     <view class="fishing__map-area">
-      <!--
-        浮层打开时关掉地图手势：抽屉的遮罩拦得住 WebView 层的事件，
-        拦不住 map 原生组件的平移 —— 不关的话，拖抽屉时背后的地图会跟着动。
-      -->
       <FullscreenMap
         class="fishing__map"
         :markers="markerItems"
         :latitude="focusedLat"
         :longitude="focusedLng"
         :top-inset="nav.navBarBottom"
-        :interactive="!spotDetailOpen"
         @markertap="onMarkerTap"
       />
     </view>
-
-    <!-- 钓点详情（导航） -->
-    <FishingSpotDetailSheet :open="spotDetailOpen" :marker="selectedMarker" @close="closeSpotDetail" />
   </view>
 </template>
 
 <script setup lang="ts">
 /**
- * 钓点页 —— 全屏地图 + 钓点标记 + 钓点详情浮层。
+ * 钓点页 —— 全屏地图 + 钓点标记。
  *
  * 这一页只管「在哪」：地图和 marker 是空间关系，别的都不归它管。
- * 地图铺满整屏，浮在上面的只有钓点计数和详情浮层。
+ * 地图铺满整屏，浮在上面的只有钓点计数。
+ *
+ * 钓点详情是推出去的独立页（pages/spot-detail），不是这一页上的浮层 ——
+ * 抽屉只能露出半屏，而钓点详情要放的东西是照片、档案和今日钓况，
+ * 半屏装不下，挤在地图上也读不完。
  */
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
-import FishingSpotDetailSheet from '@/components/FishingSpotDetailSheet/FishingSpotDetailSheet.vue';
 import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
@@ -62,11 +57,12 @@ const { markerItems, resolveMarker } = useMapMarkers(() => mapStore.markers);
 const focusedLng = ref(MAP_CENTER[0]);
 const focusedLat = ref(MAP_CENTER[1]);
 
-/** 选中态在 store 里，本页只是读写它，不另存一份 */
-const selectedMarker = computed(() => mapStore.selectedMarker);
-/** 钓点详情（marker 点开） */
-const spotDetailOpen = ref(false);
-
+/**
+ * 点 marker → 推钓点详情页。
+ *
+ * 顺带把地图挪到那个点上：详情页往回退时，用户看到的还是他刚点的那个地方，
+ * 地图不会弹回初始中心。
+ */
 function onMarkerTap(payload: { markerId: number }) {
   const marker = resolveMarker(payload.markerId);
   if (!marker) return;
@@ -77,11 +73,11 @@ function onMarkerTap(payload: { markerId: number }) {
   focusedLng.value = lng;
   focusedLat.value = lat;
 
-  spotDetailOpen.value = true;
-}
+  // id 来自 marker 携带的钓点数据（extraData 就是钓点本体去掉坐标）
+  const id = marker.extraData?.id;
+  if (!id) return;
 
-function closeSpotDetail() {
-  spotDetailOpen.value = false;
+  uni.navigateTo({ url: `/pages/spot-detail/index?id=${id}` });
 }
 
 /**

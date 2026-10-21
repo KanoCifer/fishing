@@ -8,6 +8,12 @@
       }
     },
     {
+      "path": "pages/spot-detail/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/data/index",
       "style": {
         "navigationStyle": "custom"

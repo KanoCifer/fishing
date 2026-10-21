@@ -75,6 +75,8 @@ const ICONS = [
   { name: 'log-out', color: 'destructive', use: '退出登录' },
   // —— 关于页 ——
   { name: 'chevron-left', color: 'blue', use: '子页导航栏的返回按钮' },
+  // —— 钓点详情页 ——
+  { name: 'chevron-left', color: 'onAccent', use: '钓点详情页压在头图上的返回按钮' },
 ];
 
 /**

@@ -143,7 +143,7 @@ withDefaults(
  *
  * 底色是分隔线色而不是「卡片色」——它在这套结构里的角色是**露出的一条缝**：
  * 卡片从缝里浮起来，分组才能读成一个整体。真实内容里同一条缝由
- * $fish-border 的 1rpx 发丝线承担（见 WeatherCard / FishingSpotDetailSheet）。
+ * $fish-border 的 1rpx 发丝线承担（见 WeatherCard / SpotDetailInfo）。
  */
 .skeleton-card__group {
   display: flex;
