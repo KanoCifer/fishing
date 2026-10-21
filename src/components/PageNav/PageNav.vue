@@ -126,7 +126,7 @@ function onBack() {
  * 字会糊），底下再压一道 1rpx 发丝线 —— iOS 导航栏滚起来之后就是这个结构。
  *
  * 模糊只在这一层开：它背后真的有内容在滚过去，模糊它才买得到东西；
- * 页面顶上一片空的时候不需要模糊（见 uni.scss 的 fish-glass-blur）。
+ * 页面顶上一片空的时候不需要模糊（见令牌层 _material.scss 的 fish-glass-blur）。
  */
 .page-nav__material {
   position: absolute;
@@ -163,7 +163,7 @@ function onBack() {
  * 命中区 88rpx 见方（44pt，iOS 判定为可放心点按的最小尺寸），
  * 图标 40rpx 居中 —— 命中区比图标大，点得准；图标比命中区小，按下不糊。
  *
- * 按下反馈用变暗而不是缩小：缩小会让标题微微位移（见 uni.scss 的 fish-press）。
+ * 按下反馈用变暗而不是缩小：缩小会让标题微微位移（见令牌层 _motion.scss 的 fish-press）。
  */
 .page-nav__back {
   display: flex;

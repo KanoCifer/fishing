@@ -6,7 +6,7 @@
  * 它自己的 WXSS 又排在后面，改不动。唯一可靠的入口是 `tag-style` 属性 ——
  * 它被拼进每个节点的 style 里（内联样式，优先级最高）。
  *
- * 所以这些值必须和 `src/uni.scss` 的同名变量一致，理由和
+ * 所以这些值必须和 `src/styles/tokens/_color.scss` 的同名变量一致，理由和
  * `scripts/gen-icons.mjs` 的色板一样：CSS 变量传不进这里，只能写死十六进制。
  * 改色值两处都要动。
  *

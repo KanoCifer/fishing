@@ -1,0 +1,106 @@
+// ===========================================================================
+// 字阶与字体栈
+//
+// Apple 的字号是**成组**的：每一级自带字号 / 字重 / 字距 / 行高。
+// 字距尤其不能一刀切 —— 大字要收紧（字越大、字心距越显松），
+// 小字要略微放开（反过来才读得清）。固定一个 letter-spacing 一定会在某一级翻车。
+//
+// 用法：@include fish-type(title1);
+//
+// **只给文字用。** 图标字形（和风天气图标、★、✕）不要套：字形没有排版语义，
+// 套上去会把行高顶到 1.25，在字形下面多留一截空白，把整行格子往下坠；
+// 字重和字距加在字形上更是无效代码。字形只写 font-size + line-height: 1。
+//
+// 引入 map + mixin 而不是散落的 $fish-font-size-lg 之类，是为了让「用了哪一级」
+// 在代码里读得出来，而且拼错一级会直接在编译期报错（@error），不会悄悄降级成
+// 一段没有字距的裸字号。
+// ===========================================================================
+
+/* -apple-system 在 iOS 上解析到 SF Pro（含光学字号与默认字距表），
+   中文落到 PingFang SC。微信端字体继承正常，<text> 会吃到这份栈。 */
+$fish-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+
+$fish-type: (
+  // 大标题。留白多、字号大，是整屏的锚点
+  large-title: (
+    size: 68rpx,
+    weight: 700,
+    tracking: -0.022em,
+    leading: 1.15,
+  ),
+  title1: (
+    size: 56rpx,
+    weight: 700,
+    tracking: -0.02em,
+    leading: 1.2,
+  ),
+  title2: (
+    size: 44rpx,
+    weight: 700,
+    tracking: -0.018em,
+    leading: 1.25,
+  ),
+  title3: (
+    size: 40rpx,
+    weight: 600,
+    tracking: -0.016em,
+    leading: 1.3,
+  ),
+  // 正文上方的标题：iOS 的 headline，分区标题基本都用它
+  headline: (
+    size: 34rpx,
+    weight: 600,
+    tracking: -0.012em,
+    leading: 1.35,
+  ),
+  body: (
+    size: 34rpx,
+    weight: 400,
+    tracking: -0.012em,
+    leading: 1.45,
+  ),
+  callout: (
+    size: 32rpx,
+    weight: 400,
+    tracking: -0.01em,
+    leading: 1.45,
+  ),
+  subhead: (
+    size: 30rpx,
+    weight: 400,
+    tracking: -0.008em,
+    leading: 1.4,
+  ),
+  footnote: (
+    size: 26rpx,
+    weight: 400,
+    tracking: 0,
+    leading: 1.35,
+  ),
+  caption: (
+    size: 24rpx,
+    weight: 400,
+    tracking: 0,
+    leading: 1.3,
+  ),
+  // 最小一级。这里字距转正 —— 这是整套字阶里唯一需要放开的地方
+  caption2: (
+    size: 22rpx,
+    weight: 400,
+    tracking: 0.006em,
+    leading: 1.3,
+  ),
+);
+
+@mixin fish-type($role) {
+  $t: map-get($fish-type, $role);
+
+  @if $t == null {
+    @error '未知的字阶：#{$role}。可选：#{map-keys($fish-type)}';
+  }
+
+  font-size: map-get($t, size);
+  font-weight: map-get($t, weight);
+  letter-spacing: map-get($t, tracking);
+  line-height: map-get($t, leading);
+}

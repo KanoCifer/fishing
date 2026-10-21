@@ -1,28 +1,13 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
-
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';
-
-// 和风天气图标字体的**映射规则**。必须走 App.vue 引入：编译后进 app.wxss，全局一份。
-// 不能写进 uni.scss —— 那个文件会被每个用到 scss 变量的组件各注入一份。
-//
-// 这份 css 里没有字体本体，只有「码 → 字形」的规则（4 KB）；
-// 字体走网络加载，见下面 onLaunch 里的 loadQweatherIconFont()。
 import '@/styles/qweather-icons.css';
 
 onLaunch(() => {
-  console.log('App Launch');
-
-  // 尽早开始拉字体：图标散在天气页的三个卡片里，字体晚到一拍就多一帧空图标。
-  // 启动时发起，能和天气接口的请求并行，抢到的就是等待时间。
   void loadQweatherIconFont();
 });
-onShow(() => {
-  console.log('App Show');
-});
-onHide(() => {
-  console.log('App Hide');
-});
+onShow(() => {});
+onHide(() => {});
 </script>
 <style lang="scss">
 /*
@@ -44,8 +29,8 @@ page {
 /*
  * 入场关键帧 —— 全局一份，被 fish-enter mixin 引用。
  *
- * 放在 App.vue 而不是 uni.scss，和上面那段图标字体的注释是同一个理由：
- * uni.scss 会被每个用到它的组件各注入一份，写在这里的 @keyframes
+ * 放在 App.vue 而不是令牌层，和上面那段图标字体的注释是同一个理由：
+ * 令牌层每个组件各加载一份，写在那里的 @keyframes
  * 会跟着复制十几遍同一个动画定义。变量和 mixin 放那边（要靠它拿值），
  * @keyframes 放这边（只要一份）。
  *
@@ -63,9 +48,28 @@ page {
 }
 
 /*
+ * 头图显形 —— 全局一份，被 fish-enter-media mixin 引用。
+ *
+ * 放这里而不是令牌层，理由同上面的 fish-enter：那里每个组件各加载一份，
+ * 写在那里的 @keyframes 会跟着复制十几遍。
+ *
+ * from 一帧就带上 scale，位移始终发生在合成层。
+ */
+@keyframes fish-enter-media {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/*
  * 流光：角度变量 + 关键帧 —— 全局一份，被 fish-flow mixin 引用。
  *
- * 放这里的理由同上面的 fish-enter：uni.scss 会被每个用到它的组件各注入一份，
+ * 放这里的理由同上面的 fish-enter：令牌层每个组件各加载一份，
  * 写在那里的 @keyframes / @property 会跟着复制好几遍。
  *
  * @property 不是可选项：--fish-flow-angle 必须是注册过的 <angle>，

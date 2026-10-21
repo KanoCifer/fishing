@@ -239,7 +239,7 @@ function openAnalysis() {
 /*
  * 一个分区。
  *
- * 缩进、眉标、卡间距全部走 uni.scss 的 fish-section ——
+ * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
  * 这一层的数是「页面怎么分块」的约定，不该各页各写一份。
  */
 .sect {

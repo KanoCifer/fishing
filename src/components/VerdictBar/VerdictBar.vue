@@ -92,7 +92,7 @@ const refreshIcon = icon('refresh-cw', 'muted');
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05);
 
   /* 这里才值得开模糊：底下真的有内容在滚过去。
-     静态卡片背后是平滑渐变，模糊它等于花钱买不到东西（见 uni.scss 的 fish-glass）。 */
+     静态卡片背后是平滑渐变，模糊它等于花钱买不到东西（见令牌层 _material.scss 的 fish-glass）。 */
   @include fish-glass-blur;
 
   /* 收起时整体退到视口外，而不是停在原地变透明：

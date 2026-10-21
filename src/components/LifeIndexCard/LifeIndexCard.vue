@@ -171,7 +171,7 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
  * 深底白字在 12pt 上要过 4.5:1 才读得清，$fish-warning / $fish-destructive
  * 都过不了 —— 徽标字号小、字重要少，容不下那种对比度。
  * 淡底深字反过来：底色保持「这一档的颜色」这个信号，
- * 字用压深档（见 uni.scss 的 ink 档说明），两边都不牺牲。
+ * 字用压深档（见令牌层 _color.scss 的 ink 档说明），两边都不牺牲。
  */
 .life__badge--success {
   color: $fish-success-ink;

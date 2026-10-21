@@ -164,10 +164,10 @@ let canvasLeft = 0;
 let progress = 1;
 
 /**
- * Canvas 色值。**必须与 uni.scss 的 $fish-* 令牌保持一致**。
+ * Canvas 色值。**必须与令牌层 _color.scss 的 $fish-* 令牌保持一致**。
  *
  * Canvas 2d 只能从 context 读色，解析不了 SCSS 变量和 CSS 变量，
- * 所以这里只能硬编码。改主题时 uni.scss 和这四行要一起改 ——
+ * 所以这里只能硬编码。改主题时令牌层 _color.scss 和这四行要一起改 ——
  * 漏改的话图表会和卡片配色对不上，而这种不一致在编译期完全看不出来。
  */
 const TIDE_COLOR = '#007aff'; // $fish-tide（systemBlue）

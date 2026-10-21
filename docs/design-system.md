@@ -11,11 +11,21 @@
 
 ## 令牌
 
-全部在 `src/uni.scss`，按「颜色 / 字阶 / 间距 / 圆角 / 阴影 / 动效」分组。改那里就是改全项目。
+全部在 `src/styles/tokens/`，按主题一个文件：`_color` 颜色、`_type` 字阶、`_space` 间距、`_depth` 圆角与阴影、`_material` 材质、`_motion` 动效、`_layout` 页面版式、`_platform` uni-app 内置变量。改那里就是改全项目。
+
+`src/uni.scss` 是入口，**只有一行**：
+
+```scss
+@use '@/styles/tokens/_index.scss' as *;
+```
+
+uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面（vite 的 `additionalData`），这是「每个组件都拿得到令牌」的机制，拆文件不能拆掉它。`uni.scss` 里**不能再有变量声明** —— 注入时 `@use` 会被顶到声明后面，sass 直接报「@use 必须在其他规则之前」。要加令牌，去 `styles/tokens/` 里加。
+
+新增主题 = 加一个文件 + 在 `_index.scss` 里加一行 `@forward`。`@forward` 把成员透传出来，入口再 `as *` 摊平成全局名，所以组件里照旧写 `$fish-blue`、`@include fish-type(body)`，不用带前缀。
 
 这是**编译期常量**而不是 CSS 变量：canvas 2d 不解析 `var()`，只认 rgb/hex（见 `TideChart` 注释）；小程序端也没有 MutationObserver 监听主题切换。主题在编译期定死。
 
-**canvas 侧的硬编码色值要手工与 `uni.scss` 保持一致** —— `$fish-tide`、`$fish-temp` 就是给这件事留的锚点。改了 uni.scss 里的色，canvas 里那几处也要跟着改。
+**canvas 侧的硬编码色值要手工与 `src/styles/tokens/_color.scss` 保持一致** —— `$fish-tide`、`$fish-temp` 就是给这件事留的锚点。改了这里的色，canvas 里那几处也要跟着改。
 
 ## 字阶
 
@@ -50,7 +60,7 @@
 三页（数据、我的、关于）是同一个 app 的三面，共用同一套骨架：
 
 - 环境色底 → `<PageBackdrop />`（固定在视口上，不随内容滚走）
-- 分区版式 → `uni.scss` 的 `fish-section` / `fish-eyebrow` / `fish-foot`
+- 分区版式 → `src/styles/tokens/_layout.scss` 的 `fish-section` / `fish-eyebrow` / `fish-foot`
 - 玻璃卡 → `fish-glass`
 
 **新页面照抄这三页的骨架，不要另起一套。** 各写一份的话，改一次色要记得改两处，漏一处就出现「一页冷、一页暖」这种没法一眼说清、但一眼能看出的怪。
@@ -115,14 +125,14 @@
 
 逐项延迟用 `enterDelay(index)`（`@/utils/motion`），步长 60ms、第 8 项封顶。逐时预报 24 项不封顶的话，最后一项要等 1.44s —— 那已经不是入场动画，是加载动画：用户等的是内容，不是等动画。
 
-**降级开关在编译期**：`uni.scss` 的 `$fish-motion` 置 false 后 `fish-enter` 一段不生成，界面直接以终态呈现。WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 API —— 写一条不生效的媒体查询进去只会造成「已经处理过了」的错觉。
+**降级开关在编译期**：`src/styles/tokens/_motion.scss` 的 `$fish-motion` 置 false 后 `fish-enter` 一段不生成，界面直接以终态呈现。WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 API —— 写一条不生效的媒体查询进去只会造成「已经处理过了」的错觉。
 
 ### 动画定义放哪
 
-- **变量和 mixin** → `uni.scss`（要靠它拿值）
+- **变量和 mixin** → `src/styles/tokens/`（要靠它拿值）
 - **`@keyframes` 和 `@property`** → `App.vue` 的 `<style>`（全局一份）
 
-`uni.scss` 会被每个用到它的组件各注入一份，写在那里的 `@keyframes` 会跟着复制十几遍同一个动画定义。
+令牌那一层每个组件各 `@use` 一次，写在那里的 `@keyframes` 会跟着复制十几遍同一个动画定义。
 
 流光的 `--fish-flow-angle` 必须是注册过的 `@property <angle>`，否则关键帧对它只能离散插值，在 0deg 和 360deg 之间硬跳一次 —— 而这两端的 conic 渐变完全相同，等于流光根本不动，只是每 3 秒闪一下。
 
@@ -130,7 +140,7 @@
 
 图标是 `scripts/gen-icons.mjs` 从 lucide-static 生成的数据 URI，`src/constants/icons.ts` 是它的生成物。
 
-小程序端不能把 `<svg>` 内联进 WXML（渲染层不认），能落地的只有 `<image src="data:image/svg+xml;base64,…">`。这条路上的 SVG 是当图片渲染的，**拿不到页面的 CSS 上下文，`currentColor` 不继承** —— 所以颜色必须在生成时烤死。这也是为什么 `gen-icons.mjs` 里那套色板要手工跟 `uni.scss` 对齐：CSS 变量传不进 `<image>`。
+小程序端不能把 `<svg>` 内联进 WXML（渲染层不认），能落地的只有 `<image src="data:image/svg+xml;base64,…">`。这条路上的 SVG 是当图片渲染的，**拿不到页面的 CSS 上下文，`currentColor` 不继承** —— 所以颜色必须在生成时烤死。这也是为什么 `gen-icons.mjs` 里那套色板要手工跟令牌层 `_color.scss` 对齐：CSS 变量传不进 `<image>`。
 
 改图标：改 `scripts/gen-icons.mjs` 的 `ICONS` 清单 → `pnpm icons` → `pnpm type-check`。
 
@@ -152,6 +162,6 @@
 ## 参考
 
 - 偏好 `/apple-design` skill
-- 令牌真源：`src/uni.scss`
+- 令牌真源：`src/styles/tokens/`（入口 `src/uni.scss`）
 - 图标真源：`scripts/gen-icons.mjs`
 - 文案真源：`src/constants/about.ts`

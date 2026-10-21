@@ -172,6 +172,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 .user-card {
   display: flex;
   flex-direction: column;
+  gap: 16rpx;
   padding: 36rpx 32rpx 28rpx;
   @include fish-glass($fish-radius-2xl);
 }
@@ -281,7 +282,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
  * 次级按钮。
  *
  * 88rpx = 44pt，是 iOS 判定为「可放心点按」的最小命中尺寸。
- * 按下即缩、抬手回弹，理由见 uni.scss 的 fish-press。
+ * 按下即缩、抬手回弹，理由见令牌层 _motion.scss 的 fish-press。
  */
 .user-card__action {
   display: flex;

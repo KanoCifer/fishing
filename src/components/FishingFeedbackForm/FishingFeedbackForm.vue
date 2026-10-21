@@ -265,7 +265,7 @@ function onCancel() {
   margin-top: 48rpx;
 }
 
-/* 44pt 命中高度；按下即缩，抬手回弹比按下慢两倍（见 uni.scss 的 fish-press） */
+/* 44pt 命中高度；按下即缩，抬手回弹比按下慢两倍（见令牌层 _motion.scss 的 fish-press） */
 .feedback-form__btn {
   display: flex;
   flex: 1;

@@ -5,7 +5,7 @@
  * 这里只保存生成结果。
  */
 
-/** 图标名与颜色档位。取值与 uni.scss 的同名变量一致 */
+/** 图标名与颜色档位。取值与令牌层 _color.scss 的同名变量一致 */
 export type IconName =
   | 'chevron-left'
   | 'chevron-right'

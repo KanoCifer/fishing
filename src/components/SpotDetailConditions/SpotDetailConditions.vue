@@ -64,12 +64,6 @@ const tone = computed(() => suitabilityTone(props.level));
   margin-top: $fish-space-sectitle;
 }
 
-/*
- * 分区标题 + 徽标。
- *
- * align-items: baseline 而不是 center：徽标是 12pt 的小字，
- * 垂直居中会让它浮在标题文字的中线上，读起来像标点而不是标签。
- */
 .conditions__title {
   display: flex;
   align-items: baseline;
@@ -92,7 +86,7 @@ const tone = computed(() => suitabilityTone(props.level));
   display: flex;
   flex-wrap: wrap;
   overflow: hidden;
-  border-radius: $fish-radius-xl;
+  border-radius: $fish-radius-2xl;
   background-color: $fish-page;
   box-shadow: $smooth-shadow-md;
 }

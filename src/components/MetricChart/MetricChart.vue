@@ -71,7 +71,7 @@ interface Metric {
   key: 'temp' | 'precip' | 'windSpeed';
   label: string;
   unit: string;
-  /** canvas 读不了 SCSS 变量，颜色只能硬编码，与 uni.scss 保持一致 */
+  /** canvas 读不了 SCSS 变量，颜色只能硬编码，与令牌层 _color.scss 保持一致 */
   color: string;
 }
 

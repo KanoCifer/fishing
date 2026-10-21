@@ -11,7 +11,7 @@
   <view class="dock">
     <view class="dock__cta" @tap="emit('nav')">
       <image class="dock__icon" :src="navIcon" mode="aspectFit" />
-      <text class="dock__text">导航送达</text>
+      <text class="dock__text">前往钓点</text>
       <text class="dock__dist">· {{ distance }}</text>
     </view>
   </view>
@@ -73,7 +73,7 @@ const navIcon = icon('navigation', 'onAccent');
   width: 100%;
   min-height: 108rpx;
   border-radius: $fish-radius-pill;
-  background-color: $fish-blue;
+  background: $fish-gradient;
   box-shadow: $smooth-shadow-lg;
   @include fish-press(0.97);
 }

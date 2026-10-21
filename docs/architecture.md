@@ -35,7 +35,7 @@ constants/     文案与生成物
 | 请求基址 / 环境变量 | `src/config/env.ts`                                      |
 | 类型                | `src/types/fishing.ts`、`src/types/auth.ts`              |
 | 文案                | `src/constants/about.ts`                                 |
-| 色值 / 字阶         | `src/uni.scss`                                           |
+| 色值 / 字阶         | `src/styles/tokens/`                                     |
 | 图标                | `scripts/gen-icons.mjs`                                  |
 
 ## 端点清单

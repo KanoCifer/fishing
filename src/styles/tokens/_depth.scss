@@ -1,0 +1,55 @@
+// ===========================================================================
+// 圆角与阴影 —— 深度的两个刻度
+//
+// 圆角是轮廓，阴影是厚度。玻璃面的「外壳」就是这两样，
+// 材质本身（半透明底色 + 顶边高光）在 _material.scss。
+//
+// 这两个放在一起还有一个实际理由：它们总是成对出现。
+// 一个组件调了圆角没调阴影，面就贴在底上；调了阴影没调圆角，
+// 厚是厚了，但读起来是个方块。
+// ===========================================================================
+
+/* ── 圆角。1pt = 2rpx（750 设计稿在 375pt 机型上）── */
+$fish-radius-sm: 8rpx; // 4pt  小标签 / 骨架块
+$fish-radius-lg: 18rpx; // 9pt  控件外壳（segmented）
+$fish-radius-xl: 24rpx; // 12pt inset 分组容器
+$fish-radius-card: 48rpx; // 24pt 玻璃卡
+$fish-radius-2xl: 64rpx; // 32pt 仪表卡 / 常驻结论条
+$fish-radius-sheet: 68rpx; // 34pt 抽屉上沿
+$fish-radius-pill: 999rpx;
+
+/* 阴影 */
+$shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.08);
+$shadow-drawer: -16px 0 40px rgba(0, 0, 0, 0.1);
+$smooth-shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+$smooth-shadow-sm:
+  0 18px 47px 0 rgba(0, 0, 0, 0.03),
+  0 7.5px 19px 0 rgba(0, 0, 0, 0.02),
+  0 4px 10.5px 0 rgba(0, 0, 0, 0.02),
+  0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01),
+  0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01),
+  0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+$smooth-shadow-md:
+  0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04),
+  0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03),
+  0 5.25px 7px 0 rgba(0, 0, 0, 0.02),
+  0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01),
+  0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+$smooth-shadow-lg:
+  0 25px 50px 0 rgba(0, 0, 0, 0.05),
+  0 12px 24px 0 rgba(0, 0, 0, 0.04),
+  0 6px 12px 0 rgba(0, 0, 0, 0.03),
+  0 3px 6px 0 rgba(0, 0, 0, 0.02),
+  0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+$smooth-shadow-xl:
+  0 40px 80px 0 rgba(0, 0, 0, 0.06),
+  0 20px 40px 0 rgba(0, 0, 0, 0.05),
+  0 10px 20px 0 rgba(0, 0, 0, 0.04),
+  0 5px 10px 0 rgba(0, 0, 0, 0.03),
+  0 2px 4px 0 rgba(0, 0, 0, 0.02);
+$smooth-shadow-2xl:
+  0 60px 120px 0 rgba(0, 0, 0, 0.07),
+  0 30px 60px 0 rgba(0, 0, 0, 0.06),
+  0 15px 30px 0 rgba(0, 0, 0, 0.05),
+  0 7.5px 15px 0 rgba(0, 0, 0, 0.04),
+  0 3px 6px 0 rgba(0, 0, 0, 0.03);

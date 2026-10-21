@@ -1,0 +1,184 @@
+// ===========================================================================
+// 动效
+//
+// 小程序逻辑层没有全局 requestAnimationFrame，也没有 spring 引擎，
+// 所以 iOS 的弹簧在这边**只能近似**成 cubic-bezier。
+//
+// 两条曲线够用了：
+// - $fish-spring 临界阻尼，末端减速不回头，对应 damping 1.0 / response 0.35
+//   的弹簧。用在「跟手之后落位」这类地方。
+// - $fish-ease-out 末端加速后急停，对应 iOS 面板的呈现曲线（阻尼比略低于 1）。
+//
+// 想要「回弹」的话不能一上来就加：iOS 也只在手势本身带了惯性时才给阻尼不足，
+// 无缘无故的过冲看着像 bug，不看着像弹性。
+// ===========================================================================
+
+$fish-ease-out: cubic-bezier(0.32, 0.72, 0, 1); // 呈现 / 展开
+$fish-ease-in: cubic-bezier(0.4, 0, 1, 1); // 退场
+$fish-spring: cubic-bezier(0.2, 0, 0, 1); // 临界阻尼
+
+$fish-dur-fast: 100ms; // 按下
+$fish-dur-base: 260ms; // 状态切换
+$fish-dur-slow: 420ms; // 面板出入场
+
+/**
+ * 交叉淡入（两个状态彼此替换）。
+ *
+ * 比 $fish-dur-base 短一档，因为它的使用场景只有一个：内容在**同一位置**
+ * 上换了一组值 —— 读数轨道在「当日概览」和「当前读数」之间切换。
+ * 面板出入场是位移一大截、观众要重新找落点的，260ms 才够；
+ * 这里位置不动，只是两组文字互相让位，拖久了就变成两行字叠着闪烁。
+ *
+ * 收在这一处而不是各组件写各自的 160ms：理由同 $fish-space-section ——
+ * 「同一位置换内容」是一个全局约定，散开写必然漂移。
+ */
+$fish-dur-cross: 160ms;
+/**
+ * 按下反馈。
+ *
+ * iOS 的按钮是**手指落下就开始缩**，抬手才回弹 —— 等 click 再反应就是「假」的。
+ * mp-weixin 的 :active 正好在 touchstart 触发，能做到同一件事。
+ *
+ * 按下 100ms、回弹 260ms：靠两条 transition 的时长差实现。:active 上写的
+ * transition 决定「进入按下」的时长，基态上写的决定「抬手回弹」的时长，
+ * 所以这里必须两处都写，只写一条就会按下和回弹一样快，手感立刻变塑料。
+ */
+@mixin fish-press($scale: 0.96) {
+  transition: transform $fish-dur-base $fish-spring;
+
+  &:active {
+    transform: scale($scale);
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+/**
+ * 分段控件 / 选项组的按下反馈。
+ *
+ * iOS 的 segmented control 按下时是**变暗**不是缩小 —— 缩小会让整排的选中块
+ * 位置跳一下，读起来像换了一项。调透明度才是它真正的行为。
+ */
+@mixin fish-press-dim {
+  transition: opacity $fish-dur-base $fish-spring;
+
+  &:active {
+    opacity: 0.6;
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+/**
+ * 流光按钮。
+ *
+ * 一圈会转的彩虹描边，外面罩一层同色柔光。中间是面色（可换）。
+ *
+ * 做法是三层：外层渐变铺满 border box（描边环），里层面色盖住 padding box，
+ * ::before 拿同一份渐变模糊后垫在底下当外发光。环和光共用一个 --fish-flow，
+ * 所以两者永远同色同速，不会各转各的。
+ *
+ * 面色必须写成 linear-gradient，不能用 background-color：多层 background 简写里
+ * 颜色只能出现在最后一层，写在非末层整条声明作废 —— 按钮会变成全透明，
+ * 只剩光晕透上来（看着像光晕盖住了背景，其实是背景根本没画出来）。
+ *
+ * 按下反馈也包在这里，不单独再调 fish-press：fish-press 自带 &:active 嵌套规则，
+ * 本 mixin 也有 &::before 嵌套规则 —— 同一个样式块里，若有声明排在嵌套规则之后，
+ * Sass 会报 mixed-decls 弃用警告。两条混在一起、声明全部在前，就没这个问题。
+ * 调用方也别在这个 @include 之后再写声明。
+ */
+@mixin fish-flow($face: linear-gradient(#ffffff, #ffffff), $scale: 0.97, $blur: 8px, $width: 3px) {
+  --fish-flow: conic-gradient(from var(--fish-flow-angle), #4f8cff, #b06ab3, #ff5f6d, #ff9f43, #3ccf6e, #4f8cff);
+
+  position: relative;
+  border: $width solid transparent;
+  background:
+    #{$face} padding-box,
+    var(--fish-flow) border-box;
+  animation: fish-flow-spin 3s linear infinite;
+  transition: transform $fish-dur-base $fish-spring;
+
+  /*
+  * 外发光。z-index -1 让它垫在按钮底下。
+  *
+  * border-radius 必须写 inherit（不是 inherits —— 那个不是合法值，整条声明会被
+  * 丢掉），否则光晕是个方角矩形，和药丸形的按钮对不上。
+  */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--fish-flow);
+    filter: blur($blur);
+    z-index: -1;
+  }
+
+  &:active {
+    transform: scale($scale);
+    transition-duration: $fish-dur-fast;
+  }
+}
+// ===========================================================================
+// 入场动画
+//
+// 内容「落位」，不是内容「表演」。这一层解决的是骨架屏换成实数据、
+// 分段控件换面板时内容整块硬切过去的那一下 —— 东西是突然出现的，
+// 眼睛要重新找一次它从哪来。给它 16rpx 的上移和一段淡入就够了。
+//
+// 只动 transform 和 opacity：这两条在小程序里走合成，不触发布局重排。
+// 换成 top / height 的话，一屏四个分区一起动的时候，
+// 每个兄弟节点都要跟着重排一次，掉帧几乎全出在这里。
+//
+// 位移刻意压得很小。入场动画的成败在幅度上：16rpx（8pt）+ 260ms 读作
+// 「本来就在这」，幅度再大就读作「飞进来了」，注意力被动画抢走，
+// 反而比不做更难读。
+//
+// ── 降级为什么不是 @media (prefers-reduced-motion) ──
+//
+// mp-weixin 的 WXSS 没有开放这个媒体特性（@media 里能用的只有颜色方案一类的
+// 查询），逻辑层也没有对应的系统 API —— 小程序端拿不到系统级的
+// 「减弱动态效果」。写一条不生效的媒体查询进去只会造成「已经处理过了」的错觉。
+//
+// 所以开关在这里，编译期生效：置成 false 重新构建，fish-enter 一段不生成，
+// 界面直接以终态呈现。$fish-motion 为 false 时模板里仍然会写出
+// animation-delay，但没有任何 animation 引用它，行内样式自然失效 ——
+// 不用在模板里再开一层 v-if 去把入场关掉。
+//
+// keyframes 本体在 App.vue（全局一份），理由见那里顶部的注释。
+// ===========================================================================
+$fish-motion: true;
+
+/** 入场位移。16rpx ≈ 8pt —— 再大就从「落位」变成「飞入」了 */
+$fish-enter-y: 16rpx;
+
+/**
+ * 入场。$delay 由调用方按序号给（见 utils/motion.ts 的 enterDelay），
+ * 时长和曲线不在这里另立 —— 沿用上面那条 $fish-dur-base / $fish-ease-out，
+ * 「出场是缓入、入场是缓出」是同一套约定，不是两个系统。
+ *
+ * fill-mode 用 both：延迟期间元素停在 from 的状态（不可见），
+ * 若用 none，延迟的那几百毫秒里它是**完全可见的**，
+ * 然后突然又从 0 开始淡入 —— 闪一下再重来。
+ */
+@mixin fish-enter($delay: 0ms) {
+  @if $fish-motion {
+    animation: fish-enter $fish-dur-base $fish-ease-out $delay both;
+  }
+}
+
+/**
+ * 头图显形。
+ *
+ * 头图是整页第一眼的东西，入场时它不该「淡入」—— 淡入一张照片读作
+ * 「图片加载出来了」，而它要做的是「照片落到位」。所以这里动的是 scale：
+ * 从 1.06 收到 1，读作镜头往后退了一点，照片自己站到了它的位置上。
+ *
+ * 只动 transform 和 opacity，理由同 fish-enter。
+ *
+ * 时长用 $fish-dur-slow（420ms）而不是更短：照片是这一屏最大的一个面，
+ * 收得太快会读作「闪了一下」，慢一点才读得出「它落下来了」。
+ */
+@mixin fish-enter-media {
+  @if $fish-motion {
+    animation: fish-enter-media $fish-dur-slow $fish-ease-out both;
+  }
+}

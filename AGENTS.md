@@ -22,13 +22,13 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 
 自动校验只有 `pnpm type-check` 一项 —— 本仓库没有测试套件，所以它是唯一的把关。改动收尾必须跑它，退出码 0 才算过。
 
-`pnpm format` 是 `oxfmt .`，扫全仓库。仓库里有几处既有格式漂移（`src/uni.scss`、`src/utils/selectorQuery.ts`、`tsconfig.json`、`src/styles/qweather-icons.css`、`src/components/FullscreenMap/FullscreenMap.vue`），全量跑会产出一堆与本次改动无关的 diff —— 只对自己动过的文件跑 `npx oxfmt`。
+`pnpm format` 是 `oxfmt .`，扫全仓库。仓库里有几处既有格式漂移（`src/utils/selectorQuery.ts`、`tsconfig.json`、`src/styles/qweather-icons.css`、`src/components/FullscreenMap/FullscreenMap.vue`），全量跑会产出一堆与本次改动无关的 diff —— 只对自己动过的文件跑 `npx oxfmt`。
 
 ## 约定
 
 - 组件 `src/components/<Name>/<Name>.vue`，页面 `src/pages/<name>/index.vue`
 - 文件头一句话说明「这个文件为什么存在」，决策理由写进注释。中文注释解释为什么，不复述代码
-- **唯一出处**：端点清单在 `src/api/`，类型在 `src/types/`，色值与字阶在 `src/uni.scss`，文案在 `src/constants/about.ts`，图标在 `scripts/gen-icons.mjs`。要改就去那个出处改，不在别处抄一份
+- **唯一出处**：端点清单在 `src/api/`，类型在 `src/types/`，色值与字阶在 `src/styles/tokens/`，文案在 `src/constants/about.ts`，图标在 `scripts/gen-icons.mjs`。要改就去那个出处改，不在别处抄一份
 - 接口基址只从 `@/config/env` 读，不在调用点写死域名
 - 环境变量只读 `import.meta.env.VITE_*`（小程序端没有 `process.env`）
 - 运行时量出来的尺寸用 px，设计稿尺寸用 rpx；两者相加先过 `uni.upx2px()`
@@ -36,7 +36,7 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 
 ## 改动工作流
 
-1. **先看邻居。** 这个项目的约定靠模仿维持，不靠文档描述。改一个组件前读同目录的相邻组件和 `src/uni.scss` 对应段落。完成标志：能说出新代码要跟哪一个现有模式对齐。
+1. **先看邻居。** 这个项目的约定靠模仿维持，不靠文档描述。改一个组件前读同目录的相邻组件和 `src/styles/tokens/` 对应段落。完成标志：能说出新代码要跟哪一个现有模式对齐。
 2. **落在正确的层。** 组件只管渲染与交互，取数在 store，接口形状在 api，展示模型的换算在 utils。
 3. **格式化。** `npx oxfmt <改动的文件>`，只动自己动过的那些。
 4. **过类型检查。** `pnpm type-check` 退出码 0、没有新错误才算过 —— 这是最后一道关，跑在格式化之后，验的是最终状态。改动若涉及生成物，先 `pnpm icons`。

@@ -6,7 +6,7 @@
     「这是什么」搬去了关于页（见 pages/about）：一个页面同时讲身份和讲应用，
     两件事互相稀释，拆开各答各的更清楚。
 
-    这一页与数据页、关于页共用一套页面骨架（见 uni.scss 的 fish-section /
+    这一页与数据页、关于页共用一套页面骨架（见令牌层 _layout.scss 的 fish-section /
     fish-eyebrow / fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、
     同样的分区眉标与间距。三页是同一个 app 的三面，切页签时不该像换了个应用。
 
@@ -234,7 +234,7 @@ function onLogout() {
 /*
  * 一个分区。
  *
- * 缩进、眉标、卡间距全部走 uni.scss 的 fish-section ——
+ * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
  * 与数据页是同一条规则，两页的分块节奏因此必然一致。
  */
 .sect {

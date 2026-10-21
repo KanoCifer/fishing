@@ -60,7 +60,7 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 ## canvas
 
-- **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，与 `uni.scss` 手工保持一致（`$fish-tide`、`$fish-temp` 是锚点）
+- **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，与令牌层 `src/styles/tokens/_color.scss` 手工保持一致（`$fish-tide`、`$fish-temp` 是锚点）
 - dpr 从 `uni.getWindowInfo().pixelRatio` 取
 - 画布尺寸先 `uni.upx2px()` 换算成 px
 - **逻辑层没有全局 rAF**，取帧走 canvas 节点自带的 `requestAnimationFrame`（基础库 2.7.0+），见 `FishingGauge` 顶部的类型声明

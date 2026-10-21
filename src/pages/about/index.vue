@@ -8,7 +8,7 @@
     一页一件事。
 
     页面骨架照抄数据页与「我的」页那一套：同样的环境色底（PageBackdrop）、
-    同样的分区版式（uni.scss 的 fish-section / fish-eyebrow / fish-foot）、
+    同样的分区版式（令牌层 _layout.scss 的 fish-section / fish-eyebrow / fish-foot）、
     同样的玻璃卡。三页是同一个 app 的三面，不该像换了个应用。
 
     关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
@@ -175,14 +175,14 @@ function closeDoc() {
 /*
  * 一个分区。
  *
- * 缩进、眉标、卡间距全部走 uni.scss 的 fish-section ——
+ * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
  * 与数据页、「我的」页是同一条规则，三页的分块节奏因此必然一致。
  */
 .sect {
   @include fish-section;
 }
 
-/* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见 uni.scss 的分层说明） */
+/* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见令牌层 _color.scss 的分层说明） */
 .about__disclaimer {
   padding: 28rpx;
   @include fish-glass;

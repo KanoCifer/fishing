@@ -3,7 +3,7 @@
 生成 tabBar 图标 —— 钓点（地图钉）/ 数据（趋势线）/ 我的（人形），各含未选中与选中两态。
 
 为什么是脚本而不是手搓图片：图标是要跟着主题走的（选中态用主色蓝），
-改一次 uni.scss 的 $fish-blue 就得重出一套 PNG。留成脚本，改色值只改这里一处，
+改一次令牌层 _color.scss 的 $fish-blue 就得重出一套 PNG。留成脚本，改色值只改这里一处，
 和 scripts/subset-qweather-icons.py 一样当作资产的唯一出处。
 
 尺寸按微信的官方建议：81×81 px，正方形透明底，图标本身留出四周安全边距
@@ -25,7 +25,7 @@ from PIL import Image, ImageDraw
 SIZE = 81
 SS = 4  # 超采样倍数
 
-# 未选中 / 选中两态的色值，必须与 uni.scss 的 $fish-muted / $fish-blue 对齐，
+# 未选中 / 选中两态的色值，必须与令牌层 _color.scss 的 $fish-muted / $fish-blue 对齐，
 # 也必须与 pages.json 里 tabBar 的 color / selectedColor 对齐 ——
 # 三个地方是同一件事的三个出处，漏改一处，选中时的图标和文字就会一个蓝一个旧蓝。
 COLOR_IDLE = (60, 60, 67, 255)  # #3c3c43 = $fish-muted（secondaryLabel）

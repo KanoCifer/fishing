@@ -186,7 +186,7 @@ function snapToPx(index: number): number {
 
 const panelStyle = computed(() => ({
   height: `${heightPx.value}px`,
-  // 曲线与时长照抄 uni.scss 的 $fish-spring / $fish-dur-base（行内 style 不走 SCSS，
+  // 曲线与时长照抄令牌层 _motion.scss 的 $fish-spring / $fish-dur-base（行内 style 不走 SCSS，
   // 变量传不进来，只能写死并在注释里指回源头）。抬手吸附走临界阻尼、不回弹：
   // 档位切换是「落位」不是「甩过去」，加了过冲会读成弹了一下。
   transition: dragging.value ? 'none' : 'height 280ms cubic-bezier(0.2, 0, 0, 1)',

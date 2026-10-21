@@ -223,7 +223,7 @@ const rows = computed<Row[]>(() => {
   min-width: 0;
 }
 
-/* 状态点用填充档的绿/红/橙，右侧文字用压深档（见 uni.scss 的说明） */
+/* 状态点用填充档的绿/红/橙，右侧文字用压深档（见令牌层 _color.scss 的说明） */
 .weather-card__dot {
   width: 16rpx;
   height: 16rpx;

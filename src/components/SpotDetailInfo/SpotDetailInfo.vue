@@ -103,7 +103,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
  */
 .info__group {
   overflow: hidden;
-  border-radius: $fish-radius-xl;
+  border-radius: $fish-radius-2xl;
   background-color: $fish-page;
   box-shadow: $smooth-shadow-md;
 }

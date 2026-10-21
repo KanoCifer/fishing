@@ -9,7 +9,7 @@
  *
  * 关键约束：<image> 里的 SVG 是当图片渲染的，拿不到页面的 CSS 上下文，
  * currentColor 不会继承。所以颜色必须在生成时烤死 —— 这就是下面每个条目
- * 都带一个 color 的原因。改一次 uni.scss 的色值，要回来重跑本脚本，
+ * 都带一个 color 的原因。改一次令牌层 _color.scss 的色值，要回来重跑本脚本，
  * 和 scripts/tabbar-icons.py 一样，脚本是资产的唯一出处。
  *
  * 用法：pnpm icons
@@ -25,7 +25,7 @@ const ICON_DIR = resolve(ROOT, 'node_modules/lucide-static/icons');
 const OUT_FILE = resolve(ROOT, 'src/constants/icons.ts');
 
 /**
- * 色板。取值必须与 src/uni.scss 的同名变量一致 —— 这里只能写十六进制，
+ * 色板。取值必须与 src/styles/tokens/_color.scss 的同名变量一致 —— 这里只能写十六进制，
  * 因为 CSS 变量传不进 <image>。改色值两处都要动，注释是给下一个人看的路标。
  *
  * 注意 muted / muted60 落在 rgba(60, 60, 67, …) 上：它们在 svg 里拆成
@@ -124,7 +124,7 @@ function main() {
     ' * 这里只保存生成结果。',
     ' */',
     '',
-    '/** 图标名与颜色档位。取值与 uni.scss 的同名变量一致 */',
+    '/** 图标名与颜色档位。取值与令牌层 _color.scss 的同名变量一致 */',
     `export type IconName = ${nameUnion.map((n) => `'${n}'`).join(' | ')};`,
     `export type IconColor = ${usedColors.map((c) => `'${c}'`).join(' | ')};`,
     '',

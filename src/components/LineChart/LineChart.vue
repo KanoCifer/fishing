@@ -142,7 +142,7 @@ const canvasId = `line-chart-${uid}`;
  * 系列配色。取 iOS 系统色蓝、红、黄、绿、紫五色，顺序刻意从主色蓝起，
  * 让首条曲线与页面主题一致。
  *
- * 同样是 canvas 硬编码，改主题时要和 uni.scss 的 $fish-* 一起看。
+ * 同样是 canvas 硬编码，改主题时要和令牌层 _color.scss 的 $fish-* 一起看。
  */
 const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
 
