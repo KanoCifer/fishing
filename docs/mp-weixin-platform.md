@@ -179,7 +179,19 @@ uni.getLocation({ type: 'gcj02' });
 
 全应用只有 `stores/fishingMap` 调 `uni.getLocation` 一处。地图的定位键、结论头的刷新键、数据页的取数共用它 —— 两处各调一次会弹两次权限窗，也会拿到两个略有差异的点。
 
-定位被拒之后微信不会再弹权限窗，反复调只是反复失败。store 里 `locationDenied` 记住这件事。
+⚠️ `getLocation` 是隐私接口，`src/manifest.json` 的 `mp-weixin.requiredPrivateInfos` 必须声明它，否则真机上调用直接被拒：`getLocation:fail the api need to be declared in the requiredPrivateInfos field in app.json`。没声明的表现是：开发者工具里正常，真机一点就失败，连授权弹窗都不弹。
+
+**先问授权状态，再调 getLocation。** 微信的 `getSetting` 能读出 `scope.userLocation` 的三档：
+
+| 值            | 含义                    | 该做什么                       |
+| ------------- | ----------------------- | ------------------------------ |
+| `true`        | 已授权                  | 直接调 `getLocation`           |
+| `false`       | 用户明确拒绝过          | 微信不会再弹窗，只能去设置页   |
+| `undefined`   | 从没问过                | 调 `getLocation`，它会弹授权窗 |
+
+区分这三档是为了两件事：一是「明确拒绝」和「从没问过」在界面上要给的引导完全不同（前者去设置页，后者直接弹窗），只靠 `getLocation` 的 `fail` 回调区分不出来；二是用户拒绝之后微信不会再弹权限窗，反复调只是反复失败。
+
+被拒之后 store 里 `locationDenied` 记住这件事，定位键据此带去设置页。其余失败（系统定位没开、网络差）记在 `locationError` 里 —— 它们能靠重试解决，跳设置页没用。
 
 ### 选点
 
@@ -223,6 +235,29 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 头像：`chooseAvatar` 给的是临时路径，1–5 分钟就失效。选到就传，不等用户点保存。
 
+## 自定义事件不能与原生事件同名
+
+小程序的 `bind` 系列属性绑在**自定义组件**上时，如果事件名正好是原生事件名，微信会让它同时接住两条路：
+
+1. 组件内部 `triggerEvent` 派发的一条（Vue 的 `emit` 在小程序端就是这么实现的）
+2. 组件内部原生事件冒泡出组件边界的一条
+
+同一个监听器被打两次。踩过的两处：
+
+| 组件                | 事件名         | 现象                                                     |
+| ------------------- | -------------- | -------------------------------------------------------- |
+| `FormRow`           | `tap`          | 点一次「位置」栏弹出**两个**选点页                       |
+| `FullscreenMap`     | `markertap`    | 点一个 marker **push 两层**钓点详情页，返回要点两次      |
+
+`FullscreenMap` 那处尤其阴：`<map>` 的 `markertap` 被 uni-app 编译成**冒泡版**的 `bindmarkertap`，原生事件会冒泡出组件，父组件上的 `@markertap` 照收不误。
+
+**规则：自定义事件的驼峰或加后缀。** 小程序的原生事件名全是全小写（`tap` / `markertap` / `regionchange` / `change`），所以 `select` / `markerTap` / `regionChange` 这类名字天然不冲突。uni-app 编译后是 `bindmarkerTap` 这种带大写的属性名，微信不会拿它去匹配原生事件。
+
+判断某个自定义事件名安不安全的办法：看组件**内部**有没有同名原生事件会冒泡到根节点。
+
+- `FormRow` 内部根节点有 `@tap` → 自定义事件不能叫 `tap`
+- `ChoiceChips` 内部只有 `@tap`，它 emit 的是 `change` → `change` 安全（内部不产生原生 `change`）
+
 ## Vue 3 兼容层
 
 `main.ts` 里补了 `$set` / `$delete` 两个实例方法 —— Vue 3 删掉了它们，而 mp-html v2 还在用（`setContent` 里的 `this.$set(this, 'nodes', …)` 是它的主路径）。不补这一层，mp-html 第一次渲染就抛 `this.$set is not a function`，白屏。
@@ -241,7 +276,7 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 其他 manifest 设置：`lazyCodeLoading: requiredComponents`、`optimization.subPackages: true`、`urlCheck: false`（开发期）、`transformPx: false`（rpx 不转 px）。
 
-`requiredPrivateInfos` 声明了要走隐私接口的 API（当前是 `chooseLocation`）。这一项开发者工具里不校验 —— 漏了只有真机才炸，见上面「选点」一节。
+`requiredPrivateInfos` 声明了要走隐私接口的 API（当前是 `getLocation` 和 `chooseLocation`）。这一项开发者工具里不校验 —— 漏了只有真机才炸，见上面「定位」「选点」两节。改完 manifest 要重新编译，微信开发者工具不会热更新 `app.json`。
 
 ## 真机预览
 

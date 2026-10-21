@@ -129,6 +129,18 @@ export const fishingSpotApi = {
   },
 
   /**
+   * 带会话取钓点详情 —— 编辑页用。
+   *
+   * 与 getById 的区别只在一处：它走 withSession，401 会静默刷一次 token 再重试。
+   * 公开端点不带头也能调，401 不该由它来解释；但编辑页要看的是「我自己那条
+   * 待审的」，那条必须带凭证 —— access token 过期时不刷新就只剩 404，
+   * 页面只显示「钓点载入失败」，用户什么都做不了。
+   */
+  getByIdWithSession(id: string): Promise<FishingSpot> {
+    return withSession(() => request<FishingSpot>({ url: `${SPOTS_BASE}/${id}` }));
+  },
+
+  /**
    * 创建钓点。
    *
    * 后端返回**创建好的钓点对象**（含 id / status），不是空响应 ——

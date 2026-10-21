@@ -49,6 +49,20 @@
         :style="{ animationDelay: enterDelay(4) }"
         :images="images"
       />
+
+      <!--
+        属主的编辑入口。
+        只在「这条是我提交的」时出现 —— 别人看到的是一条公开的钓点，
+        不是自己的东西，在那儿摆一个编辑按钮是误导。
+      -->
+      <view
+        v-if="isOwner"
+        class="spot-detail__edit spot-detail__enter"
+        :style="{ animationDelay: enterDelay(5) }"
+        @tap="openEdit"
+      >
+        <text class="spot-detail__edit-text">{{ editLabel }}</text>
+      </view>
     </view>
 
     <SpotDetailDock :distance="distanceLabel" @nav="openNavigation" />
@@ -77,15 +91,22 @@ import SpotDetailHero from '@/components/SpotDetailHero/SpotDetailHero.vue';
 import SpotDetailInfo from '@/components/SpotDetailInfo/SpotDetailInfo.vue';
 import SpotDetailNav from '@/components/SpotDetailNav/SpotDetailNav.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
-import { SPOT_HERO_HEIGHT_RPX, SPOT_HERO_OVERLAP_RPX, SPOT_PLACEHOLDER_IMAGE } from '@/constants/spot-detail';
+import {
+  SPOT_DETAIL_EDIT,
+  SPOT_HERO_HEIGHT_RPX,
+  SPOT_HERO_OVERLAP_RPX,
+  SPOT_PLACEHOLDER_IMAGE,
+} from '@/constants/spot-detail';
 import { mediaUrl } from '@/api/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from '@/stores/spotDetail';
 import { enterDelay } from '@/utils/motion';
 import { buildConditionCells, distanceKm, formatDistance } from '@/utils/spot-conditions';
 
 const detailStore = useSpotDetailStore();
 const mapStore = useFishingMapStore();
+const session = useSessionStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
@@ -118,6 +139,28 @@ onPageScroll((event) => {
 });
 
 const spot = computed(() => detailStore.spot);
+
+/** 编辑按钮上的字 */
+const editLabel = SPOT_DETAIL_EDIT.label;
+
+/**
+ * 这条钓点是不是我的。
+ *
+ * 认的是钓点上的属主快照（owner.user_id）与当前登录用户 —— 不是
+ * 「我能不能编辑」，而是「这是不是我提交的那条」。
+ */
+const isOwner = computed(() => {
+  const ownerId = spot.value?.owner?.user_id;
+  const myId = session.user?.id;
+  return !!ownerId && !!myId && ownerId === myId;
+});
+
+/** 去改这条钓点 */
+function openEdit(): void {
+  const id = spot.value?.id;
+  if (!id) return;
+  uni.navigateTo({ url: `/pages/spot-edit/index?id=${id}` });
+}
 
 /**
  * 照片地址。
@@ -176,6 +219,15 @@ onLoad((options) => {
     uni.showToast({ title: '钓点不存在', icon: 'none' });
     return;
   }
+
+  /*
+   * 先恢复会话。
+   *
+   * 这一页要判断「这条是不是我的」—— 属主才给「编辑这条钓点」入口。
+   * 冷启动后内存里没有用户（token 还在 Storage 里），不恢复就判断不出来，
+   * 属主会看不到那个入口，而入口在不在取决于用户先路过哪个页面。
+   */
+  void session.restore();
 
   void detailStore.load(id);
 
@@ -258,5 +310,25 @@ function openNavigation() {
 /* 入场。延迟由 enterDelay 按序号给，样式只管「怎么动」 */
 .spot-detail__enter {
   @include fish-enter;
+}
+
+/*
+ * 属主的编辑入口。
+ *
+ * 单独一行，居中偏右 —— 它是这一页唯一的作者操作，
+ * 不该跟公开信息（钓况、档案、照片）混在同一套排版里。
+ */
+.spot-detail__edit {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24rpx;
+  @include fish-press-dim;
+}
+
+.spot-detail__edit-text {
+  color: $fish-accent;
+  @include fish-type(caption);
+
+  font-weight: 600;
 }
 </style>

@@ -29,33 +29,34 @@ constants/     文案与生成物
 
 ## 唯一出处
 
-| 要改什么            | 去哪                                                                |
-| ------------------- | ------------------------------------------------------------------- |
+| 要改什么            | 去哪                                                                          |
+| ------------------- | ----------------------------------------------------------------------------- |
 | 接口端点            | `src/api/fishing.ts`、`src/api/ai.ts`、`src/api/auth.ts`、`src/api/upload.ts` |
-| 请求基址 / 环境变量 | `src/config/env.ts`                                                 |
-| 类型                | `src/types/fishing.ts`、`src/types/auth.ts`                         |
-| 文案                | `src/constants/`（about / spot-create / my-spots）                 |
-| 色值 / 字阶         | `src/styles/tokens/`                                                |
-| 图标                | `scripts/gen-icons.mjs`                                             |
+| 请求基址 / 环境变量 | `src/config/env.ts`                                                           |
+| 类型                | `src/types/fishing.ts`、`src/types/auth.ts`                                   |
+| 文案                | `src/constants/`（about / spot-create / my-spots）                            |
+| 色值 / 字阶         | `src/styles/tokens/`                                                          |
+| 图标                | `scripts/gen-icons.mjs`                                                       |
 
 ## 端点清单
 
-| 端点                      | 方法               | 用途                                                       |
-| ------------------------- | ------------------ | ---------------------------------------------------------- |
-| `v2/fishing/index`        | GET                | 钓鱼指数；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
-| `v2/fishing/feedback`     | POST               | 提交钓鱼反馈                                               |
-| `v2/fishing/stats`        | GET                | 钓鱼记录统计                                               |
-| `v3/weather/tide`         | GET                | 潮汐（按港口 + 日期）                                      |
-| `v3/fish/spots`           | GET / POST         | 钓点列表 / 创建                                            |
-| `v3/fish/spots/mine`      | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
-| `v3/fish/spots/:id`       | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
-| `v2/llm/weather-analysis` | POST（SSE）        | AI 钓鱼分析                                                |
-| `v3/auth/wechat/login`    | POST               | 微信登录（服务端自动建号）                                 |
-| `v3/refresh-token`        | POST               | 刷新 token                                                 |
-| `v3/me`                   | GET                | 当前用户                                                   |
-| `v3/logout`               | POST               | 退出登录                                                   |
-| `v3/upload-pic`           | POST               | 头像上传                                                   |
-| `v3/upload`               | POST               | 图片上传（multipart：`file` + `type`）                      |
+| 端点                       | 方法               | 用途                                                       |
+| -------------------------- | ------------------ | ---------------------------------------------------------- |
+| `v2/fishing/index`         | GET                | 钓鱼指数；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
+| `v2/fishing/feedback`      | POST               | 提交钓鱼反馈                                               |
+| `v2/fishing/stats`         | GET                | 钓鱼记录统计                                               |
+| `v3/weather/tide`          | GET                | 潮汐（按港口 + 日期）                                      |
+| `v3/fish/spots`            | GET / POST         | 钓点列表 / 创建                                            |
+| `v3/fish/spots/mine`       | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
+| `v3/fish/spots/:id`        | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
+| `v3/fish/spots/:id/review` | POST               | 管理员审核（放行 / 驳回）—— 小程序端不用，审核在 Web 后台  |
+| `v2/llm/weather-analysis`  | POST（SSE）        | AI 钓鱼分析                                                |
+| `v3/auth/wechat/login`     | POST               | 微信登录（服务端自动建号）                                 |
+| `v3/refresh-token`         | POST               | 刷新 token                                                 |
+| `v3/me`                    | GET                | 当前用户                                                   |
+| `v3/logout`                | POST               | 退出登录                                                   |
+| `v3/upload-pic`            | POST               | 头像上传                                                   |
+| `v3/upload`                | POST               | 图片上传（multipart：`file` + `type`）                     |
 
 **取天气只有一条路**：`v2/fishing/index` 的 enriched 响应。旧实现并发调 `weather/full` + `fishing/index`，会导致后端对同一 location 取数两次，已废弃。
 
@@ -124,11 +125,21 @@ FishingAnalysisSheet
 - 文案在 `constants`，组件和页面都只管排版
 - 浮层统一用 `SnapSheet` 容器
 
+## 审核
+
+钓点的审核在 **Web 后台**（`../kanocifer-chat-frontend` 的 `/admin/fishing-spots`），不在小程序里。
+
+- 后端把普通用户的投稿置为 `pending`，公开列表写死只放 `approved` —— 小程序端因此**看不到**待审队列，也不需要看到
+- 管理员专属的 `GET /v3/fish/spots/admin`（按状态查 + 强制分页）只给后台用，小程序不调
+- 小程序这一侧只负责**属主自助改稿**：被驳回的条目在「我的钓点」里显示 `review_note`，改完重交 —— 后端会把没过审的退回 `pending` 并清掉备注
+
+两端的状态文案要一致（`待审核 / 已通过 / 未通过`），改一边记得改另一边。
+
 ## 已知缺口
 
 这几条是后端契约的现状。接回对应功能时先验：
 
-- **钓点的编辑与删除没有 UI** —— `fishingSpotApi.update` / `remove` 端点留着但没有调用方（钓点详情面板只留了「导航」）。端点留着是因为它们是后端契约的记录，接回来时照单验一遍就能用
+- **钓点的删除没有 UI** —— 编辑这一半已经接上了（`pages/spot-edit`，属主在「我的钓点」和钓点详情页都能进），删除还留着。删除是破坏性操作，在手机上做需要二次确认与删除理由，代价与收益不匹配，另议。`fishingSpotApi.remove` 端点留着但没有调用方
 - **新建的钓点不会立刻出现在地图上** —— 后端把普通用户的投稿置为 `pending`，公开列表写死只放 `approved`（`ListSpots` 里 `Status: model.FishingSpotStatusApproved`）。所以提交成功只进 `mySpots`，要看到它得去「我的钓点」页看审核状态。**别把成功提示写成「已添加」** —— 用户回头在地图上找不到，会以为丢了
 - **改不了昵称** —— 服务端没有独立的改昵称接口。`saveNickname` 的做法是重新走一次微信登录带上昵称，服务端只在「这个账号昵称为空」时写入。已有昵称时 store 拦下，不让用户白等一次网络往返
 - **`weather_indices` 曾恒为空** —— 那时后端没往外给，模型只能自己从温度气压反推，丢掉了「官方说今天适宜垂钓」这个最强的信号。现已接通

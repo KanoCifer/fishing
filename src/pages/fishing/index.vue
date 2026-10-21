@@ -7,7 +7,7 @@
         :latitude="focusedLat"
         :longitude="focusedLng"
         :top-inset="nav.navBarBottom"
-        @markertap="onMarkerTap"
+        @markerTap="onMarkerTap"
       />
     </view>
     <view class="fishing__create" @tap="openCreate">

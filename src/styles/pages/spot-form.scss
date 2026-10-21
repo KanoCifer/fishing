@@ -1,0 +1,290 @@
+// ===========================================================================
+// 钓点表单的版式 —— 新建页与编辑页共用。
+//
+// 为什么抽出来：两页填的是同一张表，版式也得是同一套。
+// 各自复制一份的话，改一次间距要记得改两处，漏一处就出现
+// 「新建时行高 88、编辑时 96」这种只有对照着看才发现的差异。
+//
+// class 前缀是 spot-form__（不是 spot-create__）—— 这套样式不再只属于
+// 新建那一页。两页各自在自己的 <style scoped> 里 @use 本文件，
+// 令牌由 uni.scss 全局注入。
+//
+// ⚠️ 这里要自己 @use 一遍令牌：全局注入（uni.scss）只拼到**入口**
+// 样式文件（.vue 的 style 块）前面，被 @use 拉进来的独立 scss 文件
+// 是另一个编译单元，拿不到那些变量。
+// ===========================================================================
+@use '@/styles/tokens/_index.scss' as *;
+
+.spot-form {
+  position: relative;
+  background-color: $fish-grouped;
+}
+
+.spot-form__body {
+  position: relative;
+  z-index: 1;
+  /* 底部留出提交条的高度 + 安全区，否则最后一行被压在按钮底下 */
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
+}
+
+/* 入场。延迟按阅读顺序给 */
+.spot-form__enter {
+  @include fish-enter;
+}
+
+/* ── 草稿条 ────────────────────────────────────────────────────────────── */
+
+/*
+ * 草稿条。
+ *
+ * 它是一张分组卡，不是卡里的一行 —— 它跟表单是两层东西，
+ * 混进必填那一组里，用户会以为这也是一栏要填的东西。
+ */
+.spot-form__draft {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 16rpx 32rpx 0;
+  padding: 20rpx 28rpx;
+  border-radius: $fish-radius-xl;
+  @include fish-glass($fish-radius-xl);
+}
+
+.spot-form__draft-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.spot-form__draft-title {
+  display: block;
+  color: $fish-ink;
+  @include fish-type(subhead);
+
+  font-weight: 600;
+}
+
+.spot-form__draft-time {
+  display: block;
+  margin-top: 2rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+}
+
+/* 丢弃。红色 —— 这是一个会丢东西的动作 */
+.spot-form__draft-discard {
+  flex-shrink: 0;
+  padding: 8rpx 0 8rpx 16rpx;
+  color: $fish-destructive-ink;
+  @include fish-type(callout);
+
+  font-weight: 600;
+  @include fish-press-dim;
+}
+
+/* ── 引子 ──────────────────────────────────────────────────────────────── */
+
+/*
+ * 引子。
+ *
+ * 这一页要干什么，一句话说清。位置和名称是必填的这件事也在这里说一遍 ——
+ * 后面每一组标题旁边还会再标一次「必填」，两处不冲突：
+ * 这里是解释，标的是提醒。
+ */
+.spot-form__lede {
+  padding: 40rpx 32rpx 0;
+}
+
+.spot-form__title {
+  display: block;
+  color: $fish-ink;
+  @include fish-type(title1);
+}
+
+.spot-form__sub {
+  display: block;
+  margin-top: 12rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
+}
+
+/* ── 分组 ──────────────────────────────────────────────────────────────── */
+
+/*
+ * 分区。
+ *
+ * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
+ * 与数据页、我的页是同一条规则，三页的分块节奏因此一致。
+ */
+.sect {
+  @include fish-section;
+}
+
+/*
+ * 分组标题那一行。
+ *
+ * 左边是标题，右边是状态（必填那组写「还差 1 项」，其余组写「选填」）。
+ * 状态贴在标题的基线上，不另起一行 —— 另起一行它就成了标题的注脚，
+ * 而它其实和标题是同一层的两件事。
+ */
+.sect__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* 状态。「还差 1 项」是待办不是出错，用橙不用红 */
+.sect__badge {
+  color: $fish-warning-ink;
+  @include fish-type(caption2);
+
+  font-weight: 600;
+}
+
+.sect__badge--done {
+  color: $fish-success-ink;
+}
+
+/* 「选填」那种不重要的状态，压到第三档 */
+.sect__meta {
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+}
+
+/*
+ * 分组卡。
+ *
+ * 圆角走 inset 分组容器那一档（12pt），不是玻璃卡那一档（24pt）——
+ * 这张卡是 iOS 那种内嵌分组列表，不是数据页那种浮起来的玻璃卡。
+ *
+ * 卡里不留内边距：每行自己带（控件形态不同，留白不一样），
+ * 留白留在卡上，就得给每种行都开一个例外。
+ */
+.spot-form__group {
+  overflow: hidden;
+  @include fish-glass($fish-radius-xl);
+}
+
+/*
+ * 发丝线。
+ *
+ * 由 FormRow 自己画（divided 属性），不在这儿用相邻选择器画 ——
+ * 外面画的线要落在组件宿主节点上，那在 WXSS 里不够稳；
+ * 而线的起点（值那一列）是标签列宽决定的，只有那一栏自己知道。
+ *
+ * 什么时候给 divided：上面也是「标签在左」的行时。
+ * 标签在上、控件在下的一行不需要线 —— 它的标签本身就是断点，
+ * 再画一根线就把这一组切得太碎了。
+ */
+
+/* ── 控件 ──────────────────────────────────────────────────────────────── */
+
+/*
+ * 行内输入框。
+ *
+ * 没有底色，右对齐 —— 它和标签并排放，填一个底就成了一块独立控件，
+ * 把「标签 + 值」读成了「标签 + 另一个控件」。
+ * 跟 iOS 设置里的行内输入一个脾气。
+ */
+.spot-form__input--inline {
+  width: 100%;
+  min-height: 48rpx;
+  padding: 0;
+  background-color: transparent;
+  color: $fish-ink;
+  @include fish-type(body);
+
+  text-align: right;
+}
+
+/* 金额那一行的单位 */
+.spot-form__unit {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  color: $fish-muted;
+  @include fish-type(callout);
+}
+
+/*
+ * 多行输入。
+ *
+ * 高度随内容长（auto-height），但给个最小值 —— 一行的高度看着像输入框，
+ * 用户不知道这里能写长文。
+ */
+.spot-form__textarea {
+  margin: 0 auto;
+  width: 95%;
+  min-height: 160rpx;
+  padding: 20rpx 12rpx;
+  border-radius: $fish-radius-lg;
+  background-color: $fish-fill;
+  color: $fish-ink;
+  @include fish-type(body);
+}
+
+/* 错话。点过提交还没选才说 */
+.spot-form__error {
+  display: block;
+  margin-top: 12rpx;
+  color: $fish-destructive-ink;
+  @include fish-type(caption);
+}
+
+/* ── 提交条 ────────────────────────────────────────────────────────────── */
+
+/*
+ * 提交条。
+ *
+ * 常驻底部。背景不是透明的 —— 内容从它底下滚过去，
+ * 透明的话会看见字从按钮底下穿出来。
+ */
+.spot-form__submit {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  background-color: $fish-glass-strong;
+  @include fish-glass-blur;
+}
+
+.spot-form__submit-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+/* 左边那句「还差几项」。没有它，用户只看到一个灰着的按钮，不知道为什么灰 */
+.spot-form__submit-note {
+  flex: 1;
+  min-width: 0;
+  color: $fish-warning-ink;
+  @include fish-type(footnote);
+}
+
+.spot-form__submit-note--ok {
+  color: $fish-success-ink;
+}
+
+.spot-form__submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 344rpx;
+  flex-shrink: 0;
+  min-height: 88rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent;
+  @include fish-press(0.97);
+}
+
+.spot-form__submit-btn--disabled {
+  opacity: 0.4;
+}
+
+.spot-form__submit-text {
+  color: #ffffff;
+  @include fish-type(callout);
+
+  font-weight: 600;
+}

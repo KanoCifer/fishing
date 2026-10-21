@@ -72,6 +72,15 @@
           <view v-if="spot.review_note" class="my-spots__item-note">
             <text class="my-spots__item-note-text">{{ spot.review_note }}</text>
           </view>
+
+          <!--
+            改稿入口。
+            放在理由下面而不是卡片标题旁边 —— 它的意义跟着理由走：
+            被驳回的那条，改的正是理由里说的那件事。
+          -->
+          <view class="my-spots__item-action" @tap="openEdit(spot.id)">
+            <text class="my-spots__item-action-text">{{ editLabel(spot.status) }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -98,6 +107,7 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import {
+  MY_SPOTS_ACTIONS,
   MY_SPOTS_EMPTY,
   MY_SPOTS_EMPTY_ACTION,
   MY_SPOTS_HINT,
@@ -173,6 +183,21 @@ function openCreate() {
 /** 看某条钓点的详情。属主看得到自己那条待审核的 */
 function openSpot(id: string) {
   uni.navigateTo({ url: `/pages/spot-detail/index?id=${id}` });
+}
+
+/**
+ * 操作按钮的文案。
+ *
+ * 未通过的说「修改后重交」—— 它要连着上面的理由一起看，理由就是改稿的说明；
+ * 别的状态说「编辑」，说「重交」会让人以为要重新排队。
+ */
+function editLabel(status?: FishingSpotStatus): string {
+  return status === 'rejected' ? MY_SPOTS_ACTIONS.resubmit : MY_SPOTS_ACTIONS.edit;
+}
+
+/** 去改这条钓点 */
+function openEdit(id: string) {
+  uni.navigateTo({ url: `/pages/spot-edit/index?id=${id}` });
 }
 
 /**
@@ -371,5 +396,26 @@ onPageShow(async () => {
 .my-spots__item-note-text {
   color: $fish-destructive-ink;
   @include fish-type(caption);
+}
+
+/*
+ * 改稿入口。
+ *
+ * 单独一行而不是塞进标题那一行：它是这一条的操作，不是这条钓点的属性。
+ * 文字用强调色 —— 它是这张卡上唯一能点的东西，得看着像能点。
+ */
+.my-spots__item-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 20rpx;
+  @include fish-press-dim;
+}
+
+.my-spots__item-action-text {
+  color: $fish-accent;
+  @include fish-type(caption);
+
+  font-weight: 600;
 }
 </style>

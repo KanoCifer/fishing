@@ -20,6 +20,12 @@
       }
     },
     {
+      "path": "pages/spot-edit/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/my-spots/index",
       "style": {
         "navigationStyle": "custom"

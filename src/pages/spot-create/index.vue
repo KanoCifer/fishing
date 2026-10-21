@@ -1,25 +1,21 @@
 <template>
-  <view class="spot-create" :style="{ minHeight: windowHeight + 'px' }">
+  <view class="spot-form" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
     <PageNav :title="title" :scrolled="scrolled" fallback-url="/pages/fishing/index" />
 
-    <view class="spot-create__body" :style="{ paddingTop: navBarBottom + 'px' }">
-      <view
-        v-if="draftRestored"
-        class="spot-create__draft spot-create__enter"
-        :style="{ animationDelay: enterDelay(0) }"
-      >
-        <view class="spot-create__draft-text">
-          <text class="spot-create__draft-title">{{ draftCopy.restored }}</text>
-          <text class="spot-create__draft-time">{{ draftSavedAtText }}</text>
+    <view class="spot-form__body" :style="{ paddingTop: navBarBottom + 'px' }">
+      <view v-if="draftRestored" class="spot-form__draft spot-form__enter" :style="{ animationDelay: enterDelay(0) }">
+        <view class="spot-form__draft-text">
+          <text class="spot-form__draft-title">{{ draftCopy.restored }}</text>
+          <text class="spot-form__draft-time">{{ draftSavedAtText }}</text>
         </view>
-        <text class="spot-create__draft-discard" @tap="confirmDiscardDraft">{{ draftCopy.discard }}</text>
+        <text class="spot-form__draft-discard" @tap="confirmDiscardDraft">{{ draftCopy.discard }}</text>
       </view>
 
       <!-- 引子：这一页要干什么，一句话 -->
-      <view class="spot-create__lede spot-create__enter" :style="{ animationDelay: enterDelay(1) }">
-        <text class="spot-create__title">{{ lede.title }}</text>
+      <view class="spot-form__lede spot-form__enter" :style="{ animationDelay: enterDelay(1) }">
+        <text class="spot-form__title">{{ lede.title }}</text>
       </view>
 
       <!--
@@ -33,14 +29,14 @@
           <text class="sect__badge" :class="{ 'sect__badge--done': !missingCount }">{{ missingBadge }}</text>
         </view>
 
-        <view class="sect__card spot-create__group" :style="{ animationDelay: enterDelay(2) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(2) }">
           <FormRow
             :label="fields.location.label"
             required
             chevron
             :value="locationName"
             :sub="locationAddress"
-            @tap="pickLocation"
+            @select="pickLocation"
           />
 
           <!--
@@ -51,7 +47,7 @@
           <FormRow :label="fields.name.label" required divided>
             <input
               v-model="name"
-              class="spot-create__input spot-create__input--inline"
+              class="spot-form__input spot-form__input--inline"
               :placeholder="fields.name.placeholder"
               placeholder-class="fish-placeholder"
               maxlength="30"
@@ -60,7 +56,7 @@
 
           <FormField :label="fields.kind.label" required>
             <ChoiceChips :options="kindOptions" :selected="kind ?? ''" @change="onKindChange" />
-            <text v-if="showKindError" class="spot-create__error">{{ fields.kind.error }}</text>
+            <text v-if="showKindError" class="spot-form__error">{{ fields.kind.error }}</text>
           </FormField>
         </view>
       </view>
@@ -72,11 +68,11 @@
           <text class="sect__meta">{{ groups.optional }}</text>
         </view>
 
-        <view class="sect__card spot-create__group" :style="{ animationDelay: enterDelay(3) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(3) }">
           <FormField :label="fields.description.label">
             <textarea
               v-model="description"
-              class="spot-create__textarea"
+              class="spot-form__textarea"
               :placeholder="fields.description.placeholder"
               placeholder-class="fish-placeholder"
               maxlength="200"
@@ -111,7 +107,7 @@
           <text class="sect__meta">{{ groups.optional }}</text>
         </view>
 
-        <view class="sect__card spot-create__group" :style="{ animationDelay: enterDelay(4) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(4) }">
           <FormField :label="fields.fee.label">
             <ChoiceChips :options="feeOptions" :selected="feeType" @change="onFeeChange" />
           </FormField>
@@ -120,12 +116,12 @@
           <FormRow v-if="feeType === 'paid'" :label="fields.feeAmount.label">
             <input
               v-model="feeAmount"
-              class="spot-create__input spot-create__input--inline"
+              class="spot-form__input spot-form__input--inline"
               :placeholder="fields.feeAmount.placeholder"
               placeholder-class="fish-placeholder"
               inputmode="decimal"
             />
-            <text class="spot-create__unit">{{ fields.feeAmount.unit }}</text>
+            <text class="spot-form__unit">{{ fields.feeAmount.unit }}</text>
           </FormRow>
 
           <FormField :label="fields.road.label">
@@ -139,7 +135,7 @@
           <FormRow :label="fields.hours.label">
             <input
               v-model="openingHours"
-              class="spot-create__input spot-create__input--inline"
+              class="spot-form__input spot-form__input--inline"
               :placeholder="fields.hours.placeholder"
               placeholder-class="fish-placeholder"
               maxlength="30"
@@ -154,17 +150,17 @@
       表单有十栏，滚到底才找得到按钮等于没有 —— 按钮得一直在手边。
       左边那一行是「还差几项」：光有一个灰着的按钮，用户不知道它为什么灰。
     -->
-    <view class="spot-create__submit">
-      <view class="spot-create__submit-row">
-        <text class="spot-create__submit-note" :class="{ 'spot-create__submit-note--ok': !missingCount }">
+    <view class="spot-form__submit">
+      <view class="spot-form__submit-row">
+        <text class="spot-form__submit-note" :class="{ 'spot-form__submit-note--ok': !missingCount }">
           {{ submitNote }}
         </text>
         <view
-          class="spot-create__submit-btn"
-          :class="{ 'spot-create__submit-btn--disabled': submitting || photoUploading }"
+          class="spot-form__submit-btn"
+          :class="{ 'spot-form__submit-btn--disabled': submitting || photoUploading }"
           @tap="submit"
         >
-          <text class="spot-create__submit-text">
+          <text class="spot-form__submit-text">
             {{ submitting ? submittingText : submitText }}
           </text>
         </view>
@@ -201,20 +197,22 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import {
   SPOT_CREATE_DRAFT,
-  SPOT_CREATE_FIELDS,
-  SPOT_CREATE_GROUPS,
   SPOT_CREATE_LEDE,
-  SPOT_CREATE_MISSING,
-  SPOT_CREATE_PICK_FAILED,
   SPOT_CREATE_SUBMIT,
   SPOT_CREATE_SUBMITTED,
   SPOT_CREATE_SUBMITTED_HINT,
   SPOT_CREATE_SUBMITTING,
   SPOT_CREATE_TITLE,
+} from '@/constants/spot-create';
+import {
+  SPOT_FORM_FIELDS,
+  SPOT_FORM_GROUPS,
+  SPOT_FORM_MISSING,
+  SPOT_FORM_PICK_FAILED,
   SPOT_PHOTO_MAX,
   SPOT_PHOTO_UPLOADING_BLOCK,
   SPOT_SUITABLE_OPTIONS,
-} from '@/constants/spot-create';
+} from '@/constants/spot-form';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import {
@@ -244,9 +242,9 @@ const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
 
 const title = SPOT_CREATE_TITLE;
-const fields = SPOT_CREATE_FIELDS;
+const fields = SPOT_FORM_FIELDS;
 const lede = SPOT_CREATE_LEDE;
-const groups = SPOT_CREATE_GROUPS;
+const groups = SPOT_FORM_GROUPS;
 const draftCopy = SPOT_CREATE_DRAFT;
 const submitText = SPOT_CREATE_SUBMIT;
 const submittingText = SPOT_CREATE_SUBMITTING;
@@ -339,12 +337,12 @@ const missingLabels = computed(() => {
 
 /** 分组标题右边那一枚 */
 const missingBadge = computed(() =>
-  missingCount.value ? SPOT_CREATE_MISSING.count(missingCount.value) : SPOT_CREATE_MISSING.done,
+  missingCount.value ? SPOT_FORM_MISSING.count(missingCount.value) : SPOT_FORM_MISSING.done,
 );
 
 /** 底栏左边那一行 */
 const submitNote = computed(() =>
-  missingCount.value ? SPOT_CREATE_MISSING.dock(missingCount.value) : SPOT_CREATE_MISSING.dockDone,
+  missingCount.value ? SPOT_FORM_MISSING.dock(missingCount.value) : SPOT_FORM_MISSING.dockDone,
 );
 
 /** 水体类型那一栏的错话。点过提交还没选才说 */
@@ -598,7 +596,7 @@ function pickLocation() {
       // 只有真的出错（没授权、环境不支持）才提示。
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: SPOT_CREATE_PICK_FAILED, icon: 'none' });
+      uni.showToast({ title: SPOT_FORM_PICK_FAILED, icon: 'none' });
     },
   });
 }
@@ -661,7 +659,7 @@ async function submit() {
   // 缺哪几项一次说完。分三回报（先说位置、填完再说名称、再说类型），
   // 用户要来回三趟 —— 而分组卡上明明写着「还差 2 项」。
   if (missingLabels.value.length) {
-    uni.showToast({ title: SPOT_CREATE_MISSING.toast(missingLabels.value), icon: 'none' });
+    uni.showToast({ title: SPOT_FORM_MISSING.toast(missingLabels.value), icon: 'none' });
     return;
   }
   // 照片没传完就提交，那几张会静默丢掉 —— 用户在界面上明明看见了它们
@@ -789,277 +787,5 @@ onPageShow(() => {
 </script>
 
 <style lang="scss" scoped>
-.spot-create {
-  position: relative;
-  background-color: $fish-grouped;
-}
-
-.spot-create__body {
-  position: relative;
-  z-index: 1;
-  /* 底部留出提交条的高度 + 安全区，否则最后一行被压在按钮底下 */
-  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
-}
-
-/* 入场。延迟按阅读顺序给 */
-.spot-create__enter {
-  @include fish-enter;
-}
-
-/* ── 草稿条 ────────────────────────────────────────────────────────────── */
-
-/*
- * 草稿条。
- *
- * 它是一张分组卡，不是卡里的一行 —— 它跟表单是两层东西，
- * 混进必填那一组里，用户会以为这也是一栏要填的东西。
- */
-.spot-create__draft {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  margin: 16rpx 32rpx 0;
-  padding: 20rpx 28rpx;
-  border-radius: $fish-radius-xl;
-  @include fish-glass($fish-radius-xl);
-}
-
-.spot-create__draft-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.spot-create__draft-title {
-  display: block;
-  color: $fish-ink;
-  @include fish-type(subhead);
-
-  font-weight: 600;
-}
-
-.spot-create__draft-time {
-  display: block;
-  margin-top: 2rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption);
-}
-
-/* 丢弃。红色 —— 这是一个会丢东西的动作 */
-.spot-create__draft-discard {
-  flex-shrink: 0;
-  padding: 8rpx 0 8rpx 16rpx;
-  color: $fish-destructive-ink;
-  @include fish-type(callout);
-
-  font-weight: 600;
-  @include fish-press-dim;
-}
-
-/* ── 引子 ──────────────────────────────────────────────────────────────── */
-
-/*
- * 引子。
- *
- * 这一页要干什么，一句话说清。位置和名称是必填的这件事也在这里说一遍 ——
- * 后面每一组标题旁边还会再标一次「必填」，两处不冲突：
- * 这里是解释，标的是提醒。
- */
-.spot-create__lede {
-  padding: 40rpx 32rpx 0;
-}
-
-.spot-create__title {
-  display: block;
-  color: $fish-ink;
-  @include fish-type(title1);
-}
-
-.spot-create__sub {
-  display: block;
-  margin-top: 12rpx;
-  color: $fish-muted;
-  @include fish-type(footnote);
-}
-
-/* ── 分组 ──────────────────────────────────────────────────────────────── */
-
-/*
- * 分区。
- *
- * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
- * 与数据页、我的页是同一条规则，三页的分块节奏因此一致。
- */
-.sect {
-  @include fish-section;
-}
-
-/*
- * 分组标题那一行。
- *
- * 左边是标题，右边是状态（必填那组写「还差 1 项」，其余组写「选填」）。
- * 状态贴在标题的基线上，不另起一行 —— 另起一行它就成了标题的注脚，
- * 而它其实和标题是同一层的两件事。
- */
-.sect__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-/* 状态。「还差 1 项」是待办不是出错，用橙不用红 */
-.sect__badge {
-  color: $fish-warning-ink;
-  @include fish-type(caption2);
-
-  font-weight: 600;
-}
-
-.sect__badge--done {
-  color: $fish-success-ink;
-}
-
-/* 「选填」那种不重要的状态，压到第三档 */
-.sect__meta {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-/*
- * 分组卡。
- *
- * 圆角走 inset 分组容器那一档（12pt），不是玻璃卡那一档（24pt）——
- * 这张卡是 iOS 那种内嵌分组列表，不是数据页那种浮起来的玻璃卡。
- *
- * 卡里不留内边距：每行自己带（控件形态不同，留白不一样），
- * 留白留在卡上，就得给每种行都开一个例外。
- */
-.spot-create__group {
-  overflow: hidden;
-  @include fish-glass($fish-radius-xl);
-}
-
-/*
- * 发丝线。
- *
- * 由 FormRow 自己画（divided 属性），不在这儿用相邻选择器画 ——
- * 外面画的线要落在组件宿主节点上，那在 WXSS 里不够稳；
- * 而线的起点（值那一列）是标签列宽决定的，只有那一栏自己知道。
- *
- * 什么时候给 divided：上面也是「标签在左」的行时。
- * 标签在上、控件在下的一行不需要线 —— 它的标签本身就是断点，
- * 再画一根线就把这一组切得太碎了。
- */
-
-/* ── 控件 ──────────────────────────────────────────────────────────────── */
-
-/*
- * 行内输入框。
- *
- * 没有底色，右对齐 —— 它和标签并排放，填一个底就成了一块独立控件，
- * 把「标签 + 值」读成了「标签 + 另一个控件」。
- * 跟 iOS 设置里的行内输入一个脾气。
- */
-.spot-create__input--inline {
-  width: 100%;
-  min-height: 48rpx;
-  padding: 0;
-  background-color: transparent;
-  color: $fish-ink;
-  @include fish-type(body);
-
-  text-align: right;
-}
-
-/* 金额那一行的单位 */
-.spot-create__unit {
-  flex-shrink: 0;
-  margin-left: 12rpx;
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-/*
- * 多行输入。
- *
- * 高度随内容长（auto-height），但给个最小值 —— 一行的高度看着像输入框，
- * 用户不知道这里能写长文。
- */
-.spot-create__textarea {
-  margin: 0 auto;
-  width: 95%;
-  min-height: 160rpx;
-  padding: 20rpx 12rpx;
-  border-radius: $fish-radius-lg;
-  background-color: $fish-fill;
-  color: $fish-ink;
-  @include fish-type(body);
-}
-
-/* 错话。点过提交还没选才说 */
-.spot-create__error {
-  display: block;
-  margin-top: 12rpx;
-  color: $fish-destructive-ink;
-  @include fish-type(caption);
-}
-
-/* ── 提交条 ────────────────────────────────────────────────────────────── */
-
-/*
- * 提交条。
- *
- * 常驻底部。背景不是透明的 —— 内容从它底下滚过去，
- * 透明的话会看见字从按钮底下穿出来。
- */
-.spot-create__submit {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
-  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
-  background-color: $fish-glass-strong;
-  @include fish-glass-blur;
-}
-
-.spot-create__submit-row {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-/* 左边那句「还差几项」。没有它，用户只看到一个灰着的按钮，不知道为什么灰 */
-.spot-create__submit-note {
-  flex: 1;
-  min-width: 0;
-  color: $fish-warning-ink;
-  @include fish-type(footnote);
-}
-
-.spot-create__submit-note--ok {
-  color: $fish-success-ink;
-}
-
-.spot-create__submit-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 344rpx;
-  flex-shrink: 0;
-  min-height: 88rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-accent;
-  @include fish-press(0.97);
-}
-
-.spot-create__submit-btn--disabled {
-  opacity: 0.4;
-}
-
-.spot-create__submit-text {
-  color: #ffffff;
-  @include fish-type(callout);
-
-  font-weight: 600;
-}
+@use '@/styles/pages/spot-form.scss';
 </style>

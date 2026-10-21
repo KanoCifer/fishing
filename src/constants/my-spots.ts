@@ -50,3 +50,17 @@ export const MY_SPOTS_STATUS_TONES = {
   approved: 'ok',
   rejected: 'bad',
 } as const;
+
+/**
+ * 每条钓点下面的操作。
+ *
+ * 驳回的那条给「修改后重交」—— 它要连着理由一起看，理由就是改稿的说明，
+ * 按钮得说的是「改完再交」而不只是「编辑」；别的状态给「编辑」，
+ * 说「重交」会让人以为要重新排队。
+ */
+export const MY_SPOTS_ACTIONS = {
+  /** 未通过：改完重新提交 */
+  resubmit: '修改后重交',
+  /** 其余状态：改一改 */
+  edit: '编辑',
+} as const;

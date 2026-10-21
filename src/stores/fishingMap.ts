@@ -25,6 +25,7 @@ import { fishingApi, fishingSpotApi, type LngLat } from '@/api/fishing';
 import {
   toMapMarkers,
   type CreateFishingSpotPayload,
+  type UpdateFishingSpotPayload,
   type FishingIndexData,
   type FishingSpot,
   type MapMarker,
@@ -70,6 +71,57 @@ function locationKey(location: LngLat): string {
   return `${location[0].toFixed(2)},${location[1].toFixed(2)}`;
 }
 
+/**
+ * 定位授权状态。
+ *
+ * 三档刚好够用，不必更细：
+ * - granted 已授权，getLocation 直接给坐标
+ * - denied  用户明确拒绝过，微信不会再弹权限窗，只剩设置页一条路
+ * - unset   从没问过（第一次进小程序就是这个），getLocation 会弹授权窗
+ */
+type LocationAuth = 'granted' | 'denied' | 'unset';
+
+/**
+ * 问微信当前的定位授权状态。
+ *
+ * 不靠 getLocation 的 errMsg 猜「是不是被拒了」—— 那些文案是微信的内部实现，
+ * 换个基础库版本就变。这里读的是授权状态本身，语义稳定。
+ *
+ * 查不到就当没问过：让 getLocation 自己去弹窗，别在这儿替微信做决定。
+ */
+function queryLocationAuth(): Promise<LocationAuth> {
+  return new Promise((resolve) => {
+    uni.getSetting({
+      success: (res) => {
+        const granted = res.authSetting?.['scope.userLocation'];
+        resolve(granted === true ? 'granted' : granted === false ? 'denied' : 'unset');
+      },
+      fail: () => resolve('unset'),
+    });
+  });
+}
+
+/** 从回调的 errMsg 里取出原因文字，微信给的是字符串 */
+function readErrMsg(err: unknown): string {
+  if (err && typeof err === 'object' && 'errMsg' in err) {
+    return String((err as { errMsg?: unknown }).errMsg ?? '');
+  }
+  return '';
+}
+
+/**
+ * 把定位失败翻译成一句能照着做的话。
+ *
+ * 不给原始 errMsg：那串英文对用户没用（"getLocation:fail system permission denied"），
+ * 用户需要知道的是「该开什么」。文案短到能塞进一个 toast。
+ */
+function describeLocationError(errMsg: string): string {
+  if (/system permission denied/i.test(errMsg)) return '请开启手机定位服务';
+  if (/privacy|requiredPrivateInfos/i.test(errMsg)) return '定位未获授权';
+  if (/timeout/i.test(errMsg)) return '定位超时，请重试';
+  return '定位失败，请重试';
+}
+
 export const useFishingMapStore = defineStore('fishingMap', () => {
   /**
    * 用户当前位置。
@@ -78,8 +130,21 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * null = 还没定位到（未授权 / 定位失败 / 还没定位完）。
    */
   const userLocation = ref<LngLat | null>(null);
-  /** 定位失败或权限被拒。地图的定位键据此染红 */
+  /**
+   * 用户明确拒绝过定位授权。
+   *
+   * 只有这一种情况才值得引导去设置页 —— 微信在用户拒绝之后不会再弹权限窗，
+   * 设置页是唯一能重来的路径。其余失败（系统定位没开、隐私协议没同意、网络差）
+   * 都能靠重试解决，混进来会让定位键变成只会跳设置页的死键。
+   */
   const locationDenied = ref(false);
+  /**
+   * 最近一次定位失败的说明。空串 = 没有失败。
+   *
+   * 定位键据此染红：按了没反应这件事必须看得见，
+   * 否则用户既不知道出了什么事，也不知道该重试还是该去设置。
+   */
+  const locationError = ref('');
   /** 正在定位。定位键与刷新键的转圈状态 */
   const locating = ref(false);
   /**
@@ -168,30 +233,64 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
     locating.value = true;
 
-    locatePending = new Promise<LngLat | null>((resolve) => {
-      uni.getLocation({
-        // 必须是 gcj02 —— 小程序 <map> 组件用的是 GCJ-02 火星坐标系。
-        // 传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
-        type: 'gcj02',
-        success: (res) => {
-          userLocation.value = [res.longitude, res.latitude];
-          locationDenied.value = false;
-          resolve(userLocation.value);
-        },
-        fail: () => {
-          // 授权被拒或系统定位不可用：保留上一次的坐标，靠图标染红告诉用户
-          // 「定位键按了没用」。不在这里弹 openSetting —— 用户可能只是信号不好，
-          // 上来就抢设置页很突兀，按键点一下再去。
-          locationDenied.value = true;
-          resolve(null);
-        },
+    const pending = (async (): Promise<LngLat | null> => {
+      /*
+       * 先问授权状态再调 getLocation。
+       *
+       * 顺序反了会踩两个坑：用户已经拒绝过时，getLocation 不会再弹窗，
+       * 只会 fail 回来 —— 调它一百遍也是同一个结果，白白浪费一次交互；
+       * 而「明确拒绝」和「从没问过」在界面上要给的引导完全不同，
+       * 光看 getLocation 的失败回调区分不出来。
+       */
+      const auth = await queryLocationAuth();
+      if (auth === 'denied') {
+        locationDenied.value = true;
+        locationError.value = '';
+        return null;
+      }
+
+      return new Promise<LngLat | null>((resolve) => {
+        uni.getLocation({
+          // 必须是 gcj02 —— 小程序 <map> 组件用的是 GCJ-02 火星坐标系。
+          // 传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
+          type: 'gcj02',
+          success: (res) => {
+            userLocation.value = [res.longitude, res.latitude];
+            locationDenied.value = false;
+            locationError.value = '';
+            resolve(userLocation.value);
+          },
+          fail: async (err) => {
+            /*
+             * 到这一步授权是 granted 或 unset，仍然失败说明是别的原因。
+             *
+             * 唯一例外是用户在授权弹窗上点了「拒绝」—— 问授权时用户还没表态，
+             * 那一刻拿到的还是 unset，得等弹窗关掉再问一次才准。
+             */
+            const errMsg = readErrMsg(err);
+            const after = await queryLocationAuth();
+            const denied = after === 'denied' || /auth deny|authorize:fail/i.test(errMsg);
+
+            locationDenied.value = denied;
+            if (denied) {
+              // 被拒不是「出错」，是用户做了决定。图标染红，但别拿一句报错去打扰他
+              locationError.value = '';
+            } else {
+              // 保留上一次的坐标，靠图标染红告诉用户「定位键按了没用」
+              locationError.value = describeLocationError(errMsg);
+              notifyError(locationError.value);
+            }
+            resolve(null);
+          },
+        });
       });
-    }).finally(() => {
+    })().finally(() => {
       locatePending = null;
       locating.value = false;
     });
 
-    return locatePending;
+    locatePending = pending;
+    return pending;
   }
 
   /**
@@ -202,6 +301,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    */
   function markLocationDenied(): void {
     locationDenied.value = true;
+    locationError.value = '';
   }
 
   /**
@@ -397,6 +497,31 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   }
 
   /**
+   * 取单条钓点 —— 编辑页回填表单用。
+   *
+   * 走详情端点而不是从 mySpots 里找：mySpots 只装我提交的那些，
+   * 而详情端点还认得「属主看自己待审的那条」这条路径。
+   *
+   * 用带会话的那个：access token 过期时它会先静默刷一次，
+   * 否则属主打开自己待审的钓点只会看到「载入失败」。
+   */
+  async function fetchSpot(id: string): Promise<FishingSpot> {
+    return fishingSpotApi.getByIdWithSession(id);
+  }
+
+  /**
+   * 更新我提交的钓点。
+   *
+   * 保存完重新拉一次「我的钓点」：属主改一条没过审的钓点，
+   * 后端把它退回 pending 并清掉审核备注 —— 列表里那条的状态变了，
+   * 不重拉的话页面上还挂着旧状态，用户会以为没生效。
+   */
+  async function updateSpot(id: string, payload: UpdateFishingSpotPayload): Promise<void> {
+    await fishingSpotApi.update(id, payload);
+    await fetchMySpots();
+  }
+
+  /**
    * 记录当前选中的钓点（点 marker 时调用），传 null 表示取消选中。
    *
    * 与标记集合分开而不是合成一个，是因为选中态只改一个引用，
@@ -410,6 +535,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     // 定位
     userLocation,
     locationDenied,
+    locationError,
     locating,
     indexLocation,
     // 天气
@@ -452,6 +578,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     setSelectedDate,
     fetchSpots,
     createSpot,
+    updateSpot,
+    fetchSpot,
     fetchMySpots,
     setSelectedMarker,
   };

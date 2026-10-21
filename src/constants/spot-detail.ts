@@ -22,3 +22,14 @@ export const SPOT_HERO_OVERLAP_RPX = 68;
  * （同 useMapMarkers 的 marker 图标路径）。
  */
 export const SPOT_PLACEHOLDER_IMAGE = '/static/spots.png';
+
+/**
+ * 属主在详情页上看到的那个编辑入口。
+ *
+ * 只对属主出现 —— 别人看到的是一条公开的钓点，不是自己的东西，
+ * 给一个「编辑」按钮在那儿是误导。
+ */
+export const SPOT_DETAIL_EDIT = {
+  /** 按钮上的字 */
+  label: '编辑这条钓点',
+} as const;

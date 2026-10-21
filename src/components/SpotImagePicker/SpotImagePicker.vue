@@ -50,7 +50,7 @@ import { computed, ref } from 'vue';
 
 import { mediaUrl, uploadImage } from '@/api/upload';
 import { icon } from '@/constants/icons';
-import { SPOT_PHOTO_MAX, SPOT_PHOTO_PICK_FAILED, SPOT_PHOTO_UPLOADING } from '@/constants/spot-create';
+import { SPOT_PHOTO_MAX, SPOT_PHOTO_PICK_FAILED, SPOT_PHOTO_UPLOADING } from '@/constants/spot-form';
 import { toErrorMessage } from '@/utils/error';
 
 /** 正在上传的一张 */

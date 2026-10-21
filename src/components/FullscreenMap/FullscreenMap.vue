@@ -84,7 +84,7 @@ const props = withDefaults(
   {
     latitude: 30.2741,
     longitude: 120.1551,
-    scale: 16,
+    scale: 11,
     showLocation: true,
     topInset: 0,
     markers: () => [],
@@ -95,9 +95,22 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  regionchange: [payload: { latitude: number; longitude: number; scale: number }];
-  /** marker 被点中。只回传 markerId，由调用方用 useMapMarkers 的 resolveMarker 换回领域对象 */
-  markertap: [payload: { markerId: number }];
+  /**
+   * 视野变了。
+   *
+   * 事件名是驼峰的 `regionChange`，不是 `regionchange` ——
+   * 后者是小程序 `<map>` 的原生事件名。父组件上的 `@regionchange` 会被编译成
+   * `bindregionchange` 绑在自定义组件上，微信会让它同时接住两条路：
+   * 组件内部 `triggerEvent` 派发的一条，和 `<map>` 原生 markertap 冒泡出组件的一条。
+   * 于是同一个监听器被打两次。
+   */
+  regionChange: [payload: { latitude: number; longitude: number; scale: number }];
+  /**
+   * marker 被点中。只回传 markerId，由调用方用 useMapMarkers 的 resolveMarker 换回领域对象。
+   *
+   * 驼峰的理由同上：`markertap` 是 `<map>` 的原生事件名，同名会双触发。
+   */
+  markerTap: [payload: { markerId: number }];
   'update:satellite': [value: boolean];
   'update:traffic': [value: boolean];
   /** 底图整体切了一档。想把选择持久化的页面听这个就够 */
@@ -124,18 +137,23 @@ const mapStore = useFishingMapStore();
 /** 定位中。转圈状态也用 store 那一份，两处不必各记一个 */
 const locating = computed(() => mapStore.locating);
 
-/** 有没有坐标可用。区分的是「有没有点」，不是「是不是被拒」 */
-const hasLocation = computed(() => mapStore.userLocation !== null);
-
 /**
  * 定位失败 / 权限被拒。
  *
  * 两处用：给定位键染红，以及让 recenter 走授权补救那条路（见那个函数）。
  *
- * 之所以要和 hasLocation 分成两个状态：hasLocation 答的是「有没有坐标可用」，
- * 首次进入时它也是 false（还没定位完），拿它当「被拒」的判据会让图标一进来就闪红。
+ * 之所以要分成两个状态：被拒答的是「用户明确拒绝了，去设置页才有用」，
+ * 失败答的是「这次没成，再试一次可能就成了」。两者的下一步完全不同。
  */
 const permissionDenied = computed(() => mapStore.locationDenied);
+
+/**
+ * 定位键当前该不该报警。
+ *
+ * 被拒和其他失败都算「按了没用」，图标上一视同仁；
+ * 差别在点击之后走哪条路 —— 被拒去设置页，其他直接重试。
+ */
+const locateFailed = computed(() => permissionDenied.value || mapStore.locationError !== '');
 
 /** 底图循环键的图层图标。压成 muted，让它和文案读成一个整体而不是「图标 + 标签」 */
 const layersIcon = icon('layers', 'muted');
@@ -143,12 +161,10 @@ const layersIcon = icon('layers', 'muted');
 /**
  * 定位键图标。
  *
- * 权限没开就染红而不是压灰：压灰和「定位中」撞在一起，分不出是暂时在忙还是
+ * 定位失败就染红而不是压灰：压灰和「定位中」撞在一起，分不出是暂时在忙还是
  * 根本定位不了，而这两件事用户该做的下一步完全不同（等一下 vs 去设置页开权限）。
  */
-const locateIcon = computed(() =>
-  permissionDenied.value ? icon('crosshair', 'destructive') : icon('crosshair', 'ink'),
-);
+const locateIcon = computed(() => (locateFailed.value ? icon('crosshair', 'destructive') : icon('crosshair', 'ink')));
 
 /** 由两个布尔反推当前档位，供按钮显示和循环切换用 */
 const activeBaseMap = computed<BaseMapMode>(() =>
@@ -281,17 +297,17 @@ function openLocationSetting() {
 /**
  * 定位按钮。
  *
- * 已经拿到过坐标就直接重新定位；拿过且失败说明多半是权限被拒，
- * 这时 getLocation 再调一百遍也是同样的结果，直接带去设置页。
+ * 只有「用户明确拒绝过授权」才带去设置页 —— 微信在拒绝之后不会再弹权限窗，
+ * 设置页是唯一能重来的路径。其余情况（从没问过、系统定位没开、网络差）
+ * 都直接重试：跳设置页解决不了它们，只会让用户在一个用不上的页面里干瞪眼。
  *
- * 判据是「被拒」而不是「有没有坐标」：定位失败时 store 保留上一次的坐标
- * （靠图标染红告诉用户「定位键按了没用」），hasLocation 因此一直为真。
- * 只看它的话，授权页这条唯一的补救路径就再也进不去了 —— 用户在微信设置里
- * 撤销过权限后，按键只会反复重试注定失败的 getLocation。
+ * 判据是「被拒」而不是「有没有坐标」：定位失败时 store 保留上一次的坐标，
+ * 「还没定位到」和「被拒了」是两回事 —— 把前者也当成被拒，
+ * 定位键就成了一把只会跳设置页、永远定位不了的死键。
  */
 function recenter() {
   if (locating.value) return;
-  if (!hasLocation.value || permissionDenied.value) {
+  if (permissionDenied.value) {
     openLocationSetting();
     return;
   }
@@ -348,7 +364,7 @@ function onRegionChange(e: RegionChangeEvent) {
   syncViewport(longitude, center?.longitude, tolerance);
   syncViewport(scale, detail.scale, SCALE_EPSILON);
 
-  emit('regionchange', {
+  emit('regionChange', {
     latitude: latitude.value,
     longitude: longitude.value,
     scale: scale.value,
@@ -364,7 +380,7 @@ function onRegionChange(e: RegionChangeEvent) {
 function onMarkerTap(e: { detail?: { markerId?: number } }) {
   const markerId = e.detail?.markerId;
   if (typeof markerId !== 'number') return;
-  emit('markertap', { markerId });
+  emit('markerTap', { markerId });
 }
 
 onMounted(() => {

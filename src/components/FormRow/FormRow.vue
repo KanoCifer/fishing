@@ -87,14 +87,23 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  /** 这一行被点了。只在 chevron 为真时发 */
-  tap: [];
+  /**
+   * 这一行被点了。只在 chevron 为真时发。
+   *
+   * 事件名不能叫 `tap` —— 那是小程序的原生事件名，父组件上的 `@tap`
+   * 会被编译成 `bindtap` 绑在自定义组件上。微信会把同名事件走两条路：
+   * 一条是组件内部 `triggerEvent` 派发，另一条是根节点原生 tap 冒泡出组件，
+   * 于是同一个监听器被打两次 —— 点一次位置栏弹出两个选点页。
+   *
+   * 组件内部的 `@tap="onTap"` 保持叫 tap 不用改：那是原生事件，本来就该这么写。
+   */
+  select: [];
 }>();
 
 /** 点这一行 */
 function onTap() {
   if (!props.chevron) return;
-  emit('tap');
+  emit('select');
 }
 </script>
 
