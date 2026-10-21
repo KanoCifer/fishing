@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint } from '@/utils/curve';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 interface Series {
@@ -121,6 +122,17 @@ const props = withDefaults(
      * 点多且标签长（如 24 小时的时刻）时显式传 3~4，否则标签会糊成一片。
      */
     labelStep?: number;
+    /**
+     * 是否把采样点连成平滑曲线。
+     *
+     * 默认开：逐时气温、风速这类连续量，直线连接会在拐点处留下折角，
+     * 读起来像「数据在跳」；平滑之后拐点处是圆弧，更像连续变化的量。
+     *
+     * 走的是单调三次插值（Fritsch–Carlson），曲线不会冲出采样点的范围 ——
+     * 降水量这种以 0 为底的量尤其需要：普通样条会插出负值，图上会多出一段
+     * 并不存在的降水。
+     */
+    smooth?: boolean;
   }>(),
   {
     width: 690,
@@ -131,6 +143,7 @@ const props = withDefaults(
     unit: '',
     animate: true,
     duration: 700,
+    smooth: true,
   },
 );
 
@@ -274,6 +287,22 @@ const summaryText = computed(() => {
   return `最高 ${high}${suffix}　最低 ${low}${suffix}`;
 });
 
+/**
+ * 描出当前这一段路径：平滑时走贝塞尔曲线，否则走直线。
+ *
+ * 两种路径都用同一套「按 x 截断」的逻辑，所以入场动画只有一份实现 ——
+ * 头部长在哪儿、怎么插值出来的，直线和曲线算出来是同一个位置。
+ */
+function tracePath(ctx: CanvasRenderingContext2D, points: CurvePoint[], cut: number, smooth: boolean): void {
+  if (points.length < 2) return;
+  const segments = clipCurve(smooth ? buildCurve(points) : buildPolyline(points), headX(points, cut));
+  if (!segments.length) return;
+  ctx.moveTo(segments[0].x0, segments[0].y0);
+  for (const segment of segments) {
+    ctx.bezierCurveTo(segment.cx1, segment.cy1, segment.cx2, segment.cy2, segment.x1, segment.y1);
+  }
+}
+
 function draw() {
   const ctx = ctxRef.value;
   const size = sizeRef.value;
@@ -353,16 +382,7 @@ function draw() {
     ctx.beginPath();
     // 入场动画：只画到 progress 对应的位置，线像被"画"出来一样
     const cut = progress * (points.length - 1);
-    points.forEach((p, i) => {
-      if (i <= Math.floor(cut)) {
-        i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-      } else if (i === Math.ceil(cut)) {
-        // 最后一个未完成段，按小数比例插值出当前的端点
-        const t = cut - i + 1;
-        const prev = points[i - 1];
-        ctx.lineTo(prev.x + (p.x - prev.x) * t, prev.y + (p.y - prev.y) * t);
-      }
-    });
+    tracePath(ctx, points, cut, props.smooth);
     ctx.stroke();
 
     // 数据点：随动画进度逐个出现。白心 + 彩色描边，和 iOS Charts 的数据点一致。

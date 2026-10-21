@@ -50,6 +50,7 @@
 import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 /**
@@ -96,6 +97,14 @@ interface Props {
   animate?: boolean;
   /** 入场时长（ms），仅数据切换的动画用 */
   duration?: number;
+  /**
+   * 是否把采样点连成平滑曲线。
+   *
+   * 逐时潮高本身是连续变化的，直线连接会在拐点处留下折角，
+   * 看着像潮水在跳。平滑用单调三次插值，曲线不会冲出采样点范围 ——
+   * 潮高越出上下界会画到坐标轴外面去。
+   */
+  smooth?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -109,6 +118,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: 400,
   animate: true,
   duration: 700,
+  smooth: true,
 });
 
 const instance = getCurrentInstance()!;
@@ -252,6 +262,21 @@ const activeHeight = computed(() => {
   return formatHeight(props.points[i].height);
 });
 
+/**
+ * 描出一串曲线段。
+ *
+ * 只描线，不做算法：曲线怎么算出来的在 utils/curve，两张图共用那一份，
+ * 这样曲线形状和动画头部必然一致。这里重复这几行，是因为两张图各画各的
+ * canvas，描线这件事本身没有值得抽出去的部分。
+ */
+function traceSegments(ctx: CanvasRenderingContext2D, segments: CurveSegment[]): void {
+  if (!segments.length) return;
+  ctx.moveTo(segments[0].x0, segments[0].y0);
+  for (const segment of segments) {
+    ctx.bezierCurveTo(segment.cx1, segment.cy1, segment.cx2, segment.cy2, segment.x1, segment.y1);
+  }
+}
+
 function draw() {
   const ctx = ctxRef.value;
   const size = sizeRef.value;
@@ -330,31 +355,19 @@ function draw() {
 
   // 入场动画：只画到 progress 对应的位置，曲线像被"画"出来
   const cut = progress * (len - 1);
-  const lastIndex = Math.min(len - 1, Math.ceil(cut));
 
-  const pathPoints: Array<{ x: number; y: number }> = [];
-  for (let i = 0; i <= lastIndex; i++) {
-    const p = { x: indexToX(i), y: valueToY(values[i]) };
-    if (i === lastIndex && i > Math.floor(cut)) {
-      // 最后一个未完成段，按小数比例插值出当前端点
-      const t = cut - Math.floor(cut);
-      const prev = { x: indexToX(i - 1), y: valueToY(values[i - 1]) };
-      pathPoints.push({ x: prev.x + (p.x - prev.x) * t, y: prev.y + (p.y - prev.y) * t });
-    } else {
-      pathPoints.push(p);
-    }
-  }
+  const points: CurvePoint[] = values.map((value, i) => ({ x: indexToX(i), y: valueToY(value) }));
 
-  if (pathPoints.length >= 2) {
+  // 平滑时是贝塞尔曲线，否则是直线。两者都是「一串段」，
+  // 于是「画到哪里为止」只有一套算法（utils/curve 的 clipCurve）。
+  const segments = clipCurve(props.smooth ? buildCurve(points) : buildPolyline(points), headX(points, cut));
+
+  if (segments.length) {
     // 面积：沿曲线走到底再回到底边闭合
     ctx.beginPath();
-    ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-    ctx.lineTo(pathPoints[1].x, pathPoints[1].y);
-    for (let i = 2; i < pathPoints.length; i++) {
-      ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-    }
-    ctx.lineTo(pathPoints[pathPoints.length - 1].x, bottom);
-    ctx.lineTo(pathPoints[0].x, bottom);
+    traceSegments(ctx, segments);
+    ctx.lineTo(segments[segments.length - 1].x1, bottom);
+    ctx.lineTo(segments[0].x0, bottom);
     ctx.closePath();
     ctx.fillStyle = gradient;
     ctx.fill();
@@ -362,19 +375,14 @@ function draw() {
 
   // 曲线本体。
   //
-  // length >= 2 的判断不能省：入场动画第一帧 progress=0，此时 cut=0、lastIndex=0，
-  // pathPoints 里只有 1 个点。不判断就直接取 pathPoints[1] 会抛
-  // TypeError，而异常从 rAF 回调里抛出去会连带这一帧的绘制一起作废 ——
-  // 表现就是整张图一片空白，连网格线都没有，且控制台不报任何错。
-  // 单点画不出线，直接跳过，下一帧 progress>0 自然就画出来了。
-  if (pathPoints.length < 2) return;
+  // segments 为空时直接跳过：入场动画第一帧 progress=0，此时头部还压在起点，
+  // 一段都还没画出来 —— 硬画会取到 undefined 的控制点，异常从 rAF 回调里抛出去
+  // 会连带这一帧的绘制一起作废，表现就是整张图一片空白，连网格线都没有，
+  // 且控制台不报任何错。下一帧 progress>0 自然就画出来了。
+  if (!segments.length) return;
 
   ctx.beginPath();
-  ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-  ctx.lineTo(pathPoints[1].x, pathPoints[1].y);
-  for (let i = 2; i < pathPoints.length; i++) {
-    ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-  }
+  traceSegments(ctx, segments);
   ctx.strokeStyle = TIDE_COLOR;
   ctx.lineWidth = 3; // 与 iOS Charts 的默认线宽（3pt）对齐，2.5 在小画布上偏细
   ctx.lineJoin = 'round';
