@@ -7,7 +7,7 @@
  * - 其余端点路径、参数格式、返回形状一律照抄后端契约，不做"顺手优化"
  */
 
-import { request } from './client';
+import { request, withSession } from './client';
 import type {
   CreateFishingSpotPayload,
   FishingFeedbackPayload,
@@ -101,11 +101,12 @@ export interface DeleteFishingSpotOptions {
 const SPOTS_BASE = 'v3/fish/spots';
 
 /*
- * 钓点写操作（create / update / remove）当前都没有 UI 调用方 ——
- * 钓点详情页只留「导航」，编辑与删除都下线了（见 pages/spot-detail 的说明）。
+ * 钓点写操作走 withSession 包装。
  *
- * 端点留着，是因为它们是后端契约的记录：update 上面那两条疑问（PUT 路由是否已注册、
- * Partial 语义会不会被当成全量替换）还悬着，等编辑接回来时照单验一遍就能用。
+ * request 只负责发请求和剥信封，401 它直接抛 —— 不会去刷 token。
+ * 刷新那件事在 api/auth 的 withSession 里：撞上 401 就静默刷一次再重试。
+ * 写入类端点全都要求登录，token 恰好是最容易过期的一枚，所以这几个都要包。
+ * 公开的 list / getById 不包 —— 它们不带头也能调，401 不该由它们来解释。
  */
 export const fishingSpotApi = {
   /** 钓点列表 */
@@ -113,46 +114,67 @@ export const fishingSpotApi = {
     return request<FishingSpot[]>({ url: SPOTS_BASE });
   },
 
+  /**
+   * 我提交的钓点。
+   *
+   * 公开列表只含已过审的条目 —— 公开接口把 status 写死成 approved，
+   * 所以自己刚提交的那条（pending）只能在这里看见，连带它的审核状态。
+   */
+  listMine(): Promise<FishingSpot[]> {
+    return withSession(() => request<FishingSpot[]>({ url: `${SPOTS_BASE}/mine` }));
+  },
+
   getById(id: string): Promise<FishingSpot> {
     return request<FishingSpot>({ url: `${SPOTS_BASE}/${id}` });
   },
 
-  create(payload: CreateFishingSpotPayload): Promise<void> {
-    return request<void>({
-      url: SPOTS_BASE,
-      method: 'POST',
-      // location 是元组，序列化成 JSON 交给后端解
-      data: payload as unknown as Record<string, unknown>,
-    });
+  /**
+   * 创建钓点。
+   *
+   * 后端返回**创建好的钓点对象**（含 id / status），不是空响应 ——
+   * 提交完要靠它跳详情页，也要靠 status 告诉用户「已提交，待审核」。
+   */
+  create(payload: CreateFishingSpotPayload): Promise<FishingSpot> {
+    return withSession(() =>
+      request<FishingSpot>({
+        url: SPOTS_BASE,
+        method: 'POST',
+        // location 是元组，序列化成 JSON 交给后端解
+        data: payload as unknown as Record<string, unknown>,
+      }),
+    );
   },
 
   /**
    * 更新钓点。
    *
-   * ⚠️ 后端待确认：源项目走的是 `PATCH {id}`，但 `wx.request` 不支持 PATCH
-   * （合法方法里没有，详见 `client.ts` 的 HttpMethod 注释），所以这里用 PUT。
-   *
-   * 前提是后端在 `{id}` 上注册了 PUT。当前拿不到后端源码，无法确认它是否已支持，
-   * 接入前必须实测一次；返回 404/405 就是后端还没加这个路由。
+   * ⚠️ 路由用 PUT 而不是 PATCH：`wx.request` 的合法方法里没有 PATCH
+   * （详见 `client.ts` 的 HttpMethod 注释），小程序端发不出这个动词。
+   * 后端已按 PUT 注册（`internal/handler/fish_handler.go`），
+   * 早期注册的 PATCH 那条路小程序永远走不通。
    *
    * 另外后端的 update 是 Partial 语义（不传的字段不动），而 PUT 惯例是全量替换。
-   * 如果后端按 PUT 的惯例实现，只传部分字段会把其余字段清空 —— 这点也要一起验。
+   * 这里的 DTO 全是指针字段，**刻意**走部分更新：只传名字不会把地址清空。
    */
   update(id: string, payload: UpdateFishingSpotPayload): Promise<void> {
-    return request<void>({
-      url: `${SPOTS_BASE}/${id}`,
-      method: 'PUT',
-      data: payload as unknown as Record<string, unknown>,
-    });
+    return withSession(() =>
+      request<void>({
+        url: `${SPOTS_BASE}/${id}`,
+        method: 'PUT',
+        data: payload as unknown as Record<string, unknown>,
+      }),
+    );
   },
 
   remove(id: string, options: DeleteFishingSpotOptions = {}): Promise<void> {
-    return request<void>({
-      url: `${SPOTS_BASE}/${id}`,
-      method: 'DELETE',
-      // 只在物理删时带 hard=true，软删不带 —— 带成字符串 "false" 后端一样会当软删，
-      // 但这种"写了跟没写一样"的参数最容易在排查时把人带偏
-      params: options.hard ? { hard: 'true' } : undefined,
-    });
+    return withSession(() =>
+      request<void>({
+        url: `${SPOTS_BASE}/${id}`,
+        method: 'DELETE',
+        // 只在物理删时带 hard=true，软删不带 —— 带成字符串 "false" 后端一样会当软删，
+        // 但这种"写了跟没写一样"的参数最容易在排查时把人带偏
+        params: options.hard ? { hard: 'true' } : undefined,
+      }),
+    );
   },
 };

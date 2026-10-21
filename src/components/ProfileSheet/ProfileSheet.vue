@@ -57,7 +57,7 @@
         class="profile-sheet__input"
         type="nickname"
         placeholder="点一下，用微信昵称填入"
-        placeholder-class="profile-sheet__placeholder"
+        placeholder-class="fish-placeholder"
         :maxlength="20"
         confirm-type="done"
         @blur="onNicknameSync"
@@ -100,7 +100,7 @@
  */
 import { computed, ref, watch } from 'vue';
 
-import { mediaUrl } from '@/api/auth';
+import { mediaUrl } from '@/api/upload';
 import { icon } from '@/constants/icons';
 import type { AuthUser } from '@/types/auth';
 
@@ -302,10 +302,6 @@ const userGlyph = icon('user', 'muted60');
   background-color: $fish-surface;
   color: $fish-ink;
   font-size: 34rpx;
-}
-
-.profile-sheet__placeholder {
-  color: $fish-muted-60;
 }
 
 /* 已有昵称时的只读展示 */

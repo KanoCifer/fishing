@@ -8,10 +8,14 @@
  *    不合并的话每个调用点都得写两遍错误处理。
  * 3. 鉴权头。小程序没有 cookie，token 只能自己存自己带。
  *
+ * 第四件也收在这里：**401 静默刷新**（见下方 withSession）。它属于传输层 ——
+ * 撞上 401 就该自己处理掉，而不是让每个调用点各写一遍「刷新 → 重试」。
+ *
  * 接口基址只从 `ENV.apiBaseUrl` 读，不在调用点写死域名 —— 见 `src/config/env.ts`。
  */
 
 import { ENV } from '@/config/env';
+import type { SessionTokens } from '@/types/auth';
 
 /** access token 在本地存储中的键 */
 const TOKEN_KEY = 'fishing_token';
@@ -212,4 +216,78 @@ export function request<T>(options: RequestOptions): Promise<T> {
       },
     });
   });
+}
+
+/* ── token 续期 ─────────────────────────────────────────────────────────── */
+
+/**
+ * 刷新中的那一次 Promise。
+ *
+ * 存在的理由是服务端**每次刷新都轮换 refresh token**，旧的立即失效。
+ * 两个并发请求同时撞上 401，各自去刷新的话，第二个拿的是已经作废的那枚，
+ * 会把整条链路卡死在这里。所以同一时刻只允许一个刷新在飞，后来者等它。
+ */
+let refreshPending: Promise<boolean> | null = null;
+
+/**
+ * 刷新 token。
+ *
+ * 成功就把两个 token 一起覆盖写 —— 只更新 access 会导致下次刷新失败，
+ * 因为服务端比对的是 refresh 的**全值**。
+ *
+ * 失败则清掉整个会话：refresh 都换不动了，这一枚会话也就到头了，
+ * 留着只会让下一次请求继续拿一枚过期 token 去撞 401。
+ */
+async function doRefresh(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const data = await request<SessionTokens>({
+      url: 'v3/refresh-token',
+      method: 'POST',
+      data: { refresh_token: refreshToken },
+    });
+
+    setToken(data.access_token);
+    setRefreshToken(data.refresh_token);
+    return true;
+  } catch {
+    clearSession();
+    return false;
+  }
+}
+
+/**
+ * 保证会话是新的。
+ *
+ * 已经在刷新中就直接等那一次，不并发第二个。
+ */
+function ensureFreshSession(): Promise<boolean> {
+  if (refreshPending) return refreshPending;
+
+  refreshPending = doRefresh().finally(() => {
+    refreshPending = null;
+  });
+
+  return refreshPending;
+}
+
+/**
+ * 带会话的请求：401 时静默刷新并重试一次。
+ *
+ * 只重试一次 —— 刷新之后还是 401，说明这枚会话真的不行了，
+ * 再重试只是把同一个错误抛三遍。
+ *
+ * 写操作（新建钓点、上传图片）都要走这里：access token 是最容易过期的一枚，
+ * 裸调 request 的话一次过期就变成用户眼前的失败。
+ */
+export async function withSession<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.statusCode !== 401) throw err;
+    if (!(await ensureFreshSession())) throw err;
+    return fn();
+  }
 }

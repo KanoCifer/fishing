@@ -53,6 +53,7 @@
 import { computed } from 'vue';
 
 import { fishingSpotCarLabel, fishingSpotRoadLabel, type FishingSpot } from '@/types/fishing';
+import { mediaUrl } from '@/api/upload';
 
 const props = defineProps<{
   spot: FishingSpot;
@@ -74,7 +75,7 @@ const suitableText = computed(() => {
 const ownerName = computed(() => props.spot.owner?.name || '未署名');
 
 /** 头像。有 URL 就用图，没有就拿名字的第一个字凑一个 */
-const avatarSrc = computed(() => props.spot.owner?.avatar || '');
+const avatarSrc = computed(() => mediaUrl(props.spot.owner?.avatar) || '');
 
 const ownerInitial = computed(() => (props.spot.owner?.name || '?').slice(0, 1));
 

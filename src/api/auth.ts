@@ -1,5 +1,5 @@
 /**
- * 账号网关 —— 微信登录、资料读取、token 续期、头像上传。
+ * 账号网关 —— 微信登录、资料读取、头像上传。
  *
  * 契约来源：`Server-Go/docs/api/wechat-mini-program-login.md`，
  * 服务端实现见 `internal/handler/weixin_handler.go` 与 `internal/handler/user_handler.go`。
@@ -14,48 +14,15 @@
  * 3. **刷新会轮换 refresh token**。服务端每次刷新都换一枚新的，旧的立即失效。
  *    所以并发请求同时撞上 401 时，只允许有一个刷新在飞 —— 否则第二个拿着
  *    已作废的 refresh 去刷新，必然失败，整条链路就卡死了。
+ *
+ * 第 3 条那套刷新机制本身在 `api/client` 的 withSession 里 —— 那是传输层的事，
+ * 不该由「账号」这个域来管。媒体上传与媒体地址同理，在 `api/upload`。
  */
 
 import { ENV } from '@/config/env';
-import type { AuthUser, SessionTokens, WechatLoginResponse } from '@/types/auth';
-import {
-  ApiError,
-  STATUS_TEXT,
-  clearSession,
-  getRefreshToken,
-  getToken,
-  request,
-  setRefreshToken,
-  setToken,
-  type ApiEnvelope,
-} from './client';
-
-/* ── 媒体地址 ─────────────────────────────────────────────────────────── */
-
-/**
- * 媒体根地址。
- *
- * 服务端把上传目录挂在 `/v3/media` 下（见 `internal/router/router.go` 的
- * `r.Static("/v3/media", ...)`），和接口基址同源，所以从 ENV 拼而不是写死域名。
- */
-const MEDIA_BASE = `${ENV.apiBaseUrl.replace(/\/+$/, '')}/v3/media/`;
-
-/**
- * 相对路径 → 可直接放进 `<image src>` 的地址。
- *
- * 服务端回的 `photo` 是**相对路径**（如 `pics/42/xxx-256.jpg`），
- * 直接当 src 用会 404。已经带 http 前缀的原样返回。
- *
- * ⚠️ 部署提醒：小程序加载远程图片走的是 **downloadFile 合法域名**，
- * 跟 request / uploadFile 是三份独立的名单。头像要显示出来，
- * 微信公众平台的「服务器域名」里 downloadFile 也得填上这个 API 域名 ——
- * 只配 request 的话，登录和上传都正常，但头像永远是裂的。
- */
-export function mediaUrl(rel?: string): string {
-  if (!rel) return '';
-  if (/^https?:\/\//i.test(rel)) return rel;
-  return `${MEDIA_BASE}${rel.replace(/^\/+/, '')}`;
-}
+import type { AuthUser, WechatLoginResponse } from '@/types/auth';
+import { ApiError, STATUS_TEXT, getRefreshToken, getToken, request, withSession, type ApiEnvelope } from './client';
+import { resolveUploadPath } from './upload';
 
 /* ── 微信登录 ─────────────────────────────────────────────────────────── */
 
@@ -158,77 +125,6 @@ export function loginErrorMessage(err: unknown): string {
   return err instanceof Error && err.message ? err.message : '登录失败，请重试';
 }
 
-/* ── token 续期 ───────────────────────────────────────────────────────── */
-
-/**
- * 刷新中的那一次 Promise。
- *
- * 存在的理由是服务端**每次刷新都轮换 refresh token**，旧的立即失效。
- * 两个并发请求同时撞上 401，各自去刷新的话，第二个拿的是已经作废的那枚，
- * 会把整条链路卡死在这里。所以同一时刻只允许一个刷新在飞，后来者等它。
- */
-let refreshPending: Promise<boolean> | null = null;
-
-/**
- * 刷新 token。
- *
- * 成功就把两个 token 一起覆盖写 —— 只更新 access 会导致下次刷新失败，
- * 因为服务端比对的是 refresh 的**全值**。
- *
- * 失败则清掉整个会话：refresh 都换不动了，这一枚会话也就到头了，
- * 留着只会让下一次请求继续拿一枚过期 token 去撞 401。
- */
-async function doRefresh(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-
-  try {
-    const data = await request<SessionTokens>({
-      url: 'v3/refresh-token',
-      method: 'POST',
-      data: { refresh_token: refreshToken },
-    });
-
-    setToken(data.access_token);
-    setRefreshToken(data.refresh_token);
-    return true;
-  } catch {
-    clearSession();
-    return false;
-  }
-}
-
-/**
- * 保证会话是新的。
- *
- * 已经在刷新中就直接等那一次，不并发第二个。
- */
-function ensureFreshSession(): Promise<boolean> {
-  if (refreshPending) return refreshPending;
-
-  refreshPending = doRefresh().finally(() => {
-    refreshPending = null;
-  });
-
-  return refreshPending;
-}
-
-/**
- * 带会话的请求：401 时静默刷新并重试一次。
- *
- * 只重试一次 —— 刷新之后还是 401，说明这枚会话真的不行了，
- * 再重试只是把同一个错误抛三遍。
- */
-export async function withSession<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (!(err instanceof ApiError) || err.statusCode !== 401) throw err;
-    if (!(await ensureFreshSession())) throw err;
-    return fn();
-  }
-}
-
 /* ── 资料 ─────────────────────────────────────────────────────────────── */
 
 /** 取当前用户。响应与登录响应里的用户字典同形 */
@@ -255,95 +151,13 @@ export function logout(): Promise<void> {
 /* ── 头像上传 ─────────────────────────────────────────────────────────── */
 
 /**
- * 服务端只认这四种图片类型。multipart part 的 Content-Type 是从**文件名
- * 扩展名**推出来的，所以路径的扩展名必须落在这一档里。
- */
-const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
-
-/**
- * 小程序的本地持久化目录。
- *
- * 不同基础库把它挂在不同的地方，所以两处都探一下；都拿不到就返回空串，
- * 调用方据此放弃复制、直接传原路径（见 resolveUploadPath 的注释）。
- */
-function userDataPath(): string {
-  const uniEnv = (uni as unknown as { env?: { USER_DATA_PATH?: string } }).env;
-  if (uniEnv?.USER_DATA_PATH) return uniEnv.USER_DATA_PATH;
-
-  const wxApi = (globalThis as { wx?: { env?: { USER_DATA_PATH?: string } } }).wx;
-  return wxApi?.env?.USER_DATA_PATH ?? '';
-}
-
-/**
- * 复制成 `.jpg` 结尾的临时文件。
- *
- * 拿不到本地持久化目录、或者这个基础库没有文件系统管理器，就放弃 ——
- * 返回空串，调用方直接传原路径。头像能不能传上去，不该取决于这一段
- * 兼容性代码能不能跑通。
- */
-function copyAsJpg(tempPath: string): Promise<string> {
-  const base = userDataPath();
-  if (!base) return Promise.resolve('');
-
-  const getFs = (uni as unknown as { getFileSystemManager?: () => unknown }).getFileSystemManager;
-  if (typeof getFs !== 'function') return Promise.resolve('');
-
-  return new Promise((resolve) => {
-    let fs: {
-      copyFile?: (option: Record<string, unknown>) => void;
-    };
-    try {
-      fs = getFs.call(uni) as typeof fs;
-    } catch {
-      resolve('');
-      return;
-    }
-    if (typeof fs?.copyFile !== 'function') {
-      resolve('');
-      return;
-    }
-
-    const dest = `${base}/avatar-${Date.now()}.jpg`;
-
-    fs.copyFile({
-      // 两套字段名都给：微信的 FileSystemManager 认 fromPath/toPath，
-      // uni-app 的类型声明用的是 srcPath/destPath。多给的键会被忽略，
-      // 少给的键会让复制静默失败 —— 宁可多给。
-      fromPath: tempPath,
-      toPath: dest,
-      srcPath: tempPath,
-      destPath: dest,
-      success: () => resolve(dest),
-      // 复制失败不致命：下面还有直接传原路径这一条路
-      fail: () => resolve(''),
-    });
-  });
-}
-
-/**
- * 决定上传用哪个路径。
- *
- * `chooseAvatar` 给的临时地址一般已经带 `.jpeg` 之类的扩展名，微信据此把
- * multipart part 的 Content-Type 设成 `image/jpeg`，服务端直接认。
- *
- * 但部分基础库版本会把临时文件送成 `application/octet-stream`，服务端不认
- * 就回 400「不支持的图片类型」。这种情况的成因是**文件名没有可识别的扩展名**
- * （微信靠扩展名推类型），所以扩展名不在白名单时，复制一份 `.jpg` 再传。
- *
- * ⚠️ 临时地址只有 1–5 分钟有效，复制和上传必须当场合做完，不能攒着。
- */
-async function resolveUploadPath(tempPath: string): Promise<string> {
-  if (IMAGE_EXT.test(tempPath)) return tempPath;
-
-  const copied = await copyAsJpg(tempPath);
-  return copied || tempPath;
-}
-
-/**
  * 上传头像。
  *
  * 表单字段名固定是 `image`（写错服务端回 400「未收到上传图片」）。
  * 成功返回**完整的用户字典**（含新的 photo），直接覆盖本地用户状态即可。
+ *
+ * 路径补扩展名那一步走 `api/upload` 的 resolveUploadPath —— 头像和照片
+ * 是同一个问题：微信靠扩展名推 multipart part 的 Content-Type。
  */
 export async function uploadAvatar(filePath: string): Promise<AuthUser> {
   const path = await resolveUploadPath(filePath);

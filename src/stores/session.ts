@@ -17,8 +17,9 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-import { getMe, logout as logoutRequest, mediaUrl, uploadAvatar as uploadAvatarRequest, wechatLogin } from '@/api/auth';
+import { getMe, logout as logoutRequest, uploadAvatar as uploadAvatarRequest, wechatLogin } from '@/api/auth';
 import { clearSession, getRefreshToken, getToken, setRefreshToken, setToken } from '@/api/client';
+import { mediaUrl } from '@/api/upload';
 import type { AuthUser, WechatLoginResponse } from '@/types/auth';
 
 /** 服务端的默认头像。等于它就等于「用户没上传过头像」 */

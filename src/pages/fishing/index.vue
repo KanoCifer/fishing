@@ -1,19 +1,5 @@
 <template>
-  <!--
-    高度由脚本绑定，不用 100vh。
-
-    100vh 把原生 tabBar 的高度也算进去了，页面会比真正能显示的那部分
-    高出约 50px —— 页面因此可滚动，双指在地图上滑动时整页跟着滑，
-    地图被拖离原位。详见 useViewport 的注释。
-  -->
   <view class="fishing" :style="{ height: windowHeight + 'px' }">
-    <!--
-      钓点页 —— 只做一件事：在地图上选点。
-
-      数据（天气、潮汐、钓鱼指数、反馈）全在「数据」页签。这样切分是按
-      「在哪」而不是「是什么」：地图这一屏留给空间关系，实况和曲线交给
-      可以滚动的列表页，两边都不用在对方的地盘上做取舍。
-    -->
     <view class="fishing__map-area">
       <FullscreenMap
         class="fishing__map"
@@ -24,19 +10,15 @@
         @markertap="onMarkerTap"
       />
     </view>
+    <view class="fishing__create" @tap="openCreate">
+      <image class="fishing__create-icon" :src="createIcon" mode="aspectFit" />
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 /**
  * 钓点页 —— 全屏地图 + 钓点标记。
- *
- * 这一页只管「在哪」：地图和 marker 是空间关系，别的都不归它管。
- * 地图铺满整屏，浮在上面的只有钓点计数。
- *
- * 钓点详情是推出去的独立页（pages/spot-detail），不是这一页上的浮层 ——
- * 抽屉只能露出半屏，而钓点详情要放的东西是照片、档案和今日钓况，
- * 半屏装不下，挤在地图上也读不完。
  */
 import { onMounted, ref } from 'vue';
 
@@ -44,6 +26,7 @@ import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { icon } from '@/constants/icons';
 import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
 
 const nav = useNavMetrics();
@@ -53,6 +36,9 @@ const mapStore = useFishingMapStore();
 const { windowHeight } = useViewport();
 
 const { markerItems, resolveMarker } = useMapMarkers(() => mapStore.markers);
+
+/** 新建钓点按钮上的加号 */
+const createIcon = icon('plus', 'onAccent');
 
 const focusedLng = ref(MAP_CENTER[0]);
 const focusedLat = ref(MAP_CENTER[1]);
@@ -78,6 +64,16 @@ function onMarkerTap(payload: { markerId: number }) {
   if (!id) return;
 
   uni.navigateTo({ url: `/pages/spot-detail/index?id=${id}` });
+}
+
+/**
+ * 去新建钓点。
+ *
+ * 走独立页而不是浮层：新建要填的东西有九栏（位置、名称、类型、简介、
+ * 钓法、收费、道路、车到水边、开放时间），抽屉只装得下半屏。
+ */
+function openCreate() {
+  uni.navigateTo({ url: '/pages/spot-create/index' });
 }
 
 /**
@@ -115,5 +111,36 @@ onMounted(() => {
 .fishing__map {
   width: 100%;
   height: 100%;
+}
+
+/*
+ * 新建钓点按钮。
+ *
+ * 112rpx 见方（56pt）—— 比 iOS 常规按钮大：它压在地图上，
+ * 目标不明确，得比工具栏上那几枚小按钮更显眼才对得起「记一个点」这件事。
+ *
+ * 阴影用一层实打实的黑，不是玻璃模糊：地图是照片，玻璃的模糊在照片上读不出来。
+ *
+ * z-index 10：压在地图之上、导航栏之下（导航栏是 20）。
+ */
+.fishing__create {
+  position: absolute;
+  right: 32rpx;
+  bottom: 64rpx;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.18);
+  @include fish-press(0.94);
+}
+
+.fishing__create-icon {
+  width: 48rpx;
+  height: 48rpx;
 }
 </style>

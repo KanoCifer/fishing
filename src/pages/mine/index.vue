@@ -35,16 +35,32 @@
       </view>
 
       <!--
+        钓点：通往「我的钓点」的那一行。
+        单独一段而不是塞进下面那段里 —— 下面那段的眉标是「关于」，
+        把钓点混进去，读者会以为它在讲应用本身。
+      -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">{{ spotsEntry.section }}</text>
+
+        <AboutLinks
+          class="sect__card"
+          :links="spotsLinks"
+          :style="{ animationDelay: enterDelay(2) }"
+          @select="openMySpots"
+        />
+      </view>
+
+      <!--
         关于：内容搬去了独立页面，这里只留一个入口。
         「我的」页答「我是谁」，关于页答「这是什么」—— 一页一件事。
       -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">{{ aboutEntry.section }}</text>
+        <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ aboutEntry.section }}</text>
 
         <AboutLinks
           class="sect__card"
           :links="aboutLinks"
-          :style="{ animationDelay: enterDelay(2) }"
+          :style="{ animationDelay: enterDelay(4) }"
           @select="openAbout"
         />
       </view>
@@ -87,6 +103,7 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { ABOUT_ENTRY } from '@/constants/about';
 import type { AboutLink } from '@/constants/about';
+import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
 import { loginErrorMessage } from '@/api/auth';
 import { useSessionStore } from '@/stores/session';
 import { toErrorMessage } from '@/utils/error';
@@ -104,6 +121,10 @@ const aboutEntry = ABOUT_ENTRY;
 
 /** 通往关于页的那一行。AboutLinks 只管排版，点开了什么由页面决定 */
 const aboutLinks: readonly AboutLink[] = [{ key: aboutEntry.label }];
+
+/** 通往「我的钓点」的那一行 */
+const spotsEntry = MY_SPOTS_ENTRY;
+const spotsLinks: readonly AboutLink[] = [{ key: spotsEntry.label }];
 
 /** 资料编辑抽屉是否打开 */
 const profileOpen = ref(false);
@@ -126,6 +147,17 @@ function closeProfile() {
  */
 function openAbout() {
   uni.navigateTo({ url: '/pages/about/index' });
+}
+
+/**
+ * 去「我的钓点」页。
+ *
+ * 那一页要登录才看得到东西（数据全在服务端），所以点进去时若还没登录，
+ * 那一页自己会问 —— 这里不拦，拦了就成了「先登录才能看我的钓点」的
+ * 死胡同式提示，绕一步反而更清楚。
+ */
+function openMySpots() {
+  uni.navigateTo({ url: '/pages/my-spots/index' });
 }
 
 /**

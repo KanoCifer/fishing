@@ -40,11 +40,20 @@ const MARKER_SIZE = 40;
  *
  * src/static 下的文件在小程序里挂在根路径，所以是 /static/... 而不是 @/static/...。
  * 拆成子包后这些路径要跟着改，这里集中一处就是为了那时候只改这一行。
+ *
+ * 图标源文件在 scripts/markers/*.svg，PNG 由 `bash scripts/gen-markers.sh` 烧出来。
+ * 新增 kind 时三处都要动：这张表、scripts/markers/ 下那张 SVG、以及 src/constants 之外
+ * 的 types/fishing.ts 枚举 —— 少一处，地图上那一片点就会全是同一个图标。
  */
 const ICON_BY_KIND: Record<FishingSpotKind, string> = {
   lake: '/static/markers/lake.png',
   river: '/static/markers/river.png',
   reservoir: '/static/markers/reservoir.png',
+  pond: '/static/markers/pond.png',
+  sea: '/static/markers/sea.png',
+  bay: '/static/markers/bay.png',
+  estuary: '/static/markers/estuary.png',
+  fishing_ground: '/static/markers/fishing_ground.png',
 };
 
 /** 未分类（后端 omitempty 把 kind 整个省略了，见 FishingSpot.kind 注释） */

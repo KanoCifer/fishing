@@ -77,6 +77,11 @@ const ICONS = [
   { name: 'chevron-left', color: 'blue', use: '子页导航栏的返回按钮' },
   // —— 钓点详情页 ——
   { name: 'chevron-left', color: 'onAccent', use: '钓点详情页压在头图上的返回按钮' },
+  // —— 钓点页 ——
+  { name: 'plus', color: 'onAccent', use: '新建钓点按钮' },
+  // —— 钓点照片选择器 ——
+  { name: 'plus', color: 'muted', use: '照片选择器的添加格子' },
+  { name: 'x', color: 'onAccent', use: '照片缩略图上的删除角标' },
 ];
 
 /**

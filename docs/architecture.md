@@ -29,14 +29,14 @@ constants/     文案与生成物
 
 ## 唯一出处
 
-| 要改什么            | 去哪                                                     |
-| ------------------- | -------------------------------------------------------- |
-| 接口端点            | `src/api/fishing.ts`、`src/api/ai.ts`、`src/api/auth.ts` |
-| 请求基址 / 环境变量 | `src/config/env.ts`                                      |
-| 类型                | `src/types/fishing.ts`、`src/types/auth.ts`              |
-| 文案                | `src/constants/about.ts`                                 |
-| 色值 / 字阶         | `src/styles/tokens/`                                     |
-| 图标                | `scripts/gen-icons.mjs`                                  |
+| 要改什么            | 去哪                                                                |
+| ------------------- | ------------------------------------------------------------------- |
+| 接口端点            | `src/api/fishing.ts`、`src/api/ai.ts`、`src/api/auth.ts`、`src/api/upload.ts` |
+| 请求基址 / 环境变量 | `src/config/env.ts`                                                 |
+| 类型                | `src/types/fishing.ts`、`src/types/auth.ts`                         |
+| 文案                | `src/constants/`（about / spot-create / my-spots）                 |
+| 色值 / 字阶         | `src/styles/tokens/`                                                |
+| 图标                | `scripts/gen-icons.mjs`                                             |
 
 ## 端点清单
 
@@ -47,6 +47,7 @@ constants/     文案与生成物
 | `v2/fishing/stats`        | GET                | 钓鱼记录统计                                               |
 | `v3/weather/tide`         | GET                | 潮汐（按港口 + 日期）                                      |
 | `v3/fish/spots`           | GET / POST         | 钓点列表 / 创建                                            |
+| `v3/fish/spots/mine`      | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
 | `v3/fish/spots/:id`       | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
 | `v2/llm/weather-analysis` | POST（SSE）        | AI 钓鱼分析                                                |
 | `v3/auth/wechat/login`    | POST               | 微信登录（服务端自动建号）                                 |
@@ -54,6 +55,7 @@ constants/     文案与生成物
 | `v3/me`                   | GET                | 当前用户                                                   |
 | `v3/logout`               | POST               | 退出登录                                                   |
 | `v3/upload-pic`           | POST               | 头像上传                                                   |
+| `v3/upload`               | POST               | 图片上传（multipart：`file` + `type`）                      |
 
 **取天气只有一条路**：`v2/fishing/index` 的 enriched 响应。旧实现并发调 `weather/full` + `fishing/index`，会导致后端对同一 location 取数两次，已废弃。
 
@@ -82,7 +84,9 @@ constants/     文案与生成物
 
 ## 两个 store
 
-**`fishingMap`** —— 用户坐标、天气、潮汐、钓鱼指数、钓点标记、当前选中的钓点。
+**`fishingMap`** —— 用户坐标、天气、潮汐、钓鱼指数、钓点标记、当前选中的钓点、我提交的钓点。
+
+`mySpots`（我提交的）和 `markers`（地图上的）是**两份不同的数据**，不能合成一份：公开列表只放已过审的，`mySpots` 含待审核和已驳回。合成一份的话，待审核那条会在地图上显示出来 —— 它还没过审。
 
 `selectedMarker` 放在 store 而不是地图页的局部 state：选中动作发生在钓点页，消费方却是数据页的钓鱼反馈表单 —— 跨页只能靠 URL 传，而 URL 带 marker 还得额外处理刷新和失效，不如共享状态直接。
 
@@ -125,7 +129,7 @@ FishingAnalysisSheet
 这几条是后端契约的现状。接回对应功能时先验：
 
 - **钓点的编辑与删除没有 UI** —— `fishingSpotApi.update` / `remove` 端点留着但没有调用方（钓点详情面板只留了「导航」）。端点留着是因为它们是后端契约的记录，接回来时照单验一遍就能用
-- **`fishingSpotApi.update` 用 PUT，源项目是 PATCH** —— `wx.request` 不支持 PATCH。后端是否在 `:id` 上注册了 PUT 未确认（拿不到后端源码）；后端的 update 是 Partial 语义，而 PUT 惯例是全量替换，这两件事都要实测
+- **新建的钓点不会立刻出现在地图上** —— 后端把普通用户的投稿置为 `pending`，公开列表写死只放 `approved`（`ListSpots` 里 `Status: model.FishingSpotStatusApproved`）。所以提交成功只进 `mySpots`，要看到它得去「我的钓点」页看审核状态。**别把成功提示写成「已添加」** —— 用户回头在地图上找不到，会以为丢了
 - **改不了昵称** —— 服务端没有独立的改昵称接口。`saveNickname` 的做法是重新走一次微信登录带上昵称，服务端只在「这个账号昵称为空」时写入。已有昵称时 store 拦下，不让用户白等一次网络往返
 - **`weather_indices` 曾恒为空** —— 那时后端没往外给，模型只能自己从温度气压反推，丢掉了「官方说今天适宜垂钓」这个最强的信号。现已接通
 
@@ -134,3 +138,15 @@ FishingAnalysisSheet
 - **经纬度之外，坐标序列化也是两位小数**：`toLocationParam()` 是唯一出处
 - **潮汐按港口 + 日期取**，港口是国家海洋预报台的站点编号（`HARBOR_OPTIONS`）
 - **钓鱼反馈关联钓点 id**：用户在钓点页选了哪个点，切到数据页提交反馈就记到那个点头上；没选过是 `'default'`（后端约定）
+- **钓点的写操作走 `withSession`** —— `request` 只负责发请求，401 它直接抛，不会去刷 token。刷新那件事在 `api/client` 的 `withSession` 里。写入类端点全都要求登录，token 恰好是最容易过期的一枚，所以这几个都要包
+- **用户不能给自己的钓点打分** —— 新建时 `rating` 发 0（后端语义是「还没有评分」）。让作者自评会污染公开列表的均值
+
+## 媒体
+
+服务端返回的媒体路径一律是**相对路径**（如 `gallery/42/xxx.jpg`），显示前过 `api/upload` 的 `mediaUrl()` 拼成能加载的地址。已经是 `http` 开头的原样返回 —— 迁移过来的老数据可能是完整 URL。
+
+**存进数据的必须是相对路径**，不是上传响应里的 `url`：那个字段已经带了 `/v3/media/` 前缀，再过一次 `mediaUrl()` 会变成双前缀地址；而完整 URL 则把部署域名烤进了库里，换域名时所有已存的图片一起失效。
+
+上传端点 `POST /v3/upload` 的 multipart 字段是 `file`（文件）+ `type`（用途）。`type` 只认 `blog` / `gallery` / 空串，其余一律 400。**钓点照片走 `gallery`** —— 它会校验 Content-Type 白名单，`generic` 只限大小不认类型。
+
+⚠️ 小程序加载远程图片走 **downloadFile 合法域名**，跟 request / uploadFile 是三份独立的名单。微信公众平台的「服务器域名」里三份都得填。

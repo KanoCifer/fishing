@@ -24,6 +24,7 @@
         "desc": "用于设置你的昵称与头像，让钓友认出你"
       }
     },
+    "requiredPrivateInfos": ["chooseLocation"],
     "lazyCodeLoading": "requiredComponents",
     "optimization": {
       "subPackages": true

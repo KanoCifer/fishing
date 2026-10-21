@@ -24,7 +24,9 @@ import { defineStore } from 'pinia';
 import { fishingApi, fishingSpotApi, type LngLat } from '@/api/fishing';
 import {
   toMapMarkers,
+  type CreateFishingSpotPayload,
   type FishingIndexData,
+  type FishingSpot,
   type MapMarker,
   type TideData,
   type WeatherDay,
@@ -122,6 +124,17 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const markers = ref<MapMarker[]>([]);
   const spotsLoading = ref(false);
   const spotsError = ref('');
+
+  /**
+   * 我提交的钓点。
+   *
+   * 与 markers 分开存，因为它们是两份不同的数据：markers 是公开列表
+   * （后端只放已过审的），这里是「我的」（含待审核、已驳回）。
+   * 合成一份的话，待审核那条在地图上就会显示出来 —— 它还没过审。
+   */
+  const mySpots = ref<FishingSpot[]>([]);
+  const mySpotsLoading = ref(false);
+  const mySpotsError = ref('');
 
   /**
    * 当前选中的钓点。
@@ -345,6 +358,45 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   }
 
   /**
+   * 提交新钓点。
+   *
+   * 提交成功**不等于**它已经公开：后端把普通用户的投稿置为 pending，
+   * 公开列表只放已过审的条目。所以提交完它不会出现在地图上，
+   * 只出现在「我的钓点」里，附带审核状态。
+   *
+   * 失败往上抛，不在这里弹 toast：提交失败时表单要留在原地、告诉用户哪一步没成，
+   * 一个 toast 把上下文冲掉了。与 session.login 同策略。
+   */
+  async function createSpot(payload: CreateFishingSpotPayload): Promise<FishingSpot> {
+    const created = await fishingSpotApi.create(payload);
+
+    // 新提的排在最前：它是刚发生的，也是作者最想确认的那一条
+    mySpots.value = [created, ...mySpots.value];
+
+    return created;
+  }
+
+  /**
+   * 拉我提交的钓点。
+   *
+   * 只有这个端点能看见待审核 / 已驳回的条目 —— 公开列表把 status 写死成 approved。
+   */
+  async function fetchMySpots(): Promise<void> {
+    mySpotsLoading.value = true;
+    mySpotsError.value = '';
+
+    try {
+      mySpots.value = await fishingSpotApi.listMine();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '加载我的钓点失败';
+      notifyError(message);
+      mySpotsError.value = message;
+    } finally {
+      mySpotsLoading.value = false;
+    }
+  }
+
+  /**
    * 记录当前选中的钓点（点 marker 时调用），传 null 表示取消选中。
    *
    * 与标记集合分开而不是合成一个，是因为选中态只改一个引用，
@@ -383,6 +435,10 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     markers,
     spotsLoading,
     spotsError,
+    // 我提交的钓点
+    mySpots,
+    mySpotsLoading,
+    mySpotsError,
     // 选中态
     selectedMarker,
     // 动作
@@ -395,6 +451,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     setSelectedHarbor,
     setSelectedDate,
     fetchSpots,
+    createSpot,
+    fetchMySpots,
     setSelectedMarker,
   };
 });

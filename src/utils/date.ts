@@ -78,6 +78,19 @@ export function formatDateTime(date: Date = new Date()): string {
 }
 
 /**
+ * 草稿时间戳 → 「10-21 20:15」。
+ *
+ * 给「已恢复上次的草稿 · 保存于 …」那一条用。
+ * 不带年份也不带秒：草稿要么是刚才写的，要么是上次的，
+ * 两种情况下用户都不需要精确到秒 —— 写全了反而把那条提示撑得读不下去。
+ */
+export function formatShortMoment(timestamp: number): string {
+  const date = new Date(timestamp);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
  * 「HH:MM」→ 当天第几分钟（0–1439）。取不到给 null。
  *
  * 日出日落、月出月落这些时刻都是「墙上时间」，日照时间轴要拿它在一天里的

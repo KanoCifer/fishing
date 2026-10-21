@@ -48,19 +48,6 @@ interface BaseMapOption {
   label: string;
 }
 
-/**
- * 底图选项。
- *
- * 卫星图和路况是 <map> 的两个独立布尔属性（enable-satellite / enable-traffic，
- * 均基础库 2.7.0 起），不是三选一的枚举。界面上按一个「当前值」呈现，是为了让
- * 用户心里只有「当前底图」这一件事；两个属性的实际取值由 selectBaseMap 统一翻译。
- *
- * 这个数组同时是三处事实源：按钮上显示的文案、循环切换的顺序、以及标签用的值。
- * 增删一档只改这里，三处一起跟着变。
- *
- * 注意别走 layer-style（个性化地图 style 编号）那条路：它是静态的，
- * 官方明确不支持动态修改，切不动。
- */
 const BASE_MAP_OPTIONS: BaseMapOption[] = [
   { value: 'standard', label: '地图' },
   { value: 'satellite', label: '卫星' },
@@ -72,7 +59,7 @@ const props = withDefaults(
     /** 初始经度（GCJ-02 火星坐标系） */
     latitude?: number;
     longitude?: number;
-    /** 缩放层级，3~18，默认 16 约等于街道级 */
+    /** 缩放层级，3~20，默认 16 约等于街道级 */
     scale?: number;
     /** 是否显示当前位置蓝点 */
     showLocation?: boolean;
@@ -91,16 +78,7 @@ const props = withDefaults(
     satellite?: boolean;
     /** 实时路况底图。v-model:traffic 双向绑定 */
     traffic?: boolean;
-    /**
-     * 地图是否响应手势（拖动 / 缩放）。
-     *
-     * 浮层盖在地图上时必须关掉。map 是原生组件，同层渲染只解决了层级，
-     * 它的平移手势仍是原生处理的，浮层那层 WebView 事件拦不住 ——
-     * 表现就是「拖浮层的时候，背后的地图也跟着手指平移」。
-     *
-     * 钓点页现在没有浮层盖在地图上了（详情是推出去的独立页），所以默认开着。
-     * 这个开关留着：任何往地图上叠东西的功能都还会用到它。
-     */
+
     interactive?: boolean;
   }>(),
   {
@@ -320,29 +298,7 @@ function recenter() {
   void locate(true);
 }
 
-/**
- * 视口数值的比对阈值：按当前缩放层级换算成「一个像素」。
- *
- * 这个阈值回答的是「地图回报的视口和当前受控属性是不是同一个点」。
- *
- * 定得太小会出事：地图把视口中心换算回经纬度时必然带浮点误差 ——
- * 不少实现是把视口中心吸附到像素网格上再换算回去的，
- * 于是回报值和真实值最多差半个像素。阈值比它还小的话，
- * 地图每次回报都被判成「用户又挪了地图」，于是又写回受控属性 →
- * 又 setData → 地图重载 → 又回报……绕成死循环，电脑端尤其明显。
- *
- * 取「一个像素」而不是更小的数，有两个好处：
- * 1. 误差一定被盖住 —— 像素级的换算误差不可能超过一个像素；
- * 2. 阈值带来的滞后最多一个像素，地图重载时顶多偏一个像素，看不出来，
- *    「受控属性始终贴着真实视口」这条性质也就保住了。
- *
- * 之所以要按缩放层级换算而不是写死一个度数：同一个度数在 12 级和 18 级
- * 下差的米数差了几百倍，写死一个值要么在高层级上放得太松、
- * 要么在低层级上放得太紧。
- */
 function pixelTolerance(scale: number): number {
-  // 瓦片边长 256px，缩放层级每加 1 瓦片边长翻倍，
-  // 整个世界被摊成 256 * 2^scale 个像素宽
   return 360 / (256 * Math.pow(2, scale));
 }
 
@@ -362,82 +318,34 @@ function syncViewport(target: Ref<number>, next: number | undefined, epsilon: nu
   target.value = next;
 }
 
-/**
- * 视口变化事件的形状。
- *
- * 官方结构是 {causedBy, type, detail: {rotate, skew, scale, centerLocation, region}}。
- * causedBy 的取值见微信 map 组件文档「regionchange 返回值」：
- * - begin 阶段：gesture（手势触发）、update（接口触发）
- * - end 阶段：drag（拖动导致）、scale（缩放导致）、update（调用更新接口导致）
- */
 interface RegionChangeEvent {
   /**
    * 视野变化的原因。
    *
    * update = 地图是被 setData 挪动的，也就是我们自己写回属性引发的回声。
    */
-  causedBy?: string;
+  causedBy: 'gesture' | 'update' | 'drag' | 'scale';
   /** begin（视野开始变化）/ end（视野变化结束） */
-  type?: string;
+  type: 'begin' | 'end';
   detail?: {
     centerLocation?: { latitude?: number; longitude?: number };
     latitude?: number;
     longitude?: number;
     scale?: number;
+    rotate?: number;
+    skew?: number;
   };
 }
 
-/**
- * 视口变化（缩放 / 拖动），这三个值必须**一起**同步回本地 ref。
- *
- * 为什么缺一个就会弹回中心：<map> 的经纬度和缩放都是受控属性，微信收到
- * setData 时会以属性里的 longitude/latitude 为中心重新定位。所以只要有任意
- * 一个属性被 Vue 重新 patch，地图就被拽回那个属性值指向的旧中心 ——
- * 典型就是捏合缩放改了 scale，而 latitude/longitude 还留着定位成功那一刻的值，
- * 缩放一下地图就弹回定位点。
- *
- * 把 detail 里的值全量同步后，受控属性始终等于地图内部的真实视口，
- * 之后任何一次 patch 传下去的都是「本来就在的位置」，等于没动。
- *
- * **中心点在 detail.centerLocation 里，不在 detail 顶层。**
- * 官方结构是 {causedBy, type, detail: {rotate, skew, scale, centerLocation, region}}，
- * 顶层没有 latitude/longitude。之前读顶层拿到的是 undefined，经纬度压根没同步，
- * 于是捏合缩放改了 scale 却留着旧中心 —— 这正是弹回用户位置的直接原因。
- * 顶层那两个字段只是兜底，应对个别基础库把中心拍平的情况。
- *
- * rotate 不在这儿：地图关了旋转（enable-rotate=false），角度恒为 0，
- * 也没有绑成受控属性，不构成回弹来源。
- *
- * skew 同理：组件没绑这个属性，它不受控，patch 不会触发重定位。
- * 倾斜也只有开了 enable-overlooking 才会有，这里没开。
- */
 function onRegionChange(e: RegionChangeEvent) {
   const detail = e.detail ?? {};
   const center = detail.centerLocation;
-
-  // 回声事件：视野的变化是我们自己改属性引起的，不是用户操作。
-  //
-  // 官方语义里 causedBy=update 就是「调用更新接口导致」——地图被 setData
-  // 挪动之后回报的那一次。必须把它和用户操作分开，否则就是这个死循环：
-  //   regionchange → 写回受控属性 → setData 挪地图 → 地图回报 update
-  //   → 又写回受控属性 → setData 挪地图 → ……
-  // 每一轮都让地图重新加载一遍瓦片，电脑端表现成地图一直转圈重载。
-  //
-  // 手机端不容易撞上：地图回报的中心点常常恰好等于写进去的值，
-  // 被阈值挡掉了。电脑端的窗口尺寸和缩放比跟手机不一样，
-  // 地图把视口中心换算回经纬度时误差更大（亚像素级），
-  // 每一轮都超过阈值，每一轮都被误判成「用户又挪了地图」，循环就停不下来。
-  //
-  // 直接丢掉：此刻受控属性里存的就是我们写进去的值，
-  // 也就是地图当前所在的位置，本来就不需要再写一遍。
+  if (e.causedBy === 'scale') return;
   if (e.causedBy === 'update') return;
 
-  // 同步赋值落在同一批次，微信只会收到一次合并后的更新，中途不会瞬移
-  const tolerance = pixelTolerance(
-    typeof detail.scale === 'number' ? detail.scale : scale.value,
-  );
-  syncViewport(latitude, center?.latitude ?? detail.latitude, tolerance);
-  syncViewport(longitude, center?.longitude ?? detail.longitude, tolerance);
+  const tolerance = pixelTolerance(typeof detail.scale === 'number' ? detail.scale : scale.value);
+  syncViewport(latitude, center?.latitude, tolerance);
+  syncViewport(longitude, center?.longitude, tolerance);
   syncViewport(scale, detail.scale, SCALE_EPSILON);
 
   emit('regionchange', {
@@ -484,7 +392,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0px;
+  padding: 8rpx 16rpx;
   border-radius: $fish-radius-lg;
   background-color: rgba(255, 255, 255, 0.88);
   box-shadow: $smooth-shadow-md;
@@ -495,8 +403,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 84rpx;
-  padding: 0 4rpx;
+  height: 64rpx;
+  padding: 0;
   border-radius: 14rpx;
   @include fish-press(0.94);
 }
@@ -558,9 +466,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 84rpx;
-  min-width: 76rpx;
-  padding: 0 10rpx;
+  height: 64rpx;
   border-radius: 14rpx;
 
   transition:

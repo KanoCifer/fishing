@@ -78,6 +78,7 @@ import SpotDetailInfo from '@/components/SpotDetailInfo/SpotDetailInfo.vue';
 import SpotDetailNav from '@/components/SpotDetailNav/SpotDetailNav.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { SPOT_HERO_HEIGHT_RPX, SPOT_HERO_OVERLAP_RPX, SPOT_PLACEHOLDER_IMAGE } from '@/constants/spot-detail';
+import { mediaUrl } from '@/api/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSpotDetailStore } from '@/stores/spotDetail';
 import { enterDelay } from '@/utils/motion';
@@ -118,8 +119,14 @@ onPageScroll((event) => {
 
 const spot = computed(() => detailStore.spot);
 
-/** 头图 */
-const images = computed(() => spot.value?.images ?? []);
+/**
+ * 照片地址。
+ *
+ * 库里存的是**服务端相对路径**（如 `gallery/42/xxx.jpg`），
+ * 直接当 src 用会 404 —— 得过 mediaUrl() 拼成能加载的地址。
+ * 已经是 http 开头的原样返回（迁移过来的老数据可能是完整 URL）。
+ */
+const images = computed(() => (spot.value?.images ?? []).map(mediaUrl));
 
 /** 有没有真实照片。没有的话头图用占位插画 */
 const hasPhoto = computed(() => images.value.length > 0);

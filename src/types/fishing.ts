@@ -13,20 +13,53 @@
 // ---------------------------------------------------------------------------
 
 /**
- * 钓点水体类型 —— 与 go-backend `document.Kind*` 常量共用同一组字面量。
- * 三值封闭：新增类型须同步后端校验枚举。
+ * 钓点水体类型 —— 与 go-backend `model.FishingSpotKind*` 常量共用同一组字面量。
+ * 八值封闭：新增类型须同步后端校验枚举（dto 的 oneof 标签 + IsValidFishingSpotKind）。
+ *
+ * 分组只是给人看的，代码不区分 —— kind 是扁平字符串，没有层级，筛选就是等值匹配：
+ *
+ *   自然：lake / river / reservoir
+ *   人工与半自然：pond
+ *   海水：sea / bay / estuary
+ *   经营：fishing_ground（钓场 —— 它是经营形态而非水体类型，见下）
+ *
+ * 钓场按 kind 处理是有意为之，不是分类学上的偷懒：用户找钓位时想的是「附近有哪些钓场」，
+ * 而不是「附近有哪些水体、其中哪些在经营」。而 kind 字段本来就是宽松的地点标签 ——
+ * river 的 label 就是「溪流·江」，把江河溪流打包了。
  */
-export type FishingSpotKind = 'lake' | 'river' | 'reservoir';
+export type FishingSpotKind = 'lake' | 'river' | 'reservoir' | 'pond' | 'sea' | 'bay' | 'estuary' | 'fishing_ground';
 
-/** 有序全集 —— kind 过滤 chips 按此顺序渲染 */
-export const FISHING_SPOT_KINDS: readonly FishingSpotKind[] = ['lake', 'river', 'reservoir'] as const;
+/**
+ * 有序全集 —— kind 过滤 chips 按此顺序渲染。
+ *
+ * 顺序按「先自然、后海水、最后经营」排：钓鱼的人按场景找钓位，
+ * 湖泊河流水库在最前，钓场这类经营场地在最后。
+ */
+export const FISHING_SPOT_KINDS: readonly FishingSpotKind[] = [
+  'lake',
+  'river',
+  'reservoir',
+  'pond',
+  'sea',
+  'bay',
+  'estuary',
+  'fishing_ground',
+] as const;
 
 /** 中文展示 label —— UI 层唯一文案来源，勿在组件内内联硬编码 */
 export const FISHING_SPOT_KIND_LABELS: Readonly<Record<FishingSpotKind, string>> = {
   lake: '湖泊',
   river: '溪流·江',
   reservoir: '水库',
+  pond: '池塘·野塘',
+  sea: '海洋·近海',
+  bay: '海湾',
+  estuary: '河口',
+  fishing_ground: '钓场',
 };
+
+/** 未分类 —— 后端 omitempty 把 kind 整个省略了（见 FishingSpot.kind 注释） */
+export const FISHING_SPOT_KIND_UNKNOWN_LABEL = '未分类';
 
 /**
  * 收费情况 —— 与后端 `dto.FishingSpotRequest.FeeType` 的 oneof 校验同集合。
@@ -42,6 +75,19 @@ export type FishingSpotCarAccess = 'yes' | 'no' | 'unknown';
 
 /** 审核状态 —— 与后端 `model.FishingSpotStatus` 同集合。公开列表里恒为 approved */
 export type FishingSpotStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * 审核状态 label —— 「我的钓点」页的徽标。
+ *
+ * 三个状态与上面那个类型一一对应。措辞按「作者看到的是什么」来定：
+ * rejected 说的是「未通过」而不是「被拒绝」—— 用户还要能改完再交，
+ * 「被拒绝」听起来像这件事到此为止了。
+ */
+export const FISHING_SPOT_STATUS_LABELS: Readonly<Record<FishingSpotStatus, string>> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '未通过',
+};
 
 export const FISHING_SPOT_FEE_LABELS: Readonly<Record<FishingSpotFeeType, string>> = {
   free: '免费',
@@ -86,6 +132,21 @@ export function fishingSpotRoadLabel(road: string | null | undefined): string {
 export function fishingSpotCarLabel(car: string | null | undefined): string {
   const key = (car ?? 'unknown') as FishingSpotCarAccess;
   return FISHING_SPOT_CAR_LABELS[key] ?? FISHING_SPOT_CAR_LABELS.unknown;
+}
+
+/**
+ * 水体类型 label。
+ *
+ * 认不出的值一律按未分类兜底 —— 后端扩了枚举而前端还没跟上时，
+ * 落成「未分类」比落成一个空白格好。
+ *
+ * 参数收 `string` 而不是 `FishingSpotKind`：后端发来的值编译器管不着
+ * （接口数据不是联合类型就是联合类型），这里在运行时兜住。
+ * 组件里别自己 `as FishingSpotKind` 再查表 —— 那个断言会骗过编译器，
+ * 认不出的值就变成了 undefined。
+ */
+export function fishingSpotKindLabel(kind: string | null | undefined): string {
+  return FISHING_SPOT_KIND_LABELS[kind as FishingSpotKind] ?? FISHING_SPOT_KIND_UNKNOWN_LABEL;
 }
 
 /**
@@ -162,6 +223,10 @@ export type SpotDetail = Omit<FishingSpot, 'location'>;
 
 /**
  * 创建钓点载荷。name / location / kind 必填（后端 oneof 校验），其余可选。
+ *
+ * 后端 `dto.FishingSpotRequest` 的字段全在这里，命名与后端一致。
+ * 后面那几个 meta 字段（收费 / 道路 / 车到水边 / 开放时间）后端会做 oneof 校验，
+ * 取值必须落在各自的枚举里 —— 空串会被后端归一成 `unknown`，不会报错。
  */
 export interface CreateFishingSpotPayload {
   name: string;
@@ -172,6 +237,25 @@ export interface CreateFishingSpotPayload {
   tags?: string[];
   rating?: number;
   images?: string[];
+  /** 文字地址。选点 API 会带回一个，可直接用 */
+  address?: string;
+  /** 收费情况 */
+  fee_type?: FishingSpotFeeType;
+  /** 收费金额（元）。只有 fee_type 为 paid 时才有值 */
+  fee_amount?: number | null;
+  /**
+   * 适合的钓法。
+   *
+   * 存的是中文字面量（路亚 / 手竿 / 夜钓），不是代码 ——
+   * 后端不校验取值，详情页（SpotDetailInfo）也是原样 join 出来给人看的。
+   */
+  suitable_for?: string[];
+  /** 道路情况 */
+  road_condition?: FishingSpotRoadCondition;
+  /** 能否车到水边 */
+  car_access?: FishingSpotCarAccess;
+  /** 开放时间，如「全天」/「06:00-18:00」 */
+  opening_hours?: string;
 }
 
 /** 更新钓点载荷。全字段可选：未传 = 不动，传了 = 显式覆盖。 */

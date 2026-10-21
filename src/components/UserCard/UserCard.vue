@@ -76,7 +76,7 @@
  */
 import { computed } from 'vue';
 
-import { mediaUrl } from '@/api/auth';
+import { mediaUrl } from '@/api/upload';
 import { icon } from '@/constants/icons';
 import type { AuthUser } from '@/types/auth';
 

@@ -37,7 +37,7 @@
 import { computed } from 'vue';
 
 import { icon } from '@/constants/icons';
-import { FISHING_SPOT_KIND_LABELS, fishingSpotFeeLabel, type FishingSpot, type FishingSpotKind } from '@/types/fishing';
+import { fishingSpotFeeLabel, fishingSpotKindLabel, type FishingSpot } from '@/types/fishing';
 
 import Chip from '../Chip/Chip.vue';
 
@@ -51,7 +51,7 @@ const props = defineProps<{
 const pinIcon = icon('map-pin', 'muted');
 
 /** 水体类型。缺这个字段时按未分类渲染（后端 omitempty 会整个省略它） */
-const kindLabel = computed(() => FISHING_SPOT_KIND_LABELS[props.spot.kind as FishingSpotKind] ?? '未分类');
+const kindLabel = computed(() => fishingSpotKindLabel(props.spot.kind));
 
 /** 收费。paid 时带金额 */
 const feeLabel = computed(() => fishingSpotFeeLabel(props.spot.fee_type, props.spot.fee_amount));

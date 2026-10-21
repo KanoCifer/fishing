@@ -79,6 +79,57 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 地图铺满整屏时高度由脚本绑定 `windowHeight`，不用 `100vh` —— 理由见上面「高度」。
 
+### 视口与 regionchange
+
+缩放卡顿、地图回弹这两件事，同一个根因：**`latitude` / `longitude` / `scale` 是受控属性，
+微信收到 setData 时会拿属性里的中心重新定位。** 手势还在进行时写回这三个值，
+写进去的是「手指刚按下那一刻的位置」，而地图已经挪远了 —— 地图被按回去，
+手指和地图互相拉扯，缩放就卡、就会弹。
+
+- **手势进行中一个 patch 都不能有。** 事件来了只记下地图此刻的位置，等手势停了再一次性写回
+  （`FullscreenMap` 里是攒着 + 200ms 防抖）。写回一次就是一次 setData，事件来一次写一次就成风暴
+- **写回的值要全量同步。** 三个值必须一起写：少一个就会弹回中心（只改 `scale` 而
+  `latitude` / `longitude` 留着旧值，微信照样按旧中心重新定位）
+- **写回之后受控属性要贴着地图的真实视口。** 这是防回弹的根据：之后任何一次 patch
+  传下去的都是「本来就在的位置」，等于没动
+- **`causedBy === 'update'` 的事件要丢。** 那是地图被 setData 挪动之后回报的回声，
+  不丢就绕成 `regionchange → 写回 → setData → 又 regionchange` 的死循环
+  （电脑端表现成地图一直转圈重载）
+- **比对阈值按缩放层级换算成一个像素**（`360 / (256 * 2^scale)`）。定得太小的话，
+  地图每次回报都被判成「用户又挪了地图」，循环停不下来
+- **迟到的定位结果不能覆盖用户手势。** `uni.getLocation` 是异步的，回来的那一瞬用户
+  可能刚好拖开了地图；这时候把地图拉回定位点，就是在用户手指底下抢方向盘。
+  定位键（用户明确按的）除外
+- **改无关数据不会把地图属性带下去。** uni-app 的 mp-weixin 运行时按 key 差分，
+  `setData` 只带变化的那几个键（编译产物里工具条的 class 与地图的经纬度是同一份
+  data，但只会发变化的那个）。老的「改任何 data 地图就回弹」是 mpvue 时代
+  整页 setData 的毛病，现在不成立 —— 别再按那个前提写代码
+
+regionchange 的官方语义（微信 map 组件文档「regionchange 返回值」）：
+
+```js
+e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
+```
+
+- 视野改变时触发两次，`type` 分别是 `begin`（开始）和 `end`（结束）；
+  手势过程中它会连着来 —— 手每挪一下视野就是一次「改变」
+- `causedBy` 在 `begin` 阶段是 `gesture`（手势触发）/ `update`（接口触发），
+  在 `end` 阶段是 `drag`（拖动导致）/ `scale`（缩放导致）/ `update`（调用更新接口导致）
+- 中心点在 `detail.centerLocation` 里，**不在 `detail` 顶层**。读顶层拿到的是
+  `undefined`，经纬度压根没同步 —— 这正是弹回用户位置的直接原因
+
+### MapContext 能做什么
+
+想「用命令式 API 挪地图」之前先看清楚 mp-weixin 的 `MapContext` 有什么：
+`getCenterLocation` / `getScale` / `getRegion` / `moveToLocation` / `includePoints` /
+`translateMarker` / `addMarkers` … **没有 `setScale`，也没有「设置中心点」。**
+
+- 想把地图挪到某个点，只能改绑定属性 —— `includePoints` 倒是能挪，但它自己决定缩放
+  层级，语义不是「聚焦到某个点，缩放 16 级」
+- `moveToLocation` 只能回当前定位点，且它挪完受控属性并不知道这件事，
+  受控属性与地图对不上，下一次 patch 就把地图拽回去
+- 所以「挪地图」一律改绑定属性；「读地图当前视口」才用 `MapContext`
+
 ## 字体
 
 图标字体走 `wx.loadFontFace` 网络加载：
@@ -130,6 +181,38 @@ uni.getLocation({ type: 'gcj02' });
 
 定位被拒之后微信不会再弹权限窗，反复调只是反复失败。store 里 `locationDenied` 记住这件事。
 
+### 选点
+
+```ts
+uni.chooseLocation({ success: (res) => res.longitude / res.latitude });
+```
+
+新建钓点页用它选位置。选的是**微信自己那张地图** —— 搜索、定位、路网都在，用户在自己认得的地方点一下，比我们再画一张地图准得多。
+
+- 回来的坐标是 **GCJ-02**，和小程序 `<map>`、和后端存的 `location` 同一套，不用再换算
+- `location` 要的是 `[lng, lat]`，**经度在前**。写反了不会报错，只会落到地球另一侧
+- `res.address` 直接就是后端 `address` 字段要的东西，不用自己拼
+- 用户主动取消走 `fail` 回调，`errMsg` 里带 `cancel` —— 那是正常操作，别弹「失败」
+
+⚠️ `chooseLocation` 属于隐私接口，`src/manifest.json` 的 `mp-weixin.requiredPrivateInfos` 必须声明它，否则真机上调用直接被拒。没声明的表现是：开发者工具里正常，真机一点就失败。
+
+## 选图与上传
+
+```ts
+uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
+```
+
+钓点照片用它选图。`chooseMedia` 是微信现在的接口（`chooseImage` 已在废弃流程里），能一次多选、能指定只选图片、能指定压缩。
+
+- 选**压缩版**（`sizeType: compressed`）：钓点照片是给人看现场的样子，不是当素材用的；原图动辄几 MB，弱网下传得等到用户放弃
+- 回来的 `tempFilePath` 是**临时路径**，1–5 分钟就失效 —— 复制和上传必须当场合做完
+- 微信靠**文件扩展名**推 multipart part 的 Content-Type。扩展名不在白名单（jpeg / png / gif / webp）时服务端回 400，所以 `api/upload` 的 `resolveUploadPath` 会先把文件复制成 `.jpg` 再传
+- `uni.chooseMedia` **不在** `requiredPrivateInfos` 里 —— 读相册不需要在 manifest 声明，隐私授权由微信自带的弹窗处理
+
+上传走 `uni.uploadFile`（不是 `uni.request`）：multipart 要用前者。表单字段名固定 `file`，用途走 `type` 字段 —— 写错字段名服务端回 400「未收到上传文件」。
+
+⚠️ 上传用的是 **uploadFile 合法域名**，跟 request / downloadFile 又是三份独立的名单。
+
 ## 登录
 
 `wx.login` 拿 code → 传给服务端 → 服务端换 openid 并**自动建号**。前端没有「注册」分支。
@@ -148,14 +231,17 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 ## 微信后台配置
 
-| 项                    | 值                     | 不配的后果         |
-| --------------------- | ---------------------- | ------------------ |
-| request 合法域名      | `VITE_API_BASE_URL`    | 所有接口失败       |
-| downloadFile 合法域名 | 图标字体域名           | 天气图标全是豆腐块 |
-| `scope.userLocation`  | 见 `src/manifest.json` | 定位键无反应       |
-| `scope.userInfo`      | 见 `src/manifest.json` | 头像昵称取不到     |
+| 项                    | 值                      | 不配的后果                     |
+| --------------------- | ----------------------- | ------------------------------ |
+| request 合法域名      | `VITE_API_BASE_URL`     | 所有接口失败                   |
+| downloadFile 合法域名 | 图标字体域名 + API 域名 | 天气图标是豆腐块，照片全是裂的 |
+| uploadFile 合法域名   | `VITE_API_BASE_URL`     | 照片传不上去                   |
+| `scope.userLocation`  | 见 `src/manifest.json`  | 定位键无反应                   |
+| `scope.userInfo`      | 见 `src/manifest.json`  | 头像昵称取不到                 |
 
 其他 manifest 设置：`lazyCodeLoading: requiredComponents`、`optimization.subPackages: true`、`urlCheck: false`（开发期）、`transformPx: false`（rpx 不转 px）。
+
+`requiredPrivateInfos` 声明了要走隐私接口的 API（当前是 `chooseLocation`）。这一项开发者工具里不校验 —— 漏了只有真机才炸，见上面「选点」一节。
 
 ## 真机预览
 
