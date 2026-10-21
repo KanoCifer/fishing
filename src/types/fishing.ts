@@ -478,6 +478,13 @@ export interface FishingIndexData {
   current_weather?: WeatherCurrentV1 | null;
   /** 新版日预报条目数组 */
   forecasts?: WeatherDayV1[] | null;
+  /**
+   * 地点名称 —— **城市 + 区县**（如 "北京东城"、"杭州西湖"）。
+   *
+   * 后端走 Go 端 GeoAPI 城市检索（/geo/v2/city/lookup）拼好再透传：
+   * 上游 `name` 是区县、`adm2` 是城市。早先这里给的是景点 POI 名，
+   * 配的 `poiId` 已随 Go 端一起下线。
+   */
   location_name?: string;
   tide_data?: TideData;
   /** 新版逐时块 */
