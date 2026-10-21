@@ -1,13 +1,22 @@
 <template>
   <view class="week">
     <view class="week__head">
-      <text class="week__title">7 天</text>
-      <text class="week__meta">最高 / 最低</text>
+      <text class="week__title">{{ title }}</text>
+      <text class="week__meta">天气 · 最高 / 最低</text>
     </view>
 
     <view v-if="days.length" class="week__track">
       <view v-for="(day, i) in days" :key="day.fxDate" class="week__cell">
         <text class="week__label" :class="{ 'week__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
+        <!--
+          白天天气。图标是这一格除了温度之外的第二个信息：
+          「33° / 25°」说的是热不热，图标说的是出不出门 ——
+          决定要不要出钓的往往是后者，不是前者。
+          这里只取白天时段：钓鱼是白天的活（数据层的湿度/降水也是以白天段为准），
+          夜间天气另有一格会挤掉这排的可比性。
+        -->
+        <text v-if="qweatherFontReady" :class="['week__icon', weatherIconClass(day.icon)]" />
+        <view v-else class="week__icon week__icon--pending" />
         <!--
           一根 min–max 区间柱，红在上蓝在下。
           两根并排的条各自以 0 为基线，高低温的绝对值差会把它们压成一样高，
@@ -22,6 +31,8 @@
         </view>
         <text class="week__max">{{ day.max }}°</text>
         <text class="week__min">{{ day.min }}°</text>
+        <!-- 降水概率。整排都不下雨时这一行整体不出现，不留一排「0%」的噪音 -->
+        <text v-if="day.probText" class="week__prob">{{ day.probText }}</text>
       </view>
     </view>
 
@@ -31,19 +42,20 @@
 
 <script setup lang="ts">
 /**
- * WeekStrip —— 七天高低温区间。
+ * WeekStrip —— 多天高低温区间 + 白天天气。
  *
  * 与原页面那张「7 天气温」折线的取舍：折线画的是趋势，区间柱给的是可比较的高低。
- * 七天这个长度上用户问的是「哪天暖、哪天冷」，不是「这周在往哪走」，
+ * 这个长度上用户问的是「哪天暖、哪天冷」，不是「这周在往哪走」，
  * 所以换成能横向比大小的形式。数值仍然直接标在柱下，不靠悬停/轻触去读。
  */
 import { computed } from 'vue';
 
+import { qweatherFontReady } from '@/composables/useQweatherFont';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { shortDate } from '@/utils/date';
-import { num } from '@/utils/weather';
+import { num, weatherIconClass } from '@/utils/weather';
 
-/** 柱区高度，单位 rpx。定高是为了让 7 根柱子有共同的像素标尺 */
+/** 柱区高度，单位 rpx。定高是为了让每根柱子有共同的像素标尺 */
 const BAR_HEIGHT = 68;
 
 /** 没有数据时的占位标尺，只为了让空态以外不出现除零 */
@@ -54,13 +66,30 @@ const mapStore = useFishingMapStore();
 /** 挑出高低温都有值的日，脏数据整条丢掉，不参与作图 */
 const days = computed(() =>
   mapStore.forecasts
-    .map((day) => ({
-      fxDate: day.fxDate,
-      max: num(day.tempMax),
-      min: num(day.tempMin),
-    }))
-    .filter((day): day is { fxDate: string; max: number; min: number } => day.max !== null && day.min !== null),
+    .map((day) => {
+      const prob = num(day.precipProbability);
+      return {
+        fxDate: day.fxDate,
+        max: num(day.tempMax),
+        min: num(day.tempMin),
+        icon: day.iconDay,
+        // 概率为 0 时不占位：整排都不下雨却每格都写「0%」是噪音
+        probText: prob !== null && prob > 0 ? `${prob}%` : '',
+      };
+    })
+    .filter(
+      (day): day is { fxDate: string; max: number; min: number; icon: string; probText: string } =>
+        day.max !== null && day.min !== null,
+    ),
 );
+
+/**
+ * 标题按实际天数写。
+ *
+ * 原来这里写死「7 天」，而接口只回三天 —— 标题说的和下面画的不是一回事，
+ * 读的人会以为数据缺了四天。现在标题跟着数据走。
+ */
+const title = computed(() => (days.value.length ? `${days.value.length} 天` : '多日预报'));
 
 const loading = computed(() => mapStore.weatherLoading);
 
@@ -181,6 +210,26 @@ function height(max: number, min: number, half: 'max' | 'min'): string {
   font-weight: 600;
 }
 
+/*
+ * 天气图标字形不走字阶，理由见 HourlyWeather 的 .hourly__icon。
+ *
+ * 比逐时那张小一档：这里一格要挤下标签、图标、区间柱、两行温度和概率，
+ * 图标再大就抢走了柱子的位置 —— 柱子是这一格真正要比较的东西。
+ */
+.week__icon {
+  margin: 10rpx 0 4rpx;
+  font-size: 36rpx;
+  line-height: 1;
+  /* 单色字形吃 color（emoji 不吃），压成辅助灰让同格的高低温保持主次 */
+  color: $fish-muted;
+}
+
+/* 字体没到位时的占位。尺寸对齐上面的字形盒，别让下面的温度往下跳 */
+.week__icon--pending {
+  width: 36rpx;
+  height: 36rpx;
+}
+
 .week__bar {
   position: relative;
   width: 12rpx;
@@ -226,6 +275,22 @@ function height(max: number, min: number, half: 'max' | 'min'): string {
   margin-top: 2rpx;
   color: $fish-muted;
   @include fish-type(caption2);
+}
+
+/*
+ * 降水概率。
+ *
+ * 用水色（$fish-tide）而不是中性灰：这一行是「会下雨」的意思，
+ * 灰色会把它读成又一个温度读数。压到 caption2 是因为它是补充信息 ——
+ * 真正决定出不出钓的是图标（晴/雨），概率只是把「有可能下」说得更准一点。
+ */
+.week__prob {
+  display: block;
+  margin-top: 4rpx;
+  color: $fish-tide;
+  @include fish-type(caption2);
+
+  font-variant-numeric: tabular-nums;
 }
 
 .week__empty {

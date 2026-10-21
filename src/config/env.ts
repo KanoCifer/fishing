@@ -7,6 +7,17 @@
 
 const env = import.meta.env;
 
+/**
+ * 和风天气图标字体的默认地址。
+ *
+ * 为什么要有默认值而不是只靠环境变量：`.env.production` 是被 gitignore 的
+ * （见 .gitignore 末行），所以别人 clone 下来做生产构建时，那里根本没有这个变量 ——
+ * 只认环境变量的话，那份构建出来的包会一个图标都画不出来。
+ *
+ * 有默认值在，生产环境只要不特意改就还能用；要换成自建 CDN 再设环境变量覆盖。
+ */
+const DEFAULT_QWEATHER_FONT_URL = 'https://cdn.jsdelivr.net/npm/qweather-icons@1.8.0/font/fonts/qweather-icons.woff';
+
 export const ENV = {
   /** 环境标识：development / production */
   appEnv: env.VITE_APP_ENV,
@@ -14,6 +25,17 @@ export const ENV = {
   title: env.VITE_APP_TITLE,
   /** 接口基址，需在微信后台配置为 request 合法域名 */
   apiBaseUrl: env.VITE_API_BASE_URL,
+  /**
+   * 和风天气图标字体的网络地址。
+   *
+   * 走 `wx.loadFontFace` 加载，所以这个域名必须在微信后台配成
+   * **downloadFile 合法域名**，否则字体加载失败、页面上所有天气图标变成豆腐块。
+   *
+   * 默认值是 jsdelivr 上的全量字体（WOFF，73 KB）。生产环境建议换成自建 CDN
+   * 托管的子集（27 KB，见 `scripts/subset-qweather-icons.py --ttf-out`）——
+   * jsdelivr 在国内访问不稳定，钓鱼的人多半在野外，弱网是常态。
+   */
+  qweatherFontUrl: env.VITE_QWEATHER_FONT_URL || DEFAULT_QWEATHER_FONT_URL,
   /** 是否输出调试日志 */
   enableLog: env.VITE_ENABLE_LOG === 'true',
   /** 构建目标平台，例如 mp-weixin */

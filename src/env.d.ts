@@ -19,6 +19,13 @@ interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string;
   /** 接口基址，需在微信后台配置为 request 合法域名 */
   readonly VITE_API_BASE_URL: string;
+  /**
+   * 和风天气图标字体的网络地址。
+   *
+   * 走 `wx.loadFontFace` 加载，这个域名必须在微信后台配成
+   * **downloadFile 合法域名**，否则字体加载失败、天气图标全变豆腐块。
+   */
+  readonly VITE_QWEATHER_FONT_URL: string;
   /** 是否输出调试日志 */
   readonly VITE_ENABLE_LOG: string;
   /** uni-app 构建平台，例如 mp-weixin */

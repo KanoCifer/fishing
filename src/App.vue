@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
 
-// 和风天气图标字体。必须走 App.vue 引入：编译后进 app.wxss，全局一份。
-// 不能写进 uni.scss —— 那个文件会被每个用到 scss 变量的组件各注入一份，
-// 34 KB 的 base64 × 十几个组件，包体直接爆。
+import { loadQweatherIconFont } from '@/composables/useQweatherFont';
+
+// 和风天气图标字体的**映射规则**。必须走 App.vue 引入：编译后进 app.wxss，全局一份。
+// 不能写进 uni.scss —— 那个文件会被每个用到 scss 变量的组件各注入一份。
+//
+// 这份 css 里没有字体本体，只有「码 → 字形」的规则（4 KB）；
+// 字体走网络加载，见下面 onLaunch 里的 loadQweatherIconFont()。
 import '@/styles/qweather-icons.css';
 
 onLaunch(() => {
   console.log('App Launch');
+
+  // 尽早开始拉字体：图标散在天气页的三个卡片里，字体晚到一拍就多一帧空图标。
+  // 启动时发起，能和天气接口的请求并行，抢到的就是等待时间。
+  void loadQweatherIconFont();
 });
 onShow(() => {
   console.log('App Show');

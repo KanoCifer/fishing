@@ -76,3 +76,45 @@ export function formatDateTime(date: Date = new Date()): string {
   const s = pad(date.getSeconds());
   return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
 }
+
+/**
+ * 「HH:MM」→ 当天第几分钟（0–1439）。取不到给 null。
+ *
+ * 日出日落、月出月落这些时刻都是「墙上时间」，日照时间轴要拿它在一天里的
+ * 位置来定位标记，所以要一个连续量。这里同样只切字符串，不 new Date() ——
+ * 理由跟上面那些函数一致：这些时刻自带 +08:00，换算到设备时区会整体平移。
+ */
+export function minutesOfDay(value: string | undefined | null): number | null {
+  if (!value) return null;
+  const matched = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!matched) return null;
+
+  const hours = Number(matched[1]);
+  const minutes = Number(matched[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  if (hours < 0 || hours > 24 || minutes < 0 || minutes > 59) return null;
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * 两个「HH:MM」时刻之间的时长，形如「11小时31分」。
+ *
+ * 结束早于开始时按跨零点补一整天 —— 白昼时长不会是负的，
+ * 而「日落 18:19 → 民用晨昏 05:10」这种跨越零点的时段是真实存在的。
+ */
+export function durationBetween(start: string, end: string): string {
+  const from = minutesOfDay(start);
+  const to = minutesOfDay(end);
+  if (from === null || to === null) return '';
+
+  let diff = to - from;
+  if (diff <= 0) diff += 24 * 60;
+
+  const hours = Math.floor(diff / 60);
+  const minutes = diff % 60;
+
+  if (hours === 0) return `${minutes}分`;
+  if (minutes === 0) return `${hours}小时`;
+  return `${hours}小时${minutes}分`;
+}

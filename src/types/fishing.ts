@@ -163,36 +163,88 @@ export interface WeatherNow {
   windDir: string;
   windScale: string;
   windSpeed: string;
+  /**
+   * 阵风（口径同 windSpeed：km/h）。
+   *
+   * 钓鱼看的是阵风而不是持续风：竿子会不会被吹弯、鱼线会不会被拉出水面，
+   * 决定的都是这一头。持续风小、阵风大的日子是「看着温和其实危险」的那种。
+   */
+  windGust: string;
   humidity: string;
   precip: string;
+  /** 降水强度（mm/h）。降水量的「瞬时版」，雨 大不大看它 */
+  precipIntensity: string;
+  /** 降水类型代码（none / rain / snow / sleet / drizzle） */
+  precipType: string;
   pressure: string;
   vis: string;
   cloud: string;
   dew: string;
+  /** 紫外线指数 */
+  uvIndex: string;
 }
 
 export interface WeatherHourly {
   fxTime: string;
   temp?: string;
+  /** 体感温度。盛夏的正午它能比实测高好几度，是「别出门」还是「能待住」的依据 */
+  feelsLike?: string;
   precip?: string;
+  /** 降水概率（0–100） */
+  precipProbability?: string;
   humidity?: string;
   pressure?: string;
   windDir?: string;
   windScale?: string;
   windSpeed?: string;
+  windGust?: string;
   text?: string;
   icon?: string;
+  cloud?: string;
+  vis?: string;
+  dew?: string;
+  uvIndex?: string;
 }
 
 export interface WeatherDay {
   fxDate: string;
   sunrise: string;
   sunset: string;
+  /**
+   * 民用晨昏始末。
+   *
+   * 天文晨光/航海晨光也在 wire 里，但钓鱼只关心「天亮到能看清水色」那一段 ——
+   * 民用晨昏（太阳在地平线下 6°）正是那一刻。放到视图模型里的是这一档，
+   * 更暗的两档留在线上，不占界面的位置。
+   */
+  civilDawn: string;
+  civilDusk: string;
+  /** 正午时刻 —— 一天里太阳最高点，也是最热的时候 */
+  solarNoon: string;
   moonrise: string;
   moonset: string;
+  /** 月亮过中天（最高）的时刻 */
+  moonTransit: string;
+  /** 月亮在正午时达到最高点的时刻 */
+  moonUnderfoot: string;
+  /**
+   * 月相的中文名（'盈凸月'）。
+   *
+   * 展示用。图标另有其码，见 `moonPhaseCode`。
+   */
   moonPhase: string;
+  /**
+   * 月相的原始代码（'waxing-gibbous'）。
+   *
+   * 保留上游原样，不在归一层里换成中文 —— 图标要靠它换算
+   * （和风月相图标是 800-807 这一段，见 utils/weather 的 MOON_PHASE_ICON_CODES），
+   * 一旦在这里换成中文，那张映射表就再也接不上了。
+   */
+  moonPhaseCode: string;
   tempMax: string;
   tempMin: string;
+  /** 日均温。比「最高+最低÷2」准，日出日落之间的平均体感更贴近它 */
+  tempAvg: string;
   iconDay: string;
   textDay: string;
   iconNight: string;
@@ -201,16 +253,21 @@ export interface WeatherDay {
   windDirDay: string;
   windScaleDay: string;
   windSpeedDay: string;
+  windGustDay: string;
   wind360Night: string;
   windDirNight: string;
   windScaleNight: string;
   windSpeedNight: string;
+  windGustNight: string;
   humidity: string;
   precip: string;
+  /** 白天时段的降水概率（0–100） */
+  precipProbability: string;
   pressure: string;
   vis: string;
   cloud: string;
-  uvIndex: string;
+  /** 当日紫外线指数峰值 */
+  uvIndexMax: string;
 }
 
 /** 生活指数 —— `FishingIndexCard` 的指标列表数据源 */
@@ -329,8 +386,24 @@ export interface WeatherDaySegmentV1 {
 export interface WeatherAstroV1 {
   sunrise?: string;
   sunset?: string;
+  /** 民用晨昏始末 */
+  civilDawn?: string;
+  civilDusk?: string;
+  /** 航海晨昏始末 */
+  nauticalDawn?: string;
+  nauticalDusk?: string;
+  /** 天文晨昏始末 */
+  astronomicalDawn?: string;
+  astronomicalDusk?: string;
+  /** 正午 / 午夜 */
+  solarNoon?: string;
+  solarMidnight?: string;
   moonrise?: string;
   moonset?: string;
+  /** 月过中天 */
+  moonTransit?: string;
+  /** 月在正午达到最高 */
+  moonUnderfoot?: string;
   /** 月相代码，如 'waxing-gibbous' */
   moonPhase?: string;
 }

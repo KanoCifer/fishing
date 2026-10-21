@@ -16,10 +16,12 @@
  * 换算口径（与后端专家模型、姊妹实现 kanocifer-chat-frontend 保持一致）：
  * - 温度 / 体感 / 降水 / 气压 / 露点 → 数值字符串（最多 1 位小数）
  * - humidity / cloudCover            → [0,1] 比例 × 100
- * - wind.speed                       → m/s → km/h（视图模型口径是 km/h）
+ * - wind.speed / windGust            → m/s → km/h（视图模型口径是 km/h）
+ * - precipitation.probability        → [0,1] 比例 × 100
  * - visibility                       → m → km
  * - wind.direction.compass           → 16 方位代码 → 中文风向
  * - astro.moonPhase                  → 'waxing-gibbous' → '盈凸月'
+ * - uvIndex                          → 原样透传（上游给的就是整数档位）
  * - daily                            → 拆 daytime / nighttime 两段
  */
 
@@ -233,12 +235,16 @@ export function normalizeWeatherCurrent(
     windDir: windCompassToChinese(direction?.compass, direction?.degree),
     windScale: toStr(wind?.scale),
     windSpeed: fmtNum(toKmh(measure(speed), speed?.unit)),
+    windGust: fmtNum(toKmh(measure(block.windGust), block.windGust?.unit)),
     humidity: fmtNum(ratioToPercent(block.humidity)),
     precip: fmtNum(amount?.value),
+    precipIntensity: fmtNum(measure(block.precipitation?.intensity)),
+    precipType: block.precipitation?.type ?? '',
     pressure: fmtNum(measure(block.pressure)),
     vis: fmtNum(toKm(measure(visibility), visibility?.unit)),
     cloud: fmtNum(ratioToPercent(block.cloudCover)),
     dew: fmtNum(measure(block.dewPoint)),
+    uvIndex: toStr(block.uvIndex),
   };
 }
 
@@ -262,14 +268,21 @@ function normalizeHour(item: WeatherHourlyV1): WeatherHourly {
   return {
     fxTime: item.forecastTime ?? '',
     temp: fmtNum(measure(item.temperature)),
+    feelsLike: fmtNum(measure(item.feelsLike)),
     precip: fmtNum(item.precipitation?.amount?.value),
+    precipProbability: fmtNum(ratioToPercent(item.precipitation?.probability)),
     humidity: fmtNum(ratioToPercent(item.humidity)),
     pressure: fmtNum(measure(item.pressure)),
     windDir: windCompassToChinese(direction?.compass, direction?.degree),
     windScale: toStr(wind?.scale),
     windSpeed: fmtNum(toKmh(measure(speed), speed?.unit)),
+    windGust: fmtNum(toKmh(measure(item.windGust), item.windGust?.unit)),
     text: condition?.text ?? '',
     icon: condition?.code ?? '',
+    cloud: fmtNum(ratioToPercent(item.cloudCover)),
+    vis: fmtNum(toKm(measure(item.visibility), item.visibility?.unit)),
+    dew: fmtNum(measure(item.dewPoint)),
+    uvIndex: toStr(item.uvIndex),
   };
 }
 
@@ -370,11 +383,18 @@ function normalizeDay(day: WeatherDayV1, hours: WeatherHourlyV1[]): WeatherDay {
     fxDate,
     sunrise: toTimeOfDay(astro?.sunrise),
     sunset: toTimeOfDay(astro?.sunset),
+    civilDawn: toTimeOfDay(astro?.civilDawn),
+    civilDusk: toTimeOfDay(astro?.civilDusk),
+    solarNoon: toTimeOfDay(astro?.solarNoon),
     moonrise: toTimeOfDay(astro?.moonrise),
     moonset: toTimeOfDay(astro?.moonset),
+    moonTransit: toTimeOfDay(astro?.moonTransit),
+    moonUnderfoot: toTimeOfDay(astro?.moonUnderfoot),
     moonPhase: moonPhaseToChinese(astro?.moonPhase),
+    moonPhaseCode: astro?.moonPhase ?? '',
     tempMax: fmtNum(tempMax),
     tempMin: fmtNum(tempMin),
+    tempAvg: fmtNum(measure(day.temperatureAvg)),
     iconDay: dayCondition?.code ?? '',
     textDay: dayCondition?.text ?? '',
     iconNight: nightCondition?.code ?? '',
@@ -383,17 +403,22 @@ function normalizeDay(day: WeatherDayV1, hours: WeatherHourlyV1[]): WeatherDay {
     windDirDay: windCompassToChinese(dayDirection?.compass, dayDirection?.degree),
     windScaleDay: toStr(dayWind?.scale),
     windSpeedDay: fmtNum(toKmh(measure(daySpeed), daySpeed?.unit)),
+    windGustDay: fmtNum(toKmh(measure(daytime?.windGustMax), daytime?.windGustMax?.unit)),
     wind360Night: toStr(nightDirection?.degree),
     windDirNight: windCompassToChinese(nightDirection?.compass, nightDirection?.degree),
     windScaleNight: toStr(nightWind?.scale),
     windSpeedNight: fmtNum(toKmh(measure(nightSpeed), nightSpeed?.unit)),
+    windGustNight: fmtNum(toKmh(measure(nighttime?.windGustMax), nighttime?.windGustMax?.unit)),
     // 湿度 / 降水 / 云量以白天段为准（钓鱼看的就是白天），夜里没有就退到夜间段
     humidity: fmtNum(ratioToPercent(daytime?.humidity ?? nighttime?.humidity)),
     precip: fmtNum(daytime?.precipitation?.amount?.value ?? nighttime?.precipitation?.amount?.value),
+    precipProbability: fmtNum(
+      ratioToPercent(daytime?.precipitation?.probability ?? nighttime?.precipitation?.probability),
+    ),
     pressure: daily.pressure,
     vis: daily.vis,
     cloud: fmtNum(ratioToPercent(daytime?.cloudCover ?? nighttime?.cloudCover)),
-    uvIndex: toStr(day.uvIndexMax),
+    uvIndexMax: toStr(day.uvIndexMax),
   };
 }
 

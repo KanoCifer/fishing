@@ -25,9 +25,26 @@
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
 
+        <!--
+          官方指数排在最前面：它是这一屏里唯一一条**别人**给的结论 ——
+          和风气象台的「钓鱼指数：不宜」。我们的指数紧跟在它后面（结论头），
+          两条并排看，一致时可信度更高，不一致时用户自己会追问。
+        -->
+        <LifeIndexCard class="sect__card" :style="{ animationDelay: enterDelay(0) }" />
         <MetricChart class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
         <HourlyWeather class="sect__card" :style="{ animationDelay: enterDelay(2) }" />
         <WeekStrip class="sect__card" :style="{ animationDelay: enterDelay(3) }" />
+      </view>
+
+      <!--
+        日照与月相单独一段：它和上面的天气读数不是一回事 ——
+        上面说的是「现在是什么样」，这里说的是「一天里什么时候能下水」。
+        钓鱼是跟日照过不去的活，这一段给的是决定出钓时间的那几个数。
+      -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">日照与月相</text>
+
+        <AstroCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
       </view>
 
       <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
@@ -83,10 +100,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
 
+import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
+import LifeIndexCard from '@/components/LifeIndexCard/LifeIndexCard.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';

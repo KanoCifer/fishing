@@ -5,7 +5,7 @@
  * - emoji 由系统字形渲染，iOS 走 Apple Color Emoji、安卓走 Noto Color Emoji，
  *   同一段代码两端长相不同，且 `⛅` / `⛈️` 这类带变体选择符的字形在部分机型上
  *   会掉色或缺字；字体方案两端完全一致，还能跟着 `tone` 变色。
- * - 字体子集（60 字形 / base64 后 35 KB）内联在包里，零网络请求、零加载延迟，
+ * - 字体子集（68 字形 / base64 后 36 KB）内联在包里，零网络请求、零加载延迟，
  *   渲染由本地字形完成，不受弱网影响。
  *
  * 判据从「按 `text` 中文描述做子串匹配」换成「按 `icon` 字段的数字编码」：
@@ -23,8 +23,12 @@ export const FALLBACK_ICON_CODE = '999';
 /**
  * 字体子集里存在的天气码区间。
  *
- * 只覆盖天气现象：不含月相(1xxx)、预警(2xxx)、彩色 fill 变体。
- * 与 `scripts/subset-qweather-icons.py` 的 RANGES 一一对应，改一处必须改另一处。
+ * 只覆盖天气现象：不含预警(2xxx)、天文细节(1xxx)、彩色 fill 变体。
+ * 月相(800-807)不在这里 —— 它走下面那张 MOON_PHASE_ICON_CODES 表。
+ *
+ * 与 `scripts/subset-qweather-icons.py` 的 RANGES 必须严格一致
+ * （本表的并集 MOON_PHASE_ICON_CODES 的值域 = RANGES），
+ * 不一致就是「字体里没有的字形」，那边会渲染出豆腐块。
  */
 const SUPPORTED_RANGES: ReadonlyArray<readonly [number, number]> = [
   [100, 104], // 白天：晴 / 多云 / 少云 / 晴间多云 / 阴
@@ -63,6 +67,44 @@ export function weatherIconCode(icon: string | undefined | null): string {
 /** 天气码 → 图标 class，如 `qi qi-104` */
 export function weatherIconClass(icon: string | undefined | null): string {
   return `qi qi-${weatherIconCode(icon)}`;
+}
+
+// ---------------------------------------------------------------------------
+// 月相
+// ---------------------------------------------------------------------------
+
+/**
+ * 月相代码 → 和风月相图标码。
+ *
+ * 表来自和风官方《moon-phases.csv》：月相图标是 800-807 这一段，
+ * API 的 `astro.moonPhase` 给的是英文代码（'waxing-gibbous'），
+ * 两者要靠这张表对起来。官方表里还有南北半球两套（北半球亮面在右，
+ * 南半球相反），这里取**北半球**那套 —— 本项目的用户都在北半球。
+ *
+ * 值域 800-807 必须在字体子集里，见 `scripts/subset-qweather-icons.py` 的 RANGES。
+ */
+const MOON_PHASE_ICON_CODES: Readonly<Record<string, string>> = {
+  'new-moon': '800',
+  'waxing-crescent': '801',
+  'first-quarter': '802',
+  'waxing-gibbous': '803',
+  'full-moon': '804',
+  'waning-gibbous': '805',
+  'last-quarter': '806',
+  'waning-crescent': '807',
+};
+
+/**
+ * 月相 → 字体 class，如 `qi qi-803`。
+ *
+ * 认不出的月相返回空串（不是 999）：999 是「天气未知」那个字形，
+ * 拿来当「月相未知」会画出一朵云 —— 那一格本来就该空着。
+ */
+export function moonPhaseIconClass(phase: string | undefined | null): string {
+  const code = (phase ?? '').trim().toLowerCase();
+  const icon = MOON_PHASE_ICON_CODES[code];
+  if (!icon) return '';
+  return `qi qi-${icon}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,4 +193,73 @@ export function num(value: string | number | undefined): number | null {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+// ---------------------------------------------------------------------------
+// 紫外线
+// ---------------------------------------------------------------------------
+
+/**
+ * 紫外线分级。
+ *
+ * 档位切法和气象行业一致：0–2 弱、3–5 中等、6–7 强、8–10 很强、11 以上极强。
+ * 钓鱼的人在这头站一整天，紫外线是「能待多久」的硬约束 ——
+ * 指数 8 意味着不涂防晒两小时就会晒伤，比「晴不晴」更能左右出钓时间。
+ */
+export function uvLevel(uv: number): { label: string; tone: Tone } {
+  if (uv < 3) return { label: '弱', tone: 'success' };
+  if (uv < 6) return { label: '中等', tone: 'blue' };
+  if (uv < 8) return { label: '强', tone: 'warning' };
+  if (uv < 11) return { label: '很强', tone: 'destructive' };
+  return { label: '极强', tone: 'destructive' };
+}
+
+// ---------------------------------------------------------------------------
+// 降水
+// ---------------------------------------------------------------------------
+
+/**
+ * 降水类型代码 → 中文。
+ *
+ * 和风给的是英文代码（'rain' / 'snow' / 'sleet' / 'drizzle'）。
+ * 认不出的代码原样返回 —— 宁可给个英文代码，也别让那一格空着。
+ */
+const PRECIP_TYPE_CN: Readonly<Record<string, string>> = {
+  none: '无',
+  rain: '雨',
+  snow: '雪',
+  sleet: '雨夹雪',
+  drizzle: '毛毛雨',
+};
+
+export function precipTypeCn(type: string | undefined | null): string {
+  const code = (type ?? '').trim().toLowerCase();
+  if (!code) return '';
+  return PRECIP_TYPE_CN[code] ?? code;
+}
+
+// ---------------------------------------------------------------------------
+// 官方生活指数
+// ---------------------------------------------------------------------------
+
+/**
+ * 官方生活指数的档位 → 色调。
+ *
+ * 按档位文字分，不按 level 数字分：和风的 level 是它自己的编号，
+ * 跟「适宜 / 较适宜 / 较不宜 / 不宜」不是一套顺序，凭数字猜迟早猜错。
+ * 文字是给人看的口径，也是界面上真正要显示的那一份。
+ */
+export function indexCategoryTone(category: string | undefined | null): Tone {
+  switch ((category ?? '').trim()) {
+    case '适宜':
+      return 'success';
+    case '较适宜':
+      return 'blue';
+    case '较不宜':
+      return 'warning';
+    case '不宜':
+      return 'destructive';
+    default:
+      return 'muted';
+  }
 }
