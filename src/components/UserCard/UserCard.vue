@@ -49,12 +49,6 @@
       </view>
     </view>
 
-    <!--
-      发丝线。跟账号区之间断一下：上面是「我是谁」，下面是「我能做什么」，
-      两件事之间留一道线，比塞在一起更清楚。
-    -->
-    <view class="user-card__divider" />
-
     <view v-if="loggedIn" class="user-card__actions">
       <view class="user-card__action" @tap="emit('edit')">
         <image class="user-card__action-icon" :src="pencilIcon" mode="aspectFit" />
@@ -275,13 +269,6 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   margin-top: 8rpx;
   color: $fish-muted-60;
   @include fish-type(caption);
-}
-
-/* 发丝线 */
-.user-card__divider {
-  height: 1rpx;
-  margin: 28rpx 0 20rpx;
-  background-color: $fish-border;
 }
 
 /* 动作行 */
