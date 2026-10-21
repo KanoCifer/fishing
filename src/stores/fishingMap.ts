@@ -33,6 +33,7 @@ import {
   type WeatherNow,
 } from '@/types/fishing';
 import { formatCompactDate } from '@/utils/date';
+import { normalizeWeatherIndices, normalizeWeatherPayload } from '@/utils/weather-normalize';
 
 /** 潮汐可选港口。code 是国家海洋预报台的站点编号 */
 export const HARBOR_OPTIONS = [
@@ -94,8 +95,11 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const weatherLoading = ref(false);
   const weatherError = ref('');
   /**
-   * 生活指数。enriched 响应不含这一项，恒为空数组，
-   * UI 按空态渲染 —— 别在别处假设它有值。
+   * 生活指数（和风官方指数，含钓鱼指数）。
+   *
+   * 来自 enriched 响应的 `weather_indices`。这一项以前恒为空数组 ——
+   * 那时后端根本没往外给，模型只能自己从温度气压反推，丢掉了
+   * 「官方说今天适宜垂钓」这个最强的信号。
    */
   const weatherIndices = ref<WeatherIndex[]>([]);
 
@@ -212,13 +216,26 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
     try {
       const data = await fishingApi.getFishingIndex(target, true);
-      const now = data.current_weather ?? null;
+
+      /*
+       * 归一放在 store 边界：上游换成了和风新一代（数值 + 嵌套对象），
+       * 而组件和 AI 分析载荷要的一直是扁平的视图模型。
+       * 换算全在 `utils/weather-normalize` 里做，这里只调一次 ——
+       * 组件一行都不用改，后端 `app/schemas/aiagent.py` 认的字段形状也就没变。
+       */
+      const { now, hourly, daily } = normalizeWeatherPayload({
+        current: data.current_weather,
+        hourly: data.hourly_weather,
+        daily: data.forecasts,
+      });
       const nameFromEnriched = data.location_name?.trim();
 
       liveWeather.value = now;
-      forecasts.value = data.forecasts ?? [];
-      weatherHourly.value = data.hourly_weather?.hourly ?? [];
+      forecasts.value = daily;
+      weatherHourly.value = hourly;
       locationName.value = nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
+      // 生活指数是 v7 结构（官方没出新版），字段与视图模型一致，只做取值规整。
+      weatherIndices.value = normalizeWeatherIndices(data.weather_indices);
       tideData.value = data.tide_data ?? null;
       indexData.value = data;
       indexLocation.value = key;

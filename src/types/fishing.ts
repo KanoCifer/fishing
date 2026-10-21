@@ -145,9 +145,13 @@ export interface TideApiEnvelope {
 // ---------------------------------------------------------------------------
 
 /**
- * 和风天气的字段全部是字符串数值（如 temp: "29"）。
- * 这是上游的数据形状，不在这里转成 number —— 各消费点要什么精度自己转，
- * 免得某一处转了另一处没转，出错时找不到源头。
+ * 天气**视图模型** —— 组件、store、AI 分析载荷用的都是这一套。
+ *
+ * 字段全是字符串（如 temp: "29"）：渲染时直接拼字符串，
+ * 各消费点要什么精度自己转，免得某一处转了另一处没转，出错时找不到源头。
+ *
+ * 这不是上游的数据形状 —— 上游新一代是「数值 + 嵌套对象」，
+ * wire 类型在文件下方，换算在 `src/utils/weather-normalize.ts`。
  */
 export interface WeatherNow {
   obsTime: string;
@@ -220,6 +224,137 @@ export interface WeatherIndex {
 }
 
 // ---------------------------------------------------------------------------
+// 天气 wire 类型（和风天气新一代 /weather/v1/*）
+// ---------------------------------------------------------------------------
+
+/**
+ * 新一代和风天气的 wire 形状 —— 与上面的视图模型是两套东西，别混用。
+ *
+ * 新接口把数值和单位拆开（`{ value, unit }`）、把风向风速嵌套成对象，
+ * 湿度和云量给的是 [0,1] 的比例，风速用 m/s、能见度用 m，
+ * 一天还拆成白天 / 夜间两段，各自带一套天气和风。
+ *
+ * 视图模型是「给组件看的扁平字符串」，wire 是「接口给什么就是什么」。
+ * 两者之间的换算集中在 `src/utils/weather-normalize.ts`，
+ * 组件与 store 一律只碰视图模型。
+ *
+ * 字段一律可选：上游会缺字段（某时段无降水就没有 precipitation），
+ * 按必填写会在真实响应上直接崩。
+ */
+
+/** 带单位的数值 —— 新接口的数值都是这个形状，不是裸数字 */
+export interface WeatherMeasureV1 {
+  value?: number;
+  unit?: string;
+}
+
+/** 天气现象：中文描述 + 和风天气码 */
+export interface WeatherConditionV1 {
+  text?: string;
+  code?: string;
+}
+
+/** 风：方向（角度 + 16 方位代码）、速度、风力等级 */
+export interface WeatherWindV1 {
+  direction?: { degree?: number; compass?: string };
+  speed?: WeatherMeasureV1;
+  scale?: number;
+}
+
+/** 降水：降水量、强度、降水概率、降水类型 */
+export interface WeatherPrecipitationV1 {
+  amount?: WeatherMeasureV1;
+  intensity?: WeatherMeasureV1;
+  probability?: number;
+  type?: string;
+}
+
+/** 新版实时天气块 —— `enriched` 响应的 `current_weather` 就是它 */
+export interface WeatherCurrentV1 {
+  metadata?: { tag?: string; attributions?: string[] };
+  condition?: WeatherConditionV1;
+  temperature?: WeatherMeasureV1;
+  feelsLike?: WeatherMeasureV1;
+  /** [0,1] 的比例，0.53 = 53% */
+  humidity?: number;
+  wind?: WeatherWindV1;
+  windGust?: WeatherMeasureV1;
+  precipitation?: WeatherPrecipitationV1;
+  pressure?: WeatherMeasureV1;
+  visibility?: WeatherMeasureV1;
+  dewPoint?: WeatherMeasureV1;
+  /** [0,1] 的比例 */
+  cloudCover?: number;
+  uvIndex?: number;
+}
+
+/** 新版逐时条目 */
+export interface WeatherHourlyV1 {
+  forecastTime?: string;
+  condition?: WeatherConditionV1;
+  temperature?: WeatherMeasureV1;
+  feelsLike?: WeatherMeasureV1;
+  humidity?: number;
+  wind?: WeatherWindV1;
+  windGust?: WeatherMeasureV1;
+  precipitation?: WeatherPrecipitationV1;
+  pressure?: WeatherMeasureV1;
+  visibility?: WeatherMeasureV1;
+  dewPoint?: WeatherMeasureV1;
+  cloudCover?: number;
+  uvIndex?: number;
+}
+
+/** 新版逐时块 —— `enriched` 响应的 `hourly_weather` 就是它 */
+export interface WeatherHourlyBlockV1 {
+  metadata?: { tag?: string; attributions?: string[] };
+  hours?: WeatherHourlyV1[];
+}
+
+/** 新版日预报里的白天 / 夜间时段 —— 两段结构同构 */
+export interface WeatherDaySegmentV1 {
+  forecastStartTime?: string;
+  forecastEndTime?: string;
+  condition?: WeatherConditionV1;
+  temperatureMax?: WeatherMeasureV1;
+  temperatureMin?: WeatherMeasureV1;
+  humidity?: number;
+  wind?: WeatherWindV1;
+  windGustMax?: WeatherMeasureV1;
+  precipitation?: WeatherPrecipitationV1;
+  cloudCover?: number;
+}
+
+/** 天文现象 —— 日出日落、月相都在这里 */
+export interface WeatherAstroV1 {
+  sunrise?: string;
+  sunset?: string;
+  moonrise?: string;
+  moonset?: string;
+  /** 月相代码，如 'waxing-gibbous' */
+  moonPhase?: string;
+}
+
+/** 新版日预报条目 */
+export interface WeatherDayV1 {
+  forecastStartTime?: string;
+  forecastEndTime?: string;
+  astro?: WeatherAstroV1;
+  temperatureMax?: WeatherMeasureV1;
+  temperatureMin?: WeatherMeasureV1;
+  temperatureAvg?: WeatherMeasureV1;
+  uvIndexMax?: number;
+  daytime?: WeatherDaySegmentV1;
+  nighttime?: WeatherDaySegmentV1;
+}
+
+/** 新版日预报块 */
+export interface WeatherDailyBlockV1 {
+  metadata?: { tag?: string; attributions?: string[] };
+  days?: WeatherDayV1[];
+}
+
+// ---------------------------------------------------------------------------
 // AI 分析
 // ---------------------------------------------------------------------------
 
@@ -254,6 +389,11 @@ export type FishingFeedbackLevel = FishingLevel;
 /**
  * `enriched=true` 时后端会顺带回传天气和潮汐数据，
  * 省掉一次 weather/full 请求 —— 后端对同一 location 重复取数。
+ *
+ * 天气三块是**和风新一代的 wire 形状**（数值 + 嵌套对象），
+ * 不是视图模型 —— 组件要的是扁平字符串，归一在 store 边界做
+ * （见 `src/utils/weather-normalize.ts`）。
+ * 潮汐仍是 v7 的扁平结构，没换接口，不用归一。
  */
 export interface FishingIndexData {
   fishing_index: number;
@@ -261,11 +401,24 @@ export interface FishingIndexData {
   residual: number;
   level: FishingIndexLevel;
   feature_breakdown: Record<string, number>;
-  current_weather?: WeatherNow;
-  forecasts?: WeatherDay[];
+  /** 新版 current 块 */
+  current_weather?: WeatherCurrentV1 | null;
+  /** 新版日预报条目数组 */
+  forecasts?: WeatherDayV1[] | null;
   location_name?: string;
   tide_data?: TideData;
-  hourly_weather?: { hourly?: WeatherHourly[] };
+  /** 新版逐时块 */
+  hourly_weather?: WeatherHourlyBlockV1 | null;
+  /**
+   * 生活指数（和风 v7 `/v7/indices/1d` 的 daily 条目，原样透传）。
+   *
+   * 这一块官方至今没出新版，字段（date/type/name/level/category/text）本来就是
+   * 扁平的，与视图模型 `WeatherIndex` 一一对应 —— 不需要换算，塞进 AI 载荷即可。
+   *
+   * 缺这一项不是「少块 UI」，是 AI 拿不到「官方说今天适宜垂钓」这个最强信号，
+   * 只能自己从温度气压反推 —— 后端读入侧也是同样的口径。
+   */
+  weather_indices?: WeatherIndex[] | null;
 }
 
 /** 一项子特征的展示形态 —— 原始值 + 归一化后的相对水位 */
