@@ -12,7 +12,7 @@
     - 底栏是一道渐隐，内容从它底下沉进去
   -->
   <view class="spot-detail">
-    <SpotDetailNav :title="title" :solid="solid" :material="material" @back="onBack" />
+    <SpotDetailNav :title="title" :solid="solid" :material="material" shareable @back="onBack" @share="openShare" />
 
     <SpotDetailHero :src="coverSrc" :has-photo="hasPhoto" :height="heroHeight" />
 
@@ -66,6 +66,14 @@
     </view>
 
     <SpotDetailDock :distance="distanceLabel" @nav="openNavigation" />
+
+    <!--
+      分享浮层。
+
+      放在页面这一层而不是详情页组件里：它要画的是**这个钓点**，
+      而钓点数据在 store 里 —— 浮层自己从 store 取，不必再传一遍。
+    -->
+    <SpotShareSheet :open="shareOpen" :data="posterData" @close="shareOpen = false" @ready="onPosterReady" />
   </view>
 </template>
 
@@ -81,7 +89,7 @@
  * （见 stores/spotDetail 的说明）。
  */
 import { computed, ref } from 'vue';
-import { onLoad, onPageScroll } from '@dcloudio/uni-app';
+import { onLoad, onPageScroll, onShareAppMessage } from '@dcloudio/uni-app';
 
 import SpotDetailConditions from '@/components/SpotDetailConditions/SpotDetailConditions.vue';
 import SpotDetailDock from '@/components/SpotDetailDock/SpotDetailDock.vue';
@@ -90,6 +98,7 @@ import SpotDetailHead from '@/components/SpotDetailHead/SpotDetailHead.vue';
 import SpotDetailHero from '@/components/SpotDetailHero/SpotDetailHero.vue';
 import SpotDetailInfo from '@/components/SpotDetailInfo/SpotDetailInfo.vue';
 import SpotDetailNav from '@/components/SpotDetailNav/SpotDetailNav.vue';
+import SpotShareSheet from '@/components/SpotShareSheet/SpotShareSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import {
   SPOT_DETAIL_EDIT,
@@ -97,12 +106,15 @@ import {
   SPOT_HERO_OVERLAP_RPX,
   SPOT_PLACEHOLDER_IMAGE,
 } from '@/constants/spot-detail';
+import { SHARE_TITLES, SHARE_WXACODE } from '@/constants/share';
 import { mediaUrl } from '@/api/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from '@/stores/spotDetail';
 import { enterDelay } from '@/utils/motion';
+import type { PosterSpot } from '@/utils/poster';
 import { buildConditionCells, distanceKm, formatDistance } from '@/utils/spot-conditions';
+import { fishingSpotKindLabel } from '@/types/fishing';
 
 const detailStore = useSpotDetailStore();
 const mapStore = useFishingMapStore();
@@ -213,12 +225,90 @@ const distanceLabel = computed(() => {
   return formatDistance(distanceKm(user, current.location));
 });
 
+/* ── 分享 ───────────────────────────────────────────────────────────── */
+
+/** 分享浮层是否打开 */
+const shareOpen = ref(false);
+
+/**
+ * 转发卡片的封面（临时文件路径）。
+ *
+ * 微信的转发卡片按 5:4 显示，所以要从海报里裁一条出来（见 @/utils/poster 的 CARD_CROP）。
+ *
+ * 临时路径只在本次会话内有效，所以每次重画海报都要重新给一份，
+ * 这里存的是「最新一版」，不是缓存。
+ */
+const shareCardPath = ref('');
+
+/** 海报要画的那些内容。全部是已经换算好的展示值 */
+const posterData = computed<PosterSpot>(() => {
+  const current = spot.value;
+  const index = detailStore.index;
+
+  return {
+    name: current?.name ?? '钓点',
+    kind: fishingSpotKindLabel(current?.kind),
+    place: index?.location_name ?? '',
+    distance: distanceLabel.value,
+    hours: current?.opening_hours ?? '',
+    description: current?.description ?? '',
+    // 文字地址：后端 omitempty，没填就是空串 —— 海报上那一行就不画
+    address: current?.address ?? '',
+    score: index?.fishing_index ?? 0,
+    level: index?.level ?? '',
+    // 缺图时用占位插画顶上 —— 海报上那一块不能空着
+    cover: coverSrc.value,
+    // 海报右下角的小程序码
+    codeUrl: SHARE_WXACODE,
+  };
+});
+
+/** 转发给好友时聊天列表里显示的那一行 */
+const shareTitle = computed(() => {
+  const index = detailStore.index;
+  return SHARE_TITLES.friend(spot.value?.name ?? '钓点', index?.fishing_index ?? 0, index?.location_name ?? '');
+});
+
+/** 打开分享浮层 */
+function openShare(): void {
+  shareOpen.value = true;
+}
+
+/** 海报画好了，把封面收下 */
+function onPosterReady(payload: { card: string }): void {
+  shareCardPath.value = payload.card;
+}
+
+/**
+ * 转发给好友。
+ *
+ * 标题、路径、封面三样凑成微信聊天里那张卡片。
+ * 封面是海报裁出来的 5:4 —— 收的人在卡片上先看见的是这条钓点的照片和鱼口，
+ * 点进去才是详情页。
+ */
+onShareAppMessage(() => ({
+  title: shareTitle.value,
+  path: `/pages/spot-detail/index?id=${spot.value?.id ?? ''}`,
+  imageUrl: shareCardPath.value || undefined,
+}));
+
 onLoad((options) => {
   const id = options?.id;
   if (!id) {
     uni.showToast({ title: '钓点不存在', icon: 'none' });
     return;
   }
+
+  /*
+   * 打开胶囊菜单里的「转发」。
+   *
+   * 只开转发，不开「分享到朋友圈」—— 这一版分享只走两条路：
+   * 存相册、转发给好友。朋友圈那一项留着只会多一个走不通的出口。
+   */
+  uni.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage'],
+  });
 
   /*
    * 先恢复会话。

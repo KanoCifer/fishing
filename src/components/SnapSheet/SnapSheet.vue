@@ -25,7 +25,7 @@
     -->
     <view
       class="snap-sheet__panel"
-      :class="{ 'snap-sheet__panel--out': closing }"
+      :class="{ 'snap-sheet__panel--out': closing, 'snap-sheet__panel--measuring': measuring }"
       :style="panelStyle"
       @tap.stop="swallowGesture"
       @touchmove.stop="swallowGesture"
@@ -50,9 +50,30 @@
       <view v-if="$slots.header" ref="headerRef" class="snap-sheet__header">
         <slot name="header" />
       </view>
-      <scroll-view class="snap-sheet__body" scroll-y :style="{ height: bodyHeight + 'px' }">
-        <slot />
+      <scroll-view class="snap-sheet__body" scroll-y :style="bodyStyle">
+        <!--
+          正文包一层，是给 fitContent 量的。
+
+          面板高度要按内容算，就得知道正文有多高。而 slot 进来的是各页面
+          自己的根节点，样式各不相同，没有一个统一的类可以量 ——
+          包一层才有固定的盒子可量。
+        -->
+        <view class="snap-sheet__body-inner">
+          <slot />
+        </view>
       </scroll-view>
+
+      <!--
+        底部动作区（可选）。
+
+        某些浮层的动作不该跟着正文滚 —— 「保存到相册」「发送给朋友」
+        这种按钮是浮层的一部分，正文滚走了它还得在原处。
+        用插槽而不是让页面自己塞进正文，是因为正文是滚动区，
+        塞进去的按钮会跟着滚走，还得自己再补一遍定位。
+      -->
+      <view v-if="$slots.footer" ref="footerRef" class="snap-sheet__footer">
+        <slot name="footer" />
+      </view>
     </view>
   </view>
 </template>
@@ -67,7 +88,7 @@ import { createSelectorQuery } from '@/utils/selectorQuery';
 interface Props {
   open: boolean;
   /** 档位，按从小到大排列，单位 vh（视口高度的百分比） */
-  snapPoints: readonly number[];
+  snapPoints?: readonly number[];
   /** 初始档位下标 */
   initialSnap?: number;
   /** 是否显示遮罩 */
@@ -78,14 +99,24 @@ interface Props {
   minHeight?: number;
   /** 最大高度占比（视口高度的比例），留出顶部导航的空间 */
   maxHeightRatio?: number;
+  /**
+   * 面板高度按内容算，而不是按视口百分比。
+   *
+   * 内容短的浮层（分享海报、确认框）用百分比高度，正文与底部动作区之间
+   * 会空出一大片 —— 空白把动作推远，看着像动作掉到了屏幕底下。
+   * 开了这个，面板高度 = 把手 + 头部 + 正文 + 底部动作区：正文多高，面板就多高。
+   */
+  fitContent?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  snapPoints: () => [],
   initialSnap: 0,
   mask: true,
   maskClosable: true,
   minHeight: 120,
   maxHeightRatio: 0.95,
+  fitContent: false,
 });
 
 const emit = defineEmits<{
@@ -105,31 +136,10 @@ const instance = getCurrentInstance()!;
  */
 const HANDLE_HEIGHT = uni.upx2px(46);
 
-/** 头部实测高度（px）。无 header 时为 0 */
-const headerHeight = ref(0);
+const { windowHeight } = useViewport();
 
-/**
- * 量一次头部高度。
- *
- * header 是 slot 进来的，内容高度不定（钓点详情有标题+日期，文档抽屉只有标题），
- * 写死常量必然对不上。用 SelectorQuery 量实际高度最稳。
- */
-function measureHeader(): void {
-  if (!instance) return;
-
-  createSelectorQuery(instance)
-    .select('.snap-sheet__header')
-    .boundingClientRect((res) => {
-      // 回调可能是单个矩形也可能是数组，与 canvas fields 同理
-      const rect = Array.isArray(res) ? res[0] : res;
-      const height = rect && typeof rect.height === 'number' ? rect.height : 0;
-      if (height > 0) headerHeight.value = height;
-    })
-    .exec();
-}
-
-/** 滚动区高度 = 面板高 − 把手 − 头部 */
-const bodyHeight = computed(() => Math.max(0, heightPx.value - HANDLE_HEIGHT - headerHeight.value));
+/** 面板最大可用高度：视口减去导航栏高度 */
+const maxHeight = computed(() => windowHeight - nav.navBarBottom);
 
 const snap = ref(props.initialSnap);
 
@@ -139,8 +149,95 @@ const heightPx = ref(0);
 /** 拖拽中为 true，用于关掉 CSS transition，让高度跟手 */
 const dragging = ref(false);
 
+/** 头部实测高度（px）。无 header 时为 0 */
+const headerHeight = ref(0);
+
+/** 底部动作区实测高度（px）。无 footer 时为 0 */
+const footerHeight = ref(0);
+
+/** 正文内容实测高度（px）。fitContent 时面板高度按它算 */
+const contentHeight = ref(0);
+
+/**
+ * 高度是否已经定下来了。
+ *
+ * fitContent 下面板高度是量出来的：量之前只能先给个估值，
+ * 那一下浮层会从矮长到高 —— 看着像自己弹了一下。
+ * 所以量完之前面板先不显示（--measuring），高度定下来再让它入场。
+ */
+const settled = ref(false);
+
+/** 是否处于「量高度」的阶段。只有 fitContent 才有这个阶段 */
+const measuring = computed(() => props.fitContent && !settled.value);
+
+/**
+ * 量一次头部、正文、底部动作区。
+ *
+ * 三处都是 slot 进来的，内容高度不定（钓点详情有标题+日期，文档抽屉只有标题），
+ * 写死常量必然对不上。用 SelectorQuery 量实际高度最稳。
+ *
+ * 一次查询量完而不是分三次：fitContent 下面板高度是三者的和，
+ * 分三次量要等三个回调，落地高度会被改两次（先矮后高，浮层跳一下）。
+ */
+function measure(): void {
+  createSelectorQuery(instance)
+    .select('.snap-sheet__header')
+    .boundingClientRect()
+    .select('.snap-sheet__footer')
+    .boundingClientRect()
+    .select('.snap-sheet__body-inner')
+    .boundingClientRect()
+    .exec((res) => {
+      const header = rectHeight(res[0]);
+      const footer = rectHeight(res[1]);
+      const content = rectHeight(res[2]);
+
+      if (header > 0) headerHeight.value = header;
+      if (footer > 0) footerHeight.value = footer;
+      if (content > 0) contentHeight.value = content;
+
+      // 内容定高的浮层：量完才知道自己该多高，这时候才把它放出来
+      if (props.fitContent) {
+        heightPx.value = snapToPx(snap.value);
+        settled.value = true;
+      }
+    });
+}
+
+/** 从选择器回调的结果里取高度。回调可能是单个矩形也可能是数组 */
+function rectHeight(res: unknown): number {
+  const rect = (Array.isArray(res) ? res[0] : res) as { height?: number } | null | undefined;
+  return rect && typeof rect.height === 'number' ? rect.height : 0;
+}
+
+/**
+ * 面板高度（px）：把手 + 头部 + 正文 + 底部动作区。
+ *
+ * fitContent 用它 —— 内容有多高，面板就有多高。
+ */
+const fitHeight = computed(() => HANDLE_HEIGHT + headerHeight.value + contentHeight.value + footerHeight.value);
+
+/**
+ * 滚动区高度。
+ *
+ * 默认：面板高 − 把手 − 头部 − 底部动作区。
+ * 底部动作区这一项不能少扣：它就贴在面板底边上，
+ * 不扣的话正文底部那一截永远被它盖住 —— 而正文底部往往正是最该看见的内容。
+ *
+ * fitContent：正文的自然高度（量出来是多少就是多少）。
+ * 量出来之前先给足空间 —— 量一个被裁过的盒子，量到的是裁后的高度。
+ */
+const bodyHeight = computed(() => {
+  if (props.fitContent) {
+    if (contentHeight.value === 0) return Math.max(0, maxHeight.value - HANDLE_HEIGHT);
+    const room = Math.max(0, maxHeight.value - HANDLE_HEIGHT - headerHeight.value - footerHeight.value);
+    return Math.min(contentHeight.value, room);
+  }
+
+  return Math.max(0, heightPx.value - HANDLE_HEIGHT - headerHeight.value - footerHeight.value);
+});
+
 // ── 出入场 ──
-//
 // 用 keyframes 而不是 transition：transition 需要"先渲染静止态、
 // 再改值"才会补间，而 v-if 挂载的节点只有一次渲染机会，
 // 直接赋终态不会补间。keyframes 由浏览器自己管起点，稳。
@@ -170,13 +267,13 @@ function clearExitTimer(): void {
 
 onUnmounted(clearExitTimer);
 
-const { windowHeight } = useViewport();
-
-/** 面板最大可用高度：视口减去导航栏高度 */
-const maxHeight = computed(() => windowHeight - nav.navBarBottom);
-
 /** 档位 → px */
 function snapToPx(index: number): number {
+  // 内容定高的浮层没有档位：高度就是内容有多高
+  if (props.fitContent) {
+    return Math.max(props.minHeight, Math.min(maxHeight.value, fitHeight.value));
+  }
+
   const ratio = props.snapPoints[index];
   if (ratio === undefined) return props.minHeight;
 
@@ -189,8 +286,12 @@ const panelStyle = computed(() => ({
   // 曲线与时长照抄令牌层 _motion.scss 的 $fish-spring / $fish-dur-base（行内 style 不走 SCSS，
   // 变量传不进来，只能写死并在注释里指回源头）。抬手吸附走临界阻尼、不回弹：
   // 档位切换是「落位」不是「甩过去」，加了过冲会读成弹了一下。
-  transition: dragging.value ? 'none' : 'height 280ms cubic-bezier(0.2, 0, 0, 1)',
+  // 内容定高时不过渡：高度只在量完那一下定一次，滑过去反而像自己长高了。
+  transition: dragging.value || props.fitContent ? 'none' : 'height 280ms cubic-bezier(0.2, 0, 0, 1)',
 }));
+
+/** 滚动区的行内高度 */
+const bodyStyle = computed(() => ({ height: `${bodyHeight.value}px` }));
 
 watch(
   () => props.open,
@@ -205,8 +306,12 @@ watch(
       rendered.value = true;
       closing.value = false;
       cycle.value += 1;
-      // 等面板真渲染出来再量头部 —— 此刻节点还没进 DOM，量了也是 0
-      void nextTick().then(measureHeader);
+      // 内容定高的浮层要先量才知道自己多高，量完之前面板不显示
+      settled.value = false;
+      // 等面板真渲染出来再量头部、正文与底部动作区 —— 此刻节点还没进 DOM，量了也是 0
+      void nextTick().then(() => {
+        measure();
+      });
       return;
     }
 
@@ -214,6 +319,8 @@ watch(
     // 免得连点两次遮罩排出多个定时器。
     if (!rendered.value) return;
     closing.value = true;
+    // 量高度还没完就被关掉：先把它放出来，不然退场动画演给空气看
+    settled.value = true;
     exitTimer = setTimeout(() => {
       rendered.value = false;
       closing.value = false;
@@ -247,6 +354,8 @@ function swallowGesture(): void {}
 /** 拖拽起点：手指 Y + 起始高度 */
 let startY = 0;
 let startHeight = 0;
+/** 手指走了多远（px，向上为正）。内容定高的浮层高度不跟手走，判断手势只能看它 */
+let dragDelta = 0;
 /** 上一次 move 的位置和时间，用来算瞬时速度 */
 let lastMoveY = 0;
 let lastMoveTime = 0;
@@ -265,6 +374,7 @@ function onTouchStart(e: TouchEvent) {
 
   startY = touch.clientY;
   startHeight = heightPx.value;
+  dragDelta = 0;
   lastMoveY = touch.clientY;
   lastMoveTime = Date.now();
   velocity = 0;
@@ -276,9 +386,13 @@ function onTouchMove(e: TouchEvent) {
   if (!touch) return;
 
   // 手指上移为正
-  const deltaY = startY - touch.clientY;
-  const next = Math.max(props.minHeight, Math.min(maxHeight.value, startHeight + deltaY));
-  heightPx.value = next;
+  dragDelta = startY - touch.clientY;
+
+  // 内容定高的浮层不改高度：它的高度是内容决定的，拖不出下一档
+  if (!props.fitContent) {
+    const next = Math.max(props.minHeight, Math.min(maxHeight.value, startHeight + dragDelta));
+    heightPx.value = next;
+  }
 
   // 瞬时速度（px/s）。取最近一次 move 的差值，不做平滑 ——
   // 松手前那一下的手势方向才是用户意图
@@ -294,11 +408,13 @@ function onTouchEnd() {
   if (!dragging.value) return;
   dragging.value = false;
 
-  const delta = heightPx.value - startHeight;
+  // 内容定高的浮层高度不跟手走，判断手势只能看手指走了多远
+  const delta = props.fitContent ? dragDelta : heightPx.value - startHeight;
 
   if (delta < -DRAG_THRESHOLD || velocity < -VELOCITY_THRESHOLD) {
     // 往下拖：已在最小档就关闭，否则收缩一档
-    if (snap.value === 0) {
+    // 内容定高的浮层只有一档，往下拖就是关掉
+    if (props.fitContent || snap.value === 0) {
       emit('close');
       return;
     }
@@ -307,6 +423,8 @@ function onTouchEnd() {
   }
 
   if (delta > DRAG_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
+    // 内容定高的浮层没有下一档，往上拖无处可去
+    if (props.fitContent) return;
     snap.value = Math.min(props.snapPoints.length - 1, snap.value + 1);
     return;
   }
@@ -381,6 +499,24 @@ function onMaskTap() {
 }
 
 /*
+ * 量高度期间的浮层。
+ *
+ * 内容定高的浮层要先量才知道自己多高，量之前只能给个估值 ——
+ * 那一下会从矮长到高，看着像自己弹了一下。
+ * 所以量完之前先藏起来。
+ *
+ * 用 opacity 而不是 visibility：元素照样参与布局、照样量得到高度，
+ * 只是不画出来；visibility: hidden 在部分内核上不参与命中测试，
+ * 这里还要 pointer-events: none 让这一帧的点击穿透到遮罩。
+ * 高度定下来、--measuring 摘掉，入场动画才从头播。
+ */
+.snap-sheet__panel--measuring {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+/*
  * 拖拽把手。
  * HANDLE_HEIGHT 是脚本里按这套 padding + 指示条高度算出来的常量（54px），
  * 改这里的 padding 必须回去同步那个数，否则滚动区会算错高度。
@@ -409,6 +545,27 @@ function onMaskTap() {
  */
 .snap-sheet__body {
   width: 100%;
+  flex-shrink: 0;
+}
+
+/*
+ * 正文包的那一层。
+ *
+ * display: flow-root 是为了不跟子元素的外边距合并 ——
+ * 合并掉的外边距不在这一层的盒子里，量出来的正文高度就会短一截。
+ * 老内核不认这个值，退回 block，行为退回原样，不会出事。
+ */
+.snap-sheet__body-inner {
+  display: flow-root;
+}
+
+/*
+ * 底部动作区。
+ *
+ * 贴在面板底边，不跟着正文滚。flex-shrink: 0 与滚动区同理 ——
+ * 它一被压扁，按钮就贴到 home indicator 上去了。
+ */
+.snap-sheet__footer {
   flex-shrink: 0;
 }
 

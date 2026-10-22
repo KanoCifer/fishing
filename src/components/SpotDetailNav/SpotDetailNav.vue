@@ -1,18 +1,4 @@
 <template>
-  <!--
-    钓点详情页的导航栏 —— 与 PageNav 同源，但多一态。
-
-    PageNav 只有两态：材质层「隐 / 显」。这一页多一种情况：头图是一张
-    满幅照片，导航栏浮在它上面 —— 白字浮在照片上才认得出，返回键也得是白的
-    （压在浅色水面上白箭头直接消失）。所以这里拆成两个独立开关：
-
-    - solid   反色：蓝箭头 + 黑字。滚过照片之后换过来
-    - material 材质层显形：内容滚到导航栏底下时，得有块面把内容托住
-
-    两者不一定同时成立。缺图时头图是一张白底插画，从头就该是实底黑字，
-    但材质层仍要等内容滚上来才显形 —— 插画顶部本来就是白的，
-    此刻铺一层白材质等于把它从中间切断。
-  -->
   <view class="spot-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
     <view class="spot-nav__material" :class="{ 'spot-nav__material--on': material }" />
 
@@ -27,6 +13,15 @@
       -->
       <view class="spot-nav__title-slot">
         <text class="spot-nav__title" :class="{ 'spot-nav__title--solid': solid }">{{ title }}</text>
+      </view>
+      <view
+        v-if="shareable"
+        class="spot-nav__share"
+        :class="{ 'spot-nav__share--solid': solid }"
+        :style="{ right: capsuleInsetRight + 'px' }"
+        @tap="emit('share')"
+      >
+        <image class="spot-nav__share-icon" :src="shareIcon" mode="aspectFit" />
       </view>
     </view>
   </view>
@@ -51,14 +46,17 @@ const props = defineProps<{
   solid: boolean;
   /** 材质层显形 */
   material: boolean;
+  /** 是否给出分享入口 */
+  shareable?: boolean;
 }>();
 
 const emit = defineEmits<{
   back: [];
+  share: [];
 }>();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
-const { statusBarHeight, navBarHeight } = useNavMetrics();
+const { statusBarHeight, navBarHeight, capsuleInsetRight } = useNavMetrics();
 
 /**
  * 返回箭头两副面孔。
@@ -68,6 +66,9 @@ const { statusBarHeight, navBarHeight } = useNavMetrics();
  * 滚到内容上换成主色：浅灰页面底上白箭头直接消失。
  */
 const backIcon = computed(() => icon('chevron-left', props.solid ? 'blue' : 'onAccent'));
+
+/** 分享入口的两副面孔，与返回键同一套逻辑 */
+const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccent'));
 </script>
 
 <style lang="scss" scoped>
@@ -156,6 +157,35 @@ const backIcon = computed(() => icon('chevron-left', props.solid ? 'blue' : 'onA
 
 .spot-nav__back--solid {
   background-color: transparent;
+}
+
+/*
+ * 分享按钮。
+ *
+ * 与返回键同一套处理：浮在照片上时是白图标配半透明深色圆底，
+ * 滚过照片后换成主色图标。
+ */
+.spot-nav__share {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 999rpx;
+  transform: translateY(-50%);
+  transition: background-color $fish-dur-base $fish-ease-out;
+  @include fish-press-dim;
+}
+
+.spot-nav__share--solid {
+  background-color: transparent;
+}
+
+.spot-nav__share-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 /*

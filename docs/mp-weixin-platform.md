@@ -61,9 +61,13 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 ## canvas
 
 - **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，与令牌层 `src/styles/tokens/_color.scss` 手工保持一致（`$fish-tide`、`$fish-temp` 是锚点）
+- **canvas 的字体族要抄 `$fish-font`**，不能写裸 `sans-serif` —— iOS 上 `sans-serif` 落到的是 Helvetica，`-apple-system` 才是 SF Pro（见 `src/utils/poster.ts` 的 `FONT_STACK`）
 - dpr 从 `uni.getWindowInfo().pixelRatio` 取
 - 画布尺寸先 `uni.upx2px()` 换算成 px
 - **逻辑层没有全局 rAF**，取帧走 canvas 节点自带的 `requestAnimationFrame`（基础库 2.7.0+），见 `FishingGauge` 顶部的类型声明
+- **要导出成文件的画布，位图按设计分辨率铺，显示尺寸交给 CSS。** 按「CSS 尺寸 × dpr」铺位图，导出时就得把它放大回设计尺寸 —— 存下来的是放大件，字和码都糊
+- **`createImage()` 的 src 只认网络地址与 base64 Data URI**（基础库 2.11.0 起）。代码包里的本地文件不在承诺里，要先 `getFileSystemManager().readFile({ encoding: 'base64' })` 读出来再给画布（见 `src/utils/canvasImage.ts`）
+- **SVG data URI 在 `<image>` 里能显示，但 canvas 的 `createImage()` 吃它没保证** —— canvas 里要图标就用路径画（见 `src/utils/poster.ts` 的 `mapPin`）
 
 ## 原生 map
 
@@ -224,6 +228,81 @@ uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
 上传走 `uni.uploadFile`（不是 `uni.request`）：multipart 要用前者。表单字段名固定 `file`，用途走 `type` 字段 —— 写错字段名服务端回 400「未收到上传文件」。
 
 ⚠️ 上传用的是 **uploadFile 合法域名**，跟 request / downloadFile 又是三份独立的名单。
+
+## 分享
+
+钓点详情页的分享走两条路：海报存相册、转发给好友。碰分享先读这一节。
+
+### 转发面板只能由按钮唤起
+
+`onShareAppMessage` 只是**提供内容**，不是入口。微信的转发面板只有一条入口：
+`<button open-type="share">`。页面自己没有任何 API 能打开它。
+
+所以分享浮层里那颗「发给朋友」必须是原生 `button`，不能用 `view` + `@tap` 顶替
+—— 项目里其余地方都用 `view`，这一处是例外，代价是原生 button 的默认样式
+（灰底、边框、字号、内边距、`::after` 那条边）要一条条清掉。
+
+### 胶囊菜单的项要显式开
+
+`uni.showShareMenu({ menus: [...] })` 决定胶囊菜单里有哪些项。
+不显式开就只有转发；`shareTimeline`（朋友圈）要单独列进去才会出现。
+
+这一版分享**不做朋友圈**，所以 `menus` 只列 `shareAppMessage` ——
+留着朋友圈只会多一个走不通的出口（朋友圈那条路还有一条硬限制：页面发不了朋友圈，
+只能由用户从胶囊菜单点，见下）。
+
+### 朋友圈页面发不了
+
+微信不允许页面自己打开朋友圈面板，只能由用户从右上角胶囊菜单发起。
+这是平台限制，绕不过去 —— 任何「一键分享到朋友圈」的按钮在微信里都是假的。
+
+### 卡片封面按 5:4 裁
+
+转发卡片的自定义图（`imageUrl`）按 **5:4** 显示，朋友圈按 1:1。
+所以一张 3:4 的海报要先裁出中间那条 5:4 带再交出去；
+裁切框与海报绘制共用同一个数（`src/constants/share.ts` 的 `POSTER`），
+两处各写一个，版面一改就会错位。
+
+`imageUrl` 支持本地临时路径 —— 海报画完用 `uni.canvasToTempFilePath` 导出来直接给它，
+不必上传到服务器。
+
+### 存相册要授权
+
+`uni.saveImageToPhotosAlbum` 要 `scope.writePhotosAlbum`。先读
+`uni.getSetting()`：用户明确拒绝过（`false`）时微信不会再弹窗，
+只能 `uni.openSetting()` 引导去设置页；从没问过（`undefined`）直接调，
+第一次会自己弹授权窗。这两件事在 `src/utils/album.ts` 里分开处理。
+
+### 海报要现画
+
+海报上的数（鱼口、地址、开放时间）前端手里就有，走服务端渲染要多一次往返，
+不值当。所以用 canvas 2d 现画（`src/utils/poster.ts`）。
+
+canvas 2d 的两个约束（见上面「canvas」一节）：不解析 `var()`，
+色值硬编码并与令牌层手工保持一致；**位图按海报的设计分辨率（750×1000）铺，
+绘制也用设计坐标** —— 两套坐标是同一套，显示时由 CSS 缩到预览尺寸。
+
+封面图是网络图，`canvas.createImage()` 自己拉 —— 域名要在微信后台的
+**downloadFile 合法域名**里，否则那张照片永远不出来。
+
+导出用 **PNG**（`src/constants/share.ts` 的 `POSTER_EXPORT.fileType`）：
+海报上那块小程序码是黑白高对比的小图案，JPEG 一压就出振铃，糊了就扫不出来。
+
+### 海报上的码
+
+海报右下角现在放的是**一张固定的小程序码**（`src/static/wxacode.jpg`，
+代码包内的文件，引用时写 `/static/...` 这个根路径）。
+
+它是用 `getFileSystemManager()` 读成 base64 再喂给画布的（见上面「canvas」一节）——
+`createImage()` 直接吃代码包内的路径并不在官方承诺里。
+
+它扫出来落在**小程序入口**，不是直接落在某条钓点上 —— 一张静态码做不到按场景跳转。
+要「扫了图就到这条钓点」，得后端按 scene 调 `getwxacodeunlimit` 出无限码，
+那是接口层的另一件事（`PosterSpot.codeUrl` 那一格就是留给它的位置）。
+
+码在海报上按 150/750 画 —— 落到手机上约 75pt，再小就扫不出来了。
+画的时候**不裁圆角**：小程序码的定位图形贴着角上，裁一刀就毁了，
+而扫不出来的时候没人会怀疑是海报被裁了。
 
 ## 登录
 
