@@ -1,37 +1,37 @@
 {
-  "name": "渔碌",
-  "appid": "wxe310d6eacdda4d66",
-  "description": "",
-  "versionName": "1.0.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "mp-weixin": {
-    "appid": "wxe310d6eacdda4d66",
-    "componentFramework": "glass-easel",
-    "glassEaselWebview": true,
-    "setting": {
-      "urlCheck": false,
-      "es6": true,
-      "postcss": false,
-      "minified": true
-    },
-    "usingComponents": true,
-    "permission": {
-      "scope.userLocation": {
-        "desc": "用于在地图上显示你的位置并标记钓点"
+    "name": "渔碌",
+    "appid": "",
+    "description": "",
+    "versionName": "1.0.0",
+    "versionCode": "100",
+    "transformPx": false,
+    "mp-weixin": {
+      "appid": "wxe310d6eacdda4d66",
+      "componentFramework": "glass-easel",
+      "glassEaselWebview": true,
+      "setting": {
+        "urlCheck": true,
+        "postcss": true,
+        "es6": true,
+        "minified": true
       },
-      "scope.userInfo": {
-        "desc": "用于设置你的昵称与头像，让钓友认出你"
+      "usingComponents": true,
+      "permission": {
+        "scope.userLocation": {
+          "desc": "用于在地图上显示你的位置并标记钓点"
+        }
+      },
+      "requiredPrivateInfos": [
+        "getLocation",
+        "chooseLocation"
+      ],
+      "lazyCodeLoading": "requiredComponents",
+      "optimization": {
+        "subPackages": true
       }
     },
-    "requiredPrivateInfos": ["getLocation", "chooseLocation"],
-    "lazyCodeLoading": "requiredComponents",
-    "optimization": {
-      "subPackages": true
-    }
-  },
-  "uniStatistics": {
-    "enable": false
-  },
-  "vueVersion": "3"
+    "uniStatistics": {
+      "enable": false
+    },
+    "vueVersion": "3"
 }
