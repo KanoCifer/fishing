@@ -1,11 +1,4 @@
 <template>
-  <!--
-    编辑钓点页 —— 改我自己提交的那一条。
-
-    表单跟新建页是同一张表（同一批字段、同一套校验），所以文案与版式
-    都从共用的出处取（constants/spot-form、styles/pages/spot-form），
-    不在这里另抄一份。
-  -->
   <view class="spot-form" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
@@ -23,11 +16,6 @@
       </view>
 
       <template v-else>
-        <!--
-          驳回理由。
-          它是这一页存在的理由 —— 被驳回的人要知道该改什么。
-          后端把备注清空是在「属主保存之后」，所以进这一页时它还在。
-        -->
         <view v-if="rejectNote" class="spot-form__reject">
           <text class="spot-form__reject-title">{{ rejectTitle }}</text>
           <text class="spot-form__reject-text">{{ rejectNote }}</text>
@@ -172,20 +160,6 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 编辑钓点页 —— 改我提交的那一条。
- *
- * 后端对更新是**部分更新**语义：不传的字段不动，传了的字段显式覆盖。
- * 所以这一页只传它管得着的那些：
- * - `tags` 不传 —— 小程序的表单没有标签这一栏，传空数组等于把用户的标签清掉。
- * - `rating` 不传 —— 评分是用户投票的均值，属主改自己的钓点不该动它。
- * - `images` 必须传 —— 图片是整组替换语义（不传 = 不动，传 = 整组换掉），
- *   用户删光了照片就得传空数组才能真的清空。
- *
- * 保存后的状态由后端决定：属主改一条没过审的钓点，它退回 pending 并清掉
- * 驳回备注；改一条已过审的，它保持 approved。所以提示语按保存**前**的状态分三种，
- * 不能是同一句话 —— 对一条待审的钓点说「已保存」，用户会以为它已经公开了。
- */
 import { computed, ref } from 'vue';
 import { onLoad, onPageScroll, onPageShow } from '@dcloudio/uni-app';
 
@@ -446,6 +420,8 @@ async function load(): Promise<void> {
  */
 function pickLocation() {
   uni.chooseLocation({
+    latitude: location.value?.lat,
+    longitude: location.value?.lng,
     success: (res) => {
       location.value = {
         lng: res.longitude,
@@ -455,7 +431,6 @@ function pickLocation() {
       };
     },
     fail: (err) => {
-      // 用户主动取消是正常操作，不该弹一个「失败」把气氛搞砸。
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
       uni.showToast({ title: SPOT_FORM_PICK_FAILED, icon: 'none' });
