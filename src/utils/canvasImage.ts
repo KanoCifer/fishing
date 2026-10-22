@@ -20,8 +20,12 @@ function packagePathCandidates(filePath: string): string[] {
 /**
  * 按扩展名猜 mime。
  *
- * 只认 png 与 jpg —— 海报里只有这两种图（小程序码是 jpg，占位插画是 png）。
+ * 只认 png 与 jpg —— 海报里只有这两种图（小程序码是 png，占位插画是 jpg）。
  * 猜错了的后果是画布解不出图，所以不做更宽的猜测。
+ *
+ * 为什么不加 webp：webp 的 data URI 喂给 createImage() 未必每个基础库都认。
+ * logo 用了 webp，但它只出现在 <image> 里，不进 canvas。
+ * 见 scripts/optimize-assets.py 里的理由。
  */
 function mimeOf(filePath: string): string {
   const lower = filePath.toLowerCase();

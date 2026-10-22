@@ -46,7 +46,7 @@ export const SHARE_TITLES = {
   friend: (name: string, score: number, place: string): string => `${name}｜今日鱼口 ${score} 分 · ${place}`,
 } as const;
 
-export const SHARE_WXACODE = '/static/wxacode.jpg';
+export const SHARE_WXACODE = '/static/wxacode.png';
 
 /**
  * 海报的版式尺寸。

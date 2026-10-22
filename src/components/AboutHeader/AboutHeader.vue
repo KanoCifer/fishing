@@ -27,7 +27,7 @@ import { APP_INFO } from '@/constants/about';
 const info = APP_INFO;
 
 /** 相对路径写法与 src/static 下的其他资源一致（见 pages.json 的 tabBar iconPath） */
-const logo = '/static/logo.png';
+const logo = '/static/logo.webp';
 </script>
 
 <style lang="scss" scoped>

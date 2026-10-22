@@ -20,8 +20,14 @@ export const SPOT_HERO_OVERLAP_RPX = 68;
  *
  * src/static 下的文件在小程序里挂在根路径，所以是 /static/... 而不是 @/static/...
  * （同 useMapMarkers 的 marker 图标路径）。
+ *
+ * **是 jpg 不是 png**：这张图有两条使用路径，其中一条要进 canvas
+ * （海报，`SpotShareSheet` 画它）。canvas 的 createImage() 只认网络地址与
+ * base64 Data URI，本地文件得先读成 base64，而 data URI 的 mime 要跟真实
+ * 格式对得上 —— jpg 那条路已经验证过。
+ * 换格式之前先读 scripts/optimize-assets.py 里的理由。
  */
-export const SPOT_PLACEHOLDER_IMAGE = '/static/spots.png';
+export const SPOT_PLACEHOLDER_IMAGE = '/static/spots.jpg';
 
 /**
  * 属主在详情页上看到的那个编辑入口。

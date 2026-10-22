@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "uni -p mp-weixin",
-    "build": "uni build -p mp-weixin",
+    "build": "uni build -p mp-weixin && node scripts/clean-dist.mjs",
+    "assets": "python3 scripts/optimize-assets.py",
     "type-check": "vue-tsc --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
