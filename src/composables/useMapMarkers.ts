@@ -39,7 +39,9 @@ const MARKER_SIZE = 40;
  * kind → 图标。
  *
  * src/static 下的文件在小程序里挂在根路径，所以是 /static/... 而不是 @/static/...。
- * 拆成子包后这些路径要跟着改，这里集中一处就是为了那时候只改这一行。
+ * 拆成子包后**这些路径不用改**：以 / 开头的绝对路径一律从主包根目录解析，
+ * 而 static/ 整个目录都在主包里（子包能引用主包的资源）。
+ * 曾经这里写着「拆包后要跟着改」—— 那是猜的，没验证过。
  *
  * 图标源文件在 scripts/markers/*.svg，PNG 由 `bash scripts/gen-markers.sh` 烧出来。
  * 新增 kind 时三处都要动：这张表、scripts/markers/ 下那张 SVG、以及 src/constants 之外
