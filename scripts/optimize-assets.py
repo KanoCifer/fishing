@@ -29,16 +29,20 @@ WebP 在这里有风险：mime 对不上必然解不出图，对得上也未必�
 PNG 版要多背 60KB，logo 又只有 120rpx 大，图里那些渐变经得起 WebP。
 这条分工是本脚本存在的主要理由：手改很容易把 logo 也存成 PNG，白背 60KB。
 
-**小程序码走灰度 PNG。**
-它是黑白的二维码图，JPEG 恰恰是最不适合它的格式 ——
-JPEG 把「白」也存成了一堆色度噪点，压缩时为了省那点色度信息，
-把黑白边界也糊了。而这张码糊一点就扫不出来，扫不出来是它最硬的失败。
-灰度 PNG 是无损的：亮度一格不差，色度噪点（纯 JPEG 产物）直接丢掉。
-61.8KB → 21.5KB，而且边界比原来干净。
+**小程序码走无损 PNG。**
+它是微信的**彩色**小程序码：中间蓝鱼黄圈、右下角绿色微信角标。
+所以只能存成 PNG —— JPEG 会把「黄」和「绿」压出色度噪点，
+而那张码靠对比度识别，糊了就扫不出来。
+PNG 无损，边界比 JPEG 干净，体积还小（52KB → 44KB）。
 
-⚠️ **不能压成 1-bit。** 这张码的中间那只鱼是网点画的（半调），
-不是实心模块 —— 阈值化会把它打成一片碎点，码直接废掉。
-灰度是安全的那一档：不丢信息，只是换个无损的容器装。
+⚠️ **不能压成 1-bit，也不能转灰度。**
+- 1-bit：这张码中间的鱼是网点画的（半调），不是实心模块 ——
+  阈值化会把它打成一片碎点，码直接废掉。
+- 灰度：更隐蔽。那张码**八成像素确实是灰的**（白底 + 黑环占了绝大多数），
+  于是很容易得出「这本来就是张灰度图，转一下无损」的结论 ——
+  但剩下那两成是整张码的品牌：蓝鱼、黄圈、绿角标。
+  转灰度看着「没损失多少像素」，实际上把那部分全弄没了。
+  **按面积算比例会骗人，要看那部分是什么。**
 
 ## 参数
 
@@ -72,6 +76,7 @@ JOBS = [
         "src": "spots.png",
         "out": "spots.jpg",
         "format": "JPEG",
+        "mode": "RGB",
         "options": {"quality": 92, "subsampling": 0, "optimize": True},
         "note": "占位插画 —— 要进 canvas，海报路径上只认 jpg/png",
     },
@@ -79,6 +84,7 @@ JOBS = [
         "src": "logo.png",
         "out": "logo.webp",
         "format": "WEBP",
+        "mode": "RGBA",
         "options": {"quality": 95, "method": 6},
         "note": "应用 logo —— 只在 <image> 里出现，WebP 带 alpha",
     },
@@ -86,9 +92,9 @@ JOBS = [
         "src": "wxacode.jpg",
         "out": "wxacode.png",
         "format": "PNG",
-        "mode": "L",
+        "mode": "RGB",
         "options": {"optimize": True},
-        "note": "小程序码 —— JPEG 会把黑白边界糊了，灰度 PNG 无损",
+        "note": "小程序码 —— 彩色，不能转灰度；JPEG 会糊掉边界",
     },
 ]
 
@@ -107,14 +113,11 @@ def run(job: dict) -> None:
     before = src_path.stat().st_size
 
     with Image.open(src_path) as im:
+        # 模式逐张定死，不靠「反正先转 RGBA」——
+        # 给一张本来不透明的图加透明通道，白白多几 KB 包体，
+        # 而那些像素永远是 alpha=255，透明通道一点用没有。
         if job.get("mode"):
-            # 指定了模式就按它来（灰度 PNG 走这条）
             im = im.convert(job["mode"])
-        elif job["format"] == "JPEG":
-            # JPEG 不带 alpha 通道；这张占位插画本来也没有透明像素
-            im = im.convert("RGB")
-        else:
-            im = im.convert("RGBA")
         im.save(out_path, job["format"], **job["options"])
 
     after = out_path.stat().st_size

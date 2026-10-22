@@ -296,9 +296,9 @@ canvas 2d 的两个约束（见上面「canvas」一节）：不解析 `var()`�
 它是用 `getFileSystemManager()` 读成 base64 再喂给画布的（见上面「canvas」一节）——
 `createImage()` 直接吃代码包内的路径并不在官方承诺里。
 
-**它是 PNG 不是 JPEG**：黑白高对比的码，JPEG 把边界糊了就扫不出来，
-而扫不出来是这张海报最硬的失败。源图在 `scripts/assets/wxacode.jpg`，
-产物是灰度 PNG —— 见「静态资源」一节。
+**它是 PNG 不是 JPEG**：彩色的码（中间蓝鱼黄圈、右下角绿色微信角标），
+JPEG 一压色度噪点就把边界糊了，而糊了就扫不出来。
+源图在 `scripts/assets/wxacode.jpg`，产物是无损 PNG —— 见「静态资源」一节。
 
 它扫出来落在**小程序入口**，不是直接落在某条钓点上 —— 一张静态码做不到按场景跳转。
 要「扫了图就到这条钓点」，得后端按 scene 调 `getwxacodeunlimit` 出无限码，
@@ -391,7 +391,7 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 | ------------------- | ------------------ | -------------------------------------------------------------------- |
 | `spots.png`（1.2MB）| `spots.jpg`（158KB）| 要进 canvas，海报路径上只认 jpg/png                                   |
 | `logo.png`（76KB）  | `logo.webp`（15KB） | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha                     |
-| `wxacode.jpg`（62KB）| `wxacode.png`（21KB）| 黑白高对比的码，JPEG 会把边界糊了，糊了就扫不出来                   |
+| `wxacode.jpg`（51KB）| `wxacode.png`（44KB）| 彩色码，JPEG 会把边界糊了，糊了就扫不出来                    |
 
 跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
 
