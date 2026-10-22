@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "vue"],
+  "env": {
+    "builtin": true,
+    "vue": true
+  },
+  "globals": {
+    "uni": "readonly",
+    "console": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearInterval": "readonly"
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-undef": "error",
+    "eslint/no-irregular-whitespace": ["error", { "skipComments": true }],
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/require-module-specifiers": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/scripts/**"],
+      "env": {
+        "node": true
+      }
+    }
+  ]
+}

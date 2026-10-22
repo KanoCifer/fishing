@@ -17,10 +17,13 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 | 开发     | `pnpm dev`                                                                           |
 | 构建     | `pnpm build` → 产物在 `dist/build/mp-weixin/`（`pnpm dev` 在 `dist/dev/mp-weixin/`） |
 | 类型检查 | `pnpm type-check`                                                                    |
+| 代码检查 | `pnpm lint`                                                                          |
 | 格式化   | `npx oxfmt <自己改动的文件>` —— 只格式化动过的那些                                   |
 | 改图标   | 改 `scripts/gen-icons.mjs` 的清单 → `pnpm icons` → `pnpm type-check`                 |
 
-自动校验只有 `pnpm type-check` 一项 —— 本仓库没有测试套件，所以它是唯一的把关。改动收尾必须跑它，退出码 0 才算过。
+自动校验有两项：`pnpm type-check` 和 `pnpm lint`。本仓库没有测试套件，这两项是仅有的把关。改动收尾必须都跑，退出码 0 才算过。
+
+`pnpm lint` 走 oxlint，配置在 `.oxlintrc.json`。默认只开 `correctness`（error）和 `suspicious`（warn），其余类别全关 —— 风格类规则一次报几百条，谁也不会去看。开了 `no-undef`，它只认 `uni.*` / 定时器 / `console` 这几个白名单里的全局，所以浏览器 API（`window`、`document`、`fetch`、`localStorage`）写进来会直接报错 —— 这正是 `docs/mp-weixin-platform.md` 里那几条平台边界的静态版本。
 
 `pnpm format` 是 `oxfmt .`，扫全仓库。仓库里有几处既有格式漂移（`src/utils/selectorQuery.ts`、`tsconfig.json`、`src/styles/qweather-icons.css`、`src/components/FullscreenMap/FullscreenMap.vue`），全量跑会产出一堆与本次改动无关的 diff —— 只对自己动过的文件跑 `npx oxfmt`。
 
@@ -39,7 +42,7 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 1. **先看邻居。** 这个项目的约定靠模仿维持，不靠文档描述。改一个组件前读同目录的相邻组件和 `src/styles/tokens/` 对应段落。完成标志：能说出新代码要跟哪一个现有模式对齐。
 2. **落在正确的层。** 组件只管渲染与交互，取数在 store，接口形状在 api，展示模型的换算在 utils。
 3. **格式化。** `npx oxfmt <改动的文件>`，只动自己动过的那些。
-4. **过类型检查。** `pnpm type-check` 退出码 0、没有新错误才算过 —— 这是最后一道关，跑在格式化之后，验的是最终状态。改动若涉及生成物，先 `pnpm icons`。
+4. **过类型检查和 lint。** `pnpm type-check` 和 `pnpm lint` 退出码 0、没有新错误才算过 —— 这两道关跑在格式化之后，验的是最终状态。改动若涉及生成物，先 `pnpm icons`。
 
 ## 深入
 
