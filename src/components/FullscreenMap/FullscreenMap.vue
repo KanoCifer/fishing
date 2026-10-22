@@ -356,7 +356,7 @@ interface RegionChangeEvent {
 function onRegionChange(e: RegionChangeEvent) {
   const detail = e.detail ?? {};
   const center = detail.centerLocation;
-  if (e.causedBy === 'scale') return;
+  if (e.causedBy === 'scale' || e.causedBy === 'drag') return;
   if (e.causedBy === 'update') return;
 
   const tolerance = pixelTolerance(typeof detail.scale === 'number' ? detail.scale : scale.value);
