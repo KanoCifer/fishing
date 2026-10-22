@@ -290,11 +290,15 @@ canvas 2d 的两个约束（见上面「canvas」一节）：不解析 `var()`�
 
 ### 海报上的码
 
-海报右下角现在放的是**一张固定的小程序码**（`src/static/wxacode.jpg`，
+海报右下角现在放的是**一张固定的小程序码**（`src/static/wxacode.png`，
 代码包内的文件，引用时写 `/static/...` 这个根路径）。
 
 它是用 `getFileSystemManager()` 读成 base64 再喂给画布的（见上面「canvas」一节）——
 `createImage()` 直接吃代码包内的路径并不在官方承诺里。
+
+**它是 PNG 不是 JPEG**：黑白高对比的码，JPEG 把边界糊了就扫不出来，
+而扫不出来是这张海报最硬的失败。源图在 `scripts/assets/wxacode.jpg`，
+产物是灰度 PNG —— 见「静态资源」一节。
 
 它扫出来落在**小程序入口**，不是直接落在某条钓点上 —— 一张静态码做不到按场景跳转。
 要「扫了图就到这条钓点」，得后端按 scene 调 `getwxacodeunlimit` 出无限码，
@@ -342,6 +346,63 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 `main.ts` 里补了 `$set` / `$delete` 两个实例方法 —— Vue 3 删掉了它们，而 mp-html v2 还在用（`setContent` 里的 `this.$set(this, 'nodes', …)` 是它的主路径）。不补这一层，mp-html 第一次渲染就抛 `this.$set is not a function`，白屏。
 
 补法是对的：Vue 3 的响应式基于 Proxy，给对象加新属性本来就能被追踪到，`$set` 退化成一次普通赋值即可，语义与 Vue 2 的实现一致。
+
+## 代码包
+
+主包上限 2MB。静态图是**直接进包**的，一张 1.2MB 的 PNG 就能吃掉半个包。
+
+### 主包与分包
+
+`pages.json` 里三个 tab 页在主包，五个非 tab 页各占一个分包：
+
+| 分包             | 页面             |
+| ---------------- | ---------------- |
+| `pages/about`    | 关于             |
+| `pages/my-spots` | 我的钓点         |
+| `pages/spot-create` | 新建钓点     |
+| `pages/spot-detail` | 钓点详情     |
+| `pages/spot-edit`   | 编辑钓点     |
+
+**分包的 root 就是页面所在的目录**，所以 `path` 写 `index`，
+页面 URL 跟分包前一模一样（`/pages/spot-detail/index`）——
+`navigateTo` 的八处调用点一个字都不用改。
+
+分成五个而不是一个，是为了不动 URL：五个页面分处五个目录，
+没有共同的前缀（`pages` 这个前缀下面还有三个 tab 页，当根会跟主包撞）。
+代价是跨分包共用的组件（`FormRow` / `PageNav` / `SnapSheet` 等）留在主包里。
+
+### 组件与资源跨包
+
+- **分包能引用主包的一切**：组件、JS 模块、`static/` 里的文件。
+  编译产物里就是相对路径（`../../components/...`）与 `require('../../constants/...')`。
+- **主包引用不了分包里的东西。** 所以 `optimization.subPackages: true`
+  只搬那些「只有分包用得到」的组件；被 tab 页用到的组件一律留在主包。
+- `static/` 整个目录在**主包**里。以 `/` 开头的绝对路径一律从主包根目录解析，
+  所以分包页里写 `/static/markers/lake.png` 不用改。
+- 微信的规则是「分包中不能使用**其他分包**中的资源」——
+  同理，一个分包也不能引用另一个分包的文件。
+
+### 静态资源
+
+`src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
+产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
+
+| 源图                | 产物               | 为什么是这个格式                                                     |
+| ------------------- | ------------------ | -------------------------------------------------------------------- |
+| `spots.png`（1.2MB）| `spots.jpg`（158KB）| 要进 canvas，海报路径上只认 jpg/png                                   |
+| `logo.png`（76KB）  | `logo.webp`（15KB） | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha                     |
+| `wxacode.jpg`（62KB）| `wxacode.png`（21KB）| 黑白高对比的码，JPEG 会把边界糊了，糊了就扫不出来                   |
+
+跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
+
+`canvas.createImage()` 那边有配套的一条：本地文件读成 base64 时，
+data URI 的 mime 要跟真实格式对得上（`src/utils/canvasImage.ts` 的 `mimeOf`），
+所以海报上用的图只能是 png/jpg。
+
+### 构建产物里的杂物
+
+macOS 的 `.DS_Store` 会被 uni 原样抄进代码包（构建读的是磁盘，不是 git）。
+`pnpm build` 末尾跑 `scripts/clean-dist.mjs` 清掉。
 
 ## 微信后台配置
 

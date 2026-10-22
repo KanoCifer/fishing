@@ -20,6 +20,7 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 | 代码检查 | `pnpm lint`                                                                          |
 | 格式化   | `npx oxfmt <自己改动的文件>` —— 只格式化动过的那些                                   |
 | 改图标   | 改 `scripts/gen-icons.mjs` 的清单 → `pnpm icons` → `pnpm type-check`                 |
+| 改静态图 | 改 `scripts/assets/` 里的源图 → `pnpm assets` → `pnpm type-check`                  |
 
 自动校验有两项：`pnpm type-check` 和 `pnpm lint`。本仓库没有测试套件，这两项是仅有的把关。改动收尾必须都跑，退出码 0 才算过。
 
@@ -53,4 +54,5 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。
 | 改界面、加页面、加组件、调间距字号配色                    | `docs/design-system.md`      |
 | 接接口、改数据流、加字段、动 store                        | `docs/architecture.md`       |
 | 碰 map / canvas / 字体 / SSE / 定位 / 登录 / 微信后台配置 | `docs/mp-weixin-platform.md` |
+| 动代码包：静态图、分包、包体大小                          | `docs/mp-weixin-platform.md` 的「代码包」一节 |
 | 真机预览、编译、上传发布                                  | `/wechatide-skill`           |
