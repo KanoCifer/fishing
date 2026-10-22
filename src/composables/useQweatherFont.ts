@@ -95,7 +95,7 @@ export function loadQweatherIconFont(): Promise<void> {
       await loadOnce();
       qweatherFontReady.value = true;
       return;
-    } catch (first) {
+    } catch {
       // 第一次失败多半是瞬时的（刚打开小程序、网络还在握手），再试一次
       await delay(RETRY_DELAY);
       try {

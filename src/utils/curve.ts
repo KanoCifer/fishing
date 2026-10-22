@@ -53,7 +53,7 @@ export function monotoneTangents(points: CurvePoint[]): number[] {
     delta.push(dx === 0 ? 0 : (points[i + 1].y - points[i].y) / dx);
   }
 
-  const m: number[] = new Array(n).fill(0);
+  const m: number[] = Array.from({ length: n }, () => 0);
   m[0] = delta[0];
   m[n - 1] = delta[n - 2];
 

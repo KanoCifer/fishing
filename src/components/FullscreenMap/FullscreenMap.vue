@@ -314,8 +314,8 @@ function recenter() {
   void locate(true);
 }
 
-function pixelTolerance(scale: number): number {
-  return 360 / (256 * Math.pow(2, scale));
+function pixelTolerance(zoomLevel: number): number {
+  return 360 / (256 * Math.pow(2, zoomLevel));
 }
 
 /**

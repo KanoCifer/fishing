@@ -13,7 +13,6 @@
  * 单位统一用 rpx：小程序里 rpx 会按屏幕宽度换算，750rpx = 屏宽。
  */
 
-const INK = '#000000';
 const MUTED = 'rgba(60, 60, 67, 0.6)';
 const BORDER = 'rgba(60, 60, 67, 0.18)';
 const ACCENT = '#0062cc';
