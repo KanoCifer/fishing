@@ -28,6 +28,8 @@ interface ImportMetaEnv {
   readonly VITE_QWEATHER_FONT_URL: string;
   /** 是否输出调试日志 */
   readonly VITE_ENABLE_LOG: string;
+  /** 应用版本号，关于页显示。生产构建时由 .env.production 提供 */
+  readonly VITE_YULU_VERSION?: string;
   /** uni-app 构建平台，例如 mp-weixin */
   readonly UNI_PLATFORM: string;
 }
