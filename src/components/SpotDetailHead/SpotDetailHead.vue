@@ -1,6 +1,6 @@
 <template>
   <!--
-    主体卡 —— 名字、距离、标签、地址、描述。
+    主体卡 —— 名字、距离、评分、标签、地址、描述。
 
     它是唯一一张从照片底下「浮出来」的卡：上移压住头图下沿，
     层级靠「压」不靠「分」。所以这一张的圆角、阴影都比别的卡重一档 ——
@@ -10,6 +10,25 @@
     <view class="head__top">
       <text class="head__name">{{ spot.name }}</text>
       <text class="head__dist">{{ distance }}</text>
+    </view>
+
+    <!--
+      评分行。
+
+      放在名字之后、标签之前：名字回答「这是哪」，评分回答「值不值得去」，
+      而标签（类型、收费、玩法）还在解释「这是个什么样的地方」——
+      顺序跟读者心里问题的顺序一致。
+
+      没人评分过就写「暂无评分」，不留空 —— 空着的那一行会被读成
+      「这个字段没接上」，而不是「这里还没有人投票」。
+    -->
+    <view class="head__rating">
+      <template v-if="rating.rated">
+        <text class="head__rating-star">{{ ratingStar }}</text>
+        <text class="head__rating-score">{{ rating.score }}</text>
+        <text v-if="rating.count" class="head__rating-count">{{ rating.count }}</text>
+      </template>
+      <text v-else class="head__rating-empty">{{ ratingEmpty }}</text>
     </view>
 
     <view class="head__meta">
@@ -31,13 +50,15 @@
 /**
  * SpotDetailHead —— 钓点详情页的主体卡。
  *
- * 只管渲染。文案换算（收费、距离）在 utils 里做完再传进来，
+ * 只管渲染。文案换算（收费、评分）在 utils 里做完再传进来，
  * 组件里不出现任何「如果为空就怎么显示」的判断分支。
  */
 import { computed } from 'vue';
 
 import { icon } from '@/constants/icons';
+import { SPOT_RATING } from '@/constants/spot-detail';
 import { fishingSpotFeeLabel, fishingSpotKindLabel, type FishingSpot } from '@/types/fishing';
+import { buildSpotRating } from '@/utils/spot-rating';
 
 import Chip from '../Chip/Chip.vue';
 
@@ -55,6 +76,15 @@ const kindLabel = computed(() => fishingSpotKindLabel(props.spot.kind));
 
 /** 收费。paid 时带金额 */
 const feeLabel = computed(() => fishingSpotFeeLabel(props.spot.fee_type, props.spot.fee_amount));
+
+/** 评分。分数与人数的换算在 utils 里做完，这里只拿来画 */
+const rating = computed(() => buildSpotRating(props.spot.rating, props.spot.rating_count));
+
+/** 星标 */
+const ratingStar = SPOT_RATING.star;
+
+/** 还没人评分时的那句话 */
+const ratingEmpty = SPOT_RATING.empty;
 </script>
 
 <style lang="scss" scoped>
@@ -110,6 +140,55 @@ const feeLabel = computed(() => fishingSpotFeeLabel(props.spot.fee_type, props.s
   font-weight: 600;
   line-height: 52rpx;
   white-space: nowrap;
+}
+
+/*
+ * 评分行：星标 + 分数 + 参与人数。
+ *
+ * 基线对齐而不是居中：星标是字形、分数是大号数字、人数是小字，
+ * 居中对齐会把三样东西按各自盒子的中间摆，星标会浮在数字腰上。
+ * 踩同一条基线才读得出「★ 4.5」是一个数。
+ */
+.head__rating {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+/*
+ * 星标。
+ *
+ * 字形不是文字 —— 不套字阶，只给字号与行高（见 tokens/_type 的说明）：
+ * 套上去会把行高顶到 1.25，星形底下多留一截空白，整行往下坠。
+ *
+ * 用 $fish-warning 而不是 $fish-warning-ink：星是信号不是正文，
+ * 分数本身才是要读准的那个字（它是墨色）。
+ */
+.head__rating-star {
+  color: $fish-warning;
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+/* 分数。title3 —— 比名字小一档，但比标签重：它是这一行的主角 */
+.head__rating-score {
+  color: $fish-ink;
+  @include fish-type(title3);
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* 参与人数。参考信息，压到 muted */
+.head__rating-count {
+  color: $fish-muted;
+  @include fish-type(caption);
+}
+
+/* 还没人评分。不画星标 —— 空着的星比一句「暂无评分」更像出了错 */
+.head__rating-empty {
+  color: $fish-muted;
+  @include fish-type(caption);
 }
 
 /* 标签行。flex-wrap 让标签多了自动换行，而不是把卡片撑宽 */
