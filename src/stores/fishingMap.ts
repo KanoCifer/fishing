@@ -18,7 +18,7 @@
  * 对应功能已确认不做。
  */
 
-import { ref, watch } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import { defineStore } from 'pinia';
 
 import { fishingApi, fishingSpotApi, type LngLat } from '@/api/fishing';
@@ -154,10 +154,27 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    */
   const indexLocation = ref<string | null>(null);
 
+  /*
+   * 下面这些是**接口整份给回来的载荷**（天气、潮汐、指数、钓点列表），
+   * 一律用 shallowRef，不用 ref。
+   *
+   * 区别在哪儿：ref 会把对象**深度**变成响应式 —— 载荷里的每一个字段、
+   * 每一个嵌套对象、每一个数组元素都套一层 Proxy。一次 enriched 响应里
+   * 有 24 条逐时预报、7 天预报带各自的嵌套结构，代理层是几千个 Proxy 对象。
+   * 它们在取数那一刻被创建出来，却几乎从不被单独改过 —— 载荷永远是整份替换
+   * （`indexData.value = data`），没有一个字段是原地改的。
+   *
+   * shallowRef 只包一层：替换整份时照样触发更新（模板要的就是这个），
+   * 但不为里面每个字段创建代理。少掉的是几千个 Proxy 的分配与 GC 压力。
+   *
+   * 前提是**没人原地改字段**。改了字段页面不会更新 —— 那是这个取舍的代价，
+   * 所以本 store 里凡是载荷一律整份替换；要改内容就重新赋一份回去。
+   */
+
   // 天气（来自 fishing/index enriched 响应）
-  const liveWeather = ref<WeatherNow | null>(null);
-  const forecasts = ref<WeatherDay[]>([]);
-  const weatherHourly = ref<WeatherHourly[]>([]);
+  const liveWeather = shallowRef<WeatherNow | null>(null);
+  const forecasts = shallowRef<WeatherDay[]>([]);
+  const weatherHourly = shallowRef<WeatherHourly[]>([]);
   const locationName = ref('');
   const weatherLoading = ref(false);
   const weatherError = ref('');
@@ -168,25 +185,25 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 那时后端根本没往外给，模型只能自己从温度气压反推，丢掉了
    * 「官方说今天适宜垂钓」这个最强的信号。
    */
-  const weatherIndices = ref<WeatherIndex[]>([]);
+  const weatherIndices = shallowRef<WeatherIndex[]>([]);
 
   // 潮汐（随 enriched 响应一并带回）
-  const tideData = ref<TideData | null>(null);
+  const tideData = shallowRef<TideData | null>(null);
 
   // 潮汐面板：港口和日期可选，单独取数
-  const panelTideData = ref<TideData | null>(null);
+  const panelTideData = shallowRef<TideData | null>(null);
   const panelTideSpotName = ref<string>(HARBOR_OPTIONS[0].name);
   const tideLoading = ref(false);
   const selectedHarbor = ref<string>(HARBOR_OPTIONS[0].code);
   const selectedDate = ref(formatCompactDate());
 
   // 钓鱼指数
-  const indexData = ref<FishingIndexData | null>(null);
+  const indexData = shallowRef<FishingIndexData | null>(null);
   const indexLoading = ref(false);
   const indexError = ref('');
 
   // 钓点标记
-  const markers = ref<MapMarker[]>([]);
+  const markers = shallowRef<MapMarker[]>([]);
   const spotsLoading = ref(false);
   const spotsError = ref('');
 
@@ -197,7 +214,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * （后端只放已过审的），这里是「我的」（含待审核、已驳回）。
    * 合成一份的话，待审核那条在地图上就会显示出来 —— 它还没过审。
    */
-  const mySpots = ref<FishingSpot[]>([]);
+  const mySpots = shallowRef<FishingSpot[]>([]);
   const mySpotsLoading = ref(false);
   const mySpotsError = ref('');
 
@@ -208,7 +225,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 消费方却是数据页的钓鱼反馈表单，两边跨页了。跨页只能靠 URL 传，
    * 而 URL 带 marker 还得额外处理刷新和失效，不如共享状态直接。
    */
-  const selectedMarker = ref<MapMarker | null>(null);
+  const selectedMarker = shallowRef<MapMarker | null>(null);
 
   /**
    * 请求用户坐标。

@@ -10,7 +10,11 @@
     <view class="picker__grid">
       <!-- 已上传完成 -->
       <view v-for="(path, index) in committed" :key="path + index" class="picker__cell">
-        <image class="picker__image" :src="mediaUrl(path)" mode="aspectFill" />
+        <!--
+          lazy-load：这些是网络照片（mediaUrl 拼出来的地址）。
+          格子多的时候一次下完不划算 —— 露出来的那几张才是要看的。
+        -->
+        <image class="picker__image" :src="mediaUrl(path)" mode="aspectFill" lazy-load />
 
         <view class="picker__remove" @tap="remove(path)">
           <image class="picker__remove-icon" :src="removeIcon" mode="aspectFit" />

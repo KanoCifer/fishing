@@ -13,7 +13,25 @@
 
     <scroll-view class="gallery__scroll" scroll-x :show-scrollbar="false">
       <view class="gallery__row">
-        <image v-for="(src, index) in images" :key="src + index" class="gallery__thumb" :src="src" mode="aspectFill" />
+        <!--
+          lazy-load：横向滚出去的那几张先别下载。
+
+          这些是网络照片（downloadFile 合法域名），一张几百 KB 起。
+          不加 lazy-load 的话，进页面就把一整条全下完 ——
+          而横向条一次只露得下一两张，剩下的下载纯属浪费，
+          还挤了带宽、占了用户的流量。
+
+          头图（SpotDetailHero）不加：它是这一屏最大的那张图，
+          懒加载反而把首屏最该来的那张推后了。
+        -->
+        <image
+          v-for="(src, index) in images"
+          :key="src + index"
+          class="gallery__thumb"
+          :src="src"
+          mode="aspectFill"
+          lazy-load
+        />
       </view>
     </scroll-view>
   </view>

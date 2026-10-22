@@ -16,7 +16,7 @@
  * 串行躲不掉，但可以让用户先看见照片和名字，而不是对着一个空屏等两个往返。
  */
 
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 
 import { fishingApi, fishingSpotApi } from '@/api/fishing';
@@ -36,14 +36,23 @@ function notifyError(message: string): void {
 }
 
 export const useSpotDetailStore = defineStore('spotDetail', () => {
+  /*
+   * 下面四份是接口整份给回来的载荷，一律 shallowRef —— 理由与
+   * stores/fishingMap.ts 里那份一样：ref 会把每个字段、每个嵌套对象
+   * 都套一层 Proxy（逐时预报那种结构是几千个），而载荷永远整份替换，
+   * 没人原地改字段。省掉的是代理的分配与 GC 压力。
+   *
+   * 前提同那边：改了字段页面不会更新，要改就重新赋一份回去。
+   */
+
   /** 钓点本体。后端 `GET /v3/fish/spots/{id}` 的完整出参 */
-  const spot = ref<FishingSpot | null>(null);
+  const spot = shallowRef<FishingSpot | null>(null);
   /** 钓况原始响应（钓鱼指数、特征明细、逐时预报都在里面） */
-  const index = ref<FishingIndexData | null>(null);
+  const index = shallowRef<FishingIndexData | null>(null);
   /** 归一后的实时天气。组件要的是扁平视图模型，不是上游的 wire 形状 */
-  const now = ref<WeatherNow | null>(null);
+  const now = shallowRef<WeatherNow | null>(null);
   /** 潮汐。港口由后端按坐标定，详情页不选港口（选港口是数据页潮汐面板的事） */
-  const tide = ref<TideData | null>(null);
+  const tide = shallowRef<TideData | null>(null);
 
   /** 钓点本体在飞 */
   const loading = ref(false);
