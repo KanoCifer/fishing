@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-压缩静态图片 —— scripts/assets/ 里的源图出发，产物落到 src/static/。
+压缩静态图片 —— scripts/assets/ 里的源图出发，产物落到该去的地方。
 
 为什么静态图要专门压一遍：静态目录是**直接进代码包**的，
 微信主包上限 2MB，一张 1.2MB 的 PNG 就吃掉半个包。
@@ -9,14 +9,30 @@
 为什么产物不手搓：格式的选择带着**平台约束**，手改一次就丢一次 ——
 而丢的代价不是「图丑了」，是「海报上那块插画压根没画出来」。
 
+## 产物去哪儿：两个地方
+
+**进代码包（`src/static/`）**：几乎每次打开都要用的图。
+包在用户手机上要下载、解压、加载，图越大，首页越慢。
+
+**走 CDN（`scripts/assets/cdn/` 暂存，人工上传）**：只在少数场景才露面的图。
+现在只有占位插画 spots —— 它只在「这条钓点没有照片」时才出现，
+绝大多数会话根本用不上。放进包里等于让所有人替少数人下载 158KB。
+产物出到暂存区，上传到 `VITE_CDN_BASE_URL` 下，代码里引的是那个地址
+（见 `src/constants/spot-detail.ts`）。
+
+⚠️ 搬去 CDN 之后，那个域名要在微信后台配成 **downloadFile 合法域名**，
+否则 `<image>` 和海报的 `canvas.createImage()` 都拿不到图。
+留在同一个脚本里是为了**两处永远一致**：改了源图跑一遍，
+出来的 jpg 既是要上传的那份，也是本地能验的那份。
+
 ## 两张图为什么格式不同
 
 **占位插画（spots）走 JPEG。**
 它有两条使用路径，其中一条是 canvas：
 `SpotShareSheet` 把它画进海报（`canvas.createImage()`）。
-`createImage()` 的 src 官方只承诺**网络地址**与 **base64 Data URI**，
-代码包内的本地路径不在承诺里，得先读成 base64（见 src/utils/canvasImage.ts）——
-而 data URI 的 mime 必须跟真实格式对得上，对不上画布就解不出图。
+`createImage()` 的 src 官方只承诺**网络地址**与 **base64 Data URI**；
+它现在就是网络地址（CDN），而 data URI 那条路（包内文件读成 base64）
+只剩小程序码在用 —— 见 src/utils/canvasImage.ts。
 
 所以这里选 JPEG：jpg 的 mime 推断那条路**已经存在**（同一张海报上的
 小程序码 wxacode.jpg 就是 jpg，走的是同一条已验证的路）。
@@ -57,6 +73,12 @@ PNG 无损，边界比 JPEG 干净，体积还小（52KB → 44KB）。
 
 改了 scripts/assets/ 里的源图就跑一遍，别直接改 src/static/ 里的产物 ——
 产物是脚本的输出，改了就对不上了。
+
+产物落在两个地方：
+
+- `src/static/` —— 直接进代码包，跑完即用，不用管。
+- `scripts/assets/cdn/` —— **要自己上传**。上传到 `VITE_CDN_BASE_URL` 下
+  （同名文件覆盖），代码里引的就是那个地址。
 """
 
 from __future__ import annotations
@@ -68,9 +90,13 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = ROOT / "scripts" / "assets"
 OUT_DIR = ROOT / "src" / "static"
+# 要上传到 CDN 的图的暂存区。
+# 放在 scripts/assets/ 底下 —— 产物是脚本的输出，不进代码包，也不用提交。
+CDN_DIR = SRC_DIR / "cdn"
 
 
-# 每张图一条：源文件名、产物文件名、编码参数、以及为什么是这个格式。
+# 每张图一条：源文件名、产物文件名、编码参数、产物去哪儿、以及为什么是这个格式。
+# dest 缺省是代码包（src/static）；"cdn" 表示产物出到暂存区，等人工上传。
 JOBS = [
     {
         "src": "spots.png",
@@ -78,7 +104,8 @@ JOBS = [
         "format": "JPEG",
         "mode": "RGB",
         "options": {"quality": 92, "subsampling": 0, "optimize": True},
-        "note": "占位插画 —— 要进 canvas，海报路径上只认 jpg/png",
+        "dest": "cdn",
+        "note": "占位插画 —— 走 CDN，不进代码包；要进 canvas，海报路径上只认 jpg/png",
     },
     {
         "src": "logo.png",
@@ -105,7 +132,9 @@ def kb(size: int) -> str:
 
 def run(job: dict) -> None:
     src_path = SRC_DIR / job["src"]
-    out_path = OUT_DIR / job["out"]
+    out_dir = CDN_DIR if job.get("dest") == "cdn" else OUT_DIR
+    out_path = out_dir / job["out"]
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     if not src_path.exists():
         raise SystemExit(f"[error] 找不到源图：{src_path}")
@@ -131,8 +160,10 @@ def run(job: dict) -> None:
         )
 
     saved = before - after
+    # 产物路径要说清楚 —— 两个去处的手续不一样
+    where = "scripts/assets/cdn" if job.get("dest") == "cdn" else "src/static"
     print(
-        f"  · {job['src']} → src/static/{job['out']}  "
+        f"  · {job['src']} → {where}/{job['out']}  "
         f"{kb(before)} → {kb(after)}（省 {kb(saved)}）  {job['note']}"
     )
 
@@ -142,7 +173,17 @@ def main() -> None:
     print("压缩静态图片：")
     for job in JOBS:
         run(job)
-    print("完成。产物已进 src/static/，会随代码包一起发出去。")
+
+    cdn_jobs = [job for job in JOBS if job.get("dest") == "cdn"]
+    if cdn_jobs:
+        print()
+        print("要自己上传的（不会进代码包）：")
+        for job in cdn_jobs:
+            print(f"  · scripts/assets/cdn/{job['out']} → $VITE_CDN_BASE_URL/{job['out']}")
+        print("  上传后确认那个域名在微信后台的 downloadFile 合法域名里。")
+
+    print()
+    print("完成。src/static/ 里的会随代码包一起发出去。")
 
 
 if __name__ == "__main__":

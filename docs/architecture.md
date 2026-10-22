@@ -33,6 +33,7 @@ constants/     文案与生成物
 | ------------------- | ----------------------------------------------------------------------------- |
 | 接口端点            | `src/api/fishing.ts`、`src/api/ai.ts`、`src/api/auth.ts`、`src/api/upload.ts` |
 | 请求基址 / 环境变量 | `src/config/env.ts`                                                           |
+| 静态资源地址        | `src/config/env.ts`（CDN 基址）、`src/constants/spot-detail.ts`（占位插画）  |
 | 类型                | `src/types/fishing.ts`、`src/types/auth.ts`                                   |
 | 文案                | `src/constants/`（about / spot-create / my-spots）                            |
 | 色值 / 字阶         | `src/styles/tokens/`                                                          |
@@ -161,3 +162,14 @@ FishingAnalysisSheet
 上传端点 `POST /v3/upload` 的 multipart 字段是 `file`（文件）+ `type`（用途）。`type` 只认 `blog` / `gallery` / 空串，其余一律 400。**钓点照片走 `gallery`** —— 它会校验 Content-Type 白名单，`generic` 只限大小不认类型。
 
 ⚠️ 小程序加载远程图片走 **downloadFile 合法域名**，跟 request / uploadFile 是三份独立的名单。微信公众平台的「服务器域名」里三份都得填。
+
+## 静态资源
+
+**代码包里的**（`src/static/`）跟着每个用户下载，只放几乎每次打开都要用的图 —— logo、地图标记、小程序码。
+
+**CDN 上的**（`VITE_CDN_BASE_URL`）按需拉，只放少数场景才露面的图。
+现在只有缺图占位插画（`SPOT_PLACEHOLDER_IMAGE`）：它只在「这条钓点没有照片」时才出现，
+放进包里等于让所有人替少数人下载 158KB。
+
+⚠️ CDN 域名也要在微信后台配成 **downloadFile 合法域名** ——
+`<image>` 的网络图和海报的 `canvas.createImage()` 走的是同一份名单。

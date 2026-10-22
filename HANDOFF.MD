@@ -355,6 +355,9 @@ CSS 里只写 `var(--band-top)`。同理，**版面的数字在 `src/utils/poste
 那张码不需要 alpha，而给 RGBA 加出来的 alpha 全是 255，白占 5KB。
 模式逐张定死，别「反正先转 RGBA」。
 
+**后续**：占位插画后来从代码包搬去了 CDN ——
+见下面「静态图进了代码包，还要问一句：每次都要用吗」。
+
 ---
 
 ## `.DS_Store` 会跟着代码包发出去
@@ -414,3 +417,38 @@ CSS 里只写 `var(--band-top)`。同理，**版面的数字在 `src/utils/poste
 判断标准很简单：**这个对象会被原地改字段吗？**
 会 → `ref`；不会（永远整份替换）→ `shallowRef`。
 
+
+---
+
+## 静态图进了代码包，还要问一句：每次都要用吗
+
+**现象**：占位插画 `spots.jpg`（158KB）躺在 `src/static/` 里，
+跟着每个用户下载 —— 而它只在「这条钓点没有照片」时才露面，
+不是每次打开都要用的东西。主包上限 2MB，它一张就占掉 8%。
+
+**做法**：搬去 CDN。静态资源的出口是 `VITE_CDN_BASE_URL`
+（`https://cdn.kanocifer.chat/yulu`，出口在 `src/config/env.ts`），
+`SPOT_PLACEHOLDER_IMAGE` 变成 `${ENV.cdnBaseUrl}/spots.jpg`，
+`src/static/spots.jpg` 删掉。
+产物也不再进代码包 —— `pnpm assets` 把它出到 `scripts/assets/cdn/`
+（不进版本库），人工上传到 CDN 基址下。
+
+**判断标准**：**「几乎每次打开都要用」才配进代码包。**
+logo、地图标记、小程序码配；占位插画不配。
+反过来，**「很少才出现」的东西配进包，是让少数人用到的东西由所有人买单。**
+
+⚠️ **搬出去的代价是域名，不是体积。**
+`cdn.kanocifer.chat` 必须配成微信后台的 **downloadFile 合法域名** ——
+`<image>` 的网络图和海报的 `canvas.createImage()` 都走这份名单。
+漏配的后果不是「裂图」：头图那块留一片空白底色，
+海报上那块封面**整个画不出来**（画成平色）。
+所以搬之前先数一遍：这个域名在后台配了吗？
+
+**顺带一件好事**：占位插画进 canvas 的那条路变了。
+原来它在包内，喂给 `canvas.createImage()` 不在官方承诺里，
+得先读成 base64（`src/utils/canvasImage.ts`）；
+现在它是网络地址 —— 那是 `createImage()` 文档写明支持的那种 src。
+少一次文件读、少一次 base64 编码，链路也短了一段。
+
+**产物与线上那一份要能对上**：脚本出到暂存区的 jpg 与 CDN 上的是同一份
+（sha256 一样）。改了源图跑 `pnpm assets`，上传，别只改一边。

@@ -278,6 +278,10 @@ async function draw(): Promise<void> {
    * 钓点没有照片时，`cover` 拿到的已经是占位插画（见 spot-detail 的 coverSrc）；
    * 这里是第二道兜底 —— 照片本身载不下来的时候，也用那张插画顶上。
    * 不留一块灰：一块灰读作「这里缺东西」，插画读作「这个钓点没照片」。
+   *
+   * ⚠️ 兜底和被兜底的对象现在都是网络图（占位插画在 CDN 上，见
+   * constants/spot-detail）—— 同一个域名、同一条 downloadFile 合法域名。
+   * 域名没配的时候不是「这里坏了」，是**整块封面都画不出来**。
    */
   const [cover, code] = await Promise.all([
     loadImage(node, props.data.cover).then((img) => img ?? loadImage(node, SPOT_PLACEHOLDER_IMAGE)),

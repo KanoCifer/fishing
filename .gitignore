@@ -13,9 +13,14 @@ dist
 *.local
 
 # 本地环境变量覆盖（含个人配置，不提交）
-# 注意：.env.development / .env.production 本身不含密钥，应当提交
+# 注意：.env.development 本身不含密钥，应当提交；
+# .env.production 不提交（里面有本机专用的构建参数）
 .env.local
 .env.*.local
+
+# 要上传到 CDN 的静态图产物（scripts/optimize-assets.py 生成）
+# 产物可随时重跑脚本再生，不进版本库
+scripts/assets/cdn/
 
 # Editor directories and files
 .idea

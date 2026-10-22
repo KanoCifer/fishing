@@ -26,6 +26,13 @@ interface ImportMetaEnv {
    * **downloadFile 合法域名**，否则字体加载失败、天气图标全变豆腐块。
    */
   readonly VITE_QWEATHER_FONT_URL: string;
+  /**
+   * 静态资源 CDN 基址。
+   *
+   * 需在微信后台配置为 downloadFile 合法域名，
+   * 否则走 CDN 的图（缺图占位插画）拉不下来。
+   */
+  readonly VITE_CDN_BASE_URL: string;
   /** 是否输出调试日志 */
   readonly VITE_ENABLE_LOG: string;
   /** 应用版本号，关于页显示。生产构建时由 .env.production 提供 */

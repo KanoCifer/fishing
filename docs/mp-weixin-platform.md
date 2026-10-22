@@ -387,17 +387,28 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 `src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
 产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
 
-| 源图                  | 产物                  | 为什么是这个格式                                  |
-| --------------------- | --------------------- | ------------------------------------------------- |
-| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | 要进 canvas，海报路径上只认 jpg/png               |
-| `logo.png`（76KB）    | `logo.webp`（15KB）   | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
-| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来         |
+| 源图                  | 产物                  | 去哪儿                | 为什么是这个格式                                  |
+| --------------------- | --------------------- | --------------------- | ------------------------------------------------- |
+| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | **CDN**，不进代码包   | 要进 canvas，海报路径上只认 jpg/png               |
+| `logo.png`（76KB）    | `logo.webp`（15KB）   | `src/static/`         | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
+| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | `src/static/`         | 彩色码，JPEG 会把边界糊了，糊了就扫不出来         |
 
 跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
 
+**占位插画为什么搬去了 CDN**：`src/static` 里的东西跟着每个用户下载，
+而这张图只在「这条钓点没有照片」时才露面 —— 绝大多数会话用不上。
+158KB 放进 2MB 的主包里，等于让所有人替少数人下载。
+产物现在出到 `scripts/assets/cdn/`（不进版本库），手动上传到
+`VITE_CDN_BASE_URL` 下，代码里引的是那个地址（`src/constants/spot-detail.ts`）。
+
+⚠️ 代价是**多了一个域名依赖**：`cdn.kanocifer.chat` 必须配成
+**downloadFile 合法域名**，否则 `<image>` 和海报的 `canvas.createImage()`
+都拿不到这张图 —— 头图那块留一片空白底色，海报上那块封面画不出来。
+
 `canvas.createImage()` 那边有配套的一条：本地文件读成 base64 时，
 data URI 的 mime 要跟真实格式对得上（`src/utils/canvasImage.ts` 的 `mimeOf`），
-所以海报上用的图只能是 png/jpg。
+所以海报上用的图只能是 png/jpg。包内现在只剩小程序码走这条 base64 路，
+占位插画已经是网络地址 —— 那是 `createImage()` 官方明确支持的那种 src。
 
 ### 构建产物里的杂物
 
@@ -406,13 +417,18 @@ macOS 的 `.DS_Store` 会被 uni 原样抄进代码包（构建读的是磁盘�
 
 ## 微信后台配置
 
-| 项                    | 值                      | 不配的后果                     |
-| --------------------- | ----------------------- | ------------------------------ |
-| request 合法域名      | `VITE_API_BASE_URL`     | 所有接口失败                   |
-| downloadFile 合法域名 | 图标字体域名 + API 域名 | 天气图标是豆腐块，照片全是裂的 |
-| uploadFile 合法域名   | `VITE_API_BASE_URL`     | 照片传不上去                   |
-| `scope.userLocation`  | 见 `src/manifest.json`  | 定位键无反应                   |
-| `scope.userInfo`      | 见 `src/manifest.json`  | 头像昵称取不到                 |
+| 项                    | 值                              | 不配的后果                     |
+| --------------------- | ------------------------------- | ------------------------------ |
+| request 合法域名      | `VITE_API_BASE_URL`             | 所有接口失败                   |
+| downloadFile 合法域名 | 图标字体域名 + API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名） | 天气图标是豆腐块，照片全是裂的；缺图占位插画也拉不下来 |
+| uploadFile 合法域名   | `VITE_API_BASE_URL`             | 照片传不上去                   |
+| `scope.userLocation`  | 见 `src/manifest.json`          | 定位键无反应                   |
+| `scope.userInfo`      | 见 `src/manifest.json`          | 头像昵称取不到                 |
+
+⚠️ 三份域名名单是**三份独立的表**，填一份不等于另外两份也生效。
+CDN 域名（`cdn.kanocifer.chat`）是后加的 —— 它承接着从代码包里搬走的
+静态图（见上面「静态资源」），漏配的话页面看着正常，只是缺图那一态
+永远是一块空白。
 
 其他 manifest 设置：`lazyCodeLoading: requiredComponents`、`optimization.subPackages: true`、`urlCheck: false`（开发期）、`transformPx: false`（rpx 不转 px）。
 

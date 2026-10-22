@@ -9,6 +9,8 @@
  * 运行时量出来的尺寸用 px，设计稿尺寸用 rpx，两者相加先过 upx2px。
  */
 
+import { ENV } from '@/config/env';
+
 /** 头图高度。375pt 机型上约合 372pt，是一屏里最抢眼的一个面 */
 export const SPOT_HERO_HEIGHT_RPX = 744;
 
@@ -16,18 +18,29 @@ export const SPOT_HERO_HEIGHT_RPX = 744;
 export const SPOT_HERO_OVERLAP_RPX = 68;
 
 /**
- * 缺图占位插画。
+ * 缺图占位插画（走 CDN）。
  *
- * src/static 下的文件在小程序里挂在根路径，所以是 /static/... 而不是 @/static/...
- * （同 useMapMarkers 的 marker 图标路径）。
+ * **为什么不在代码包里**：`src/static` 下的文件跟着每个用户下载，
+ * 这张图 158KB —— 主包上限 2MB，它一张就占掉 8%。
+ * 而它只在「这条钓点没有照片」时才露面，绝大多数会话根本用不上，
+ * 放进包里等于让所有人替少数人下载。
  *
- * **是 jpg 不是 png**：这张图有两条使用路径，其中一条要进 canvas
- * （海报，`SpotShareSheet` 画它）。canvas 的 createImage() 只认网络地址与
- * base64 Data URI，本地文件得先读成 base64，而 data URI 的 mime 要跟真实
- * 格式对得上 —— jpg 那条路已经验证过。
- * 换格式之前先读 scripts/optimize-assets.py 里的理由。
+ * **为什么放 CDN 反而更稳**（海报那条路）：这张图有两条使用路径 ——
+ * 页面上的 `<image>`，以及海报里的 `canvas.createImage()`。
+ * 本地文件喂给 createImage() 不在官方承诺里，得先读成 base64
+ * （见 `@/utils/canvasImage`），那条路多一次文件读 + 一次 base64 编码。
+ * 换成网络地址，createImage() 官方明确支持，反而是文档写明的那条。
+ *
+ * ⚠️ **CDN 域名必须在微信后台配成 downloadFile 合法域名** ——
+ * `<image>` 的网络图和海报的 canvas src 走的是同一份名单。
+ * 没配的后果不是「裂图」：头图那块留一块空白底色，
+ * 海报上那块封面画不出来（画成平色）。
+ *
+ * 源图在 `scripts/assets/spots.png`，产物由 `pnpm assets` 出到 CDN 暂存区，
+ * 再上传到 `VITE_CDN_BASE_URL` 下 —— 换格式之前先读
+ * `scripts/optimize-assets.py` 里的理由。
  */
-export const SPOT_PLACEHOLDER_IMAGE = '/static/spots.jpg';
+export const SPOT_PLACEHOLDER_IMAGE = `${ENV.cdnBaseUrl}/spots.jpg`;
 
 /**
  * 属主在详情页上看到的那个编辑入口。
