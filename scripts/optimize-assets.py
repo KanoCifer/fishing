@@ -9,16 +9,21 @@
 为什么产物不手搓：格式的选择带着**平台约束**，手改一次就丢一次 ——
 而丢的代价不是「图丑了」，是「海报上那块插画压根没画出来」。
 
-## 产物去哪儿：两个地方
+## 产物去哪儿：三个地方
 
-**进代码包（`src/static/`）**：几乎每次打开都要用的图。
+**进主包（`src/static/`）**：几乎每次打开都要用的图。
 包在用户手机上要下载、解压、加载，图越大，首页越慢。
+
+**进分包（`src/pages/<分包>/static/`）**：只有那一个分包用得着的图。
+小程序码就是这种 —— 它只在分享海报时出现，而海报只出现在钓点详情页，
+那就该跟着那个分包走，不该让所有人替它下载 44KB。
+分包根下的 `static/` 目录是 uni-app 认的约定，产物只进那个分包。
 
 **走 CDN（`scripts/assets/cdn/` 暂存，人工上传）**：只在少数场景才露面的图。
 现在只有占位插画 spots —— 它只在「这条钓点没有照片」时才出现，
 绝大多数会话根本用不上。放进包里等于让所有人替少数人下载 158KB。
 产物出到暂存区，上传到 `VITE_CDN_BASE_URL` 下，代码里引的是那个地址
-（见 `src/constants/spot-detail.ts`）。
+（见 `src/pages/spot-detail/constants.ts`）。
 
 ⚠️ 搬去 CDN 之后，那个域名要在微信后台配成 **downloadFile 合法域名**，
 否则 `<image>` 和海报的 `canvas.createImage()` 都拿不到图。
@@ -32,7 +37,7 @@
 `SpotShareSheet` 把它画进海报（`canvas.createImage()`）。
 `createImage()` 的 src 官方只承诺**网络地址**与 **base64 Data URI**；
 它现在就是网络地址（CDN），而 data URI 那条路（包内文件读成 base64）
-只剩小程序码在用 —— 见 src/utils/canvasImage.ts。
+只剩小程序码在用 —— 见 src/pages/spot-detail/canvasImage.ts。
 
 所以这里选 JPEG：jpg 的 mime 推断那条路**已经存在**（同一张海报上的
 小程序码 wxacode.jpg 就是 jpg，走的是同一条已验证的路）。
@@ -74,9 +79,10 @@ PNG 无损，边界比 JPEG 干净，体积还小（52KB → 44KB）。
 改了 scripts/assets/ 里的源图就跑一遍，别直接改 src/static/ 里的产物 ——
 产物是脚本的输出，改了就对不上了。
 
-产物落在两个地方：
+产物落在三个地方：
 
-- `src/static/` —— 直接进代码包，跑完即用，不用管。
+- `src/static/` —— 直接进主包，跑完即用，不用管。
+- `src/pages/<分包>/static/` —— 只进那一个分包，跑完即用。
 - `scripts/assets/cdn/` —— **要自己上传**。上传到 `VITE_CDN_BASE_URL` 下
   （同名文件覆盖），代码里引的就是那个地址。
 """
@@ -90,6 +96,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = ROOT / "scripts" / "assets"
 OUT_DIR = ROOT / "src" / "static"
+# 分包私有的静态资源目录。放在分包根下的 static/ 里，产物只进那个分包，
+# 不进主包 —— 谁都不用替别人下载。
+SUBPACKAGE_DIR = ROOT / "src" / "pages" / "spot-detail" / "static"
 # 要上传到 CDN 的图的暂存区。
 # 放在 scripts/assets/ 底下 —— 产物是脚本的输出，不进代码包，也不用提交。
 CDN_DIR = SRC_DIR / "cdn"
@@ -121,7 +130,8 @@ JOBS = [
         "format": "PNG",
         "mode": "RGB",
         "options": {"optimize": True},
-        "note": "小程序码 —— 彩色，不能转灰度；JPEG 会糊掉边界",
+        "dir": SUBPACKAGE_DIR,
+        "note": "小程序码 —— 彩色，不能转灰度；JPEG 会糊掉边界。只在分享海报时出现，住在 spot-detail 分包里",
     },
 ]
 
@@ -132,7 +142,7 @@ def kb(size: int) -> str:
 
 def run(job: dict) -> None:
     src_path = SRC_DIR / job["src"]
-    out_dir = CDN_DIR if job.get("dest") == "cdn" else OUT_DIR
+    out_dir = CDN_DIR if job.get("dest") == "cdn" else job.get("dir", OUT_DIR)
     out_path = out_dir / job["out"]
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -160,8 +170,8 @@ def run(job: dict) -> None:
         )
 
     saved = before - after
-    # 产物路径要说清楚 —— 两个去处的手续不一样
-    where = "scripts/assets/cdn" if job.get("dest") == "cdn" else "src/static"
+    # 产物路径要说清楚 —— 三个去处的手续不一样
+    where = out_dir.relative_to(ROOT).as_posix()
     print(
         f"  · {job['src']} → {where}/{job['out']}  "
         f"{kb(before)} → {kb(after)}（省 {kb(saved)}）  {job['note']}"
@@ -183,7 +193,7 @@ def main() -> None:
         print("  上传后确认那个域名在微信后台的 downloadFile 合法域名里。")
 
     print()
-    print("完成。src/static/ 里的会随代码包一起发出去。")
+    print("完成。src/static/ 里的会随主包一起发出去，分包目录里的只随那个分包发。")
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@
  * 糊成一团不如没有。
  */
 
-import { POSTER } from '@/constants/share';
+import { POSTER } from './share';
 
 /**
  * canvas 里的图片对象。

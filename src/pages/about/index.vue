@@ -90,8 +90,8 @@
 import { ref } from 'vue';
 import { onPageScroll } from '@dcloudio/uni-app';
 
-import AboutDoc from '@/components/AboutDoc/AboutDoc.vue';
-import AboutHeader from '@/components/AboutHeader/AboutHeader.vue';
+import AboutDoc from './components/AboutDoc/AboutDoc.vue';
+import AboutHeader from './components/AboutHeader/AboutHeader.vue';
 import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';

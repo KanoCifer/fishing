@@ -56,11 +56,11 @@
 import { computed } from 'vue';
 
 import { icon } from '@/constants/icons';
-import { SPOT_RATING } from '@/constants/spot-detail';
+import { SPOT_RATING } from '../../constants';
 import { fishingSpotFeeLabel, fishingSpotKindLabel, type FishingSpot } from '@/types/fishing';
-import { buildSpotRating } from '@/utils/spot-rating';
+import { buildSpotRating } from '../../spot-rating';
 
-import Chip from '../Chip/Chip.vue';
+import Chip from '@/components/Chip/Chip.vue';
 
 const props = defineProps<{
   spot: FishingSpot;

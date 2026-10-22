@@ -182,7 +182,7 @@ import {
   SPOT_EDIT_SUBMIT,
   SPOT_EDIT_SUBMITTING,
   SPOT_EDIT_TITLE,
-} from '@/constants/spot-edit';
+} from './constants';
 import {
   SPOT_FORM_FIELDS,
   SPOT_FORM_GROUPS,

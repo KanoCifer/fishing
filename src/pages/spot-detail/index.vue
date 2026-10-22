@@ -91,29 +91,29 @@
 import { computed, ref } from 'vue';
 import { onLoad, onPageScroll, onShareAppMessage } from '@dcloudio/uni-app';
 
-import SpotDetailConditions from '@/components/SpotDetailConditions/SpotDetailConditions.vue';
-import SpotDetailDock from '@/components/SpotDetailDock/SpotDetailDock.vue';
-import SpotDetailGallery from '@/components/SpotDetailGallery/SpotDetailGallery.vue';
-import SpotDetailHead from '@/components/SpotDetailHead/SpotDetailHead.vue';
-import SpotDetailHero from '@/components/SpotDetailHero/SpotDetailHero.vue';
-import SpotDetailInfo from '@/components/SpotDetailInfo/SpotDetailInfo.vue';
-import SpotDetailNav from '@/components/SpotDetailNav/SpotDetailNav.vue';
-import SpotShareSheet from '@/components/SpotShareSheet/SpotShareSheet.vue';
+import SpotDetailConditions from './components/SpotDetailConditions/SpotDetailConditions.vue';
+import SpotDetailDock from './components/SpotDetailDock/SpotDetailDock.vue';
+import SpotDetailGallery from './components/SpotDetailGallery/SpotDetailGallery.vue';
+import SpotDetailHead from './components/SpotDetailHead/SpotDetailHead.vue';
+import SpotDetailHero from './components/SpotDetailHero/SpotDetailHero.vue';
+import SpotDetailInfo from './components/SpotDetailInfo/SpotDetailInfo.vue';
+import SpotDetailNav from './components/SpotDetailNav/SpotDetailNav.vue';
+import SpotShareSheet from './components/SpotShareSheet/SpotShareSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import {
   SPOT_DETAIL_EDIT,
   SPOT_HERO_HEIGHT_RPX,
   SPOT_HERO_OVERLAP_RPX,
   SPOT_PLACEHOLDER_IMAGE,
-} from '@/constants/spot-detail';
-import { SHARE_TITLES, SHARE_WXACODE } from '@/constants/share';
+} from './constants';
+import { SHARE_TITLES, SHARE_WXACODE } from './share';
 import { mediaUrl } from '@/api/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
-import { useSpotDetailStore } from '@/stores/spotDetail';
+import { useSpotDetailStore } from './store';
 import { enterDelay } from '@/utils/motion';
-import type { PosterSpot } from '@/utils/poster';
-import { buildConditionCells, distanceKm, formatDistance } from '@/utils/spot-conditions';
+import type { PosterSpot } from './poster';
+import { buildConditionCells, distanceKm, formatDistance } from './spot-conditions';
 import { fishingSpotKindLabel } from '@/types/fishing';
 
 const detailStore = useSpotDetailStore();
@@ -233,7 +233,7 @@ const shareOpen = ref(false);
 /**
  * 转发卡片的封面（临时文件路径）。
  *
- * 微信的转发卡片按 5:4 显示，所以要从海报里裁一条出来（见 @/utils/poster 的 CARD_CROP）。
+ * 微信的转发卡片按 5:4 显示，所以要从海报里裁一条出来（见 ./poster 的 CARD_CROP）。
  *
  * 临时路径只在本次会话内有效，所以每次重画海报都要重新给一份，
  * 这里存的是「最新一版」，不是缓存。

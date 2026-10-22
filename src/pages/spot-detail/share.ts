@@ -46,7 +46,17 @@ export const SHARE_TITLES = {
   friend: (name: string, score: number, place: string): string => `${name}｜今日鱼口 ${score} 分 · ${place}`,
 } as const;
 
-export const SHARE_WXACODE = '/static/wxacode.png';
+/**
+ * 海报上那块小程序码。
+ *
+ * 路径是**从代码包根算起的绝对路径**，不是相对路径。
+ * 它住在 spot-detail 分包自己的 static 目录里 ——
+ * 主包不该替一个「只在分享时才出现」的场景背着 44KB。
+ *
+ * 分包里的文件用 `/<分包根>/<文件>` 这个写法；
+ * `canvasImage.ts` 那条读法会把前导斜杠去掉再试一遍，两种写法都试。
+ */
+export const SHARE_WXACODE = '/pages/spot-detail/static/wxacode.png';
 
 /**
  * 海报的版式尺寸。

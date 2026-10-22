@@ -9,7 +9,7 @@
  * 跟 spot-conditions 是同一类东西：展示模型的换算不进组件。
  */
 
-import { SPOT_RATING } from '@/constants/spot-detail';
+import { SPOT_RATING } from './constants';
 
 export interface SpotRating {
   /** 有没有人评分过。false 时界面给「暂无评分」，不画星标 */

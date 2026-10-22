@@ -40,9 +40,9 @@
  */
 import { computed } from 'vue';
 
-import { suitabilityText, suitabilityTone, type SpotConditionCell } from '@/utils/spot-conditions';
+import { suitabilityText, suitabilityTone, type SpotConditionCell } from '../../spot-conditions';
 
-import Chip from '../Chip/Chip.vue';
+import Chip from '@/components/Chip/Chip.vue';
 
 const props = defineProps<{
   /** 四格。顺序即展示顺序 */

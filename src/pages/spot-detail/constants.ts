@@ -28,7 +28,7 @@ export const SPOT_HERO_OVERLAP_RPX = 68;
  * **为什么放 CDN 反而更稳**（海报那条路）：这张图有两条使用路径 ——
  * 页面上的 `<image>`，以及海报里的 `canvas.createImage()`。
  * 本地文件喂给 createImage() 不在官方承诺里，得先读成 base64
- * （见 `@/utils/canvasImage`），那条路多一次文件读 + 一次 base64 编码。
+ * （见 `./canvasImage`），那条路多一次文件读 + 一次 base64 编码。
  * 换成网络地址，createImage() 官方明确支持，反而是文档写明的那条。
  *
  * ⚠️ **CDN 域名必须在微信后台配成 downloadFile 合法域名** ——

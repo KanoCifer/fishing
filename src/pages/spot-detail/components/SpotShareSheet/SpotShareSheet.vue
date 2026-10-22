@@ -71,24 +71,24 @@
 /**
  * 钓点分享浮层 —— 海报方案。
  *
- * 海报用 canvas 2d 现画（见 @/utils/poster）。
+ * 海报用 canvas 2d 现画（见 ../../poster）。
  * 为什么现画而不是后端出图：海报上的数（鱼口、地址、开放时间）前端手里就有，
  * 走服务端要多一次往返、多一套模板，值当不上。
  *
  * 画完导两次文件：
  * - 整张（3:4）存相册
  * - 卡片封面（5:4）转发给好友时当缩略图
- * 两次导出都是同一张海报的裁切，裁切框与绘制共用 @/constants/share 的 POSTER。
+ * 两次导出都是同一张海报的裁切，裁切框与绘制共用 ../../share 的 POSTER。
  */
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
-import { POSTER, POSTER_EXPORT, SHARE_SHEET } from '@/constants/share';
-import { SPOT_PLACEHOLDER_IMAGE } from '@/constants/spot-detail';
+import { POSTER, POSTER_EXPORT, SHARE_SHEET } from '../../share';
+import { SPOT_PLACEHOLDER_IMAGE } from '../../constants';
 import { icon } from '@/constants/icons';
-import { openAlbumSetting, saveImageToAlbum } from '@/utils/album';
-import { toCanvasSource } from '@/utils/canvasImage';
-import { CARD_CROP, drawPoster, type PosterImage, type PosterSpot } from '@/utils/poster';
+import { openAlbumSetting, saveImageToAlbum } from '../../album';
+import { toCanvasSource } from '../../canvasImage';
+import { CARD_CROP, drawPoster, type PosterImage, type PosterSpot } from '../../poster';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 const props = defineProps<{
@@ -209,7 +209,7 @@ function queryCanvas(): Promise<CanvasNode2D | null> {
 async function loadImage(node: CanvasNode2D, src: string): Promise<PosterImage | null> {
   if (!src) return null;
 
-  // 本地包内文件先读成 base64（见 @/utils/canvasImage）
+  // 本地包内文件先读成 base64（见 ../../canvasImage）
   const source = await toCanvasSource(src);
   if (!source) return null;
 
