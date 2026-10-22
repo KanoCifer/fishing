@@ -187,11 +187,11 @@ uni.getLocation({ type: 'gcj02' });
 
 **先问授权状态，再调 getLocation。** 微信的 `getSetting` 能读出 `scope.userLocation` 的三档：
 
-| 值            | 含义                    | 该做什么                       |
-| ------------- | ----------------------- | ------------------------------ |
-| `true`        | 已授权                  | 直接调 `getLocation`           |
-| `false`       | 用户明确拒绝过          | 微信不会再弹窗，只能去设置页   |
-| `undefined`   | 从没问过                | 调 `getLocation`，它会弹授权窗 |
+| 值          | 含义           | 该做什么                       |
+| ----------- | -------------- | ------------------------------ |
+| `true`      | 已授权         | 直接调 `getLocation`           |
+| `false`     | 用户明确拒绝过 | 微信不会再弹窗，只能去设置页   |
+| `undefined` | 从没问过       | 调 `getLocation`，它会弹授权窗 |
 
 区分这三档是为了两件事：一是「明确拒绝」和「从没问过」在界面上要给的引导完全不同（前者去设置页，后者直接弹窗），只靠 `getLocation` 的 `fail` 回调区分不出来；二是用户拒绝之后微信不会再弹权限窗，反复调只是反复失败。
 
@@ -327,10 +327,10 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 同一个监听器被打两次。踩过的两处：
 
-| 组件                | 事件名         | 现象                                                     |
-| ------------------- | -------------- | -------------------------------------------------------- |
-| `FormRow`           | `tap`          | 点一次「位置」栏弹出**两个**选点页                       |
-| `FullscreenMap`     | `markertap`    | 点一个 marker **push 两层**钓点详情页，返回要点两次      |
+| 组件            | 事件名      | 现象                                                |
+| --------------- | ----------- | --------------------------------------------------- |
+| `FormRow`       | `tap`       | 点一次「位置」栏弹出**两个**选点页                  |
+| `FullscreenMap` | `markertap` | 点一个 marker **push 两层**钓点详情页，返回要点两次 |
 
 `FullscreenMap` 那处尤其阴：`<map>` 的 `markertap` 被 uni-app 编译成**冒泡版**的 `bindmarkertap`，原生事件会冒泡出组件，父组件上的 `@markertap` 照收不误。
 
@@ -355,13 +355,13 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 `pages.json` 里三个 tab 页在主包，五个非 tab 页各占一个分包：
 
-| 分包             | 页面             |
-| ---------------- | ---------------- |
-| `pages/about`    | 关于             |
-| `pages/my-spots` | 我的钓点         |
-| `pages/spot-create` | 新建钓点     |
-| `pages/spot-detail` | 钓点详情     |
-| `pages/spot-edit`   | 编辑钓点     |
+| 分包                | 页面     |
+| ------------------- | -------- |
+| `pages/about`       | 关于     |
+| `pages/my-spots`    | 我的钓点 |
+| `pages/spot-create` | 新建钓点 |
+| `pages/spot-detail` | 钓点详情 |
+| `pages/spot-edit`   | 编辑钓点 |
 
 **分包的 root 就是页面所在的目录**，所以 `path` 写 `index`，
 页面 URL 跟分包前一模一样（`/pages/spot-detail/index`）——
@@ -387,11 +387,11 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 `src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
 产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
 
-| 源图                | 产物               | 为什么是这个格式                                                     |
-| ------------------- | ------------------ | -------------------------------------------------------------------- |
-| `spots.png`（1.2MB）| `spots.jpg`（158KB）| 要进 canvas，海报路径上只认 jpg/png                                   |
-| `logo.png`（76KB）  | `logo.webp`（15KB） | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha                     |
-| `wxacode.jpg`（51KB）| `wxacode.png`（44KB）| 彩色码，JPEG 会把边界糊了，糊了就扫不出来                    |
+| 源图                  | 产物                  | 为什么是这个格式                                  |
+| --------------------- | --------------------- | ------------------------------------------------- |
+| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | 要进 canvas，海报路径上只认 jpg/png               |
+| `logo.png`（76KB）    | `logo.webp`（15KB）   | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
+| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来         |
 
 跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
 

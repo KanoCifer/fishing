@@ -24,9 +24,7 @@ interface MpScope {
  *
  * 所以统一走原生实例，也就是官方的 this.createSelectorQuery()。
  */
-export function createSelectorQuery(
-  instance: ComponentInternalInstance | null
-): UniApp.SelectorQuery {
+export function createSelectorQuery(instance: ComponentInternalInstance | null): UniApp.SelectorQuery {
   const scope = (instance?.proxy as { $scope?: MpScope } | undefined)?.$scope;
 
   if (typeof scope?.createSelectorQuery === 'function') {

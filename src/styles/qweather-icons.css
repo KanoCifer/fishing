@@ -33,71 +33,207 @@
 }
 
 /* 内容由 ::before 提供，调用方只需给 <text> 挂上 .qi-<code> */
-.qi-100::before { content: "\f101"; }
-.qi-101::before { content: "\f102"; }
-.qi-102::before { content: "\f103"; }
-.qi-103::before { content: "\f104"; }
-.qi-104::before { content: "\f105"; }
-.qi-150::before { content: "\f106"; }
-.qi-151::before { content: "\f107"; }
-.qi-152::before { content: "\f108"; }
-.qi-153::before { content: "\f109"; }
-.qi-300::before { content: "\f10a"; }
-.qi-301::before { content: "\f10b"; }
-.qi-302::before { content: "\f10c"; }
-.qi-303::before { content: "\f10d"; }
-.qi-304::before { content: "\f10e"; }
-.qi-305::before { content: "\f10f"; }
-.qi-306::before { content: "\f110"; }
-.qi-307::before { content: "\f111"; }
-.qi-308::before { content: "\f112"; }
-.qi-309::before { content: "\f113"; }
-.qi-310::before { content: "\f114"; }
-.qi-311::before { content: "\f115"; }
-.qi-312::before { content: "\f116"; }
-.qi-313::before { content: "\f117"; }
-.qi-314::before { content: "\f118"; }
-.qi-315::before { content: "\f119"; }
-.qi-316::before { content: "\f11a"; }
-.qi-317::before { content: "\f11b"; }
-.qi-318::before { content: "\f11c"; }
-.qi-350::before { content: "\f11d"; }
-.qi-351::before { content: "\f11e"; }
-.qi-399::before { content: "\f11f"; }
-.qi-400::before { content: "\f120"; }
-.qi-401::before { content: "\f121"; }
-.qi-402::before { content: "\f122"; }
-.qi-403::before { content: "\f123"; }
-.qi-404::before { content: "\f124"; }
-.qi-405::before { content: "\f125"; }
-.qi-406::before { content: "\f126"; }
-.qi-407::before { content: "\f127"; }
-.qi-408::before { content: "\f128"; }
-.qi-409::before { content: "\f129"; }
-.qi-410::before { content: "\f12a"; }
-.qi-499::before { content: "\f12d"; }
-.qi-500::before { content: "\f12e"; }
-.qi-501::before { content: "\f12f"; }
-.qi-502::before { content: "\f130"; }
-.qi-503::before { content: "\f131"; }
-.qi-504::before { content: "\f132"; }
-.qi-507::before { content: "\f133"; }
-.qi-508::before { content: "\f134"; }
-.qi-509::before { content: "\f135"; }
-.qi-510::before { content: "\f136"; }
-.qi-511::before { content: "\f137"; }
-.qi-512::before { content: "\f138"; }
-.qi-513::before { content: "\f139"; }
-.qi-514::before { content: "\f13a"; }
-.qi-515::before { content: "\f13b"; }
-.qi-800::before { content: "\f13c"; }
-.qi-801::before { content: "\f13d"; }
-.qi-802::before { content: "\f13e"; }
-.qi-803::before { content: "\f13f"; }
-.qi-804::before { content: "\f140"; }
-.qi-805::before { content: "\f141"; }
-.qi-806::before { content: "\f142"; }
-.qi-807::before { content: "\f143"; }
-.qi-900::before { content: "\f144"; }
-.qi-901::before { content: "\f145"; }
-.qi-999::before { content: "\f146"; }
+.qi-100::before {
+  content: '\f101';
+}
+.qi-101::before {
+  content: '\f102';
+}
+.qi-102::before {
+  content: '\f103';
+}
+.qi-103::before {
+  content: '\f104';
+}
+.qi-104::before {
+  content: '\f105';
+}
+.qi-150::before {
+  content: '\f106';
+}
+.qi-151::before {
+  content: '\f107';
+}
+.qi-152::before {
+  content: '\f108';
+}
+.qi-153::before {
+  content: '\f109';
+}
+.qi-300::before {
+  content: '\f10a';
+}
+.qi-301::before {
+  content: '\f10b';
+}
+.qi-302::before {
+  content: '\f10c';
+}
+.qi-303::before {
+  content: '\f10d';
+}
+.qi-304::before {
+  content: '\f10e';
+}
+.qi-305::before {
+  content: '\f10f';
+}
+.qi-306::before {
+  content: '\f110';
+}
+.qi-307::before {
+  content: '\f111';
+}
+.qi-308::before {
+  content: '\f112';
+}
+.qi-309::before {
+  content: '\f113';
+}
+.qi-310::before {
+  content: '\f114';
+}
+.qi-311::before {
+  content: '\f115';
+}
+.qi-312::before {
+  content: '\f116';
+}
+.qi-313::before {
+  content: '\f117';
+}
+.qi-314::before {
+  content: '\f118';
+}
+.qi-315::before {
+  content: '\f119';
+}
+.qi-316::before {
+  content: '\f11a';
+}
+.qi-317::before {
+  content: '\f11b';
+}
+.qi-318::before {
+  content: '\f11c';
+}
+.qi-350::before {
+  content: '\f11d';
+}
+.qi-351::before {
+  content: '\f11e';
+}
+.qi-399::before {
+  content: '\f11f';
+}
+.qi-400::before {
+  content: '\f120';
+}
+.qi-401::before {
+  content: '\f121';
+}
+.qi-402::before {
+  content: '\f122';
+}
+.qi-403::before {
+  content: '\f123';
+}
+.qi-404::before {
+  content: '\f124';
+}
+.qi-405::before {
+  content: '\f125';
+}
+.qi-406::before {
+  content: '\f126';
+}
+.qi-407::before {
+  content: '\f127';
+}
+.qi-408::before {
+  content: '\f128';
+}
+.qi-409::before {
+  content: '\f129';
+}
+.qi-410::before {
+  content: '\f12a';
+}
+.qi-499::before {
+  content: '\f12d';
+}
+.qi-500::before {
+  content: '\f12e';
+}
+.qi-501::before {
+  content: '\f12f';
+}
+.qi-502::before {
+  content: '\f130';
+}
+.qi-503::before {
+  content: '\f131';
+}
+.qi-504::before {
+  content: '\f132';
+}
+.qi-507::before {
+  content: '\f133';
+}
+.qi-508::before {
+  content: '\f134';
+}
+.qi-509::before {
+  content: '\f135';
+}
+.qi-510::before {
+  content: '\f136';
+}
+.qi-511::before {
+  content: '\f137';
+}
+.qi-512::before {
+  content: '\f138';
+}
+.qi-513::before {
+  content: '\f139';
+}
+.qi-514::before {
+  content: '\f13a';
+}
+.qi-515::before {
+  content: '\f13b';
+}
+.qi-800::before {
+  content: '\f13c';
+}
+.qi-801::before {
+  content: '\f13d';
+}
+.qi-802::before {
+  content: '\f13e';
+}
+.qi-803::before {
+  content: '\f13f';
+}
+.qi-804::before {
+  content: '\f140';
+}
+.qi-805::before {
+  content: '\f141';
+}
+.qi-806::before {
+  content: '\f142';
+}
+.qi-807::before {
+  content: '\f143';
+}
+.qi-900::before {
+  content: '\f144';
+}
+.qi-901::before {
+  content: '\f145';
+}
+.qi-999::before {
+  content: '\f146';
+}
