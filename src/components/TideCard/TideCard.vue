@@ -96,7 +96,7 @@
  *   样式和尺寸，混进 segmented control 里会多出边距和边框，得靠 ::after 伪元素清掉，
  *   不如直接用 view，语义标签也更干净
  */
-import { computed, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import { HARBOR_OPTIONS, useFishingMapStore } from '@/stores/fishingMap';
 import type { TideTableItem } from '@/types/fishing';
@@ -173,14 +173,19 @@ function extremeTide(type: 'H' | 'L', pick: 'max' | 'min'): { time: string; heig
   };
 }
 
-// 首屏进页面时还没有面板潮汐数据，切港口/日期由 store 内部触发，这里只补首屏这一次
-watch(
-  () => [mapStore.selectedHarbor, mapStore.selectedDate],
-  () => {
-    void mapStore.fetchPanelTide();
-  },
-  { immediate: true },
-);
+/**
+ * 首屏补一次面板潮汐。
+ *
+ * 只在还没有数据时补：store 里那份是跨 tab 存着的，重新进页面不必再拉一遍。
+ *
+ * 切港口/日期**不再由这里触发** —— store 的 setSelectedHarbor / setSelectedDate
+ * 自己会发请求（请求归 store 一家管）。两边都发就是同一个 URL 打两遍，
+ * 白费一个往返，两份响应先后到达还会让面板上的港口名闪一下。
+ */
+onMounted(() => {
+  if (mapStore.panelTideData) return;
+  void mapStore.fetchPanelTide();
+});
 </script>
 
 <style lang="scss" scoped>

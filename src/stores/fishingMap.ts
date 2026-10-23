@@ -424,10 +424,26 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     },
   );
 
+  /**
+   * 面板潮汐的 in-flight 守卫。
+   *
+   * 存在的理由：切港口时 store 的 setter 与组件的 watcher 都会发一次请求，
+   * 同一个 URL 打两遍 —— 白费一个往返，两份响应还会先后覆盖面板，
+   * 面板上的港口名会闪一下。
+   *
+   * 同一组「港口+日期」在飞时，后来者直接不发了。
+   * 请求结束后守卫就放开，所以过一会儿再取同一组仍然会真的发出去。
+   */
+  let tideInflightKey: string | null = null;
+
   /** 拉面板潮汐。不传参数时沿用当前选中的港口和日期 */
   async function fetchPanelTide(harbor?: string, date?: string): Promise<void> {
     const harborToUse = harbor ?? selectedHarbor.value;
     const dateToUse = date ?? selectedDate.value;
+
+    const key = `${harborToUse}@${dateToUse}`;
+    if (key === tideInflightKey) return;
+    tideInflightKey = key;
 
     tideLoading.value = true;
     try {
@@ -439,10 +455,11 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
       panelTideData.value = data;
       panelTideSpotName.value = harborOption?.name ?? HARBOR_OPTIONS[0].name;
-      tideLoading.value = false;
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取潮汐信息失败';
       notifyError(message);
+    } finally {
+      if (tideInflightKey === key) tideInflightKey = null;
       tideLoading.value = false;
     }
   }
