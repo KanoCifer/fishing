@@ -23,6 +23,8 @@
  * 尺寸在一次启动内不变，算一次就够，和 useNavMetrics 一样不反复调 API。
  */
 
+import { windowMetrics } from './windowMetrics';
+
 export interface Viewport {
   /** 可用窗口高度（px）。tabBar 页面上不含 tabBar 高度 */
   windowHeight: number;
@@ -35,7 +37,9 @@ let cached: Viewport | null = null;
 function measure(): Viewport {
   if (cached) return cached;
 
-  const { windowWidth, windowHeight } = uni.getWindowInfo();
+  // 从共享快照里取，不再自己调 getWindowInfo —— 它是同步 API，
+  // 而 useNavMetrics 已经取过同一份数据了。
+  const { windowWidth, windowHeight } = windowMetrics();
 
   cached = { windowWidth, windowHeight };
   return cached;

@@ -71,6 +71,7 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint } from '@/utils/curve';
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { windowMetrics } from '@/composables/windowMetrics';
 
 interface Series {
   name: string;
@@ -633,7 +634,7 @@ async function initCanvas() {
     }
     canvasLeft = left;
 
-    const dpr = uni.getWindowInfo().pixelRatio || 1;
+    const dpr = windowMetrics().pixelRatio;
     const width = cssWidthPx.value;
     const height = cssHeightPx.value;
 

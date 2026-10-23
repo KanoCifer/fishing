@@ -9,6 +9,8 @@
  * 和手写 rpx 不是同一套单位。rpx 间距要跟这些值相加，必须先过 uni.upx2px()。
  */
 
+import { windowMetrics } from './windowMetrics';
+
 export interface NavMetrics {
   /** 状态栏高度（px）。刘海屏机型 > 0，非刘海为 0 */
   statusBarHeight: number;
@@ -26,11 +28,10 @@ let cached: NavMetrics | null = null;
 function measure(): NavMetrics {
   if (cached) return cached;
 
-  const { statusBarHeight, windowWidth } = uni.getWindowInfo();
-
-  // 胶囊按钮矩形是微信小程序独有的 API，基础库 2.7.1 起提供。
-  // 本项目只有小程序端，不存在"拿不到胶囊"的运行环境，所以直接用，不写兑底值。
-  const capsule = uni.getMenuButtonBoundingClientRect();
+  // 窗口信息与胶囊矩形都从共享快照里取 —— 那一份已经在别处调过一次 API 了。
+  // 这里不再自己调：getWindowInfo 与 getMenuButtonBoundingClientRect 都是同步 API，
+  // 多调一次就是多阻塞一次 JS 线程。
+  const { statusBarHeight, windowWidth, capsule } = windowMetrics();
 
   // 微信官方那条公式：导航栏高度 = 胶囊上下留白对称推算。
   // 胶囊顶部到状态栏底部的空隙记作 gap，那么上下各留一个 gap，导航栏 = gap*2 + 胶囊高。

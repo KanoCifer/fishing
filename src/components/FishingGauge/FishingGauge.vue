@@ -25,6 +25,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { windowMetrics } from '@/composables/windowMetrics';
 import type { Tone } from '@/utils/weather';
 
 /**
@@ -233,7 +234,7 @@ async function initCanvas() {
       return;
     }
 
-    const dpr = uni.getWindowInfo().pixelRatio || 1;
+    const dpr = windowMetrics().pixelRatio;
     const size = cssSizePx.value;
 
     // 位图尺寸按 dpr 放大、CSS 尺寸不变，否则高分屏发虚

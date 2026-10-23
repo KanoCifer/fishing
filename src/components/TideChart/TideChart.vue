@@ -71,6 +71,7 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { windowMetrics } from '@/composables/windowMetrics';
 
 /**
  * `fields({ node: true })` 返回的 canvas 节点没有官方类型，按用到的成员局部声明。
@@ -698,8 +699,8 @@ async function initCanvas(): Promise<void> {
 
     const canvas = item.node;
     canvasLeft = item.left ?? 0;
-    // getSystemInfoSync 在微信端已废弃，dpr 从 getWindowInfo 取
-    const dpr = uni.getWindowInfo().pixelRatio || 1;
+    // dpr 从共享窗口快照取（getWindowInfo 是同步 API，不该现调）
+    const dpr = windowMetrics().pixelRatio;
     const width = cssWidthPx.value;
     const height = cssHeightPx.value;
 
