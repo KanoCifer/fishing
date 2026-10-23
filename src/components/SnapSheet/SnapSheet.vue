@@ -488,7 +488,7 @@ function onMaskTap() {
    * 面板始终贴底，滑入过程中露出的是地图，本来就该露。
    *
    * 曲线用 $fish-ease-out：末端加速后急停，是 iOS 呈现面板的形状。
-   * 420ms 给了它足够的「被拿起来」的分量，再短就退化成淡入了。
+   * 800ms 给了它足够的「被拿起来」的分量，再短就退化成淡入了。
    */
   animation: snap-panel-in $fish-dur-slow $fish-ease-out both;
 }

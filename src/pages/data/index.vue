@@ -23,17 +23,28 @@
       <!-- 结论 -->
       <VerdictHeader @feedback="openFeedback" @analysis="openAnalysis" @conclusion-bottom="onConclusionBottom" />
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
+        <text class="sect__title" :style="enterStyle(0)">天气</text>
 
         <!--
           官方指数排在最前面：它是这一屏里唯一一条**别人**给的结论 ——
           和风气象台的「钓鱼指数：不宜」。我们的指数紧跟在它后面（结论头），
           两条并排看，一致时可信度更高，不一致时用户自己会追问。
+
+          每张卡外面套一层普通 view：入场动画挂在这一层上。
+          组件标签本身不吃 class 上的动画（见 docs/mp-weixin-platform.md）。
         -->
-        <LifeIndexCard class="sect__card" :style="{ animationDelay: enterDelay(0) }" />
-        <MetricChart class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
-        <HourlyWeather class="sect__card" :style="{ animationDelay: enterDelay(2) }" />
-        <WeekStrip class="sect__card" :style="{ animationDelay: enterDelay(3) }" />
+        <view class="sect__card" :style="enterStyle(0)">
+          <LifeIndexCard />
+        </view>
+        <view class="sect__card" :style="enterStyle(1)">
+          <MetricChart />
+        </view>
+        <view class="sect__card" :style="enterStyle(2)">
+          <HourlyWeather />
+        </view>
+        <view class="sect__card" :style="enterStyle(3)">
+          <WeekStrip />
+        </view>
       </view>
 
       <!--
@@ -42,30 +53,38 @@
         钓鱼是跟日照过不去的活，这一段给的是决定出钓时间的那几个数。
       -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">日照与月相</text>
+        <text class="sect__title" :style="enterStyle(0)">日照与月相</text>
 
-        <AstroCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+        <view class="sect__card" :style="enterStyle(1)">
+          <AstroCard />
+        </view>
       </view>
 
       <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">潮汐</text>
+        <text class="sect__title" :style="enterStyle(0)">潮汐</text>
 
-        <TideCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+        <view class="sect__card" :style="enterStyle(1)">
+          <TideCard />
+        </view>
       </view>
 
       <!-- 指数构成：九项子特征各自贡献多少 -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">指数构成</text>
+        <text class="sect__title" :style="enterStyle(0)">指数构成</text>
 
-        <FeatureBreakdown class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+        <view class="sect__card" :style="enterStyle(1)">
+          <FeatureBreakdown />
+        </view>
       </view>
 
       <!-- 天气详情：实况的逐项读数 -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气详情</text>
+        <text class="sect__title" :style="enterStyle(0)">天气详情</text>
 
-        <WeatherCard class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+        <view class="sect__card" :style="enterStyle(1)">
+          <WeatherCard />
+        </view>
       </view>
 
       <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
@@ -132,6 +151,15 @@ const feedbackOpen = ref(false);
 
 /** AI 分析浮层 */
 const analysisOpen = ref(false);
+
+const showAnim = ref(false);
+
+function enterStyle(index: number): Record<string, string> {
+  return {
+    animationDelay: enterDelay(index),
+    animationName: showAnim.value ? 'fish-enter' : 'none',
+  };
+}
 
 /**
  * 反馈关联的钓点 id，取自钓点页共享过来的选中态。
@@ -202,6 +230,11 @@ onMounted(() => {
 });
 onPageShow(() => {
   void mapStore.ensureWeatherAndFishing();
+
+  showAnim.value = false;
+  setTimeout(() => {
+    showAnim.value = true;
+  }, 50);
 });
 
 function openFeedback() {

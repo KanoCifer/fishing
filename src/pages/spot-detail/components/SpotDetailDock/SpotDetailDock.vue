@@ -56,6 +56,21 @@ const navIcon = icon('navigation', 'onAccent');
   z-index: 40;
   padding: 48rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
   background: $fish-dock-fade;
+
+  /*
+   * 落位。
+   *
+   * 底栏是这一页唯一悬着的一层 —— 内容从它底下滚过去，它自己不动。
+   * 入场时从下沿升上来一点再停住，读作「这一屏带着一个动作」，
+   * 而不是「这里本来就横着一根条」。
+   *
+   * 延迟 120ms：压在头图显形之后一点，两层动效不抢同一个瞬间；
+   * 又赶在内容分段落位的中段到达，不至于等整屏都稳了它才来。
+   *
+   * 用 fish-enter（16rpx / 500ms）而不是更大的位移 —— 这一页一天要进十几次，
+   * 位移大了读作「弹出来」，而不是「落到位」。
+   */
+  @include fish-enter(120ms);
 }
 
 /*

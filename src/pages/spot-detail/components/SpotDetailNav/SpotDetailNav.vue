@@ -105,7 +105,14 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
   background-color: $fish-glass-strong;
   box-shadow: inset 0 -1rpx 0 $fish-border-40;
   opacity: 0;
-  transition: opacity $fish-dur-base $fish-ease-out;
+
+  /*
+   * 交叉淡入，不跟状态切换那档时长。
+   *
+   * 理由同 PageNav 的材质层：内容滚上来时它才出现，
+   * 慢半拍就等于标题压在正文上多停一会儿。
+   */
+  transition: opacity $fish-dur-cross $fish-ease-out;
 
   /* 这里才值得开模糊：底下真的有内容在滚过去。 */
   @include fish-glass-blur;

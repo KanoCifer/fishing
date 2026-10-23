@@ -1,24 +1,4 @@
 <template>
-  <!--
-    关于页 —— 应用身份、免责声明、协议与说明。
-
-    这些内容原来挤在「我的」页的下半屏，和身份卡抢同一屏的注意力：
-    一个页面同时回答「我是谁」和「这是什么」，两件事互相稀释。
-    拆成独立页面之后，「我的」页只回答「我是谁」，这一页回答「这是什么」——
-    一页一件事。
-
-    页面骨架照抄数据页与「我的」页那一套：同样的环境色底（PageBackdrop）、
-    同样的分区版式（令牌层 _layout.scss 的 fish-section / fish-eyebrow / fish-foot）、
-    同样的玻璃卡。三页是同一个 app 的三面，不该像换了个应用。
-
-    关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
-    内容从屏幕最顶端开始排。给 padding-top 让开 navBarBottom，
-    理由与「我的」页、数据页相同。
-
-    导航栏是浮层（fixed），不在内容流里 —— 所以它放在 about__body 外面，
-    让位只由 padding-top 算一次。曾经把导航栏放进带 padding 的内容层里，
-    那道导航栏就被顶到 navBarBottom 之下，返回键整整低了一个导航栏的高度。
-  -->
   <view class="about" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
@@ -30,13 +10,10 @@
     <PageNav title="关于渔碌" :scrolled="scrolled" />
 
     <view class="about__body" :style="{ paddingTop: navBarBottom + 'px' }">
-      <!--
-        应用身份卡：这一页的第一件东西。
-        它和「我的」页的身份卡是同一个位置上的东西 —— 页面的第一屏，
-        所以占位和分量也得一样。
-      -->
       <view class="sect">
-        <AboutHeader class="sect__card" :style="{ animationDelay: enterDelay(0) }" />
+        <view class="sect__card" :style="{ animationDelay: enterDelay(0) }">
+          <AboutHeader />
+        </view>
       </view>
 
       <!-- 免责声明 -->
@@ -54,7 +31,9 @@
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">协议与说明</text>
 
-        <AboutLinks class="sect__card" :links="docLinks" :style="{ animationDelay: enterDelay(4) }" @select="openDoc" />
+        <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
+          <AboutLinks :links="docLinks" @select="openDoc" />
+        </view>
       </view>
 
       <!-- 落款。数据署名在前，版权在后 -->
@@ -202,6 +181,19 @@ function closeDoc() {
 /* 落款 */
 .about__foot {
   @include fish-foot;
+}
+
+/*
+ * 落款的入场。
+ *
+ * 落款是这一页最后落位的一件东西，不该在上面的卡片还在淡入时就先亮出来 ——
+ * 它是页面的句号，句号先落，句子就断了。
+ *
+ * 这个类原来只写在模板上、样式里没有：入场动画没挂上，
+ * 模板里的 animationDelay 也就成了一句空话。
+ */
+.about__enter {
+  @include fish-enter;
 }
 
 .about__foot-line {

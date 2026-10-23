@@ -42,12 +42,9 @@
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">{{ spotsEntry.section }}</text>
 
-        <AboutLinks
-          class="sect__card"
-          :links="spotsLinks"
-          :style="{ animationDelay: enterDelay(2) }"
-          @select="openMySpots"
-        />
+        <view class="sect__card" :style="{ animationDelay: enterDelay(2) }">
+          <AboutLinks :links="spotsLinks" @select="openMySpots" />
+        </view>
       </view>
 
       <!--
@@ -57,12 +54,9 @@
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ aboutEntry.section }}</text>
 
-        <AboutLinks
-          class="sect__card"
-          :links="aboutLinks"
-          :style="{ animationDelay: enterDelay(4) }"
-          @select="openAbout"
-        />
+        <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
+          <AboutLinks :links="aboutLinks" @select="openAbout" />
+        </view>
       </view>
     </view>
 

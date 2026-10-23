@@ -137,7 +137,14 @@ function onBack() {
   background-color: $fish-glass-strong;
   box-shadow: inset 0 -1rpx 0 $fish-border-40;
   opacity: 0;
-  transition: opacity $fish-dur-base $fish-ease-out;
+  /*
+   * 交叉淡入，不跟状态切换那档时长。
+   *
+   * 这层是内容滚到导航栏底下那一帧出现的 —— 内容已经在动了，
+   * 材质层慢半拍才出来，中间那段就是标题直接压在正文上。
+   * 它是「同一位置换状态」，所以走 $fish-dur-cross。
+   */
+  transition: opacity $fish-dur-cross $fish-ease-out;
   @include fish-glass-blur;
 }
 

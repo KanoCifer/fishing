@@ -341,6 +341,77 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 - `FormRow` 内部根节点有 `@tap` → 自定义事件不能叫 `tap`
 - `ChoiceChips` 内部只有 `@tap`，它 emit 的是 `change` → `change` 安全（内部不产生原生 `change`）
 
+## 组件宿主节点不吃动画
+
+小程序的样式隔离（`styleIsolation`，默认 `isolated`）把「页面的样式」和「组件内部的节点」隔开了。
+但真正咬人的不是隔开，是**宿主节点本身**：自定义组件在页面的 WXML 里就是一个标签
+（`<spot-detail-head class="…" />`），页面样式能匹配到它，
+**但挂在这个标签上的 `animation` 不会动**。
+
+症状特别像「样式没生效」：类名写了，`animation` 也编译进 wxss 了，
+`animation-delay` 的行内样式也在，唯独屏幕上纹丝不动。
+
+**实测**（微信开发者工具 · iPhone 17 · glass-easel webview，2026-10）：
+
+| 写法                                                 | 结果     |
+| ---------------------------------------------------- | -------- |
+| 页面里的普通 `<view>` + 页面 wxss 里的 `animation`   | 动       |
+| 组件**内部**的节点 + 组件自己 wxss 里的 `animation`  | 动       |
+| **组件标签**（宿主节点）+ 页面 wxss 里的 `animation` | **不动** |
+
+第三行是坑：宿主节点上的 `class` 样式（背景、间距）是生效的，**只有动画不生效**。
+
+**做法**：要动的是组件外面那一层 —— 在页面里给组件套一个普通 `<view>`，动画挂在这个 view 上。
+
+```html
+<!-- 不动：动画挂在组件标签上 -->
+<SpotDetailHead class="spot-detail__enter" :style="{ animationDelay: enterDelay(1) }" />
+
+<!-- 动：动画挂在普通 view 上 -->
+<view class="spot-detail__enter" :style="{ animationDelay: enterDelay(1) }">
+  <SpotDetailHead />
+</view>
+```
+
+套层不改版式：里面是块级组件、外层也是块级 view，
+组件根节点自己的上边距照样向上合并，间距一个字都不会变。
+
+**这条现在不只是「动不起来」，而是「永久隐形」。**
+入场动画的初始状态（`opacity: 0`）写在类上（见令牌层 `_motion.scss` 的 `fish-enter`），
+类样式对宿主节点**是生效的** —— 所以宿主节点会拿到 `opacity: 0`，
+而它的动画又不动，永远停在这个状态：内容不见了，而且没有任何报错提示。
+
+也就是说：**凡是带入场动画的类，只能挂在普通 `<view>` 上**。
+这条从「动画不生效」的坑升级成了「内容消失」的坑，症状更难查。
+
+顺带记一条容易记错的：**`@keyframes` 写在 `app.wxss` 里，组件内部是可以用的**。
+样式隔离挡的是「选择器匹配到组件内部的节点」，不是「关键帧的名字解析」。
+所以 `fish-enter` / `fish-enter-media` 放在 App.vue 是安全的，
+组件内部直接 `animation: fish-enter …` 就能用，不必每个组件再抄一份关键帧。
+
+## 动画 API：别用 `uni.createAnimation`
+
+本项目的动效一律走 CSS transition / `@keyframes`。小程序自带的 `uni.createAnimation`
+（编译到 `wx.createAnimation`）有三条平台层面的限制。
+
+**它是旧 API。** 微信文档原话：基础库 2.9.0 起支持 `this.animate`，
+「用于代替旧的 wx.createAnimation，它具有更好的性能和更可控的接口」。
+`createAnimation` 是被替代的那一个。
+
+**它的 `timingFunction` 只有七个枚举值** —— `linear` / `ease` / `ease-in` /
+`ease-in-out` / `ease-out` / `step-start` / `step-end`，
+**不支持 cubic-bezier**。本项目的动效曲线全是自定的
+（`$fish-ease-out`、`$fish-spring`，见 `src/styles/tokens/_motion.scss`），
+一条都表达不出来。
+
+**它要跨线传输。** `export()` 返回的是一个 `actions` 数组，
+得从逻辑层 setData 到渲染层才生效；CSS 动画在视图层本地跑完，运行时零 JS 开销。
+而且 `export()` **每次调用都会清空之前的动画队列**，重播得重新导一份。
+
+需要「关键帧由运行时算出来」（比如滚动驱动的进度动画）时，
+对应物是 `this.animate` + `ScrollTimeline`（基础库 2.9.0+，**仅 WebView 渲染引擎支持**），
+不是 `createAnimation`。
+
 ## Vue 3 兼容层
 
 `main.ts` 里补了 `$set` / `$delete` 两个实例方法 —— Vue 3 删掉了它们，而 mp-html v2 还在用（`setContent` 里的 `this.$set(this, 'nodes', …)` 是它的主路径）。不补这一层，mp-html 第一次渲染就抛 `this.$set is not a function`，白屏。

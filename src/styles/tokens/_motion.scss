@@ -18,8 +18,20 @@ $fish-ease-in: cubic-bezier(0.4, 0, 1, 1); // 退场
 $fish-spring: cubic-bezier(0.2, 0, 0, 1); // 临界阻尼
 
 $fish-dur-fast: 100ms; // 按下
-$fish-dur-base: 260ms; // 状态切换
-$fish-dur-slow: 420ms; // 面板出入场
+$fish-dur-base: 500ms; // 状态切换 / 入场落位
+$fish-dur-slow: 800ms; // 面板出入场
+
+/**
+ * 按下回弹。
+ *
+ * 单独一档，不跟着 $fish-dur-base 走。
+ *
+ * base 现在是 500ms，那是「内容落位」的时长 —— 拿来当回弹就太长：
+ * 手指已经离开屏幕了，界面还在慢慢缩回去，读作卡顿，不读作弹性。
+ * 按下 100ms、回弹 260ms 这对关系是这个文件自己的约定（见 fish-press），
+ * 回弹这一档不能被「状态切换变慢了」顺带拖走。
+ */
+$fish-dur-press: 260ms;
 
 /**
  * 交叉淡入（两个状态彼此替换）。
@@ -44,7 +56,7 @@ $fish-dur-cross: 160ms;
  * 所以这里必须两处都写，只写一条就会按下和回弹一样快，手感立刻变塑料。
  */
 @mixin fish-press($scale: 0.96) {
-  transition: transform $fish-dur-base $fish-spring;
+  transition: transform $fish-dur-press $fish-spring;
 
   &:active {
     transform: scale($scale);
@@ -59,7 +71,7 @@ $fish-dur-cross: 160ms;
  * 位置跳一下，读起来像换了一项。调透明度才是它真正的行为。
  */
 @mixin fish-press-dim {
-  transition: opacity $fish-dur-base $fish-spring;
+  transition: opacity $fish-dur-press $fish-spring;
 
   &:active {
     opacity: 0.6;
@@ -94,7 +106,7 @@ $fish-dur-cross: 160ms;
     #{$face} padding-box,
     var(--fish-flow) border-box;
   animation: fish-flow-spin 3s linear infinite;
-  transition: transform $fish-dur-base $fish-spring;
+  transition: transform $fish-dur-press $fish-spring;
 
   /*
   * 外发光。z-index -1 让它垫在按钮底下。
@@ -122,13 +134,13 @@ $fish-dur-cross: 160ms;
 //
 // 内容「落位」，不是内容「表演」。这一层解决的是骨架屏换成实数据、
 // 分段控件换面板时内容整块硬切过去的那一下 —— 东西是突然出现的，
-// 眼睛要重新找一次它从哪来。给它 16rpx 的上移和一段淡入就够了。
+// 眼睛要重新找一次它从哪来。给它 16rpx 的上移、5% 的缩小和一段淡入就够了。
 //
 // 只动 transform 和 opacity：这两条在小程序里走合成，不触发布局重排。
 // 换成 top / height 的话，一屏四个分区一起动的时候，
 // 每个兄弟节点都要跟着重排一次，掉帧几乎全出在这里。
 //
-// 位移刻意压得很小。入场动画的成败在幅度上：16rpx（8pt）+ 260ms 读作
+// 幅度刻意压得很小。入场动画的成败在幅度上：16rpx（8pt）+ 500ms 读作
 // 「本来就在这」，幅度再大就读作「飞进来了」，注意力被动画抢走，
 // 反而比不做更难读。
 //
@@ -155,13 +167,48 @@ $fish-enter-y: 16rpx;
  * 时长和曲线不在这里另立 —— 沿用上面那条 $fish-dur-base / $fish-ease-out，
  * 「出场是缓入、入场是缓出」是同一套约定，不是两个系统。
  *
- * fill-mode 用 both：延迟期间元素停在 from 的状态（不可见），
+ * 初始状态（opacity: 0 + 缩到 0.95）写在**这个 mixin 里**，不靠 fill-mode 撑：
+ * 「这个元素先不在、再落位」是它自己的性质，不是动画的副作用。
+ * 这么写还有一个用处 —— 动画被摘掉时（数据页重播入场）元素停在这个状态，
+ * 不会先以终态亮一下再淡入。
+ *
+ * 代价：动画必须挂在**同一个节点**上。组件宿主节点不吃动画
+ * （见 docs/mp-weixin-platform.md 的「组件宿主节点不吃动画」），
+ * 那种写法会让内容永久停在 opacity: 0 —— 隐形。
+ *
+ * 初始状态跟着 $fish-motion 一起关：降级时既不生成动画、也不留 opacity: 0，
+ * 界面直接以终态呈现。写在 mixin 外面就会漏掉这一半 ——
+ * 动画没了，元素却还停在「不在」的状态。
+ *
+ * fill-mode 仍然用 both：延迟期间元素停在 from 的状态（不可见），
  * 若用 none，延迟的那几百毫秒里它是**完全可见的**，
  * 然后突然又从 0 开始淡入 —— 闪一下再重来。
  */
 @mixin fish-enter($delay: 0ms) {
   @if $fish-motion {
+    opacity: 0;
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
     animation: fish-enter $fish-dur-base $fish-ease-out $delay both;
+  }
+}
+
+/**
+ * 入场关键帧的帧内容。
+ *
+ * 单独一个 mixin 是因为 @keyframes 只能写在全局样式里（App.vue），
+ * 而帧里的值要从令牌层拿 —— 改幅度只改这一处。
+ * 初始状态（fish-enter 里那两行）必须与 from 帧完全一致，
+ * 否则动画起手那一帧会跳一下。
+ */
+@mixin fish-enter-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0) scale(1);
   }
 }
 
@@ -174,11 +221,12 @@ $fish-enter-y: 16rpx;
  *
  * 只动 transform 和 opacity，理由同 fish-enter。
  *
- * 时长用 $fish-dur-slow（420ms）而不是更短：照片是这一屏最大的一个面，
+ * 时长用 $fish-dur-slow（800ms）而不是更短：照片是这一屏最大的一个面，
  * 收得太快会读作「闪了一下」，慢一点才读得出「它落下来了」。
  */
 @mixin fish-enter-media {
   @if $fish-motion {
+    opacity: 0;
     animation: fish-enter-media $fish-dur-slow $fish-ease-out both;
   }
 }

@@ -200,11 +200,19 @@ function onRefresh() {
 }
 
 /**
+ * 量结论卡底边的时机（ms）。
+ *
+ * 必须晚于入场动画：动画没走完时量到的是「还在往上飘、还略小」的位置
+ * —— fish-enter 带 16rpx 的上移和 0.95 的缩放，合成起来能差十几像素。
+ * 这个数跟着令牌层的 $fish-dur-base 走：那边改了，这边一起改
+ * （同 SnapSheet 的 EXIT_MS —— 小程序没有 transitionend，只能自己计时）。
+ */
+const MEASURE_DELAY_MS = 600;
+
+/**
  * 量一次结论卡的底边，报给页面。
  *
- * 为什么要等 300ms：入场动画（fish-enter）带着 16rpx 的上移，动画没走完时
- * 量到的是「还在往上飘」的位置，比终态低了 8pt。这点误差不影响判断，
- * 但等它落定再量，量到的就是稳定值 —— 页面不必去猜动画什么时候结束。
+ * 等它落定再量，量到的就是稳定值 —— 页面不必去猜动画什么时候结束。
  */
 function measureConclusion() {
   createSelectorQuery(instance)
@@ -228,7 +236,7 @@ watch(
   () => mapStore.indexData,
   async () => {
     await nextTick();
-    setTimeout(measureConclusion, 300);
+    setTimeout(measureConclusion, MEASURE_DELAY_MS);
   },
   { immediate: true },
 );

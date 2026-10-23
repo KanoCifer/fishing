@@ -10,36 +10,12 @@ onShow(() => {});
 onHide(() => {});
 </script>
 <style lang="scss">
-/*
- * 全局底色与字体栈。
- *
- * 字体：-apple-system 在 iOS 上解析到 SF Pro，它自带光学字号和默认字距表 ——
- * 数字（钓鱼指数那一大串、坐标、潮高）在 SF Pro 下比微信默认字体好看得多，
- * 且高分屏不会糊。中文落到 PingFang SC。
- *
- * 底色：systemGroupedBackground。放在这里而不是各页面，是因为小程序页面在切换时
- * 会先露出这层底色 —— 页面白底、切换瞬间灰一下，是最容易露馅的一处。
- */
 page {
   background-color: #f2f2f7;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/*
- * 占位符 —— 全局一份。
- *
- * 为什么不在页面里写：placeholder-class 落在小程序的**原生输入组件内部**，
- * 那个元素上没有 scoped 的 data-v 属性 —— 页面里那条 scoped 规则编译出来是
- * `.xxx.data-v-yyy`，永远匹配不上。写在页面里等于没写，
- * 占位符一直用的是微信的默认灰（#858585），深得像是用户已经填了内容。
- *
- * 字号也在这儿定：占位符是原生组件自己画的，不保证继承输入框的字号，
- * 写死一份才稳。34rpx 是正文的档（body），和输入框里的内容同号。
- *
- * 放全局而不是令牌层：这不是一个值，是一条平台级的约定 ——
- * 凡是带 placeholder-class 的地方都用这一个类。
- */
 .fish-placeholder {
   color: $fish-muted-60;
   font-size: 34rpx;
@@ -49,56 +25,34 @@ page {
 /*
  * 入场关键帧 —— 全局一份，被 fish-enter mixin 引用。
  *
- * 放在 App.vue 而不是令牌层，和上面那段图标字体的注释是同一个理由：
- * 令牌层每个组件各加载一份，写在那里的 @keyframes
- * 会跟着复制十几遍同一个动画定义。变量和 mixin 放那边（要靠它拿值），
- * @keyframes 放这边（只要一份）。
+ * 放 App.vue 而不是令牌层：令牌层每个组件各加载一份，
+ * 写在那里的 @keyframes 会跟着复制十几遍同一个动画定义。
+ * 变量和 mixin 放那边（要靠它拿值），@keyframes 放这边（只要一份）。
  *
- * from 一帧就带上位移，所以整段位移始终发生在合成层。
+ * 帧里的值来自令牌层的 fish-enter-frames：改幅度只改那一处。
+ *
+ * ⚠️ 关键帧也跟着 $fish-motion 一起关：数据页是**用行内 animation-name**
+ * 摘掉/挂回入场动画的（见 src/pages/data/index.vue 的 enterStyle）。
+ * 降级时如果关键帧还在，那条行内样式照样能引用到它，动画照播 ——
+ * 降级开关就只剩下一半了。关键帧没了，行内样式引用不到动画，自动失效。
  */
-@keyframes fish-enter {
-  from {
-    opacity: 0;
-    transform: translateY($fish-enter-y);
+@if $fish-motion {
+  @keyframes fish-enter {
+    @include fish-enter-frames;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  @keyframes fish-enter-media {
+    from {
+      opacity: 0;
+      transform: scale(1.06);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }
 
-/*
- * 头图显形 —— 全局一份，被 fish-enter-media mixin 引用。
- *
- * 放这里而不是令牌层，理由同上面的 fish-enter：那里每个组件各加载一份，
- * 写在那里的 @keyframes 会跟着复制十几遍。
- *
- * from 一帧就带上 scale，位移始终发生在合成层。
- */
-@keyframes fish-enter-media {
-  from {
-    opacity: 0;
-    transform: scale(1.06);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/*
- * 流光：角度变量 + 关键帧 —— 全局一份，被 fish-flow mixin 引用。
- *
- * 放这里的理由同上面的 fish-enter：令牌层每个组件各加载一份，
- * 写在那里的 @keyframes / @property 会跟着复制好几遍。
- *
- * @property 不是可选项：--fish-flow-angle 必须是注册过的 <angle>，
- * 否则关键帧对它只能离散插值，在 0deg 和 360deg 之间硬跳一次 —— 而这两端的
- * conic 渐变完全相同，等于流光根本不动，只是每 3 秒闪一下。
- *
- * inherits: false：角度只在本元素上生效，靠 --fish-flow 这条已替换好的渐变
- * 往下传（自定义属性的计算值就是替换后的结果），不靠角度变量本身继承。
- */
 @property --fish-flow-angle {
   syntax: '<angle>';
   inherits: false;

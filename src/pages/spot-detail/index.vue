@@ -1,78 +1,55 @@
 <template>
   <!--
     钓点详情页 —— 一张满幅头图压顶，白卡从照片下沿浮出来。
-
-    版式是「照片 → 名字 → 钓况 → 信息 → 照片条 → 导航」这条线，
-    头图那一块负责让人先看见地方，名字那一块负责让人知道这是哪，
-    钓况那一块回答「今天能不能去」。
-
-    层级全靠三样东西撑起来：
-    - 头图与导航栏都浮在内容之上（fixed），内容从它们底下过
-    - 主体卡上移压住头图下沿 —— 压，不是分
-    - 底栏是一道渐隐，内容从它底下沉进去
   -->
   <view class="spot-detail">
     <SpotDetailNav :title="title" :solid="solid" :material="material" shareable @back="onBack" @share="openShare" />
 
-    <SpotDetailHero :src="coverSrc" :has-photo="hasPhoto" :height="heroHeight" />
+    <!--
+      内容区（头图 + 主体卡）。
 
-    <view class="spot-detail__body" :style="{ marginTop: -heroOverlap + 'px' }">
-      <SpotDetailHead
-        v-if="spot"
-        class="spot-detail__enter"
-        :style="{ animationDelay: enterDelay(1) }"
-        :spot="spot"
-        :distance="distanceLabel"
-      />
+      外面套一层 v-if，是为了重播入场动画。
 
-      <!--
-        钓况这一节等钓况数据到了再出现。
+      CSS 动画只有节点被**重新创建**才会从头跑 —— 改 key 不行（页面根节点换不动），
+      改 delay、时长也不行（同名动画跑完就是跑完了，见 docs/design-system.md）。
 
-        不是为了「先占个位」—— 是因为小程序组件的 prop 从 undefined
-        变成字符串时不会重新渲染（数组和布尔值都正常，只有字符串这条会丢）。
-        先建组件再喂字符串，徽标就会一直停在「待定」。
-        等数据到位再建，prop 一上来就是终值。
-      -->
-      <SpotDetailConditions
-        v-if="detailStore.index"
-        class="spot-detail__enter"
-        :style="{ animationDelay: enterDelay(2) }"
-        :cells="cells"
-        :level="level"
-      />
+      为什么非要重建：钓点数据存在全局 store 里（见 ./store），
+      二次进入时首帧这些节点就建好了，动画在用户看见之前已经跑完，
+      屏幕上只剩终态。拆掉再挂回去，节点是新的，动画也就从头开始。
+    -->
+    <view v-if="contentReady" class="spot-detail__stage">
+      <SpotDetailHero :src="coverSrc" :has-photo="hasPhoto" :height="heroHeight" />
 
-      <SpotDetailInfo v-if="spot" class="spot-detail__enter" :style="{ animationDelay: enterDelay(3) }" :spot="spot" />
+      <view class="spot-detail__body" :style="{ marginTop: -heroOverlap + 'px' }">
+        <view v-if="spot" class="spot-detail__enter" :style="{ animationDelay: enterDelay(1) }">
+          <SpotDetailHead :spot="spot" :distance="distanceLabel" />
+        </view>
 
-      <SpotDetailGallery
-        v-if="images.length"
-        class="spot-detail__enter"
-        :style="{ animationDelay: enterDelay(4) }"
-        :images="images"
-      />
+        <view v-if="detailStore.index" class="spot-detail__enter" :style="{ animationDelay: enterDelay(2) }">
+          <SpotDetailConditions :cells="cells" :level="level" />
+        </view>
 
-      <!--
-        属主的编辑入口。
-        只在「这条是我提交的」时出现 —— 别人看到的是一条公开的钓点，
-        不是自己的东西，在那儿摆一个编辑按钮是误导。
-      -->
-      <view
-        v-if="isOwner"
-        class="spot-detail__edit spot-detail__enter"
-        :style="{ animationDelay: enterDelay(5) }"
-        @tap="openEdit"
-      >
-        <text class="spot-detail__edit-text">{{ editLabel }}</text>
+        <view v-if="spot" class="spot-detail__enter" :style="{ animationDelay: enterDelay(3) }">
+          <SpotDetailInfo :spot="spot" />
+        </view>
+
+        <view v-if="images.length" class="spot-detail__enter" :style="{ animationDelay: enterDelay(4) }">
+          <SpotDetailGallery :images="images" />
+        </view>
+
+        <view
+          v-if="isOwner"
+          class="spot-detail__edit spot-detail__enter"
+          :style="{ animationDelay: enterDelay(5) }"
+          @tap="openEdit"
+        >
+          <text class="spot-detail__edit-text">{{ editLabel }}</text>
+        </view>
       </view>
     </view>
 
     <SpotDetailDock :distance="distanceLabel" @nav="openNavigation" />
 
-    <!--
-      分享浮层。
-
-      放在页面这一层而不是详情页组件里：它要画的是**这个钓点**，
-      而钓点数据在 store 里 —— 浮层自己从 store 取，不必再传一遍。
-    -->
     <SpotShareSheet :open="shareOpen" :data="posterData" @close="shareOpen = false" @ready="onPosterReady" />
   </view>
 </template>
@@ -88,8 +65,8 @@
  * 钓况随后到 —— 钓况是按**钓点自己的坐标**取的，跟用户当前位置那份不是一回事
  * （见 stores/spotDetail 的说明）。
  */
-import { computed, ref } from 'vue';
-import { onLoad, onPageScroll, onShareAppMessage } from '@dcloudio/uni-app';
+import { computed, nextTick, ref } from 'vue';
+import { onLoad, onPageScroll, onShareAppMessage, onPageShow } from '@dcloudio/uni-app';
 
 import SpotDetailConditions from './components/SpotDetailConditions/SpotDetailConditions.vue';
 import SpotDetailDock from './components/SpotDetailDock/SpotDetailDock.vue';
@@ -100,12 +77,7 @@ import SpotDetailInfo from './components/SpotDetailInfo/SpotDetailInfo.vue';
 import SpotDetailNav from './components/SpotDetailNav/SpotDetailNav.vue';
 import SpotShareSheet from './components/SpotShareSheet/SpotShareSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
-import {
-  SPOT_DETAIL_EDIT,
-  SPOT_HERO_HEIGHT_RPX,
-  SPOT_HERO_OVERLAP_RPX,
-  SPOT_PLACEHOLDER_IMAGE,
-} from './constants';
+import { SPOT_DETAIL_EDIT, SPOT_HERO_HEIGHT_RPX, SPOT_HERO_OVERLAP_RPX, SPOT_PLACEHOLDER_IMAGE } from './constants';
 import { SHARE_TITLES, SHARE_WXACODE } from './share';
 import { mediaUrl } from '@/api/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
@@ -123,6 +95,47 @@ const session = useSessionStore();
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
 
+/**
+ * 入场动画重播的时机（ms）。
+ *
+ * 微信 iOS 端 navigateTo 有约 300ms 的转场，这段时间里页面还没真正露脸。
+ * 重建必须落在转场之后 —— 落在之前，动画照旧在用户看不见的时候跑完，
+ * 屏幕上只剩终态。
+ *
+ * 这也解释了「为什么只有第一次进入有入场动画」：第一次是数据回来得晚，
+ * 节点是晚建的，动画就晚跑，晚跑反而看见了；后面几次数据是 store 里现成的，
+ * 首帧就把节点建好了，动画在页面露脸之前就跑完了。
+ */
+const REBUILD_DELAY = 400;
+
+/**
+ * 内容区是否挂载。
+ *
+ * 拆和挂分两次提交：先 false 让渲染层把旧节点删掉，再 true 让它建新的。
+ * 同一轮更新里 false → true 会被合成一次提交，等于没拆 ——
+ * 节点是复用出来的，动画也就不会重播。
+ */
+const contentReady = ref(false);
+
+/**
+ * 重建定时器。
+ *
+ * onPageShow 可能连着触发（前后台来回切），不留句柄的话会攒下好几个定时器，
+ * 到点一起重建 —— 拆一次挂一次，动画会抖一下。
+ */
+let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
+
+onPageShow(() => {
+  if (rebuildTimer) clearTimeout(rebuildTimer);
+
+  rebuildTimer = setTimeout(() => {
+    contentReady.value = false;
+
+    nextTick(() => {
+      contentReady.value = true;
+    });
+  }, REBUILD_DELAY);
+});
 /**
  * 头图高度与压住量（px）。
  *
@@ -397,7 +410,6 @@ function openNavigation() {
   background-color: $fish-grouped;
 }
 
-/* 入场。延迟由 enterDelay 按序号给，样式只管「怎么动」 */
 .spot-detail__enter {
   @include fish-enter;
 }
