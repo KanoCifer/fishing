@@ -18,6 +18,7 @@ export default defineConfig({
     'VITE_APP_TITLE',
     'VITE_API_BASE_URL',
     'VITE_QWEATHER_FONT_URL',
+    'VITE_CDN_BASE_URL',
     'VITE_ENABLE_LOG',
     'VITE_YULU_VERSION',
   ],
