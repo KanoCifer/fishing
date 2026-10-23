@@ -9,21 +9,18 @@
 为什么产物不手搓：格式的选择带着**平台约束**，手改一次就丢一次 ——
 而丢的代价不是「图丑了」，是「海报上那块插画压根没画出来」。
 
-## 产物去哪儿：三个地方
-
-**进主包（`src/static/`）**：几乎每次打开都要用的图。
-包在用户手机上要下载、解压、加载，图越大，首页越慢。
+## 产物去哪儿：两个地方
 
 **进分包（`src/pages/<分包>/static/`）**：只有那一个分包用得着的图。
 小程序码就是这种 —— 它只在分享海报时出现，而海报只出现在钓点详情页，
 那就该跟着那个分包走，不该让所有人替它下载 44KB。
 分包根下的 `static/` 目录是 uni-app 认的约定，产物只进那个分包。
 
-**走 CDN（`scripts/assets/cdn/` 暂存，人工上传）**：只在少数场景才露面的图。
-现在只有占位插画 spots —— 它只在「这条钓点没有照片」时才出现，
-绝大多数会话根本用不上。放进包里等于让所有人替少数人下载 158KB。
+**走 CDN（`scripts/assets/cdn/` 暂存，人工上传）**：按需拉、少数场景才露面的图。
+现在有两张：缺图占位插画 spots（只在「这条钓点没有照片」时出现）和应用 logo
+（只在关于页顶部出现）。放进包里等于让所有人替少数人下载。
 产物出到暂存区，上传到 `VITE_CDN_BASE_URL` 下，代码里引的是那个地址
-（见 `src/pages/spot-detail/constants.ts`）。
+（见 `src/pages/spot-detail/constants.ts` 与 `src/pages/about/constants.ts`）。
 
 ⚠️ 搬去 CDN 之后，那个域名要在微信后台配成 **downloadFile 合法域名**，
 否则 `<image>` 和海报的 `canvas.createImage()` 都拿不到图。
@@ -47,8 +44,9 @@ WebP 在这里有风险：mime 对不上必然解不出图，对得上也未必�
 **logo 走 WebP。**
 它只出现在 `<image>` 里（AboutHeader），不进 canvas ——
 `<image>` 对 WebP 的支持是稳的，而 WebP 带 alpha 且比 PNG 小一个量级。
-PNG 版要多背 60KB，logo 又只有 120rpx 大，图里那些渐变经得起 WebP。
-这条分工是本脚本存在的主要理由：手改很容易把 logo 也存成 PNG，白背 60KB。
+PNG 版每次请求要多传 60KB。它已经搬去 CDN、不进代码包了，
+但传输大小照样要讲究 —— 野外弱网是常态。
+这条分工是本脚本存在的主要理由：手改很容易把 logo 也存成 PNG，白传 60KB。
 
 **小程序码走无损 PNG。**
 它是微信的**彩色**小程序码：中间蓝鱼黄圈、右下角绿色微信角标。
@@ -76,15 +74,16 @@ PNG 无损，边界比 JPEG 干净，体积还小（52KB → 44KB）。
 
     python3 scripts/optimize-assets.py
 
-改了 scripts/assets/ 里的源图就跑一遍，别直接改 src/static/ 里的产物 ——
+改了 scripts/assets/ 里的源图就跑一遍，别直接改产物 ——
 产物是脚本的输出，改了就对不上了。
 
-产物落在三个地方：
+产物落在两个地方：
 
-- `src/static/` —— 直接进主包，跑完即用，不用管。
-- `src/pages/<分包>/static/` —— 只进那一个分包，跑完即用。
+- `src/pages/<分包>/static/` —— 只进那一个分包，跑完即用，不用管。
 - `scripts/assets/cdn/` —— **要自己上传**。上传到 `VITE_CDN_BASE_URL` 下
   （同名文件覆盖），代码里引的就是那个地址。
+
+（`src/static/` 里的地图标记与 tabBar 图标不由本脚本出，见 `gen-icons.mjs`。）
 """
 
 from __future__ import annotations
@@ -122,7 +121,8 @@ JOBS = [
         "format": "WEBP",
         "mode": "RGBA",
         "options": {"quality": 95, "method": 6},
-        "note": "应用 logo —— 只在 <image> 里出现，WebP 带 alpha",
+        "dest": "cdn",
+        "note": "应用 logo —— 走 CDN，不进代码包；只在 <image> 里出现，WebP 带 alpha",
     },
     {
         "src": "wxacode.jpg",
@@ -193,7 +193,7 @@ def main() -> None:
         print("  上传后确认那个域名在微信后台的 downloadFile 合法域名里。")
 
     print()
-    print("完成。src/static/ 里的会随主包一起发出去，分包目录里的只随那个分包发。")
+    print("完成。分包目录里的只随那个分包发，CDN 暂存区的要自己上传。")
 
 
 if __name__ == "__main__":

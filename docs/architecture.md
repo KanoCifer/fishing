@@ -165,11 +165,13 @@ FishingAnalysisSheet
 
 ## 静态资源
 
-**代码包里的**（`src/static/`）跟着每个用户下载，只放几乎每次打开都要用的图 —— logo、地图标记、小程序码。
+**代码包里的**跟着每个用户下载，只放几乎每次打开都要用的图 ——
+地图标记、tabBar 图标（都在 `src/static/`），小程序码在 `spot-detail` 分包里。
 
 **CDN 上的**（`VITE_CDN_BASE_URL`）按需拉，只放少数场景才露面的图。
-现在只有缺图占位插画（`SPOT_PLACEHOLDER_IMAGE`）：它只在「这条钓点没有照片」时才出现，
-放进包里等于让所有人替少数人下载 158KB。
+现在有两张：缺图占位插画（`SPOT_PLACEHOLDER_IMAGE`，只在「这条钓点没有照片」时出现）
+和应用 logo（`APP_LOGO`，只在关于页顶部出现）。
+放进包里等于让所有人替少数人下载 —— 158KB 的插画和 15KB 的 logo 都不值。
 
 ⚠️ CDN 域名也要在微信后台配成 **downloadFile 合法域名** ——
 `<image>` 的网络图和海报的 `canvas.createImage()` 走的是同一份名单。

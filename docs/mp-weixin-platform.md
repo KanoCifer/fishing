@@ -458,23 +458,26 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 `src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
 产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
 
-| 源图                  | 产物                  | 去哪儿                | 为什么是这个格式                                  |
-| --------------------- | --------------------- | --------------------- | ------------------------------------------------- |
-| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | **CDN**，不进代码包   | 要进 canvas，海报路径上只认 jpg/png               |
-| `logo.png`（76KB）    | `logo.webp`（15KB）   | `src/static/`         | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
-| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | `src/static/`         | 彩色码，JPEG 会把边界糊了，糊了就扫不出来         |
+| 源图                  | 产物                  | 去哪儿                  | 为什么是这个格式                                  |
+| --------------------- | --------------------- | ----------------------- | ------------------------------------------------- |
+| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | **CDN**，不进代码包     | 要进 canvas，海报路径上只认 jpg/png               |
+| `logo.png`（76KB）    | `logo.webp`（15KB）   | **CDN**，不进代码包     | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
+| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | `src/pages/spot-detail/static/`（分包） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来 |
 
 跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
 
-**占位插画为什么搬去了 CDN**：`src/static` 里的东西跟着每个用户下载，
-而这张图只在「这条钓点没有照片」时才露面 —— 绝大多数会话用不上。
-158KB 放进 2MB 的主包里，等于让所有人替少数人下载。
+**占位插画和 logo 为什么搬去了 CDN**：`src/static` 里的东西跟着每个用户下载，
+而这两张图各自只在一种场景里露面 —— 插画只在「这条钓点没有照片」时才出现，
+logo 只在关于页顶部出现，绝大多数会话根本用不上。
+158KB 和 15KB 放进 2MB 的主包里，等于让所有人替少数人下载。
 产物现在出到 `scripts/assets/cdn/`（不进版本库），手动上传到
-`VITE_CDN_BASE_URL` 下，代码里引的是那个地址（`src/constants/spot-detail.ts`）。
+`VITE_CDN_BASE_URL` 下，代码里引的是那个地址
+（`src/pages/spot-detail/constants.ts` 与 `src/pages/about/constants.ts`）。
 
 ⚠️ 代价是**多了一个域名依赖**：`cdn.kanocifer.chat` 必须配成
 **downloadFile 合法域名**，否则 `<image>` 和海报的 `canvas.createImage()`
-都拿不到这张图 —— 头图那块留一片空白底色，海报上那块封面画不出来。
+都拿不到这些图 —— 头图那块留一片空白底色，海报上那块封面画不出来，
+关于页顶部的应用图标也是空的（`<image>` 拉不到图不报错，只是白）。
 
 `canvas.createImage()` 那边有配套的一条：本地文件读成 base64 时，
 data URI 的 mime 要跟真实格式对得上（`src/utils/canvasImage.ts` 的 `mimeOf`），

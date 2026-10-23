@@ -7,7 +7,7 @@
     明确切成两件事，空白只让人以为是同组的松散排布。
   -->
   <view class="about-header">
-    <image class="about-header__logo" :src="logo" mode="aspectFit" />
+    <image class="about-header__logo" :src="APP_LOGO" mode="aspectFit" />
 
     <text class="about-header__name">{{ info.name }}</text>
     <text class="about-header__version">{{ info.version }}</text>
@@ -24,10 +24,9 @@
  */
 import { APP_INFO } from '@/constants/about';
 
-const info = APP_INFO;
+import { APP_LOGO } from '../../constants';
 
-/** 相对路径写法与 src/static 下的其他资源一致（见 pages.json 的 tabBar iconPath） */
-const logo = '/static/logo.webp';
+const info = APP_INFO;
 </script>
 
 <style lang="scss" scoped>
