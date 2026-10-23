@@ -8,10 +8,8 @@
         :longitude="focusedLng"
         :top-inset="nav.navBarBottom"
         @markerTap="onMarkerTap"
+        @create="openCreate"
       />
-    </view>
-    <view class="fishing__create" @tap="openCreate">
-      <image class="fishing__create-icon" :src="createIcon" mode="aspectFit" />
     </view>
   </view>
 </template>
@@ -27,7 +25,6 @@ import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { icon } from '@/constants/icons';
 import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
 
 const nav = useNavMetrics();
@@ -37,9 +34,6 @@ const mapStore = useFishingMapStore();
 const { windowHeight } = useViewport();
 
 const { markerItems, resolveMarker } = useMapMarkers(() => mapStore.markers);
-
-/** 新建钓点按钮上的加号 */
-const createIcon = icon('plus', 'onAccent');
 
 const focusedLng = ref(MAP_CENTER[0]);
 const focusedLat = ref(MAP_CENTER[1]);
@@ -69,6 +63,9 @@ function onMarkerTap(payload: { markerId: number }) {
 
 /**
  * 去新建钓点。
+ *
+ * 由地图工具条上的「新建」键触发 —— 那一列只有四枚键（卫星 / 路况 / 新建 / 定位），
+ * 记一个点这件事不再另挂一个浮在屏幕角落的按钮。
  *
  * 走独立页而不是浮层：新建要填的东西有九栏（位置、名称、类型、简介、
  * 钓法、收费、道路、车到水边、开放时间），抽屉只装得下半屏。
@@ -120,36 +117,5 @@ onReady(() => {
 .fishing__map {
   width: 100%;
   height: 100%;
-}
-
-/*
- * 新建钓点按钮。
- *
- * 112rpx 见方（56pt）—— 比 iOS 常规按钮大：它压在地图上，
- * 目标不明确，得比工具栏上那几枚小按钮更显眼才对得起「记一个点」这件事。
- *
- * 阴影用一层实打实的黑，不是玻璃模糊：地图是照片，玻璃的模糊在照片上读不出来。
- *
- * z-index 10：压在地图之上、导航栏之下（导航栏是 20）。
- */
-.fishing__create {
-  position: absolute;
-  right: 32rpx;
-  bottom: 64rpx;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-accent;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.18);
-  @include fish-press(0.94);
-}
-
-.fishing__create-icon {
-  width: 48rpx;
-  height: 48rpx;
 }
 </style>

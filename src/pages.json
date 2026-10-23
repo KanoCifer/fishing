@@ -78,9 +78,8 @@
     }
   ],
   "globalStyle": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "渔碌",
     "navigationBarBackgroundColor": "#F2F2F7",
+    "navigationBarTextStyle": "black",
     "backgroundColor": "#F2F2F7"
   },
   "tabBar": {

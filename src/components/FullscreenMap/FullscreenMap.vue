@@ -19,15 +19,23 @@
       @markertap="onMarkerTap"
     />
 
-    <view class="toolbar" :style="{ top: topInset + 'px' }">
-      <view class="toolbar__mode" @tap="cycleBaseMap">
-        <image class="toolbar__mode-icon" :src="layersIcon" mode="aspectFit" />
-        <text class="toolbar__mode-label">{{ activeBaseMapOption.label }}</text>
+    <view class="toolbar" :style="{ top: topInset + 16 + 'px' }">
+      <view class="toolbar__btn" :class="{ 'toolbar__btn--on': satellite }" @tap="toggleSatellite">
+        <image class="toolbar__btn-icon" :src="satelliteIcon" mode="aspectFit" />
+      </view>
+
+      <view class="toolbar__btn" :class="{ 'toolbar__btn--on': traffic }" @tap="toggleTraffic">
+        <image class="toolbar__btn-icon" :src="trafficIcon" mode="aspectFit" />
       </view>
 
       <view class="toolbar__divider" />
-      <view class="toolbar__action" :class="{ 'toolbar__action--busy': locating }" @tap="recenter">
-        <image class="toolbar__action-icon" :src="locateIcon" mode="aspectFit" />
+
+      <view class="toolbar__btn" @tap="emitCreate">
+        <image class="toolbar__btn-icon" :src="createIcon" mode="aspectFit" />
+      </view>
+
+      <view class="toolbar__btn" :class="{ 'toolbar__btn--busy': locating }" @tap="recenter">
+        <image class="toolbar__btn-icon" :src="locateIcon" mode="aspectFit" />
       </view>
     </view>
   </view>
@@ -40,19 +48,18 @@ import type { MapMarkerItem } from '@/composables/useMapMarkers';
 import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
 
-/** 底图模式：标准 / 卫星影像 / 实时路况 */
-type BaseMapMode = 'standard' | 'satellite' | 'traffic';
-
-interface BaseMapOption {
-  value: BaseMapMode;
-  label: string;
+/**
+ * 底图的两个开关。
+ *
+ * 卫星与路况是**两个独立开关**，不是同一个枚举里的三档：
+ * 微信的原生地图支持「卫星影像上叠一层实时路况」，两者不互斥。
+ * 合成一档就等于把这个组合从界面上拿掉了 —— 用户在卫星图上看路况是常事。
+ * 「标准地图」不是一个状态，它是两个开关都关时的样子。
+ */
+interface BaseMapState {
+  satellite: boolean;
+  traffic: boolean;
 }
-
-const BASE_MAP_OPTIONS: BaseMapOption[] = [
-  { value: 'standard', label: '地图' },
-  { value: 'satellite', label: '卫星' },
-  { value: 'traffic', label: '路况' },
-];
 
 const props = withDefaults(
   defineProps<{
@@ -89,7 +96,7 @@ const props = withDefaults(
     topInset: 0,
     markers: () => [],
     satellite: false,
-    traffic: false,
+    traffic: true,
     interactive: true,
   },
 );
@@ -113,8 +120,15 @@ const emit = defineEmits<{
   markerTap: [payload: { markerId: number }];
   'update:satellite': [value: boolean];
   'update:traffic': [value: boolean];
-  /** 底图整体切了一档。想把选择持久化的页面听这个就够 */
-  'base-map-change': [payload: { mode: BaseMapMode; satellite: boolean; traffic: boolean }];
+  /** 底图的两个开关都变了。想把选择持久化的页面听这个就够 */
+  'base-map-change': [payload: BaseMapState];
+  /**
+   * 点了「新建」。
+   *
+   * 只抛事件，不自己跳页：组件不知道「新建钓点」是什么、也不知道该带什么参数，
+   * 那是业务，交给宿主页去导航。
+   */
+  create: [];
 }>();
 
 const latitude = ref(props.latitude);
@@ -155,8 +169,31 @@ const permissionDenied = computed(() => mapStore.locationDenied);
  */
 const locateFailed = computed(() => permissionDenied.value || mapStore.locationError !== '');
 
-/** 底图循环键的图层图标。压成 muted，让它和文案读成一个整体而不是「图标 + 标签」 */
-const layersIcon = icon('layers', 'muted');
+/**
+ * 卫星键的图标。
+ *
+ * 用地球（earth）而不是卫星：卫星是「谁拍的」，地球是「你要看哪一层」——
+ * 这一键切的是底图（卫星影像），图标该说的是范围，不是来源。
+ *
+ * 开时染品牌蓝、关时压 muted：图标是一份颜色烤死的 data URI，拿不到状态属性，
+ * 「开 / 关」只能靠换一份色值来表达。
+ */
+const satelliteIcon = computed(() => icon('earth', satellite.value ? 'blue' : 'muted'));
+
+/** 路况键的图标。配色规则同卫星键 */
+const trafficIcon = computed(() => icon('road', traffic.value ? 'blue' : 'muted'));
+
+/**
+ * 新建键上的加号。
+ *
+ * 用 ink 而不是品牌蓝：蓝色在这条工具条里已经被「开关打开」占用了
+ * （卫星 / 路况打开时图标染蓝），新建键要是也是蓝的，就分不清
+ * 「这一层开着」和「这是一个动作」。
+ *
+ * 也不套实心圆：一枚实心的蓝块压在一列细键中间，它就成了整条工具条
+ * 唯一被看见的东西，而这四枚键里没有哪一枚比另一枚更重要。
+ */
+const createIcon = icon('plus', 'ink');
 
 /**
  * 定位键图标。
@@ -166,53 +203,47 @@ const layersIcon = icon('layers', 'muted');
  */
 const locateIcon = computed(() => (locateFailed.value ? icon('crosshair', 'destructive') : icon('crosshair', 'ink')));
 
-/** 由两个布尔反推当前档位，供按钮显示和循环切换用 */
-const activeBaseMap = computed<BaseMapMode>(() =>
-  satellite.value ? 'satellite' : traffic.value ? 'traffic' : 'standard',
-);
-
 /**
- * 当前档位对应的选项本身。
+ * 卫星开关。
  *
- * 文案和循环顺序都从这一份选项表推出来，不各自另存一份 —— 否则一旦有一处
- * 漏改，就会出现「按钮写着卫星、切下去却是路况」这种对不上的状态。
- *
- * 兜底取第一档：activeBaseMap 永远返回这三档之一，这里只是让 TS 认得出
- * find 的返回值可能是 undefined。
+ * 与路况互不影响：微信的原生地图支持「卫星影像上叠一层实时路况」，
+ * 两个键各管各的，谁也不替谁关。
  */
-const activeBaseMapOption = computed(
-  () => BASE_MAP_OPTIONS.find((opt) => opt.value === activeBaseMap.value) ?? BASE_MAP_OPTIONS[0],
-);
+function toggleSatellite() {
+  setBaseMap({ satellite: !satellite.value, traffic: traffic.value });
+}
 
-/**
- * 点底图键：往后走一档，到头回开头。
- *
- * 循环而不是弹菜单：底图只有三档，弹一次选择器比结果本身还重。
- * 顺序取自 BASE_MAP_OPTIONS，界面摆过的顺序就是循环的顺序，不另定一个。
- */
-function cycleBaseMap() {
-  const order = BASE_MAP_OPTIONS.map((opt) => opt.value);
-  selectBaseMap(order[(order.indexOf(activeBaseMap.value) + 1) % order.length]);
+/** 路况开关。规则同卫星 */
+function toggleTraffic() {
+  setBaseMap({ satellite: satellite.value, traffic: !traffic.value });
 }
 
 /**
- * 切底图。
+ * 改底图的两个开关。
  *
- * 两个布尔一起赋值，避免出现「卫星 + 路况」这种界面上选不出来的组合。
+ * 一次改完再 emit：两个键各自独立，中途只改一个会让父组件拿到半新半旧的状态。
+ *
  * 切底图只是让微信换一批瓦片重新渲染，视口不动 —— 因为经纬度 / 缩放在
  * onRegionChange 里始终跟地图内部真实视口同步着，这次 patch 传下去的还是
  * 「本来就在的位置」，不会把用户弹回定位点。
  */
-function selectBaseMap(mode: BaseMapMode) {
-  const nextSatellite = mode === 'satellite';
-  const nextTraffic = mode === 'traffic';
+function setBaseMap(next: BaseMapState) {
+  satellite.value = next.satellite;
+  traffic.value = next.traffic;
 
-  satellite.value = nextSatellite;
-  traffic.value = nextTraffic;
+  emit('update:satellite', next.satellite);
+  emit('update:traffic', next.traffic);
+  emit('base-map-change', { satellite: next.satellite, traffic: next.traffic });
+}
 
-  emit('update:satellite', nextSatellite);
-  emit('update:traffic', nextTraffic);
-  emit('base-map-change', { mode, satellite: nextSatellite, traffic: nextTraffic });
+/**
+ * 新建键。
+ *
+ * 只抛事件：组件不知道「新建钓点」是什么、也不知道该跳去哪一页，
+ * 那是业务，交给宿主页去导航（见钓点页的 openCreate）。
+ */
+function emitCreate() {
+  emit('create');
 }
 
 /**
@@ -408,86 +439,37 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8rpx 16rpx;
+  /* 左右只留 8rpx：这一列是压在地图上的一根细柱，白面越宽越像一块招牌 */
+  padding: 8rpx;
   border-radius: $fish-radius-lg;
   background-color: rgba(255, 255, 255, 0.88);
   box-shadow: $smooth-shadow-md;
 }
 
-.toolbar__mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 64rpx;
-  padding: 0;
-  border-radius: 14rpx;
-  @include fish-press(0.94);
-}
-
-.toolbar__mode-icon {
-  width: 32rpx;
-  height: 32rpx;
-}
-
 /*
- * 档位文案，压在图标下面。
- *
- * caption2（11pt）是字阶里最小的一级，再小就只能写字号、绕过整套字阶 ——
- * 那样字距和行高都没了，正是令牌层 _type.scss 反对的那种写法。所以「改小」到底就是
- * 这一级。line-height 收成 1：默认的 1.3 会在这一个两行高的格子里塞进一段
- * 看不见的行距，图标和文案之间看着像隔了双份。
- *
- * secondaryLabel + 加粗：这一列里只有它需要被读出来（另外两个是纯图标），
- * 用 muted 是不跟下面定位键的 ink 抢主色，600 是在 muted 上仍然读得清。
+ * 工具条按键。
  */
-.toolbar__mode-label {
-  margin-top: 6rpx;
-  color: $fish-muted;
-  @include fish-type(caption2);
-
-  font-weight: 600;
-  line-height: 1;
-}
-
-/*
- * 两组之间的发丝线，竖着摞的时候它就横过来。
- *
- * 只画 32rpx 长而不是拉满整个内容宽：这一列里最宽的是底图键，满宽的线会和
- * 它等长，看着像把底图键从中间切开了。短一点才读得出「这里分两组」，
- * 而不是一条排版线。
- */
-.toolbar__divider {
-  width: 32rpx;
-  height: 1rpx;
-  margin: 6rpx 0;
-  background-color: $fish-border-40;
-}
-
-/*
- * 图标动作键。
- *
- * 84rpx ≈ 42pt，和底图键齐平（见上面那条为什么抬高）。没到 44pt 的原因是
- * 键摞在一起，再大会让这一列长得压到导航栏。定位是高频操作，这块尺寸
- * 是能接受的取舍。
- *
- * min-width 不是 44pt 那种安全尺寸，是拿这一列的总宽倒推的：键都得塞进
- * 一条压在地图上的窄列里，宽度让位给高度。倒推出来的 76rpx ≈ 38pt 偏小，
- * 但仍然远大于图标本身（32rpx），不至于难点。
- *
- * 这里没套 fish-press：它只带 transform 的 transition，而定位状态切换还要淡
- * opacity，两条 transition 写全，省得后写的把先写的覆盖掉。
- */
-.toolbar__action {
+.toolbar__btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 64rpx;
   height: 64rpx;
-  border-radius: 14rpx;
+  border-radius: 18rpx;
 
+  /*
+   * 这里没套 fish-press：它只带 transform 的 transition，而这一列还要淡
+   * opacity（定位中）、淡入淡出底色（开关打开），三条 transition 写全，
+   * 省得后写的把先写的覆盖掉。
+   *
+   * 时长照 fish-press 的规矩：抬手回弹 260ms（$fish-dur-press），
+   * 底色与透明度走 100ms（$fish-dur-fast）—— 状态切换是瞬时的，
+   * 拉成 500ms 会读成「卡了一下」。
+   */
   transition:
-    transform $fish-dur-base $fish-spring,
-    opacity $fish-dur-fast $fish-ease-out;
+    transform $fish-dur-press $fish-spring,
+    opacity $fish-dur-fast $fish-ease-out,
+    background-color $fish-dur-fast $fish-ease-out;
 
   &:active {
     transform: scale(0.92);
@@ -496,17 +478,40 @@ onMounted(() => {
 }
 
 /*
+ * 开关打开：淡蓝底 + 品牌蓝图标。
+ *
+ * 只换图标颜色不够 —— 两个键挨在一起，一个蓝一个灰，
+ * 用户得盯着看才知道哪个开着，底色才是「这个开着」的第一眼信号。
+ */
+.toolbar__btn--on {
+  background-color: $fish-accent-tint;
+}
+
+/*
  * 定位中：压暗。
  *
  * 不转圈 —— 定位通常几百毫秒就回来了，一个闪一下的 spinner 比压暗更吵。
  * 压暗同时也是「按了没反应」的合理解释：recenter 在 locating 期间本来就直接 return。
  */
-.toolbar__action--busy {
+.toolbar__btn--busy {
   opacity: 0.35;
 }
 
-.toolbar__action-icon {
+.toolbar__btn-icon {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+/*
+ * 两组之间的发丝线，竖着摞的时候它就横过来。
+ *
+ * 只画 32rpx 长而不是拉满整个内容宽：满宽的线会和上面两枚键的宽度对齐，
+ * 看着像把工具条从中间切开了。短一点才读得出「上面是底图开关、下面是动作」。
+ */
+.toolbar__divider {
   width: 32rpx;
-  height: 32rpx;
+  height: 1rpx;
+  margin: 6rpx 0;
+  background-color: $fish-border-40;
 }
 </style>

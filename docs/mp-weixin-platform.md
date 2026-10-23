@@ -156,6 +156,14 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 地图铺满整屏时高度由脚本绑定 `windowHeight`，不用 `100vh` —— 理由见上面「高度」。
 
+### 底图：卫星与路况是两个独立开关
+
+`enable-satellite` 和 `enable-traffic` **可以同时为真**，原生地图会画成「卫星影像上叠一层实时路况」。
+它们不是互斥的档位 —— 把两者合成一个枚举，就等于把这个组合从界面上拿掉了，
+而「开着卫星图看路况」是常事。
+
+工具条因此是两枚独立开关键（各自有开 / 关两态），不是一个循环切档的键。
+
 ### 视口与 regionchange
 
 缩放卡顿、地图回弹这两件事，同一个根因：**`latitude` / `longitude` / `scale` 是受控属性，

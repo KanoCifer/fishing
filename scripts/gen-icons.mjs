@@ -65,7 +65,12 @@ const ICONS = [
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 分析按钮' },
   // —— 地图 toolbar ——
-  { name: 'layers', color: 'muted', use: '底图循环键' },
+  // 卫星与路况是**两个独立开关**，各自要「开」与「关」两个色值：
+  // 图标是颜色烤死的 data URI，状态只能靠换一份色值来表达。
+  { name: 'earth', color: 'muted', use: '卫星底图键（关）' },
+  { name: 'earth', color: 'blue', use: '卫星底图键（开）' },
+  { name: 'road', color: 'muted', use: '路况键（关）' },
+  { name: 'road', color: 'blue', use: '路况键（开）' },
   { name: 'crosshair', color: 'ink', use: '地图定位' },
   { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
   // —— 我的页 ——
@@ -82,7 +87,7 @@ const ICONS = [
   // —— 分享浮层 ——
   { name: 'x', color: 'muted60', use: '分享浮层的关闭按钮' },
   // —— 钓点页 ——
-  { name: 'plus', color: 'onAccent', use: '新建钓点按钮' },
+  { name: 'plus', color: 'ink', use: '地图工具条上的新建钓点键' },
   // —— 钓点照片选择器 ——
   { name: 'plus', color: 'muted', use: '照片选择器的添加格子' },
   { name: 'x', color: 'onAccent', use: '照片缩略图上的删除角标' },
