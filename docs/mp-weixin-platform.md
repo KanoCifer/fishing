@@ -1,23 +1,23 @@
-# 微信小程序平台约束
+# 微信小程序平台约束：运行时与界面
 
-只有一个目标平台：mp-weixin（`componentFramework: glass-easel`）。这份文档讲平台给的限制和它们的绕法。
+只有一个目标平台：mp-weixin（`componentFramework: glass-easel`）。这份文档讲平台给的
+限制和它们的绕法。网络、权限与微信能力见 `docs/mp-weixin-network.md`；
+包体与真机兼容见 `docs/mp-weixin-package.md`。
 
 ## 运行时
 
-小程序**没有浏览器运行时**。`document`、`window`、`localStorage`、`sessionStorage`、`fetch`、全局 `requestAnimationFrame` 都不存在。
-
 平台能力走 `uni.*`：
 
-| 要做的       | 用这个                                           |
-| ------------ | ------------------------------------------------ |
-| 发请求       | `uni.request`                                    |
+| 要做的       | 用这个                                              |
+| ------------ | --------------------------------------------------- |
+| 发请求       | `uni.request`                                       |
 | 读存储       | `@/utils/storage` 的 `readStorage` / `writeStorage` |
-| 定位         | `uni.getLocation`                                |
-| 窗口尺寸     | `uni.getWindowInfo()`                            |
-| 胶囊按钮矩形 | `uni.getMenuButtonBoundingClientRect()`          |
-| 加载网络字体 | `uni.loadFontFace`                               |
-| 选节点       | `@/utils/selectorQuery` 的 `createSelectorQuery` |
-| 取帧         | canvas 节点自带的 `requestAnimationFrame`        |
+| 定位         | `uni.getLocation`                                   |
+| 窗口尺寸     | `uni.getWindowInfo()`                               |
+| 胶囊按钮矩形 | `uni.getMenuButtonBoundingClientRect()`             |
+| 加载网络字体 | `uni.loadFontFace`                                  |
+| 选节点       | `@/utils/selectorQuery` 的 `createSelectorQuery`    |
+| 取帧         | canvas 节点自带的 `requestAnimationFrame`           |
 
 `getSystemInfoSync` 在微信端已废弃 —— 尺寸和 dpr 一律从 `getWindowInfo()` 取。
 
@@ -47,7 +47,18 @@ const { windowHeight } = useViewport(); // @/composables/useViewport
 
 全屏铺底的页面用它当 `height`；有内容要滚的页面用它当 `min-height`。
 
-`useViewport` 和 `useNavMetrics` 都**算一次就缓存** —— 尺寸在一次启动内不变，不必反复调 API。
+### 窗口快照：同步 API 只调一处
+
+`uni.getWindowInfo()` 与 `uni.getMenuButtonBoundingClientRect()` 都是**同步 API**（名字里没有 `Sync`，但会阻塞 JS 线程），一次启动里各调一次就够。
+
+两份缓存各切一把刀会漏：`useNavMetrics` 缓存胶囊矩形、`useViewport` 缓存窗口尺寸，
+于是 `getWindowInfo` 被打了两遍，而两遍拿的是同一份数据。
+
+**正确做法是共享一份快照**：`src/composables/windowMetrics.ts` 取一次，
+`useNavMetrics` / `useViewport` / 三个图表组件全部从这一份读字段。
+
+⚠️ 别为了「减少同步 API」把 `useNavMetrics` / `useViewport` 改成异步 ——
+它们的返回值在 8 个页面里被消费，改形状等于改所有页面。要加字段就从快照上加。
 
 ## 导航栏
 
@@ -72,7 +83,7 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 ## canvas
 
-- **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，与令牌层 `src/styles/tokens/_color.scss` 手工保持一致（`$fish-tide`、`$fish-temp` 是锚点）
+- **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，**要与令牌层 `src/styles/tokens/_color.scss` 手工保持一致**（`$fish-tide`、`$fish-temp` 是锚点）
 - **canvas 的字体族要抄 `$fish-font`**，不能写裸 `sans-serif` —— iOS 上 `sans-serif` 落到的是 Helvetica，`-apple-system` 才是 SF Pro（见 `src/utils/poster.ts` 的 `FONT_STACK`）
 - dpr 从 `uni.getWindowInfo().pixelRatio` 取
 - 画布尺寸先 `uni.upx2px()` 换算成 px
@@ -80,6 +91,20 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 - **要导出成文件的画布，位图按设计分辨率铺，显示尺寸交给 CSS。** 按「CSS 尺寸 × dpr」铺位图，导出时就得把它放大回设计尺寸 —— 存下来的是放大件，字和码都糊
 - **`createImage()` 的 src 只认网络地址与 base64 Data URI**（基础库 2.11.0 起）。代码包里的本地文件不在承诺里，要先 `getFileSystemManager().readFile({ encoding: 'base64' })` 读出来再给画布（见 `src/utils/canvasImage.ts`）
 - **SVG data URI 在 `<image>` 里能显示，但 canvas 的 `createImage()` 吃它没保证** —— canvas 里要图标就用路径画（见 `src/utils/poster.ts` 的 `mapPin`）
+
+## 字体
+
+图标字体走 `wx.loadFontFace` 网络加载：
+
+- 字体域名必须在微信后台配成 **downloadFile 合法域名**，否则加载失败，页面上所有天气图标变成豆腐块（私用区位码位在系统字体里没有对应字形）
+- 主包里只留「码 → 字形」的映射规则（`src/styles/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
+- 字体族名必须与 css 里 `.qi` 的 `font-family` 完全一致：`qweather-icons`
+- `global: true` —— 图标散在好几个页面里，逐页注册会漏
+- `desc` 三项都要给，uni 的类型里 `variant` 是必填的（微信文档说它可选）
+- `success` 不代表字体真的加载上了，要看 `res.status === 'loaded'`
+- 加载失败不致命：读数全是文字，图标没了照样能读。所以只记状态，不弹 toast 打扰用户
+- 状态是模块级单例 ref —— 小程序所有页面共用一份逻辑层，组件 import 到的都是同一个 ref
+- **加载时机是数据页 `onMounted`，不是 `App.onLaunch`** —— 73 KB 走网络，挂在启动链路上就是一条冷启动长请求。三张消费它的卡（`HourlyWeather` / `WeekStrip` / `AstroCard`）都有 `v-if="qweatherFontReady"` 兜底，字体晚到不会出豆腐块
 
 ## 原生 map
 
@@ -146,190 +171,6 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
   受控属性与地图对不上，下一次 patch 就把地图拽回去
 - 所以「挪地图」一律改绑定属性；「读地图当前视口」才用 `MapContext`
 
-## 字体
-
-图标字体走 `wx.loadFontFace` 网络加载：
-
-- 字体域名必须在微信后台配成 **downloadFile 合法域名**，否则加载失败，页面上所有天气图标变成豆腐块（私用区位码位在系统字体里没有对应字形）
-- 主包里只留「码 → 字形」的映射规则（`src/styles/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
-- 字体族名必须与 css 里 `.qi` 的 `font-family` 完全一致：`qweather-icons`
-- `global: true` —— 图标散在好几个页面里，逐页注册会漏
-- `desc` 三项都要给，uni 的类型里 `variant` 是必填的（微信文档说它可选）
-- `success` 不代表字体真的加载上了，要看 `res.status === 'loaded'`
-- 加载失败不致命：读数全是文字，图标没了照样能读。所以只记状态，不弹 toast 打扰用户
-- 状态是模块级单例 ref —— 小程序所有页面共用一份逻辑层，组件 import 到的都是同一个 ref
-
-## SSE 流式
-
-`uni.request` 不能直接当流用，三个绕不开的原因：
-
-1. **不传回调就只给 Promise。** uni 的 promisify 包装只在传了 success/fail/complete 时才把 RequestTask 返回出来，不传就拿不到 task，挂不上 `onChunkReceived`，流式直接退化成一次性请求
-2. **响应体不能按 JSON 解析。** `dataType: 'json'` 会让 wx 对整个响应体做一次 JSON.parse，而 SSE 的报文是 `data: {...}`，根本不是合法 JSON
-3. **超时覆盖的是整段流。** wx.request 的 timeout 从发送到 complete 全程计时，大模型生成超过默认 60s 就会被腰斩
-
-所以流式请求的参数是固定的：
-
-```ts
-{
-  dataType: 'text',
-  responseType: 'arraybuffer',
-  enableChunked: true,
-  enableHttp2: false,
-  timeout: 5 * 60 * 1000,   // 默认 60s 会被腰斩
-}
-```
-
-服务端要求：响应头 `Content-Type: text/event-stream` + `Transfer-Encoding: chunked`，反代（Nginx）要 `proxy_buffering off`，否则分块被缓存住，流式退化成一次性。
-
-`onChunkReceived` 必须在拿到 task **之后**挂 —— 挂早了拿不到 task，挂晚了会漏掉前面的块。
-
-服务端没开 chunked 时分块回调一次都不会触发，整段响应走 success —— 要把完整 body 补喂一次，不然这一轮会安静地什么都不吐。
-
-## 定位
-
-```ts
-uni.getLocation({ type: 'gcj02' });
-```
-
-**必须是 gcj02** —— 小程序 `<map>` 组件用的是 GCJ-02 火星坐标系。传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
-
-全应用只有 `stores/fishingMap` 调 `uni.getLocation` 一处。地图的定位键、结论头的刷新键、数据页的取数共用它 —— 两处各调一次会弹两次权限窗，也会拿到两个略有差异的点。
-
-⚠️ `getLocation` 是隐私接口，`src/manifest.json` 的 `mp-weixin.requiredPrivateInfos` 必须声明它，否则真机上调用直接被拒：`getLocation:fail the api need to be declared in the requiredPrivateInfos field in app.json`。没声明的表现是：开发者工具里正常，真机一点就失败，连授权弹窗都不弹。
-
-**先问授权状态，再调 getLocation。** 微信的 `getSetting` 能读出 `scope.userLocation` 的三档：
-
-| 值          | 含义           | 该做什么                       |
-| ----------- | -------------- | ------------------------------ |
-| `true`      | 已授权         | 直接调 `getLocation`           |
-| `false`     | 用户明确拒绝过 | 微信不会再弹窗，只能去设置页   |
-| `undefined` | 从没问过       | 调 `getLocation`，它会弹授权窗 |
-
-区分这三档是为了两件事：一是「明确拒绝」和「从没问过」在界面上要给的引导完全不同（前者去设置页，后者直接弹窗），只靠 `getLocation` 的 `fail` 回调区分不出来；二是用户拒绝之后微信不会再弹权限窗，反复调只是反复失败。
-
-被拒之后 store 里 `locationDenied` 记住这件事，定位键据此带去设置页。其余失败（系统定位没开、网络差）记在 `locationError` 里 —— 它们能靠重试解决，跳设置页没用。
-
-### 选点
-
-```ts
-uni.chooseLocation({ success: (res) => res.longitude / res.latitude });
-```
-
-新建钓点页用它选位置。选的是**微信自己那张地图** —— 搜索、定位、路网都在，用户在自己认得的地方点一下，比我们再画一张地图准得多。
-
-- 回来的坐标是 **GCJ-02**，和小程序 `<map>`、和后端存的 `location` 同一套，不用再换算
-- `location` 要的是 `[lng, lat]`，**经度在前**。写反了不会报错，只会落到地球另一侧
-- `res.address` 直接就是后端 `address` 字段要的东西，不用自己拼
-- 用户主动取消走 `fail` 回调，`errMsg` 里带 `cancel` —— 那是正常操作，别弹「失败」
-
-⚠️ `chooseLocation` 属于隐私接口，`src/manifest.json` 的 `mp-weixin.requiredPrivateInfos` 必须声明它，否则真机上调用直接被拒。没声明的表现是：开发者工具里正常，真机一点就失败。
-
-## 选图与上传
-
-```ts
-uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
-```
-
-钓点照片用它选图。`chooseMedia` 是微信现在的接口（`chooseImage` 已在废弃流程里），能一次多选、能指定只选图片、能指定压缩。
-
-- 选**压缩版**（`sizeType: compressed`）：钓点照片是给人看现场的样子，不是当素材用的；原图动辄几 MB，弱网下传得等到用户放弃
-- 回来的 `tempFilePath` 是**临时路径**，1–5 分钟就失效 —— 复制和上传必须当场合做完
-- 微信靠**文件扩展名**推 multipart part 的 Content-Type。扩展名不在白名单（jpeg / png / gif / webp）时服务端回 400，所以 `api/upload` 的 `resolveUploadPath` 会先把文件复制成 `.jpg` 再传
-- `uni.chooseMedia` **不在** `requiredPrivateInfos` 里 —— 读相册不需要在 manifest 声明，隐私授权由微信自带的弹窗处理
-
-上传走 `uni.uploadFile`（不是 `uni.request`）：multipart 要用前者。表单字段名固定 `file`，用途走 `type` 字段 —— 写错字段名服务端回 400「未收到上传文件」。
-
-⚠️ 上传用的是 **uploadFile 合法域名**，跟 request / downloadFile 又是三份独立的名单。
-
-## 分享
-
-钓点详情页的分享走两条路：海报存相册、转发给好友。碰分享先读这一节。
-
-### 转发面板只能由按钮唤起
-
-`onShareAppMessage` 只是**提供内容**，不是入口。微信的转发面板只有一条入口：
-`<button open-type="share">`。页面自己没有任何 API 能打开它。
-
-所以分享浮层里那颗「发给朋友」必须是原生 `button`，不能用 `view` + `@tap` 顶替
-—— 项目里其余地方都用 `view`，这一处是例外，代价是原生 button 的默认样式
-（灰底、边框、字号、内边距、`::after` 那条边）要一条条清掉。
-
-### 胶囊菜单的项要显式开
-
-`uni.showShareMenu({ menus: [...] })` 决定胶囊菜单里有哪些项。
-不显式开就只有转发；`shareTimeline`（朋友圈）要单独列进去才会出现。
-
-这一版分享**不做朋友圈**，所以 `menus` 只列 `shareAppMessage` ——
-留着朋友圈只会多一个走不通的出口（朋友圈那条路还有一条硬限制：页面发不了朋友圈，
-只能由用户从胶囊菜单点，见下）。
-
-### 朋友圈页面发不了
-
-微信不允许页面自己打开朋友圈面板，只能由用户从右上角胶囊菜单发起。
-这是平台限制，绕不过去 —— 任何「一键分享到朋友圈」的按钮在微信里都是假的。
-
-### 卡片封面按 5:4 裁
-
-转发卡片的自定义图（`imageUrl`）按 **5:4** 显示，朋友圈按 1:1。
-所以一张 3:4 的海报要先裁出中间那条 5:4 带再交出去；
-裁切框与海报绘制共用同一个数（`src/constants/share.ts` 的 `POSTER`），
-两处各写一个，版面一改就会错位。
-
-`imageUrl` 支持本地临时路径 —— 海报画完用 `uni.canvasToTempFilePath` 导出来直接给它，
-不必上传到服务器。
-
-### 存相册要授权
-
-`uni.saveImageToPhotosAlbum` 要 `scope.writePhotosAlbum`。先读
-`uni.getSetting()`：用户明确拒绝过（`false`）时微信不会再弹窗，
-只能 `uni.openSetting()` 引导去设置页；从没问过（`undefined`）直接调，
-第一次会自己弹授权窗。这两件事在 `src/utils/album.ts` 里分开处理。
-
-### 海报要现画
-
-海报上的数（鱼口、地址、开放时间）前端手里就有，走服务端渲染要多一次往返，
-不值当。所以用 canvas 2d 现画（`src/utils/poster.ts`）。
-
-canvas 2d 的两个约束（见上面「canvas」一节）：不解析 `var()`，
-色值硬编码并与令牌层手工保持一致；**位图按海报的设计分辨率（750×1000）铺，
-绘制也用设计坐标** —— 两套坐标是同一套，显示时由 CSS 缩到预览尺寸。
-
-封面图是网络图，`canvas.createImage()` 自己拉 —— 域名要在微信后台的
-**downloadFile 合法域名**里，否则那张照片永远不出来。
-
-导出用 **PNG**（`src/constants/share.ts` 的 `POSTER_EXPORT.fileType`）：
-海报上那块小程序码是黑白高对比的小图案，JPEG 一压就出振铃，糊了就扫不出来。
-
-### 海报上的码
-
-海报右下角现在放的是**一张固定的小程序码**（`src/static/wxacode.png`，
-代码包内的文件，引用时写 `/static/...` 这个根路径）。
-
-它是用 `getFileSystemManager()` 读成 base64 再喂给画布的（见上面「canvas」一节）——
-`createImage()` 直接吃代码包内的路径并不在官方承诺里。
-
-**它是 PNG 不是 JPEG**：彩色的码（中间蓝鱼黄圈、右下角绿色微信角标），
-JPEG 一压色度噪点就把边界糊了，而糊了就扫不出来。
-源图在 `scripts/assets/wxacode.jpg`，产物是无损 PNG —— 见「静态资源」一节。
-
-它扫出来落在**小程序入口**，不是直接落在某条钓点上 —— 一张静态码做不到按场景跳转。
-要「扫了图就到这条钓点」，得后端按 scene 调 `getwxacodeunlimit` 出无限码，
-那是接口层的另一件事（`PosterSpot.codeUrl` 那一格就是留给它的位置）。
-
-码在海报上按 150/750 画 —— 落到手机上约 75pt，再小就扫不出来了。
-画的时候**不裁圆角**：小程序码的定位图形贴着角上，裁一刀就毁了，
-而扫不出来的时候没人会怀疑是海报被裁了。
-
-## 登录
-
-`wx.login` 拿 code → 传给服务端 → 服务端换 openid 并**自动建号**。前端没有「注册」分支。
-
-refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie，服务端下发的 HttpOnly cookie 收不到。所以服务端的刷新接口是「body 优先、cookie 回退」，body 里必须带上它。
-
-两个 token 要**一起清**：只清 access 会留下一枚 refresh，下次进小程序会拿着可能已被服务端轮换掉的 refresh 去刷新，然后卡在「刷新失败」上。
-
-头像：`chooseAvatar` 给的是临时路径，1–5 分钟就失效。选到就传，不等用户点保存。
-
 ## 自定义事件不能与原生事件同名
 
 小程序的 `bind` 系列属性绑在**自定义组件**上时，如果事件名正好是原生事件名，微信会让它同时接住两条路：
@@ -358,7 +199,7 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 小程序的样式隔离（`styleIsolation`，默认 `isolated`）把「页面的样式」和「组件内部的节点」隔开了。
 但真正咬人的不是隔开，是**宿主节点本身**：自定义组件在页面的 WXML 里就是一个标签
 （`<spot-detail-head class="…" />`），页面样式能匹配到它，
-**但挂在这个标签上的 `animation` 不会动**。
+**但挂在这个标签上的 `animation` 不会动。**
 
 症状特别像「样式没生效」：类名写了，`animation` 也编译进 wxss 了，
 `animation-delay` 的行内样式也在，唯独屏幕上纹丝不动。
@@ -424,102 +265,49 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 对应物是 `this.animate` + `ScrollTimeline`（基础库 2.9.0+，**仅 WebView 渲染引擎支持**），
 不是 `createAnimation`。
 
-## Vue 3 兼容层
+## 动画性能：自查线与两条例外
 
-`main.ts` 里补了 `$set` / `$delete` 两个实例方法 —— Vue 3 删掉了它们，而 mp-html v2 还在用（`setContent` 里的 `this.$set(this, 'nodes', …)` 是它的主路径）。不补这一层，mp-html 第一次渲染就抛 `this.$set is not a function`，白屏。
+小程序的动效分两条线走，各有各的瓶颈：
 
-补法是对的：Vue 3 的响应式基于 Proxy，给对象加新属性本来就能被追踪到，`$set` 退化成一次普通赋值即可，语义与 Vue 2 的实现一致。
+- **视图层本地跑的 CSS 动画** —— transition / `@keyframes` 由渲染引擎直接执行，逻辑层不参与，运行时代价为零。这是本项目所有动效的默认路径。
+- **逻辑层驱动的 canvas 绘制** —— 逻辑层算完坐标，命令跨线送到渲染层。每一帧都是一笔跨线开销，所以「每帧少画一点」比「动画短一点」值钱。
 
-## 代码包
+### 自查线
 
-主包上限 2MB。静态图是**直接进包**的，一张 1.2MB 的 PNG 就能吃掉半个包。
+| 现象                                   | 判据                                              | 本项目的做法                                                               |
+| -------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| 用 JS 逐帧改样式                       | 出现 `uni.createAnimation`，或在 rAF 里改响应式值 | 一律不用，见上一节                                                         |
+| 动 `left` / `top` / `width` / `height` | 会触发 Layout，低端机必掉帧                       | 只动 `transform` / `opacity`；`fish-enter` 还带 `translateZ(0)` 强制合成层 |
+| 滚动回调里高频写响应式值               | 每次写都是一次跨线 setData                        | 只写**布尔阈值**（`scrollTop > 8`），跨过阈值才触发一次渲染                |
+| canvas 每帧整张重画                    | 死内容（网格、刻度）被重画了几十遍                | 静态层/动态层拆两块画布，刻度只画一次（`LineChart` / `TideChart`）         |
+| 大模糊阴影叠在逐帧变化的元素上         | 阴影每帧重新光栅化，比改高度贵得多                | `SnapSheet` 拖拽期间去掉投影，松手回来                                     |
 
-### 主包与分包
+`will-change` 不加。WXSS 里它的收益不稳定，而长期挂着会占 GPU 内存；
+`translateZ(0)` 已经够把动画元素抬到合成层。
 
-`pages.json` 里三个 tab 页在主包，五个非 tab 页各占一个分包：
+### 两条例外
 
-| 分包                | 页面     |
-| ------------------- | -------- |
-| `pages/about`       | 关于     |
-| `pages/my-spots`    | 我的钓点 |
-| `pages/spot-create` | 新建钓点 |
-| `pages/spot-detail` | 钓点详情 |
-| `pages/spot-edit`   | 编辑钓点 |
+**一、底部浮层的高度动画不能用 transform 代替。**
 
-**分包的 root 就是页面所在的目录**，所以 `path` 写 `index`，
-页面 URL 跟分包前一模一样（`/pages/spot-detail/index`）——
-`navigateTo` 的八处调用点一个字都不用改。
+通则是「别动 height」，但底部浮层是例外：面板贴底生长，动作区（按钮）在面板**底部**。
+用 `translateY` 表达「面板变矮」的话，面板底边会跟着往下跑，按钮直接被顶出屏幕。
+面板高度是语义本身（几个档位、每档多高），只能真的改 height。
 
-分成五个而不是一个，是为了不动 URL：五个页面分处五个目录，
-没有共同的前缀（`pages` 这个前缀下面还有三个 tab 页，当根会跟主包撞）。
-代价是跨分包共用的组件（`FormRow` / `PageNav` / `SnapSheet` 等）留在主包里。
+代价是拖拽时每一帧都要重排面板的子树。所以能省的都省了：拖拽期间关掉 40rpx 的大模糊投影
+（见上表），滚动区高度与面板高度同源，避免两处高度各算一遍。
 
-### 组件与资源跨包
+**二、`animation-fill-mode` 用 `both` 不是偷懒。**
 
-- **分包能引用主包的一切**：组件、JS 模块、`static/` 里的文件。
-  编译产物里就是相对路径（`../../components/...`）与 `require('../../constants/...')`。
-- **主包引用不了分包里的东西。** 所以 `optimization.subPackages: true`
-  只搬那些「只有分包用得到」的组件；被 tab 页用到的组件一律留在主包。
-- `static/` 整个目录在**主包**里。以 `/` 开头的绝对路径一律从主包根目录解析，
-  所以分包页里写 `/static/markers/lake.png` 不用改。
-- 微信的规则是「分包中不能使用**其他分包**中的资源」——
-  同理，一个分包也不能引用另一个分包的文件。
+低端机上 `both` 偶尔会跳帧，但这里必须用它：入场动画带序号延迟，
+延迟期间元素要停在 `opacity: 0`（不可见）。用 `none` 的话，延迟的那几百毫秒里
+元素是**完全可见的**，然后突然又从 0 开始淡入 —— 闪一下再重来，比跳帧更难看。
 
-### 静态资源
+### WXS：目前用不上
 
-`src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
-产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
+跟手动画（拖拽、滑块、滚动联动）在小程序里应该用 WXS，让事件在视图层处理、
+直接改样式，完全绕过逻辑层通信。本项目没有这类动画：
+浮层的拖拽是「拖到某一档、松手落位」，过程中不需要连续的进度反馈，
+面板高度由逻辑层算，跨线传的是**一个数字**而不是一帧一帧的样式。
 
-| 源图                  | 产物                  | 去哪儿                  | 为什么是这个格式                                  |
-| --------------------- | --------------------- | ----------------------- | ------------------------------------------------- |
-| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | **CDN**，不进代码包     | 要进 canvas，海报路径上只认 jpg/png               |
-| `logo.png`（76KB）    | `logo.webp`（15KB）   | **CDN**，不进代码包     | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
-| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | `src/pages/spot-detail/static/`（分包） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来 |
-
-跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
-
-**占位插画和 logo 为什么搬去了 CDN**：`src/static` 里的东西跟着每个用户下载，
-而这两张图各自只在一种场景里露面 —— 插画只在「这条钓点没有照片」时才出现，
-logo 只在关于页顶部出现，绝大多数会话根本用不上。
-158KB 和 15KB 放进 2MB 的主包里，等于让所有人替少数人下载。
-产物现在出到 `scripts/assets/cdn/`（不进版本库），手动上传到
-`VITE_CDN_BASE_URL` 下，代码里引的是那个地址
-（`src/pages/spot-detail/constants.ts` 与 `src/pages/about/constants.ts`）。
-
-⚠️ 代价是**多了一个域名依赖**：`cdn.kanocifer.chat` 必须配成
-**downloadFile 合法域名**，否则 `<image>` 和海报的 `canvas.createImage()`
-都拿不到这些图 —— 头图那块留一片空白底色，海报上那块封面画不出来，
-关于页顶部的应用图标也是空的（`<image>` 拉不到图不报错，只是白）。
-
-`canvas.createImage()` 那边有配套的一条：本地文件读成 base64 时，
-data URI 的 mime 要跟真实格式对得上（`src/utils/canvasImage.ts` 的 `mimeOf`），
-所以海报上用的图只能是 png/jpg。包内现在只剩小程序码走这条 base64 路，
-占位插画已经是网络地址 —— 那是 `createImage()` 官方明确支持的那种 src。
-
-### 构建产物里的杂物
-
-macOS 的 `.DS_Store` 会被 uni 原样抄进代码包（构建读的是磁盘，不是 git）。
-`pnpm build` 末尾跑 `scripts/clean-dist.mjs` 清掉。
-
-## 微信后台配置
-
-| 项                    | 值                              | 不配的后果                     |
-| --------------------- | ------------------------------- | ------------------------------ |
-| request 合法域名      | `VITE_API_BASE_URL`             | 所有接口失败                   |
-| downloadFile 合法域名 | 图标字体域名 + API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名） | 天气图标是豆腐块，照片全是裂的；缺图占位插画也拉不下来 |
-| uploadFile 合法域名   | `VITE_API_BASE_URL`             | 照片传不上去                   |
-| `scope.userLocation`  | 见 `src/manifest.json`          | 定位键无反应                   |
-| `scope.userInfo`      | 见 `src/manifest.json`          | 头像昵称取不到                 |
-
-⚠️ 三份域名名单是**三份独立的表**，填一份不等于另外两份也生效。
-CDN 域名（`cdn.kanocifer.chat`）是后加的 —— 它承接着从代码包里搬走的
-静态图（见上面「静态资源」），漏配的话页面看着正常，只是缺图那一态
-永远是一块空白。
-
-其他 manifest 设置：`lazyCodeLoading: requiredComponents`、`optimization.subPackages: true`、`urlCheck: false`（开发期）、`transformPx: false`（rpx 不转 px）。
-
-`requiredPrivateInfos` 声明了要走隐私接口的 API（当前是 `getLocation` 和 `chooseLocation`）。这一项开发者工具里不校验 —— 漏了只有真机才炸，见上面「定位」「选点」两节。改完 manifest 要重新编译，微信开发者工具不会热更新 `app.json`。
-
-## 真机预览
-
-用 `/wechatide-skill` 走微信开发者工具的编译、预览、上传流程。
+真要加跟手动画（比如图表上可拖动的准星），先想清楚能不能用 WXS，
+而不是在逻辑层 `setInterval` 里改 `style`。

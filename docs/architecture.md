@@ -29,15 +29,7 @@ constants/     文案与生成物
 
 ## 唯一出处
 
-| 要改什么            | 去哪                                                                          |
-| ------------------- | ----------------------------------------------------------------------------- |
-| 接口端点            | `src/api/fishing.ts`、`src/api/ai.ts`、`src/api/auth.ts`、`src/api/upload.ts` |
-| 请求基址 / 环境变量 | `src/config/env.ts`                                                           |
-| 静态资源地址        | `src/config/env.ts`（CDN 基址）、`src/constants/spot-detail.ts`（占位插画）  |
-| 类型                | `src/types/fishing.ts`、`src/types/auth.ts`                                   |
-| 文案                | `src/constants/`（about / spot-create / my-spots）                            |
-| 色值 / 字阶         | `src/styles/tokens/`                                                          |
-| 图标                | `scripts/gen-icons.mjs`                                                       |
+清单在 `AGENTS.md` 的「约定」一节 —— 端点、类型、色值字阶、文案、图标各归一处。
 
 ## 端点清单
 
@@ -63,7 +55,7 @@ constants/     文案与生成物
 
 ## 坐标
 
-- `[经度, 纬度]` —— 经度在前。写反了会定位到地球另一侧，但不报错
+- 写反经纬度会定位到地球另一侧，但不报错
 - 两位小数是**后端的缓存与降级粒度** —— 不要为了「更精确」改成 `toFixed(6)`，位数变了后端缓存全部 miss
 - store 用 `locationKey()`（两位小数）比对，同一个坐标就是同一份数据。原地挪几十米不该发请求，换了城市才该重取
 
@@ -83,6 +75,10 @@ constants/     文案与生成物
 | `inflightKey`    | `stores/fishingMap`           | 同一坐标并发取数。两个响应互相覆盖，地点名闪一下                               |
 | `restorePending` | `stores/session`              | 并发恢复会话                                                                   |
 | `inflight`       | `composables/useQweatherFont` | 并发加载字体                                                                   |
+
+守卫只是最后一道锁。**请求归 store 一家管** —— 组件不要重复触发 store 已经发过的请求：
+潮汐曾经是 setter 发一次、组件 watch 再发一次，两个响应先后覆盖同一份数据，
+表现为「地点名闪一下」。职责划分（谁负责发）比守卫更根本：守卫只挡并发，不防复发。
 
 ## 两个 store
 
@@ -161,17 +157,17 @@ FishingAnalysisSheet
 
 上传端点 `POST /v3/upload` 的 multipart 字段是 `file`（文件）+ `type`（用途）。`type` 只认 `blog` / `gallery` / 空串，其余一律 400。**钓点照片走 `gallery`** —— 它会校验 Content-Type 白名单，`generic` 只限大小不认类型。
 
-⚠️ 小程序加载远程图片走 **downloadFile 合法域名**，跟 request / uploadFile 是三份独立的名单。微信公众平台的「服务器域名」里三份都得填。
+⚠️ 小程序加载远程图片走 **downloadFile 合法域名**，跟 request / uploadFile 是三份独立的名单 —— 见 `docs/mp-weixin-network.md` 的「微信后台配置」。
 
 ## 静态资源
 
 **代码包里的**跟着每个用户下载，只放几乎每次打开都要用的图 ——
 地图标记、tabBar 图标（都在 `src/static/`），小程序码在 `spot-detail` 分包里。
 
-**CDN 上的**（`VITE_CDN_BASE_URL`）按需拉，只放少数场景才露面的图。
-现在有两张：缺图占位插画（`SPOT_PLACEHOLDER_IMAGE`，只在「这条钓点没有照片」时出现）
-和应用 logo（`APP_LOGO`，只在关于页顶部出现）。
+**CDN 上的**（`VITE_CDN_BASE_URL`）按需拉，只放少数场景才露面的图：
+缺图占位插画（`SPOT_PLACEHOLDER_IMAGE`）与应用 logo（`APP_LOGO`）。
 放进包里等于让所有人替少数人下载 —— 158KB 的插画和 15KB 的 logo 都不值。
 
 ⚠️ CDN 域名也要在微信后台配成 **downloadFile 合法域名** ——
 `<image>` 的网络图和海报的 `canvas.createImage()` 走的是同一份名单。
+体积、格式与产物表的细节见 `docs/mp-weixin-package.md` 的「静态资源」。

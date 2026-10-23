@@ -24,7 +24,7 @@ function isAuthError(message: string): boolean {
 /**
  * 当前相册权限状态。
  *
- * 三档的含义跟定位那边一样（见 docs/mp-weixin-platform.md）：
+ * 三档的含义跟定位那边一样（见 docs/mp-weixin-network.md）：
  * - true：已授权
  * - false：用户明确拒绝过 —— 微信不会再弹窗，只能引导去设置页
  * - undefined：还没问过

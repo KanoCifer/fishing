@@ -25,7 +25,7 @@ uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面�
 
 这是**编译期常量**而不是 CSS 变量：canvas 2d 不解析 `var()`，只认 rgb/hex（见 `TideChart` 注释）；小程序端也没有 MutationObserver 监听主题切换。主题在编译期定死。
 
-**canvas 侧的硬编码色值要手工与 `src/styles/tokens/_color.scss` 保持一致** —— `$fish-tide`、`$fish-temp` 就是给这件事留的锚点。改了这里的色，canvas 里那几处也要跟着改。
+**canvas 侧的硬编码色值要手工与 `src/styles/tokens/_color.scss` 保持一致** —— `$fish-tide`、`$fish-temp` 就是给这件事留的锚点（原因与后果见 `docs/mp-weixin-platform.md` 的「canvas」一节）。
 
 ## 字阶
 
@@ -146,26 +146,19 @@ uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面�
 
 小程序端不能把 `<svg>` 内联进 WXML（渲染层不认），能落地的只有 `<image src="data:image/svg+xml;base64,…">`。这条路上的 SVG 是当图片渲染的，**拿不到页面的 CSS 上下文，`currentColor` 不继承** —— 所以颜色必须在生成时烤死。这也是为什么 `gen-icons.mjs` 里那套色板要手工跟令牌层 `_color.scss` 对齐：CSS 变量传不进 `<image>`。
 
-改图标：改 `scripts/gen-icons.mjs` 的 `ICONS` 清单 → `pnpm icons` → `pnpm type-check`。
-
 清单刻意压着不加 —— 图标一多，页面就从「读数据」滑向「看图标」。
 
 ## 文案
-
-文案在 `src/constants/about.ts`，页面里只有排版和交互。改文案改那个文件。
 
 免责与协议三段是**初稿，不是法务稿** —— 上线前让法务过一遍，尤其是「用户协议」与「隐私政策」两篇。
 
 ## 单位
 
-- **rpx** —— 设计稿尺寸。1pt = 2rpx（750 设计稿在 375pt 机型上）
-- **px** —— 运行时量出来的尺寸（`useViewport` / `useNavMetrics`）
+- **rpx** 是设计稿尺寸（1pt = 2rpx），**px** 是运行时量出来的尺寸（`useViewport` / `useNavMetrics`）
 
-两者相加先过 `uni.upx2px()`。换算细节见 `docs/mp-weixin-platform.md`。
+两者相加先过 `uni.upx2px()`，换算细节见 `docs/mp-weixin-platform.md`。
 
 ## 参考
 
 - 偏好 `/apple-design` skill
-- 令牌真源：`src/styles/tokens/`（入口 `src/uni.scss`）
-- 图标真源：`scripts/gen-icons.mjs`
-- 文案真源：`src/constants/about.ts`
+- 真源清单（令牌、图标、文案、类型、端点）见 `AGENTS.md` 的「约定」
