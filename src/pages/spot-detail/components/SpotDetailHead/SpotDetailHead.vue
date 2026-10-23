@@ -33,7 +33,7 @@
 
     <view class="head__meta">
       <Chip tone="accent">{{ kindLabel }}</Chip>
-      <Chip>{{ feeLabel }}</Chip>
+      <Chip v-if="feeLabel">{{ feeLabel }}</Chip>
       <Chip v-for="tag in spot.tags" :key="tag">{{ tag }}</Chip>
     </view>
 
@@ -75,7 +75,12 @@ const pinIcon = icon('map-pin', 'muted');
 const kindLabel = computed(() => fishingSpotKindLabel(props.spot.kind));
 
 /** 收费。paid 时带金额 */
-const feeLabel = computed(() => fishingSpotFeeLabel(props.spot.fee_type, props.spot.fee_amount));
+const feeLabel = computed(() => {
+  // console.log('fee-type', props.spot.fee_type, 'amount', props.spot.fee_amount);
+  const label = fishingSpotFeeLabel(props.spot.fee_type, props.spot.fee_amount);
+  // console.log('feeLabel', label);
+  return label;
+});
 
 /** 评分。分数与人数的换算在 utils 里做完，这里只拿来画 */
 const rating = computed(() => buildSpotRating(props.spot.rating, props.spot.rating_count));
