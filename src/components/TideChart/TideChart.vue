@@ -51,7 +51,11 @@
     <view class="tide-chart__rail">
       <view class="tide-chart__slot" :class="{ 'tide-chart__slot--idle': !isActive }">
         <text class="tide-chart__rail-label">现在</text>
-        <text class="tide-chart__rail-summary">{{ nowHeight }} m</text>
+        <!-- 数字用墨色，单位退到次级 —— 与 LineChart 的轨道同一套层级 -->
+        <view class="tide-chart__stats">
+          <text class="tide-chart__stat-value">{{ nowHeight }}</text>
+          <text class="tide-chart__stat-unit">m</text>
+        </view>
       </view>
 
       <view class="tide-chart__slot" :class="{ 'tide-chart__slot--active': isActive }">
@@ -70,6 +74,8 @@ import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
+import { axisScale } from '@/utils/chartAxis';
+import { CANVAS_FONT_STACK, withAlpha } from '@/utils/canvas';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { windowMetrics } from '@/composables/windowMetrics';
 
@@ -204,15 +210,31 @@ let progress = 1;
  * Canvas 2d 只能从 context 读色，解析不了 SCSS 变量和 CSS 变量，
  * 所以这里只能硬编码。改主题时令牌层 _color.scss 和这四行要一起改 ——
  * 漏改的话图表会和卡片配色对不上，而这种不一致在编译期完全看不出来。
+ *
+ * 网格线分两档：内部发丝线几乎看不见，基线重一档。
+ * 四条同重量的线加上顶边，图就框成了一个盒子 —— 那是报表软件的做法。
  */
 const TIDE_COLOR = '#007aff'; // $fish-tide（systemBlue）
-const GRID_COLOR = 'rgba(60, 60, 67, 0.29)'; // $fish-border（separator）
-const TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
+const GRID_COLOR = 'rgba(60, 60, 67, 0.08)'; // $fish-grid（内部网格线）
+const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（基线）
+const Y_TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
+const X_TEXT_COLOR = 'rgba(60, 60, 67, 0.3)'; // $fish-muted-60（tertiaryLabel）
 const WARNING_COLOR = '#ff9500'; // $fish-warning（systemOrange）
 
-const PAD = { left: 56, right: 16, top: 16, bottom: 48 };
+const PAD = { right: 16, top: 18, bottom: 10 };
+/** X 轴标签区的高度 */
+const AXIS_H = 30;
+/** Y 轴刻度与绘图区之间的间距 */
+const GUTTER_GAP = 10;
+/** 曲线线宽。与 LineChart 同一档，两张图才是一套东西 */
+const LINE_WIDTH = 2.5;
 
-/** 把数值域向上/向下取整到好看的刻度，避免出现 3.37m 这种轴标签 */
+/**
+ * 数据本身的取值域：向上/向下取整到 0.1。
+ *
+ * 这一步只管「数据大概在什么范围」；刻度怎么落在整数上由 axisScale 决定 ——
+ * 两者分开，是为了这里不必关心标签好不好看。
+ */
 function niceBounds(values: number[]): { min: number; max: number } {
   if (!values.length) return { min: 0, max: 1 };
 
@@ -230,6 +252,25 @@ function niceBounds(values: number[]): { min: number; max: number } {
   lo = Math.floor(lo * 10) / 10;
   hi = Math.ceil(hi * 10) / 10;
   return { min: lo, max: hi === lo ? lo + 1 : hi };
+}
+
+/**
+ * 潮高的刻度文案。
+ *
+ * 潮高要读到小数点后一位，所以这里保留一位小数 —— 与 LineChart 的
+ * 「整数不带小数点」是两种量纲的两种写法。
+ */
+function formatTickHeight(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(1) : '—';
+}
+
+/** 量一段文字的宽度（px） */
+function measureText(ctx: CanvasRenderingContext2D, text: string, size: number): number {
+  ctx.save();
+  ctx.font = `${size}px ${CANVAS_FONT_STACK}`;
+  const width = ctx.measureText(text).width;
+  ctx.restore();
+  return width;
 }
 
 /**
@@ -265,8 +306,8 @@ function finiteValues(): number[] {
  * canvas 里画文字要注意 ctx.font 只认 px。
  */
 function drawEmptyHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  ctx.fillStyle = TEXT_COLOR;
-  ctx.font = '12px sans-serif';
+  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.font = `12px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('暂无潮位数据', width / 2, height / 2);
@@ -315,6 +356,8 @@ interface PlotGeom {
   plotH: number;
   min: number;
   max: number;
+  /** 刻度值（升序）。轴上的数字必须是整齐的档位 */
+  ticks: number[];
   len: number;
   /** 相邻采样点的横向间距 */
   gap: number;
@@ -351,21 +394,41 @@ function computeGeom(): PlotGeom | null {
   }
 
   const { width, height } = size;
-  const { min, max } = niceBounds(values);
+  const bounds = niceBounds(values);
+  // 刻度对齐到整齐的档位：0.5 / 1.0 / 1.5 / 2.0 / 2.5，而不是 1.6 / 1.1 这种半档
+  const scale = axisScale(bounds.min, bounds.max, 4);
+  const min = scale.min;
+  const max = scale.max;
   const len = values.length;
 
-  const left = PAD.left;
+  /**
+   * 左边距由**实测的最宽刻度标签**决定，不写死。
+   *
+   * 写死的那一版在标签变宽时会把刻度文字顶出画布。
+   * 拿不到 ctx 时（画布还没初始化）用一档经验值兜底 ——
+   * 那时图还没画出来，几何只是先占个位，initCanvas 里会重算。
+   */
+  const ctx = baseCtxRef.value;
+  let gutter = 0;
+  if (ctx) {
+    for (const tick of scale.ticks) {
+      const labelWidth = measureText(ctx, formatTickHeight(tick), 11);
+      if (labelWidth > gutter) gutter = labelWidth;
+    }
+  }
+  const left = (gutter || 24) + GUTTER_GAP;
+
   const top = PAD.top;
   const right = width - PAD.right;
-  const bottom = height - PAD.bottom;
-  const plotW = right - left;
-  const plotH = bottom - top;
+  const bottom = height - AXIS_H - PAD.bottom;
+  const plotW = Math.max(1, right - left);
+  const plotH = Math.max(1, bottom - top);
   const gap = len > 1 ? plotW / (len - 1) : plotW;
 
   plotLeft = left;
   pointGap = gap;
 
-  geom = { left, right, top, bottom, plotW, plotH, min, max, len, gap, values };
+  geom = { left, right, top, bottom, plotW, plotH, min, max, ticks: scale.ticks, len, gap, values };
   return geom;
 }
 
@@ -388,36 +451,54 @@ function drawBase(): void {
   // 没几何（数据全脏）时静态层就是一块空白：上一轮的网格不能留着
   if (!g) return;
 
-  // 网格 + Y 轴刻度
-  ctx.strokeStyle = GRID_COLOR;
-  ctx.fillStyle = TEXT_COLOR;
   ctx.lineWidth = 1;
-  // canvas 的 ctx.font 只认 px，rpx 会被解析失败并静默退化成默认字号。
-  // 绘制坐标已由 setTransform 归一到 CSS 像素，这里跟着用 px（对应 20rpx 上下）。
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
 
-  const lines = 4;
-  for (let i = 0; i <= lines; i++) {
-    const y = Math.round(g.top + (g.plotH / lines) * i) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(g.left, y);
-    ctx.lineTo(g.right, y);
-    ctx.stroke();
+  // 网格 + Y 轴刻度。网格按重量分两档：内部发丝线几乎看不见，基线重一档
+  g.ticks.forEach((value, i) => {
+    const y = Math.round(g.bottom - ((value - g.min) / (g.max - g.min)) * g.plotH) + 0.5;
+    const isBase = i === 0;
+    const isTop = i === g.ticks.length - 1;
 
-    const value = g.max - ((g.max - g.min) / lines) * i;
-    ctx.fillText(`${value.toFixed(1)}`, g.left - 10, y);
-  }
+    // 顶边不画：一条顶线加上底边，图就框成了一个盒子
+    if (!isTop) {
+      ctx.strokeStyle = isBase ? AXIS_COLOR : GRID_COLOR;
+      ctx.beginPath();
+      ctx.moveTo(g.left, y);
+      ctx.lineTo(g.right, y);
+      ctx.stroke();
+    }
 
-  // X 轴标签。点多时隔开画，否则 24 个标签会糊成一片
+    ctx.fillStyle = Y_TEXT_COLOR;
+    // canvas 的 ctx.font 只认 px，rpx 会被解析失败并静默退化成默认字号。
+    // 绘制坐标已由 setTransform 归一到 CSS 像素，这里跟着用 px（对应 22rpx 上下）。
+    ctx.font = `11px ${CANVAS_FONT_STACK}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(formatTickHeight(value), g.left - GUTTER_GAP, y);
+  });
+
+  // X 轴标签。点多时隔开画，否则 24 个标签会糊成一片。
+  // 比 Y 轴淡一档：它是语境，读的时候顺带扫过。
+  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.font = `10px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   const labelStep = Math.max(1, Math.ceil(g.len / 5));
   props.labels.forEach((label, i) => {
     if (i % labelStep !== 0) return;
     const x = g.len > 1 ? g.left + g.gap * i : g.left + g.plotW / 2;
-    ctx.fillText(label, x, g.bottom + 14);
+    const width = measureText(ctx, label, 10);
+    // 贴边的标签改成靠边对齐，否则会被画布切掉一半
+    if (x - width / 2 < 0) {
+      ctx.textAlign = 'left';
+      ctx.fillText(label, 0, g.bottom + 9);
+    } else if (x + width / 2 > size.width) {
+      ctx.textAlign = 'right';
+      ctx.fillText(label, size.width, g.bottom + 9);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, g.bottom + 9);
+    }
   });
 }
 
@@ -450,9 +531,9 @@ function draw() {
 
   // 面积渐变（竖直方向：上浓下淡）。底色跟 TIDE_COLOR 同源，见上面「必须同步」的说明
   const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-  gradient.addColorStop(0, 'rgba(0, 122, 255, 0.24)');
-  gradient.addColorStop(0.7, 'rgba(0, 122, 255, 0.05)');
-  gradient.addColorStop(1, 'rgba(0, 122, 255, 0)');
+  gradient.addColorStop(0, withAlpha(TIDE_COLOR, 0.24));
+  gradient.addColorStop(0.7, withAlpha(TIDE_COLOR, 0.05));
+  gradient.addColorStop(1, withAlpha(TIDE_COLOR, 0));
 
   // 入场动画：只画到 progress 对应的位置，曲线像被"画"出来
   const cut = progress * (len - 1);
@@ -485,7 +566,7 @@ function draw() {
   ctx.beginPath();
   traceSegments(ctx, segments);
   ctx.strokeStyle = TIDE_COLOR;
-  ctx.lineWidth = 3; // 与 iOS Charts 的默认线宽（3pt）对齐，2.5 在小画布上偏细
+  ctx.lineWidth = LINE_WIDTH;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -505,7 +586,7 @@ function draw() {
     ctx.fillStyle = WARNING_COLOR;
     // canvas 的 ctx.font 只认 px，rpx 会被解析失败并静默退化成默认字号。
     // 绘制坐标已由 setTransform 归一到 CSS 像素，这里跟着用 px（对应 20rpx 上下）。
-    ctx.font = '10px sans-serif';
+    ctx.font = `10px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText('现在', x, top - 2);
@@ -524,23 +605,32 @@ function draw() {
 
     ctx.save();
     ctx.strokeStyle = TIDE_COLOR;
-    ctx.globalAlpha = 0.28;
+    ctx.globalAlpha = 0.25;
     ctx.lineWidth = 1;
     const crossX = Math.round(x) + 0.5;
     ctx.beginPath();
     ctx.moveTo(crossX, top);
     ctx.lineTo(crossX, bottom);
     ctx.stroke();
+
+    // 横向参考线：把选中的值对回 Y 轴。
+    // 没有它，选中点的高度没有参照物 —— 竖线只说「什么时候」，横线才说「多少」。
+    ctx.globalAlpha = 0.16;
+    const crossY = Math.round(y) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(g.left, crossY);
+    ctx.lineTo(crossX, crossY);
+    ctx.stroke();
     ctx.restore();
 
     // 底下圈一圈白底把点从曲线和渐变上「拔」出来，
     // 没有它，处在渐变最浓处的那个点几乎看不见。
     ctx.beginPath();
-    ctx.arc(x, y, 6.5, 0, Math.PI * 2);
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
     ctx.fillStyle = TIDE_COLOR;
     ctx.fill();
   }
@@ -956,9 +1046,25 @@ function onTouchEnd() {
   @include fish-type(caption);
 }
 
-.tide-chart__rail-summary {
-  color: $fish-muted;
+/*
+ * 常态读数：数字用墨色，单位退到次级 —— 与 LineChart 的轨道同一套层级。
+ * 同一行里哪部分是读数、哪部分是单位，版式自己说话。
+ */
+.tide-chart__stats {
+  display: flex;
+  align-items: baseline;
+}
+
+.tide-chart__stat-value {
+  color: $fish-ink;
   @include fish-type(subhead);
+  font-weight: 600;
+}
+
+.tide-chart__stat-unit {
+  margin-left: 2rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
 }
 
 /* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效 */

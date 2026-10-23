@@ -159,8 +159,7 @@ $fish-dur-cross: 160ms;
 // ===========================================================================
 $fish-motion: true;
 
-/** 入场位移。16rpx ≈ 8pt —— 再大就从「落位」变成「飞入」了 */
-$fish-enter-y: 16rpx;
+$fish-enter-y: 40rpx;
 
 /**
  * 入场。$delay 由调用方按序号给（见 utils/motion.ts 的 enterDelay），
@@ -187,8 +186,8 @@ $fish-enter-y: 16rpx;
 @mixin fish-enter($delay: 0ms) {
   @if $fish-motion {
     opacity: 0;
-    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
-    animation: fish-enter $fish-dur-base $fish-ease-out $delay both;
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.9);
+    animation: fish-enter $fish-dur-slow $fish-ease-out $delay both;
   }
 }
 

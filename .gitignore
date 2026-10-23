@@ -32,3 +32,4 @@ scripts/assets/cdn/
 prototypes/
 .env.production
 .tmp/
+.zed/

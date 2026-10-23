@@ -46,7 +46,22 @@
       <!-- 常态：没有选中任何点时显示当日概览，而不是留一条空轨道 -->
       <view class="line-chart__slot" :class="{ 'line-chart__slot--idle': !isActive }">
         <text class="line-chart__rail-label">当日概览</text>
-        <text class="line-chart__rail-summary">{{ summaryText }}</text>
+        <!--
+          数字用墨色，「最高 / 最低」和单位退到次级 ——
+          同一行里哪部分是读数、哪部分是限定词，版式自己说话。
+        -->
+        <view class="line-chart__stats">
+          <view class="line-chart__stat">
+            <text class="line-chart__stat-qualifier">最高</text>
+            <text class="line-chart__stat-value">{{ summary.high }}</text>
+            <text v-if="unit" class="line-chart__stat-unit">{{ unit }}</text>
+          </view>
+          <view class="line-chart__stat">
+            <text class="line-chart__stat-qualifier">最低</text>
+            <text class="line-chart__stat-value">{{ summary.low }}</text>
+            <text v-if="unit" class="line-chart__stat-unit">{{ unit }}</text>
+          </view>
+        </view>
       </view>
 
       <!-- 激活：当前时刻的读数 -->
@@ -69,7 +84,9 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint } from '@/utils/curve';
+import { buildCurve, buildPolyline, clipCurve, type CurvePoint, type CurveSegment } from '@/utils/curve';
+import { axisScale, formatTick } from '@/utils/chartAxis';
+import { CANVAS_FONT_STACK, withAlpha } from '@/utils/canvas';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { windowMetrics } from '@/composables/windowMetrics';
 
@@ -104,6 +121,12 @@ interface ActiveRow {
   text: string;
 }
 
+/** 轨道常态的两个极值 */
+interface Summary {
+  high: string;
+  low: string;
+}
+
 const props = withDefaults(
   defineProps<{
     categories: string[];
@@ -112,10 +135,6 @@ const props = withDefaults(
     width?: number;
     /** 画布高，单位 rpx */
     height?: number;
-    /** 网格线颜色 */
-    gridColor?: string;
-    axisColor?: string;
-    textColor?: string;
     /**
      * 数值单位，显示在读数轨道上。
      *
@@ -157,9 +176,6 @@ const props = withDefaults(
   {
     width: 690,
     height: 360,
-    gridColor: 'rgba(60, 60, 67, 0.29)',
-    axisColor: 'rgba(60, 60, 67, 0.29)',
-    textColor: 'rgba(60, 60, 67, 0.6)',
     unit: '',
     animate: true,
     duration: 700,
@@ -182,6 +198,22 @@ const baseCanvasId = `line-chart-base-${uid}`;
 const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
 
 /**
+ * 画布侧的色值。**必须与令牌层 _color.scss 保持一致**。
+ *
+ * Canvas 2d 只能从 context 读色，解析不了 SCSS 变量和 CSS 变量，
+ * 所以这里只能硬编码。改主题时令牌层 _color.scss 和这几行要一起改 ——
+ * 漏改的话图表会和卡片配色对不上，而这种不一致在编译期完全看不出来。
+ *
+ * 网格线分两档：内部发丝线几乎看不见，基线重一档。层次靠的是
+ * 「基线重一档」，不是「线更多」—— 四条同重量的线加上顶边，
+ * 图就框成了一个盒子，那是报表软件的做法。
+ */
+const GRID_COLOR = 'rgba(60, 60, 67, 0.08)'; // $fish-grid（内部网格线）
+const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（基线）
+const Y_TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
+const X_TEXT_COLOR = 'rgba(60, 60, 67, 0.3)'; // $fish-muted-60（tertiaryLabel）
+
+/**
  * 画布的 CSS 尺寸（px）。
  *
  * rpx 只对样式有效，canvas 内部坐标和位图尺寸都得用 px。
@@ -195,7 +227,7 @@ const cssHeightPx = computed(() => uni.upx2px(props.height));
 
 /** 绘图用的像素尺寸。同样自己算，不问 SelectorQuery 要布局测量值 */
 const sizeRef = ref<{ width: number; height: number } | null>(null);
-/** 动态层 ctx：曲线、面积、准星，每帧重画 */
+/** 动态层 ctx：面积、曲线、数据点、准星，每帧重画 */
 const ctxRef = ref<CanvasRenderingContext2D | null>(null);
 /** 静态层 ctx：网格与刻度，只在几何变了时重画一次 */
 const baseCtxRef = ref<CanvasRenderingContext2D | null>(null);
@@ -236,46 +268,59 @@ let canvasLeft = 0;
 /** 入场动画进度 0→1 */
 let progress = 1;
 
-const PAD = { left: 8, right: 8, top: 10, bottom: 10 };
-const AXIS_H = 22;
-
-/** 把最大值向上取整到一个好看的刻度值，避免出现 37 这种轴标签 */
-function niceMax(value: number): number {
-  if (value <= 0) return 10;
-  const exp = Math.floor(Math.log10(value));
-  const base = Math.pow(10, exp);
-  const n = value / base;
-  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
-  return step * base;
-}
-
-/** 数据里的最大点。没给 max 时用它推纵轴上界 */
-function dataMax(): number {
-  return props.series.reduce((acc, s) => Math.max(acc, ...s.data.map((v) => v || 0)), 0);
-}
-
+/** 绘图区的内边距。右边留得多一点：最后一个 X 标签不要贴着边 */
+const PAD = { right: 12, top: 14, bottom: 6 };
+/** X 轴标签区的高度 */
+const AXIS_H = 24;
+/** Y 轴刻度与绘图区之间的间距 */
+const GUTTER_GAP = 10;
 /**
- * 纵轴取值域。
+ * 常态数据点的数量上限。
  *
- * 只给 min 不给 max 没用：上界仍会被 niceMax 推到 50，气温 22~31 还是贴着顶。
- * 所以给了 min 就默认也把 max 收到贴近数据（span 至少留 1，避免上下界相等除零）。
+ * 超过这个数就不画常态点：24 个点挤在 315px 上，每个点直径 6px、
+ * 间距 12px，画出来是一串虚线而不是数据。选中点照画。
  */
-function axisRange(): { min: number; max: number } {
-  if (props.min !== undefined && props.max !== undefined) {
-    return { min: props.min, max: Math.max(props.max, props.min + 1) };
-  }
-  const max = props.max ?? niceMax(dataMax());
-  return { min: props.min ?? 0, max: Math.max(max, (props.min ?? 0) + 1) };
-}
-
-/** X 轴标签的绘制间隔 */
-function labelStride(len: number): number {
-  return Math.max(1, props.labelStep ?? (len > 8 ? 2 : 1));
-}
+const MARKER_LIMIT = 12;
+/** 曲线线宽。两张图用同一档，摆在同一列里才是一套东西 */
+const LINE_WIDTH = 2.5;
+/** 数据点半径。实心圆，和 iOS 图表一致 */
+const MARKER_RADIUS = 3;
 
 /** 数值格式。跟 Y 轴刻度用同一套：四舍五入到一位小数，再按整数输出 */
 function formatValue(value: unknown): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(Math.round(value * 10) / 10) : '—';
+}
+
+/**
+ * 把一条系列拆成若干「连续有值的段」。
+ *
+ * 脏值（null / NaN）不能当 0 画 —— 那会在图上凭空长出一段落到零点的曲线，
+ * 而图不会说谎，看的人只能信。断开的段各自成线，中间留白。
+ */
+function splitRuns(data: number[]): { index: number; value: number }[][] {
+  const runs: { index: number; value: number }[][] = [];
+  let run: { index: number; value: number }[] = [];
+  data.forEach((value, index) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      run.push({ index, value });
+    } else if (run.length) {
+      runs.push(run);
+      run = [];
+    }
+  });
+  if (run.length) runs.push(run);
+  return runs;
+}
+
+/** 所有系列里所有能用的数值 */
+function finiteValues(): number[] {
+  const values: number[] = [];
+  for (const s of props.series) {
+    for (const v of s.data) {
+      if (typeof v === 'number' && Number.isFinite(v)) values.push(v);
+    }
+  }
+  return values;
 }
 
 const activeLabel = computed(() => (activeIndex.value >= 0 ? (props.categories[activeIndex.value] ?? '') : ''));
@@ -298,34 +343,58 @@ const activeRows = computed<ActiveRow[]>(() => {
  * MetricChart 一次只画一条线，成立。将来若要多线共用一张图，这里得换成
  * 真正的图例（每系列一个小色块 + 当前值），而不是一句「最高 / 最低」。
  */
-const summaryText = computed(() => {
-  const values: number[] = [];
-  for (const s of props.series) {
-    for (const v of s.data) {
-      if (typeof v === 'number' && Number.isFinite(v)) values.push(v);
-    }
-  }
-  if (!values.length) return '—';
-  const suffix = props.unit;
-  const high = formatValue(Math.max(...values));
-  const low = formatValue(Math.min(...values));
-  return `最高 ${high}${suffix}　最低 ${low}${suffix}`;
+const summary = computed<Summary>(() => {
+  const values = finiteValues();
+  if (!values.length) return { high: '—', low: '—' };
+  return {
+    high: formatValue(Math.max(...values)),
+    low: formatValue(Math.min(...values)),
+  };
 });
 
 /**
- * 描出当前这一段路径：平滑时走贝塞尔曲线，否则走直线。
+ * 请求的取值域（**未**对齐到网格）。
  *
- * 两种路径都用同一套「按 x 截断」的逻辑，所以入场动画只有一份实现 ——
- * 头部长在哪儿、怎么插值出来的，直线和曲线算出来是同一个位置。
+ * 对齐交给 axisScale：网格与边界必须一起定，只定其一就会出现半个格。
+ *
+ * 只给下界时，上界跟着数据走。原先这里用 niceMax 把最大值向上取整，
+ * 22~31℃ 的气温曲线会被顶到 0~50 轴的最上面两成 —— 七天的起伏看着像一条直线。
  */
-function tracePath(ctx: CanvasRenderingContext2D, points: CurvePoint[], cut: number, smooth: boolean): void {
-  if (points.length < 2) return;
-  const segments = clipCurve(smooth ? buildCurve(points) : buildPolyline(points), headX(points, cut));
+function axisRequest(): { min: number; max: number } {
+  const values = finiteValues();
+  if (!values.length) return { min: 0, max: 1 };
+  const dataMax = Math.max(...values);
+
+  if (props.min !== undefined && props.max !== undefined) {
+    return { min: props.min, max: Math.max(props.max, props.min + 1) };
+  }
+  if (props.min !== undefined) {
+    return { min: props.min, max: Math.max(dataMax, props.min + 1) };
+  }
+  return { min: 0, max: Math.max(dataMax, 1) };
+}
+
+/**
+ * 描出一串曲线段。
+ *
+ * 只描线，不做算法：曲线怎么算出来的在 utils/curve，两张图共用那一份，
+ * 这样曲线形状和动画头部必然一致。
+ */
+function traceSegments(ctx: CanvasRenderingContext2D, segments: CurveSegment[]): void {
   if (!segments.length) return;
   ctx.moveTo(segments[0].x0, segments[0].y0);
   for (const segment of segments) {
     ctx.bezierCurveTo(segment.cx1, segment.cy1, segment.cx2, segment.cy2, segment.x1, segment.y1);
   }
+}
+
+/** 量一段文字的宽度（px）。用来把标签摆在该摆的位置上 */
+function measureText(ctx: CanvasRenderingContext2D, text: string, size: number): number {
+  ctx.save();
+  ctx.font = `${size}px ${CANVAS_FONT_STACK}`;
+  const width = ctx.measureText(text).width;
+  ctx.restore();
+  return width;
 }
 
 /**
@@ -343,9 +412,13 @@ interface PlotGeom {
   max: number;
   /** 纵轴跨度，至少 1，避免上下界相等时除零 */
   span: number;
+  /** 刻度值（升序）。轴上的数字必须是整齐的整数 */
+  ticks: number[];
   len: number;
   /** 相邻采样点的横向间距 */
   labelGap: number;
+  /** X 轴标签每隔几个点画一个 */
+  stride: number;
 }
 
 /**
@@ -365,15 +438,33 @@ function computeGeom(): PlotGeom | null {
   const size = sizeRef.value;
   if (!size) return null;
 
+  const request = axisRequest();
+  const scale = axisScale(request.min, request.max, 4);
+
+  /**
+   * 左边距由**实测的最宽刻度标签**决定，不写死。
+   *
+   * 写死的那一版在标签变宽时会把刻度文字顶出画布。
+   * 拿不到 ctx 时（画布还没初始化）用一档经验值兜底 ——
+   * 那时图还没画出来，几何只是先占个位，initCanvas 里会重算。
+   */
+  const ctx = baseCtxRef.value;
+  let gutter = 0;
+  if (ctx) {
+    for (const tick of scale.ticks) {
+      const width = measureText(ctx, formatTick(tick), 11);
+      if (width > gutter) gutter = width;
+    }
+  }
+  const left = (gutter || 24) + GUTTER_GAP;
+
   const { width, height } = size;
-  const left = PAD.left + 36; // 左侧留给 Y 轴数字
   const top = PAD.top;
   const right = width - PAD.right;
   const bottom = height - AXIS_H - PAD.bottom;
-  const plotW = right - left;
-  const plotH = bottom - top;
+  const plotW = Math.max(1, right - left);
+  const plotH = Math.max(1, bottom - top);
 
-  const { min, max } = axisRange();
   const len = props.categories.length;
 
   plotLeft = left;
@@ -386,11 +477,13 @@ function computeGeom(): PlotGeom | null {
     bottom,
     plotW,
     plotH,
-    min,
-    max,
-    span: Math.max(1e-6, max - min),
+    min: scale.min,
+    max: scale.max,
+    span: Math.max(1e-6, scale.max - scale.min),
+    ticks: scale.ticks,
     len,
     labelGap: len > 1 ? plotW / (len - 1) : 0,
+    stride: Math.max(1, props.labelStep ?? (len > 8 ? 2 : 1)),
   };
   return geom;
 }
@@ -411,38 +504,64 @@ function drawBase(): void {
   ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0);
   ctx.clearRect(0, 0, size.width, size.height);
 
-  ctx.strokeStyle = props.gridColor;
-  ctx.fillStyle = props.textColor;
   ctx.lineWidth = 1;
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
 
-  const lines = 4;
-  for (let i = 0; i <= lines; i++) {
-    const y = Math.round(g.top + (g.plotH / lines) * i) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(g.left, y);
-    ctx.lineTo(g.right, y);
-    ctx.stroke();
-    // 刻度值要从 min 起算，不能再从 0 平分，否则非零基线时轴标签会骗人
-    const value = g.max - (g.span / lines) * i;
-    ctx.fillText(formatValue(value), g.left - 6, y);
-  }
+  g.ticks.forEach((value, i) => {
+    const y = Math.round(g.bottom - ((value - g.min) / g.span) * g.plotH) + 0.5;
+    const isBase = i === 0;
+    const isTop = i === g.ticks.length - 1;
 
-  // X 轴标签
-  ctx.textAlign = 'center';
+    // 顶边不画：一条顶线加上底边，图就框成了一个盒子
+    if (!isTop) {
+      ctx.strokeStyle = isBase ? AXIS_COLOR : GRID_COLOR;
+      ctx.beginPath();
+      ctx.moveTo(g.left, y);
+      ctx.lineTo(g.right, y);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = Y_TEXT_COLOR;
+    ctx.font = `11px ${CANVAS_FONT_STACK}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(formatTick(value), g.left - GUTTER_GAP, y);
+  });
+
+  // X 轴标签。比 Y 轴淡一档：它是语境，读的时候顺带扫过
+  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.font = `10px ${CANVAS_FONT_STACK}`;
   ctx.textBaseline = 'top';
-  const stride = labelStride(g.len);
   props.categories.forEach((c, i) => {
-    if (i % stride !== 0) return;
+    if (i % g.stride !== 0) return;
     const x = g.len > 1 ? g.left + g.labelGap * i : g.left + g.plotW / 2;
-    ctx.fillText(c, x, g.bottom + 6);
+    const width = measureText(ctx, c, 10);
+    // 贴边的标签改成靠边对齐，否则会被画布切掉一半
+    if (x - width / 2 < 0) {
+      ctx.textAlign = 'left';
+      ctx.fillText(c, 0, g.bottom + 8);
+    } else if (x + width / 2 > size.width) {
+      ctx.textAlign = 'right';
+      ctx.fillText(c, size.width, g.bottom + 8);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(c, x, g.bottom + 8);
+    }
   });
 }
 
 /**
- * 动态层：曲线、面积、数据点、准星。每帧重画。
+ * 画布内空态：数据全脏时给一行说明，别让用户对着空白猜。
+ */
+function drawEmptyHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.font = `12px ${CANVAS_FONT_STACK}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('暂无数据', width / 2, height / 2);
+}
+
+/**
+ * 动态层：面积、曲线、数据点、准星。每帧重画。
  *
  * 网格和刻度在下面那层静态画布上，这里只管会动的东西。
  */
@@ -454,84 +573,120 @@ function draw() {
   const g = geom ?? computeGeom();
   if (!g) return;
 
-  const { left, top, bottom, plotW, plotH, min, span, len, labelGap } = g;
-
   // setTransform 是覆盖式，scale 是累乘式：动画每帧都调 scale，矩阵会叠成 dpr^n，
   // 第二帧起线条就飞出画布。每帧重置一次矩阵，绘制逻辑继续用 CSS 像素。
   ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0);
   ctx.clearRect(0, 0, size.width, size.height);
 
-  if (!len) return;
+  if (!finiteValues().length) {
+    drawEmptyHint(ctx, size.width, size.height);
+    return;
+  }
+  if (!g.len) return;
 
-  // 数据线
+  const { left, top, bottom, plotW, plotH, min, span, len, labelGap } = g;
+  const indexToX = (i: number) => (len > 1 ? left + labelGap * i : left + plotW / 2);
+  const valueToY = (v: number) => bottom - ((v - min) / span) * plotH;
+
+  // 入场动画的头部位置：全局一个 x，各段按它一起截
+  const cutX = indexToX(progress * (len - 1));
+  // 点多时不画常态数据点
+  const showMarkers = len <= MARKER_LIMIT;
+  // 多系列时面积压淡一档：几层半透明叠在一起会糊成一片
+  const areaAlpha = props.series.length > 1 ? 0.12 : 0.24;
+
   props.series.forEach((s, si) => {
     const color = s.color || PALETTE[si % PALETTE.length];
-    const points = s.data.map((v, i) => ({
-      x: len > 1 ? left + labelGap * i : left + plotW / 2,
-      y: bottom - (((v || 0) - min) / span) * plotH,
-    }));
-    if (!points.length) return;
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5; // iOS Charts 默认 3pt，2.5 在 690rpx 画布上视觉重量相当
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    // 入场动画：只画到 progress 对应的位置，线像被"画"出来一样
-    const cut = progress * (points.length - 1);
-    tracePath(ctx, points, cut, props.smooth);
-    ctx.stroke();
+    for (const run of splitRuns(s.data)) {
+      const points: CurvePoint[] = run.map((r) => ({ x: indexToX(r.index), y: valueToY(r.value) }));
+      if (points.length < 2) continue;
 
-    // 数据点：随动画进度逐个出现。白心 + 彩色描边，和 iOS Charts 的数据点一致。
-    // 有选中点时把其余压到 0.3 —— 读数轨道的数字是给某一个点写的，
-    // 眼睛却要在二十几个点里找哪一个是它，这是读数层最费劲的地方。
-    points.forEach((p, i) => {
-      if (i > cut + 0.5) return;
-      if (activeIndex.value >= 0 && i !== activeIndex.value) {
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-      }
+      const segments = clipCurve(props.smooth ? buildCurve(points) : buildPolyline(points), cutX);
+      // 入场动画第一帧 progress=0，此时一段都还没画出来 —— 硬画会取到
+      // undefined 的控制点，异常从 rAF 回调里抛出去会连带这一帧的绘制作废
+      if (!segments.length) continue;
+
+      // 面积：沿曲线走到底再回到底边闭合。竖直方向上浓下淡
+      const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+      gradient.addColorStop(0, withAlpha(color, areaAlpha));
+      gradient.addColorStop(0.7, withAlpha(color, areaAlpha * 0.2));
+      gradient.addColorStop(1, withAlpha(color, 0));
+
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      traceSegments(ctx, segments);
+      ctx.lineTo(segments[segments.length - 1].x1, bottom);
+      ctx.lineTo(segments[0].x0, bottom);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
       ctx.fill();
+
+      // 曲线本体
+      ctx.beginPath();
+      traceSegments(ctx, segments);
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = LINE_WIDTH;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.stroke();
-      if (activeIndex.value >= 0 && i !== activeIndex.value) {
-        ctx.restore();
-      }
-    });
 
-    // 选中点的两笔：底下圈白底把点从线上「拔」出来，上面点本色。
-    // 没有底下那圈，准星交点上的点和线上其它点分不出主次。
-    if (activeIndex.value >= 0 && activeIndex.value < points.length) {
-      const p = points[activeIndex.value];
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 7.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
+      if (!showMarkers) continue;
+      // 数据点：实心圆（iOS 图表的样子），不是白心描边圈。
+      // 有选中点时把其余压到 0.32 —— 读数轨道的数字是给某一个点写的，
+      // 眼睛却要在二十几个点里找哪一个是它，这是读数层最费劲的地方。
+      for (const p of points) {
+        if (p.x > cutX + 0.5) continue;
+        const isActivePoint = p.x === indexToX(activeIndex.value);
+        ctx.globalAlpha = activeIndex.value >= 0 && !isActivePoint ? 0.32 : 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, MARKER_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
   });
 
   // 准星：画在所有系列之后（它属于当前选中点，是这一次的焦点），
   // 但用低透明度，视觉上退到数据后面。
   if (activeIndex.value >= 0 && activeIndex.value < len) {
-    ctx.save();
     const primary = props.series[0];
-    ctx.strokeStyle = primary?.color || PALETTE[0];
-    ctx.globalAlpha = 0.28;
-    ctx.lineWidth = 1;
-    const x = Math.round(len > 1 ? left + labelGap * activeIndex.value : left + plotW / 2) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(x, top);
-    ctx.lineTo(x, bottom);
-    ctx.stroke();
-    ctx.restore();
+    const value = primary?.data?.[activeIndex.value];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const color = primary?.color || PALETTE[0];
+      const x = Math.round(indexToX(activeIndex.value)) + 0.5;
+      const y = Math.round(valueToY(value)) + 0.5;
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, bottom);
+      ctx.stroke();
+
+      // 横向参考线：把选中的值对回 Y 轴。
+      // 没有它，选中点的高度没有参照物 —— 竖线只说「什么时候」，
+      // 横线才说「多少」。
+      ctx.globalAlpha = 0.16;
+      ctx.beginPath();
+      ctx.moveTo(g.left, y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.restore();
+
+      // 选中的点：底下圈白底把点从线上「拔」出来，上面点本色。
+      // 没有底下那圈，准星交点上的点和线上其它点分不出主次。
+      ctx.beginPath();
+      ctx.arc(indexToX(activeIndex.value), valueToY(value), 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(indexToX(activeIndex.value), valueToY(value), 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
   }
 }
 
@@ -654,7 +809,8 @@ async function initCanvas() {
     initialized = true;
     clearRetryTimer();
 
-    // 静态层先画：动态层每帧只清空自己，网格和刻度得先在下面等着
+    // 静态层先画：动态层每帧只清空自己，网格和刻度得先在下面等着。
+    // 顺序不能反 —— 左边距要靠静态层的 ctx 实测刻度标签宽度，算不出来就没有几何。
     computeGeom();
     drawBase();
 
@@ -860,9 +1016,37 @@ function onTouchEnd() {
   @include fish-type(caption);
 }
 
-.line-chart__rail-summary {
+/*
+ * 常态读数的两个极值。
+ *
+ * 「最高 / 最低」和单位退到次级，数字用墨色 —— 同一行里哪部分是读数、
+ * 哪部分是限定词，版式自己说话，不必再加一句说明。
+ */
+.line-chart__stats {
+  display: flex;
+  align-items: baseline;
+}
+
+.line-chart__stat + .line-chart__stat {
+  margin-left: 24rpx;
+}
+
+.line-chart__stat-qualifier {
+  margin-right: 8rpx;
   color: $fish-muted;
+  @include fish-type(caption);
+}
+
+.line-chart__stat-value {
+  color: $fish-ink;
   @include fish-type(subhead);
+  font-weight: 600;
+}
+
+.line-chart__stat-unit {
+  margin-left: 2rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
 }
 
 /* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效，

@@ -35,6 +35,8 @@
  * 糊成一团不如没有。
  */
 
+import { setCanvasFont } from '@/utils/canvas';
+
 import { POSTER } from './share';
 
 /**
@@ -350,25 +352,15 @@ const LAYOUT = {
 /* ── 绘图小工具 ──────────────────────────────────────────────────────── */
 
 /**
- * 画布用的字体栈。
- *
- * 与 `src/styles/tokens/_type.scss` 的 `$fish-font` 是同一份字面量 ——
- * canvas 不解析 var()，只能手抄（跟上面的色值同一个约定）。
- *
- * 为什么不能图省事写 `sans-serif`：**iOS 上裸 `sans-serif` 落到的是 Helvetica**，
- * `-apple-system` 才是 SF Pro。分数那个「78」用哪套字，一眼就看得出来。
- * 抄这份栈，原型（跑的是同一份栈）与线上才是同一套字。
- */
-const FONT_STACK =
-  "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif";
-
-/**
  * 设字体。
  *
  * 只管字重与字号 —— **字距不在这里**。见 drawType。
+ *
+ * 字体栈本身在 `@/utils/canvas`：canvas 不解析 SCSS 变量，只能手抄一份，
+ * 而抄一份就该抄一处 —— 散在三处各写一遍，改主题时一定会漏。
  */
 function setFont(ctx: CanvasRenderingContext2D, weight: number, size: number): void {
-  ctx.font = `${weight} ${size}px ${FONT_STACK}`;
+  setCanvasFont(ctx, weight, size);
 }
 
 /**
