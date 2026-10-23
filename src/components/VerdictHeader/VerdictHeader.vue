@@ -1,13 +1,4 @@
 <template>
-  <!--
-    结论头 —— 数据页的第一屏，也是这一页唯一的结论。
-
-    取向：钓鱼指数是「值不值得去」的答案，天气、潮汐、风是支撑这个答案的三个成因。
-    所以三者同处一屏、成因在下结论在旁，而不是拆成四张等权卡片让人自己拼。
-
-    结论本身是一把 0–100 的刻度盘（见 FishingGauge）：单独一个「86」是
-    孤零零的字，多大算好全靠读的人自己心里补一把尺；有了环，86 才有位置。
-  -->
   <view class="verdict" :style="{ paddingTop: navBarBottom + 'px' }">
     <view class="verdict__top">
       <view class="verdict__place">
@@ -37,17 +28,6 @@
 
     <!-- 有数据 -->
     <template v-else-if="mapStore.indexData">
-      <!--
-        三段依次落位：先给结论（仪表），再给依据（三条成因），最后给动作。
-        骨架屏换成实数据的这一下是最容易「闪」的地方 —— 整块内容突然出现，
-        眼睛要重新找一遍。分三段递进，读的人跟着结论 → 依据 → 下一步走一遍。
-
-        只在首次拿到数据时播一次：刷新时 indexData 还在，v-else-if 不会重新挂载，
-        所以下拉/点刷新拿到新数据不会把这一屏重播一遍。
-
-        .verdict__conclusion 里的仪表卡高度是定死的（表盘 184rpx），
-        所以这一块的高度不随数据变化 —— 页面据此判断结论什么时候被滚走。
-      -->
       <view class="verdict__conclusion" :style="{ animationDelay: enterDelay(0) }">
         <FishingGauge :score="score" :tone="tone" :level="level" :verdict="verdict" />
       </view>
@@ -94,32 +74,15 @@
 </template>
 
 <script setup lang="ts">
-/**
- * VerdictHeader —— 合并了原 FishingIndexCard 与 WeatherHero 的头部。
- *
- * 合并的理由不是「少写一个组件」，而是这两个组件各占一块地回答同一个问题
- * （今天行不行），拆开就会出现两个大字、两个标题、两套刷新入口互相打架。
- * 现在指数和三个成因在一屏里，谁是结论、谁是依据一眼分得开。
- *
- * 图标：全部走 @/constants/icons 的 data URI（scripts/gen-icons.mjs 生成）。
- * 小程序不能内联 svg，<image> 又拿不到页面 CSS，所以颜色在生成时已烤死。
- *
- * 关于顶部那段内边距：数据页配了 navigationStyle: "custom"，导航栏成了浮层，
- * 页面内容从屏幕最顶端 y=0 开始排，状态栏和胶囊按钮都压在这块背景上。
- * 这里给 padding-top 让开 navBarBottom —— 只让 statusBarHeight 不够，
- * 胶囊按钮落在导航栏那一段，右上角的刷新键会和它撞在一起。
- */
-import { computed, getCurrentInstance, nextTick, watch } from 'vue';
+import { computed, nextTick, watch } from 'vue';
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { toFeatureTiles } from '@/types/fishing';
 import { enterDelay } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
 import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
-import { createSelectorQuery } from '@/utils/selectorQuery';
 
 import AIButton from '../AIButton/AIButton.vue';
 import FishingGauge from '../FishingGauge/FishingGauge.vue';
@@ -129,16 +92,7 @@ const emit = defineEmits<{
   feedback: [];
   /** 打开 AI 分析面板 */
   analysis: [];
-  /**
-   * 结论卡底边在**文档坐标**里的 y（px）。
-   *
-   * 页面拿它算常驻结论条什么时候浮现：结论滚到顶部被导航栏盖住的那一刻，
-   * 顶上就该浮出那条窄栏。位置由这个组件报 —— 谁拥有结论，谁就知道结论在哪儿。
-   */
-  'conclusion-bottom': [bottom: number];
 }>();
-
-const instance = getCurrentInstance()!;
 
 const { navBarBottom } = useNavMetrics();
 
@@ -150,7 +104,6 @@ const thermometerIcon = icon('thermometer', 'destructive');
 const wavesIcon = icon('waves', 'blue');
 const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
-const sparklesIcon = icon('sparkles', 'blue600');
 
 const tone = computed(() => levelTone(mapStore.indexData?.level));
 
@@ -199,44 +152,11 @@ function onRefresh() {
   void mapStore.refreshIndexData();
 }
 
-/**
- * 量结论卡底边的时机（ms）。
- *
- * 必须晚于入场动画：动画没走完时量到的是「还在往上飘、还略小」的位置
- * —— fish-enter 带 16rpx 的上移和 0.95 的缩放，合成起来能差十几像素。
- * 这个数跟着令牌层的 $fish-dur-base 走：那边改了，这边一起改
- * （同 SnapSheet 的 EXIT_MS —— 小程序没有 transitionend，只能自己计时）。
- */
-const MEASURE_DELAY_MS = 600;
-
-/**
- * 量一次结论卡的底边，报给页面。
- *
- * 等它落定再量，量到的就是稳定值 —— 页面不必去猜动画什么时候结束。
- */
-function measureConclusion() {
-  createSelectorQuery(instance)
-    .select('.verdict__conclusion')
-    .boundingClientRect()
-    .selectViewport()
-    // 回调不能省（类型要求必须传），但结果统一在 exec 的回调里拿，
-    // 这里传个空函数即可
-    .scrollOffset(() => {})
-    .exec((res) => {
-      const rect = res[0] as { bottom?: number } | null;
-      const offset = res[1] as { scrollTop?: number } | null;
-      if (!rect || typeof rect.bottom !== 'number') return;
-      // 视口坐标 + 当前滚动量 = 文档坐标
-      emit('conclusion-bottom', rect.bottom + (offset?.scrollTop ?? 0));
-    });
-}
-
 /** 数据换了一份就重量一次：高度会随骨架屏 → 实数据、刷新而变 */
 watch(
   () => mapStore.indexData,
   async () => {
     await nextTick();
-    setTimeout(measureConclusion, MEASURE_DELAY_MS);
   },
   { immediate: true },
 );

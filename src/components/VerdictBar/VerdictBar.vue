@@ -1,17 +1,4 @@
 <template>
-  <!--
-    常驻结论条。
-
-    结论退到顶部的一条窄栏，滚到哪儿都还在。
-    数据页改成「一屏」之后，页面有三屏多高 —— 结论若只在第一屏，
-    往下滚三屏就把它彻底忘了。所以结论必须常驻。
-
-    用 fixed + onPageScroll 驱动，而不是 CSS 的 position: sticky：
-    这一页配了 navigationStyle: "custom"，导航栏是浮层，sticky 的
-    粘附基准在自定义导航栏下不可靠（粘到哪儿取决于浮层的高度和
-    滚动容器的 overflow），实测的表现是粘在状态栏下面、被胶囊盖住。
-    自己算位置反而是确定的。
-  -->
   <view
     class="verdict-bar"
     :class="{ 'verdict-bar--visible': visible }"
@@ -33,14 +20,6 @@
 </template>
 
 <script setup lang="ts">
-/**
- * VerdictBar —— 滚过结论头之后，从顶部滑下来的常驻结论条。
- *
- * 高度刻意等于状态栏 + 导航栏：内容正好落在导航栏那一行里，
- * 胶囊按钮占着右边，所以右边让出 capsuleInsetRight。
- * 结果是它看起来就像「导航栏标题从空白变成了结论」——
- * 而导航栏本来就是自定义浮层，那一行原本什么都没有。
- */
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
 import type { Tone } from '@/utils/weather';
@@ -75,13 +54,6 @@ const refreshIcon = icon('refresh-cw', 'muted');
 </script>
 
 <style lang="scss" scoped>
-/*
- * 常驻条本身也是一块玻璃面。
- *
- * 它压在内容之上，底下是正在滚的卡片，所以底色要比普通卡片更实一点
- * （$fish-glass-strong）—— 普通卡片的 72% 半透明放在滚动内容上会透出
- * 底下的字，这条要读得清，不能让文字穿过来。
- */
 .verdict-bar {
   position: fixed;
   top: 0;

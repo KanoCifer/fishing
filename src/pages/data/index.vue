@@ -21,18 +21,10 @@
       />
 
       <!-- 结论 -->
-      <VerdictHeader @feedback="openFeedback" @analysis="openAnalysis" @conclusion-bottom="onConclusionBottom" />
+      <VerdictHeader @feedback="openFeedback" @analysis="openAnalysis" />
       <view class="sect">
         <text class="sect__title" :style="enterStyle(0)">天气</text>
 
-        <!--
-          官方指数排在最前面：它是这一屏里唯一一条**别人**给的结论 ——
-          和风气象台的「钓鱼指数：不宜」。我们的指数紧跟在它后面（结论头），
-          两条并排看，一致时可信度更高，不一致时用户自己会追问。
-
-          每张卡外面套一层普通 view：入场动画挂在这一层上。
-          组件标签本身不吃 class 上的动画（见 docs/mp-weixin-platform.md）。
-        -->
         <view class="sect__card" :style="enterStyle(0)">
           <LifeIndexCard />
         </view>
@@ -178,29 +170,11 @@ const locationId = computed(() => {
 /** 当前滚动位置（px）。onPageScroll 给的 */
 const scrollTop = ref(0);
 
-/**
- * 结论卡底边在文档坐标里的 y（px）。由 VerdictHeader 量出来报给这里 ——
- * 谁拥有结论，谁就知道结论在哪儿；页面只管滚动。
- */
-const conclusionBottom = ref(0);
-
-/**
- * 结论条什么时候浮出来。
- *
- * 判据是「结论已经被结论条盖住了」：结论卡底边滚到导航栏下沿的那一帧，
- * 顶上就该出现那条窄栏接手结论。再晚一点，用户会有一段「结论没了、
- * 窄栏也没来」的空窗。
- */
-const barVisible = computed(() => scrollTop.value >= conclusionBottom.value - navBarBottom);
+const barVisible = computed(() => scrollTop.value >= navBarBottom);
 
 onPageScroll((event) => {
   scrollTop.value = event.scrollTop;
 });
-
-function onConclusionBottom(bottom: number) {
-  conclusionBottom.value = bottom;
-}
-
 /* ── 结论条上的那几个值 ──────────────────────────────────────────────── */
 
 const score = computed(() => mapStore.indexData?.fishing_index ?? 0);

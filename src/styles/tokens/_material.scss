@@ -12,24 +12,6 @@
 @use 'color' as *;
 @use 'depth' as *;
 
-/**
- * 玻璃面。
- *
- * 三层各司其职，缺一层就得靠另一层顶上：
- * - 半透明底色：让底下的环境色透上来一点，卡片就比背景亮一档
- * - 顶边高光（inset）：一道 1rpx 的白线，是光从上方打在圆角边缘的结果
- * - 多层阴影：把卡片从底上「抬」起来的那点厚度
- *
- * **这里刻意不写 backdrop-filter。** 两个理由：
- * 1. 这些卡片背后是页面底色 —— 一层平滑的渐变。模糊一个平滑渐变，
- *    结果几乎和没模糊一样，视觉上省不下任何东西。
- * 2. 但代价是实打实的：每一块 backdrop-filter 都是一个独立的合成层，
- *    滚动时要重新糊一遍。数据页一次屏里有七八块，滚动帧率会被它拖垮。
- * 真正需要模糊的是「底下有内容在动」的面 —— 那种另写一条（见 fish-glass-blur）。
- *
- * 放在阴影段之后：mixin 里引用的 $smooth-shadow-md / $fish-glass-edge
- * 必须先定义后使用，SCSS 变量没有前置声明的余地。
- */
 @mixin fish-glass($radius: $fish-radius-card) {
   border-radius: $radius;
   background-color: $fish-glass;
@@ -40,15 +22,6 @@
   box-shadow: $smooth-shadow-md, $fish-glass-edge;
 }
 
-/**
- * 玻璃面 + 背景模糊。
- *
- * 只给「底下有内容在动」的面用 —— 目前只有常驻结论条（滚动内容从它底下过）。
- * 静态卡片背后是平滑渐变，模糊它等于花钱买不到东西，所以那些卡片只用 fish-glass。
- *
- * 模糊是**增强不是依赖**：WXSS 不保证支持，老基础库上这条声明会被直接丢掉。
- * 所以它单独成一条 —— 它坏了也不影响底色和阴影，层次靠阴影兜底。
- */
 @mixin fish-glass-blur {
   backdrop-filter: blur($fish-blur) saturate(1.6);
   -webkit-backdrop-filter: blur($fish-blur) saturate(1.6);
