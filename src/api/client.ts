@@ -188,6 +188,14 @@ export function request<T>(options: RequestOptions): Promise<T> {
       timeout,
       // 显式指定，否则后端漏发 Content-Type 时拿到的是字符串，res.data.data 直接是 undefined
       dataType: 'json',
+      // 微信的 enableHttp2 默认是 **false** —— 服务端支持 h2 不等于客户端会用。
+      // 微信的「高性能模式」虽然会自动开 h2/h3，但官方写明只 Android 生效，
+      // iOS 仍走 HTTP/1.1（基础库 3.5.0 起 Android 默认开，iOS 暂无支持）。
+      // 这里显式打开，iOS 才用得上 h2 —— 多路复用省掉每次请求的握手与队头阻塞。
+      //
+      // ⚠️ 只有本文件的请求能开。`api/stream.ts` 的 SSE 走 chunked 传输编码，
+      // 而 HTTP/2 协议禁止 chunked，那边已经显式写了 `enableHttp2: false` —— 别把这行复制过去。
+      enableHttp2: true,
       success: (res) => {
         const envelope = res.data as ApiEnvelope<T> | undefined;
 
