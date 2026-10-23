@@ -7,15 +7,34 @@
       数值在 setup 里就算好绑定（cssWidthPx/cssHeightPx），不是 onMounted 里补的 ——
       少一次「先空串渲染、再补值」的往返，节点首帧就带着确定宽高。
     -->
-    <canvas
-      :id="canvasId"
-      type="2d"
-      class="tide-chart__canvas"
-      :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }"
-      @touchstart="onTouchStart"
-      @touchmove="onTouchMove"
-      @touchend="onTouchEnd"
-    />
+    <!--
+      绘图区。静态层在下、动态层在上，两块画布叠在一起。
+
+      为什么拆两层：网格线和坐标刻度是**死的**（数据没变就不变），
+      曲线、面积、准星则每一帧都在变。单画布每帧都要 clearRect 再整张重画，
+      那十来个刻度数字就被重画了四十多遍 —— 文字光栅化是 canvas 里最贵的一档。
+      拆成两层之后，刻度只画一次，动画帧只清空上层画曲线。
+
+      两块画布的 CSS 尺寸完全一致、绝对定位在同一个原点，所以两层像素对齐，
+      不会错位。触摸事件挂在上层（下面那层被上层整个盖住，收不到事件）。
+    -->
+    <view class="tide-chart__plot" :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }">
+      <canvas
+        :id="baseCanvasId"
+        type="2d"
+        class="tide-chart__canvas tide-chart__canvas--base"
+        :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }"
+      />
+      <canvas
+        :id="canvasId"
+        type="2d"
+        class="tide-chart__canvas tide-chart__canvas--top"
+        :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      />
+    </view>
 
     <!--
       读数轨道。与 LineChart 同一套形状（见那边的注释），两处必须一起改：
@@ -125,6 +144,8 @@ const instance = getCurrentInstance()!;
 const uid = Math.random().toString(36).slice(2, 8);
 // canvasId 必须页面内唯一，同一页面可能画多个图
 const canvasId = `tide-chart-${uid}`;
+/** 静态层画布（网格 + 刻度）。id 也要页面内唯一 */
+const baseCanvasId = `tide-chart-base-${uid}`;
 
 /**
  * 画布的 CSS 尺寸（px）。
@@ -138,7 +159,10 @@ const cssWidthPx = computed(() => uni.upx2px(props.width));
 const cssHeightPx = computed(() => uni.upx2px(props.height));
 
 const sizeRef = ref<{ width: number; height: number } | null>(null);
+/** 动态层 ctx：曲线、面积、准星，每帧重画 */
 const ctxRef = ref<CanvasRenderingContext2D | null>(null);
+/** 静态层 ctx：网格与刻度，只在几何变了时重画一次 */
+const baseCtxRef = ref<CanvasRenderingContext2D | null>(null);
 const dprRef = ref(1);
 
 /** 画布节点，帧调度要用它自带的方法。不进模板也不需要响应式 */
@@ -277,17 +301,43 @@ function traceSegments(ctx: CanvasRenderingContext2D, segments: CurveSegment[]):
   }
 }
 
-function draw() {
-  const ctx = ctxRef.value;
+/**
+ * 绘图区几何。两层画布共用同一份 —— 静态层画网格、动态层画曲线，
+ * 两者必须落在同一套坐标上，否则刻度和曲线会错开。
+ */
+interface PlotGeom {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  plotW: number;
+  plotH: number;
+  min: number;
+  max: number;
+  len: number;
+  /** 相邻采样点的横向间距 */
+  gap: number;
+  /** 清洗后的潮高序列 */
+  values: number[];
+}
+
+/**
+ * 最近一次算出的几何。
+ *
+ * 数据没变就一直有效 —— 动画帧只重画动态层，不必每帧重算一遍轴范围。
+ * 数据全脏时它是 null：那时没有可画的东西，几何也就没有意义。
+ */
+let geom: PlotGeom | null = null;
+
+/**
+ * 算几何，顺手把触摸换算要的两个值记下来。
+ *
+ * plotLeft / pointGap 是从这份几何里取的，所以每次几何变了
+ * （换港口、换日期、数据变脏）都要跟着更新，否则选点会按旧的间距算。
+ */
+function computeGeom(): PlotGeom | null {
   const size = sizeRef.value;
-  if (!ctx || !size) return;
-
-  const { width, height } = size;
-
-  // setTransform 覆盖式，scale 累乘式：动画每帧调 scale 会叠成 dpr^n，
-  // 第二帧起曲线就飞出画布。每帧重置矩阵，后续绘制继续用 CSS 像素。
-  ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0);
-  ctx.clearRect(0, 0, width, height);
+  if (!size) return null;
 
   const values = finiteValues();
   // 只有全是脏值才没得画；零星脏值上面已经滤掉了
@@ -295,10 +345,11 @@ function draw() {
     // 几何作废：上一轮的数据可能画过，触摸换算不能继续用旧的间距
     plotLeft = 0;
     pointGap = 0;
-    drawEmptyHint(ctx, width, height);
-    return;
+    geom = null;
+    return null;
   }
 
+  const { width, height } = size;
   const { min, max } = niceBounds(values);
   const len = values.length;
 
@@ -313,8 +364,28 @@ function draw() {
   plotLeft = left;
   pointGap = gap;
 
-  const valueToY = (v: number) => bottom - ((v - min) / (max - min)) * plotH;
-  const indexToX = (i: number) => (len > 1 ? left + gap * i : left + plotW / 2);
+  geom = { left, right, top, bottom, plotW, plotH, min, max, len, gap, values };
+  return geom;
+}
+
+/**
+ * 静态层：网格 + 坐标刻度。
+ *
+ * 只在几何变了的时候画一次：换港口、换日期。
+ * 动画帧不碰它 —— 那十来个刻度数字不必跟着曲线重画四十遍，
+ * 而文字光栅化恰恰是 canvas 2d 里最贵的一档操作。
+ */
+function drawBase(): void {
+  const ctx = baseCtxRef.value;
+  const size = sizeRef.value;
+  if (!ctx || !size) return;
+
+  ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0);
+  ctx.clearRect(0, 0, size.width, size.height);
+
+  const g = geom;
+  // 没几何（数据全脏）时静态层就是一块空白：上一轮的网格不能留着
+  if (!g) return;
 
   // 网格 + Y 轴刻度
   ctx.strokeStyle = GRID_COLOR;
@@ -328,24 +399,53 @@ function draw() {
 
   const lines = 4;
   for (let i = 0; i <= lines; i++) {
-    const y = Math.round(top + (plotH / lines) * i) + 0.5;
+    const y = Math.round(g.top + (g.plotH / lines) * i) + 0.5;
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(right, y);
+    ctx.moveTo(g.left, y);
+    ctx.lineTo(g.right, y);
     ctx.stroke();
 
-    const value = max - ((max - min) / lines) * i;
-    ctx.fillText(`${value.toFixed(1)}`, left - 10, y);
+    const value = g.max - ((g.max - g.min) / lines) * i;
+    ctx.fillText(`${value.toFixed(1)}`, g.left - 10, y);
   }
 
   // X 轴标签。点多时隔开画，否则 24 个标签会糊成一片
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  const labelStep = Math.max(1, Math.ceil(len / 5));
+  const labelStep = Math.max(1, Math.ceil(g.len / 5));
   props.labels.forEach((label, i) => {
     if (i % labelStep !== 0) return;
-    ctx.fillText(label, indexToX(i), bottom + 14);
+    const x = g.len > 1 ? g.left + g.gap * i : g.left + g.plotW / 2;
+    ctx.fillText(label, x, g.bottom + 14);
   });
+}
+
+/**
+ * 动态层：面积、曲线、选中标记。每帧重画。
+ *
+ * 网格和刻度在下面那层静态画布上，这里只管会动的东西。
+ */
+function draw() {
+  const ctx = ctxRef.value;
+  const size = sizeRef.value;
+  if (!ctx || !size) return;
+
+  // setTransform 覆盖式，scale 累乘式：动画每帧调 scale 会叠成 dpr^n，
+  // 第二帧起曲线就飞出画布。每帧重置矩阵，后续绘制继续用 CSS 像素。
+  ctx.setTransform(dprRef.value, 0, 0, dprRef.value, 0, 0);
+  ctx.clearRect(0, 0, size.width, size.height);
+
+  const g = geom ?? computeGeom();
+  if (!g) {
+    // 数据全脏：图上没得画，只留一行说明
+    drawEmptyHint(ctx, size.width, size.height);
+    return;
+  }
+
+  const { left, top, bottom, plotW, plotH, min, max, len, gap, values } = g;
+
+  const valueToY = (v: number) => bottom - ((v - min) / (max - min)) * plotH;
+  const indexToX = (i: number) => (len > 1 ? left + gap * i : left + plotW / 2);
 
   // 面积渐变（竖直方向：上浓下淡）。底色跟 TIDE_COLOR 同源，见上面「必须同步」的说明
   const gradient = ctx.createLinearGradient(0, top, 0, bottom);
@@ -563,6 +663,24 @@ function scheduleSettleRedraw(): void {
   }
 }
 
+/**
+ * 查静态层画布节点。
+ *
+ * 静态层不参与触摸换算，只要 node —— 画布自己的宽高按 rpx 算，不必问布局。
+ */
+function queryBaseCanvas(): Promise<CanvasNode2D | null> {
+  return new Promise((resolve) => {
+    createSelectorQuery(instance)
+      .select(`#${baseCanvasId}`)
+      .fields({ node: true }, (res) => {
+        const item = Array.isArray(res) ? res[0] : res;
+        const node = (item as { node?: unknown } | undefined)?.node;
+        resolve(typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null);
+      })
+      .exec();
+  });
+}
+
 async function initCanvas(): Promise<void> {
   if (initializing || initialized) return;
   initializing = true;
@@ -570,8 +688,10 @@ async function initCanvas(): Promise<void> {
   try {
     await nextTick();
 
-    const item = await queryCanvas();
-    if (!item?.node) {
+    // 两块画布一起查。任一没查到都重试 —— 少一层的话静态层是空的，
+    // 整张图会缺网格和刻度，而这种半残状态比全空白更难看出原因。
+    const [item, base] = await Promise.all([queryCanvas(), queryBaseCanvas()]);
+    if (!item?.node || !base) {
       scheduleRetry();
       return;
     }
@@ -586,17 +706,25 @@ async function initCanvas(): Promise<void> {
     // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定。
     // 位图尺寸取整：小屏换算下来可能是小数（622rpx @414pt = 343.36），
     // 位图尺寸按整数给，绘制仍按 CSS 像素走 setTransform，肉眼无差。
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+    // 两层用同一套尺寸，两层才像素对齐。
+    for (const node of [canvas, base]) {
+      node.width = Math.round(width * dpr);
+      node.height = Math.round(height * dpr);
+    }
 
     sizeRef.value = { width, height };
     dprRef.value = dpr;
     ctxRef.value = canvas.getContext('2d');
+    baseCtxRef.value = base.getContext('2d');
     canvasNode = canvas;
     initialized = true;
     clearRetryTimer();
 
     scheduleSettleRedraw();
+
+    // 静态层先画：动态层每帧只清空自己，网格和刻度得先在下面等着
+    computeGeom();
+    drawBase();
 
     // 首帧直接出最终态，不播入场动画。
     //
@@ -669,6 +797,11 @@ watch(
     }
 
     scheduleSettleRedraw();
+
+    // 轴范围和标签都跟着数据变了：静态层得重画，
+    // 否则刻度上还挂着上一组数据的数字。
+    computeGeom();
+    drawBase();
 
     // 切港口/日期是用户主动操作，这里才播入场动画；
     // 第一次拿到数据（hasPainted 还没置位）直接出最终态。
@@ -755,7 +888,20 @@ function onTouchEnd() {
   position: relative;
 }
 
+/*
+ * 绘图区。给一块确定尺寸的盒子，两层画布绝对定位叠在里面。
+ *
+ * 盒子自己有高度，下面的读数轨道才会被顶到正确的位置；
+ * 两层画布不占流，只画在这同一块盒子里。
+ */
+.tide-chart__plot {
+  position: relative;
+}
+
 .tide-chart__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block; // 微信端必须是 block，否则 canvas 是 inline 元素，尺寸计算会偏
 }
 

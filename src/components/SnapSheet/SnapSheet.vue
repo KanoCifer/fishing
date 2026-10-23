@@ -25,7 +25,11 @@
     -->
     <view
       class="snap-sheet__panel"
-      :class="{ 'snap-sheet__panel--out': closing, 'snap-sheet__panel--measuring': measuring }"
+      :class="{
+        'snap-sheet__panel--out': closing,
+        'snap-sheet__panel--measuring': measuring,
+        'snap-sheet__panel--dragging': dragging,
+      }"
       :style="panelStyle"
       @tap.stop="swallowGesture"
       @touchmove.stop="swallowGesture"
@@ -496,6 +500,18 @@ function onMaskTap() {
 /* 退场：原路滑回底部。260ms 必须与脚本里的 EXIT_MS 一致 */
 .snap-sheet__panel--out {
   animation: snap-panel-out 260ms $fish-ease-in both;
+}
+
+/*
+ * 拖拽期间去掉投影。
+ *
+ * 投影是 40rpx 的大模糊。面板跟手时高度每一帧都在变，投影就得每一帧重新光栅化 ——
+ * 这是整个拖拽过程里最贵的一笔重绘（大模糊阴影比改个高度贵得多）。
+ * 而投影本来就是「浮在地图上」的高度提示，拖拽的那几百毫秒里它基本看不出来。
+ * 松手后立刻回来。
+ */
+.snap-sheet__panel--dragging {
+  box-shadow: none;
 }
 
 /*
