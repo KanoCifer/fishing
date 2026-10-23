@@ -14,6 +14,7 @@
  */
 
 import type { SpotDraft } from '@/types/draft';
+import { readStorage, removeStorage, writeStorage } from '@/utils/storage';
 
 /** Storage 键。和 token 那些分开，免得有人清会话时把草稿一起清了 */
 const DRAFT_KEY = 'fish.spot.create.draft';
@@ -35,37 +36,25 @@ const DRAFT_VERSION = 1;
  * 草稿是加分项，它坏了不该挡住用户建钓点。
  */
 export function readSpotDraft(): SpotDraft | null {
-  try {
-    const stored = uni.getStorageSync(DRAFT_KEY);
-    if (!stored || typeof stored !== 'object') return null;
+  const stored = readStorage(DRAFT_KEY);
+  if (!stored || typeof stored !== 'object') return null;
 
-    const draft = stored as Partial<SpotDraft>;
-    if (draft.version !== DRAFT_VERSION) return null;
-    if (typeof draft.savedAt !== 'number' || !draft.savedAt) return null;
-    if (!Array.isArray(draft.suitableFor) || !Array.isArray(draft.photos)) return null;
+  const draft = stored as Partial<SpotDraft>;
+  if (draft.version !== DRAFT_VERSION) return null;
+  if (typeof draft.savedAt !== 'number' || !draft.savedAt) return null;
+  if (!Array.isArray(draft.suitableFor) || !Array.isArray(draft.photos)) return null;
 
-    return draft as SpotDraft;
-  } catch {
-    return null;
-  }
+  return draft as SpotDraft;
 }
 
 /** 存草稿。存不进去就算了 —— 草稿丢了只是要重填，不该因此报错。 */
 export function writeSpotDraft(draft: SpotDraft): void {
-  try {
-    uni.setStorageSync(DRAFT_KEY, draft);
-  } catch {
-    // 存不进去就当没存。下次进来从零开始。
-  }
+  writeStorage(DRAFT_KEY, draft);
 }
 
 /** 清掉草稿。提交成功、用户主动丢弃，走的都是这一条。 */
 export function clearSpotDraft(): void {
-  try {
-    uni.removeStorageSync(DRAFT_KEY);
-  } catch {
-    // 清不掉就算了，下次读的时候对不上版本号会自己作废。
-  }
+  removeStorage(DRAFT_KEY);
 }
 
 /**

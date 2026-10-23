@@ -16,6 +16,7 @@
 
 import { ENV } from '@/config/env';
 import type { SessionTokens } from '@/types/auth';
+import { readStorage, removeStorage, writeStorage } from '@/utils/storage';
 
 /** access token 在本地存储中的键 */
 const TOKEN_KEY = 'fishing_token';
@@ -68,20 +69,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 取 access token。
+ *
+ * 走 `@/utils/storage` 而不是直接 `uni.getStorageSync`：
+ * 拼 header、刷新守卫、恢复会话都要读它，一条链上会读好几遍同一个 key，
+ * 缓存里留着那份就够了（见 storage.ts 的注释）。
+ */
 export function getToken(): string {
-  try {
-    const stored = uni.getStorageSync(TOKEN_KEY);
-    return typeof stored === 'string' ? stored : '';
-  } catch {
-    return '';
-  }
+  const stored = readStorage(TOKEN_KEY);
+  return typeof stored === 'string' ? stored : '';
 }
 
 export function setToken(token: string): void {
   if (token) {
-    uni.setStorageSync(TOKEN_KEY, token);
+    writeStorage(TOKEN_KEY, token);
   } else {
-    uni.removeStorageSync(TOKEN_KEY);
+    removeStorage(TOKEN_KEY);
   }
 }
 
@@ -93,19 +97,15 @@ export function setToken(token: string): void {
  * 「body 优先、cookie 回退」，body 里必须带上它。
  */
 export function getRefreshToken(): string {
-  try {
-    const stored = uni.getStorageSync(REFRESH_TOKEN_KEY);
-    return typeof stored === 'string' ? stored : '';
-  } catch {
-    return '';
-  }
+  const stored = readStorage(REFRESH_TOKEN_KEY);
+  return typeof stored === 'string' ? stored : '';
 }
 
 export function setRefreshToken(token: string): void {
   if (token) {
-    uni.setStorageSync(REFRESH_TOKEN_KEY, token);
+    writeStorage(REFRESH_TOKEN_KEY, token);
   } else {
-    uni.removeStorageSync(REFRESH_TOKEN_KEY);
+    removeStorage(REFRESH_TOKEN_KEY);
   }
 }
 
@@ -116,8 +116,8 @@ export function setRefreshToken(token: string): void {
  * 一枚可能已被服务端轮换掉的 refresh 去刷新，然后卡在「刷新失败」上。
  */
 export function clearSession(): void {
-  uni.removeStorageSync(TOKEN_KEY);
-  uni.removeStorageSync(REFRESH_TOKEN_KEY);
+  removeStorage(TOKEN_KEY);
+  removeStorage(REFRESH_TOKEN_KEY);
 }
 
 /**

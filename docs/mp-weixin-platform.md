@@ -11,7 +11,7 @@
 | 要做的       | 用这个                                           |
 | ------------ | ------------------------------------------------ |
 | 发请求       | `uni.request`                                    |
-| 读存储       | `uni.getStorageSync` / `uni.setStorageSync`      |
+| 读存储       | `@/utils/storage` 的 `readStorage` / `writeStorage` |
 | 定位         | `uni.getLocation`                                |
 | 窗口尺寸     | `uni.getWindowInfo()`                            |
 | 胶囊按钮矩形 | `uni.getMenuButtonBoundingClientRect()`          |
@@ -20,6 +20,18 @@
 | 取帧         | canvas 节点自带的 `requestAnimationFrame`        |
 
 `getSystemInfoSync` 在微信端已废弃 —— 尺寸和 dpr 一律从 `getWindowInfo()` 取。
+
+## 存储
+
+读写 Storage 走 `@/utils/storage`，**不要直接调 `uni.getStorageSync`**。
+
+小程序没有 localStorage，存储只能走 `uni.*Storage`，而每次读写都要穿过逻辑层与宿主之间的桥，比读一个普通属性贵得多。更贵的不是单次调用，是**同一个 key 被反复读**：一条带鉴权的请求链里，拼 header 读一遍 token、刷新守卫再读一遍 token、恢复会话还要再读一遍 —— 读出来的是同一个字符串，问的还是宿主里同一块存储。
+
+`@/utils/storage` 给每个 key 留一份内存副本：第一次读真的落下去，之后都从副本取，写和删同时更新副本。副本和 Storage 不会不同步，因为**所有**写入都必须走这个模块 —— 项目里没有第二处直写 Storage 的地方（`pnpm lint` 的 `no-undef` 管不到这一层，新增直写时自己留意）。
+
+同一份道理，`useViewport` / `useNavMetrics` 也是「算一次就缓存」：尺寸在一次启动内不变，存储在一次进程内也不该被反复读。
+
+一条纪律：**改一个值必须整份写回去**。缓存里放的是整个值，就地改它既不会同步到 Storage，也不会更新缓存。
 
 ## 高度
 
