@@ -195,8 +195,7 @@ onMounted(() => {
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .tide-card {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .tide-card__header {
@@ -204,8 +203,7 @@ onMounted(() => {
 }
 
 .tide-card__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 /*
@@ -299,7 +297,7 @@ onMounted(() => {
 }
 
 .tide-card__chip-text--active {
-  color: #ffffff;
+  color: $fish-on-accent;
   font-weight: 600;
 }
 

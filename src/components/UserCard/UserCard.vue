@@ -334,7 +334,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 }
 
 .user-card__cta-text {
-  color: #ffffff;
+  color: $fish-on-accent;
   @include fish-type(subhead);
 
   font-weight: 600;

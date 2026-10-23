@@ -31,3 +31,4 @@ scripts/assets/cdn/
 *.sw?
 prototypes/
 .env.production
+.tmp/

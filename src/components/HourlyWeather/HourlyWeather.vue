@@ -95,25 +95,19 @@ const hours = computed(() =>
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .hourly {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .hourly__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 .hourly__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 .hourly__meta {
-  color: $fish-muted;
-  @include fish-type(caption);
+  @include fish-card-meta(caption, $fish-muted);
 }
 
 .hourly__scroll {

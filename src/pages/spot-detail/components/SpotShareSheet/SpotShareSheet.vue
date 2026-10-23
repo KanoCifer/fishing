@@ -576,7 +576,7 @@ const closeIcon = icon('x', 'muted60');
 
 .share__btn--primary {
   background-color: $fish-blue;
-  color: #ffffff;
+  color: $fish-on-accent;
 }
 
 /* 海报还没画出来时，按下去没反应 —— 压暗说清楚 */

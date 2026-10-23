@@ -223,7 +223,7 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
 .spot-nav__title {
   max-width: 420rpx;
   overflow: hidden;
-  color: #ffffff;
+  color: $fish-on-dark;
   @include fish-type(title3);
 
   white-space: nowrap;

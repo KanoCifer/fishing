@@ -283,7 +283,7 @@
 }
 
 .spot-form__submit-text {
-  color: #ffffff;
+  color: $fish-on-accent;
   @include fish-type(callout);
 
   font-weight: 600;

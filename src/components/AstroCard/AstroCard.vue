@@ -246,26 +246,20 @@ const emptyText = computed(() =>
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .astro {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .astro__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 /* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
 .astro__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 .astro__meta {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-card-meta;
 }
 
 .astro__body {
@@ -344,7 +338,7 @@ const emptyText = computed(() =>
   height: 16rpx;
   margin-left: -8rpx;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: $fish-page;
   box-shadow: 0 0 0 4rpx rgba(0, 0, 0, 0.16);
   transform: translateY(-50%);
 }

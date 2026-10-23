@@ -133,7 +133,7 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 图标字体走 `wx.loadFontFace` 网络加载：
 
 - 字体域名必须在微信后台配成 **downloadFile 合法域名**，否则加载失败，页面上所有天气图标变成豆腐块（私用区位码位在系统字体里没有对应字形）
-- 主包里只留「码 → 字形」的映射规则（`src/styles/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
+- 主包里只留「码 → 字形」的映射规则（`src/styles/generated/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
 - 字体族名必须与 css 里 `.qi` 的 `font-family` 完全一致：`qweather-icons`
 - `global: true` —— 图标散在好几个页面里，逐页注册会漏
 - `desc` 三项都要给，uni 的类型里 `variant` 是必填的（微信文档说它可选）
@@ -341,9 +341,15 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
 ### WXS：目前用不上
 
 跟手动画（拖拽、滑块、滚动联动）在小程序里应该用 WXS，让事件在视图层处理、
-直接改样式，完全绕过逻辑层通信。本项目没有这类动画：
-浮层的拖拽是「拖到某一档、松手落位」，过程中不需要连续的进度反馈，
-面板高度由逻辑层算，跨线传的是**一个数字**而不是一帧一帧的样式。
+直接改样式，完全绕过逻辑层通信。
 
-真要加跟手动画（比如图表上可拖动的准星），先想清楚能不能用 WXS，
+本项目只有一处连续手势：`SnapSheet` 的浮层拖拽。它**确实每帧都在改高度**
+（`heightPx` 跟着 `touchmove` 走），所以「拖到某一档、松手落位」这个说法只对
+**松手之后**成立，拖拽过程本身是 1:1 跟手的（设计意图见 `docs/design-system.md`
+的「手势与浮层」）。
+
+之所以仍然不用 WXS：跨线传的是**一个数字**（高度），不是一帧一帧的样式，
+拖拽区域又只在把手条上 —— 每帧一次 setData 的代价目前可以接受。
+
+真要加更重的跟手动画（比如图表上可拖动的准星），先想清楚能不能用 WXS，
 而不是在逻辑层 `setInterval` 里改 `style`。

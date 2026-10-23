@@ -100,7 +100,7 @@ const navIcon = icon('navigation', 'onAccent');
 
 /* 实心按钮上的文字必须反色：pill 的蓝底够深，沿用深色文字会糊在底色里 */
 .dock__text {
-  color: #ffffff;
+  color: $fish-on-accent;
   @include fish-type(callout);
 
   font-weight: 600;
@@ -113,7 +113,7 @@ const navIcon = icon('navigation', 'onAccent');
  * 不该跟「导航送达」四个字抢同一行的注意力。
  */
 .dock__dist {
-  color: #ffffff;
+  color: $fish-on-accent;
   @include fish-type(callout);
 
   opacity: 0.72;

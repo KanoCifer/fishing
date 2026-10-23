@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onShow, onHide } from '@dcloudio/uni-app';
-import '@/styles/qweather-icons.css';
+import '@/styles/generated/qweather-icons.css';
 
 /*
  * 这里**不**加载图标字体。
@@ -17,8 +17,8 @@ onHide(() => {});
 </script>
 <style lang="scss">
 page {
-  background-color: #f2f2f7;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  background-color: $fish-grouped;
+  font-family: $fish-font;
   -webkit-font-smoothing: antialiased;
 }
 

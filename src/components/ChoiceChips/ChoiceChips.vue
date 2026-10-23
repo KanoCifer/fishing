@@ -125,7 +125,7 @@ function toggle(value: string) {
 }
 
 .choice-chips__text--active {
-  color: #ffffff;
+  color: $fish-on-accent;
   font-weight: 600;
 }
 </style>

@@ -186,8 +186,7 @@ const rows = computed<Row[]>(() => {
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .weather-card {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .weather-card__body {

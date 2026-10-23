@@ -13,7 +13,7 @@
  * 会错的地方，而且那种表看不出覆盖是否完整。这里用区间白名单，
  * 不在白名单内的码统一落到 999「未知」，从根上避免渲染出豆腐块。
  *
- * 白名单区间必须与 `src/styles/qweather-icons.css` 的字体子集严格一致
+ * 白名单区间必须与 `src/styles/generated/qweather-icons.css` 的字体子集严格一致
  * —— 那边的区间由 `scripts/subset-qweather-icons.py` 生成，两边对不上就是豆腐块。
  */
 

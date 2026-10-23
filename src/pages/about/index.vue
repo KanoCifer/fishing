@@ -163,8 +163,7 @@ function closeDoc() {
 
 /* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见令牌层 _color.scss 的分层说明） */
 .about__disclaimer {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 /* 段间距交给容器：段落之间靠这一个数断开，段落本身不再各带 margin */

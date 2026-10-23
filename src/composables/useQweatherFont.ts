@@ -2,7 +2,7 @@
  * 和风天气图标字体 —— 网络加载。
  *
  * 字体本体走 `wx.loadFontFace`，主包里只留「码 → 字形」的映射规则
- * （见 `src/styles/qweather-icons.css`，4 KB）。原来是把字体 base64 内联进
+ * （见 `src/styles/generated/qweather-icons.css`，4 KB）。原来是把字体 base64 内联进
  * 那份 css（40 KB），现在改成运行时拉。
  *
  * **谁来触发加载**：数据页（`src/pages/data/index.vue`）的 onMounted。

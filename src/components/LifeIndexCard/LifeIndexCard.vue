@@ -98,26 +98,20 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .life {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .life__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 /* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
 .life__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 .life__meta {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-card-meta;
 }
 
 .life__list {

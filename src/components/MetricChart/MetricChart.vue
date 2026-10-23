@@ -137,25 +137,19 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
  * 那是页面的版式决定，不是各组件自己的事。
  */
 .metric {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .metric__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 .metric__title {
-  color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-card-title(title3);
 }
 
 .metric__hint {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-card-meta;
 }
 
 /*

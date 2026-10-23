@@ -787,5 +787,5 @@ onPageShow(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '@/styles/pages/spot-form.scss';
+@use '@/styles/shared/spot-form.scss';
 </style>

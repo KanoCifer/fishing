@@ -14,7 +14,7 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。脚本清单见 `
 
 - 组件 `src/components/<Name>/<Name>.vue`，页面 `src/pages/<name>/index.vue`
 - 文件头一句话说明「这个文件为什么存在」，决策理由写进注释。中文注释解释为什么，不复述代码
-- **唯一出处**：端点清单在 `src/api/`，类型在 `src/types/`，色值与字阶在 `src/styles/tokens/`，文案在 `src/constants/about.ts`，图标在 `scripts/gen-icons.mjs`。要改就去那个出处改，不在别处抄一份
+- **唯一出处**：端点清单在 `src/api/`，类型在 `src/types/`，样式令牌在 `src/styles/tokens/`，文案在 `src/constants/about.ts`，图标在 `scripts/gen-icons.mjs`。要改就去那个出处改，不在别处抄一份
 - 接口基址只从 `@/config/env` 读，不在调用点写死域名
 - 环境变量只读 `import.meta.env.VITE_*`（小程序端没有 `process.env`）；往 `.env.*` 加变量时要同步加 `vite.config.ts` 的 `envPrefix` 白名单 —— 那是白名单不是前缀，漏一个变量 `import.meta.env.XXX` 就是 `undefined`，且不报错
 - 运行时量出来的尺寸用 px，设计稿尺寸用 rpx；两者相加先过 `uni.upx2px()`
@@ -27,7 +27,9 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。脚本清单见 `
 3. **格式化。** `npx oxfmt <自己改动的文件>` —— 只格式化动过的那些。`pnpm format` 扫全仓库，会带出一堆与本次改动无关的 diff。
 4. **过两道关。** `pnpm type-check` 与 `pnpm lint` 退出码 0、没有新错误才算过 —— 这两道关跑在格式化之后，验的是最终状态。本仓库没有测试套件，这两项是仅有的把关。
 
-改生成物时先改源再跑脚本，产物不手改：图标改 `scripts/gen-icons.mjs` 的清单 → `pnpm icons`；静态图改 `scripts/assets/` 里的源图 → `pnpm assets`。
+改生成物时先改源再跑脚本，产物不手改：图标改 `scripts/gen-icons.mjs` 的清单 → `pnpm icons`；静态图改 `scripts/assets/` 里的源图 → `pnpm assets`；和风图标字形表改 `scripts/subset-qweather-icons.py` → `src/styles/generated/qweather-icons.css`。
+
+`src/styles/` 分三层：**`tokens/`**（令牌，手写，改一处全项目生效）、**`shared/`**（跨页共用的整页版式，手写）、**`generated/`**（脚本产出，勿手改）。跑完生成脚本还要补一次 `npx oxfmt` —— 脚本吐的是紧凑单行，仓库里存的是格式化后的版本。
 
 ## 深入
 

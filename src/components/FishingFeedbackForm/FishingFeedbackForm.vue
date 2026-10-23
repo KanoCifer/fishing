@@ -256,7 +256,7 @@ function onCancel() {
 }
 
 .feedback-form__option-text--active {
-  color: #ffffff;
+  color: $fish-on-accent;
   font-weight: 600;
 }
 
@@ -295,7 +295,7 @@ function onCancel() {
 }
 
 .feedback-form__btn--primary .feedback-form__btn-text {
-  color: #ffffff;
+  color: $fish-on-accent;
   font-weight: 600;
 }
 </style>

@@ -164,28 +164,22 @@ function height(max: number, min: number, half: 'max' | 'min'): string {
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .week {
-  padding: 28rpx;
-  @include fish-glass;
+  @include fish-card;
 }
 
 .week__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 /* 分区标题统一走 headline 一级。原先这里 30rpx、HourlyWeather 28rpx、
    各组件各写各的，同一页里三个分区标题三个字号 —— 这是这套类型系统里
    最容易被忽略也最伤整体感的一处。 */
 .week__title {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 .week__meta {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-card-meta;
 }
 
 .week__track {

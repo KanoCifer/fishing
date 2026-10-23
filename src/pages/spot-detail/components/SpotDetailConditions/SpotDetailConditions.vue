@@ -65,15 +65,11 @@ const tone = computed(() => suitabilityTone(props.level));
 }
 
 .conditions__title {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
+  @include fish-card-head;
 }
 
 .conditions__title-text {
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-card-title;
 }
 
 /*

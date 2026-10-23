@@ -372,7 +372,7 @@ watch(
 }
 
 .verdict__btn-text--onaccent {
-  color: #ffffff;
+  color: $fish-on-accent;
   font-weight: 600;
 }
 

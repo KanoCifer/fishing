@@ -295,7 +295,7 @@ onPageShow(async () => {
 }
 
 .my-spots__empty-action-text {
-  color: #ffffff;
+  color: $fish-on-accent;
   @include fish-type(callout);
 
   font-weight: 600;

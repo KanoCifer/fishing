@@ -60,7 +60,7 @@ const empty = computed(() => !!props.src && !props.hasPhoto);
   box-sizing: border-box;
   width: 100%;
   overflow: hidden;
-  background-color: #dfe6ea;
+  background-color: $fish-photo-placeholder;
 }
 
 .hero__img {

@@ -588,7 +588,7 @@ onPageShow(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '@/styles/pages/spot-form.scss';
+@use '@/styles/shared/spot-form.scss';
 
 /*
  * 载入提示与驳回理由。

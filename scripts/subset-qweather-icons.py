@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-生成 `src/styles/qweather-icons.css` —— 和风天气图标字体的**字形映射表**。
+生成 `src/styles/generated/qweather-icons.css` —— 和风天气图标字体的**字形映射表**。
 
 字体本体走网络（`wx.loadFontFace`），所以这里不再往 css 里内联 base64 ——
 产出的 css 只剩「码 → 私用区位」的映射规则，2 KB 上下。
@@ -57,7 +57,7 @@ RANGES: list[tuple[int, int]] = [
 ]
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT_CSS = os.path.join(ROOT, "src", "styles", "qweather-icons.css")
+OUT_CSS = os.path.join(ROOT, "src", "styles", "generated", "qweather-icons.css")
 PKG_DIR = os.path.join(ROOT, "node_modules", "qweather-icons")
 FONT_PATH = os.path.join(PKG_DIR, "font", "fonts", "qweather-icons.ttf")
 CODE_MAP_PATH = os.path.join(PKG_DIR, "font", "qweather-icons.json")
