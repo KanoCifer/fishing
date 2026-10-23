@@ -2,8 +2,8 @@
     "name": "渔碌",
     "appid": "",
     "description": "",
-    "versionName": "1.0.0",
-    "versionCode": "100",
+    "versionName": "0.8.15",
+    "versionCode": "200",
     "transformPx": false,
     "mp-weixin": {
       "appid": "wxe310d6eacdda4d66",
