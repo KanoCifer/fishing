@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
-import { loadQweatherIconFont } from '@/composables/useQweatherFont';
+import { onShow, onHide } from '@dcloudio/uni-app';
 import '@/styles/qweather-icons.css';
 
-onLaunch(() => {
-  void loadQweatherIconFont();
-});
+/*
+ * 这里**不**加载图标字体。
+ *
+ * 字体本体 73 KB，走 `wx.loadFontFace` 从网络取 —— 放在 onLaunch 里就是一条
+ * 冷启动阶段的长请求（微信体检会记成「小程序启动时存在耗时较长的请求」）。
+ *
+ * 消费它的只有数据页的三张卡（HourlyWeather / WeekStrip / AstroCard），
+ * 所以改成由数据页自己触发：谁要用，谁负责把字体拉来。
+ * 三个组件都有 `v-if="qweatherFontReady"` 兜底，字体晚到不会出豆腐块。
+ */
 onShow(() => {});
 onHide(() => {});
 </script>

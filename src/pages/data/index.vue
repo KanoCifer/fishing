@@ -133,6 +133,7 @@ import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterDelay } from '@/utils/motion';
@@ -226,6 +227,15 @@ function onRefresh() {
 // ensureWeatherAndFishing 内部有「已有当前坐标的那份数据就复用」的守卫，
 // 首帧两次调用只会真的发一次请求。
 onMounted(() => {
+  /*
+   * 图标字体在这里加载，不在 App.onLaunch。
+   *
+   * 字体本体 73 KB，走网络。放 onLaunch 就是一条冷启动阶段的长请求；
+   * 而消费它的三张卡都在这一页 —— 谁要用，谁负责把字体拉来。
+   * 组件侧有 `v-if="qweatherFontReady"` 兜底，字体晚到只是图标晚出现，不会出豆腐块。
+   */
+  void loadQweatherIconFont();
+
   void mapStore.ensureWeatherAndFishing();
 });
 onPageShow(() => {
