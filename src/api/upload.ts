@@ -22,7 +22,7 @@
  */
 
 import { ENV } from '@/config/env';
-import { ApiError, STATUS_TEXT, getToken, withSession, type ApiEnvelope } from './client';
+import { ApiError, STATUS_TEXT, ensureTokensLoaded, getToken, withSession, type ApiEnvelope } from './client';
 
 /* ── 媒体地址 ─────────────────────────────────────────────────────────── */
 
@@ -164,6 +164,9 @@ export async function resolveUploadPath(tempPath: string): Promise<string> {
  * 钓点存进 `images` 字段，渲染时过 `mediaUrl()`。
  */
 export async function uploadImage(filePath: string, type: UploadType = 'gallery'): Promise<UploadResult> {
+  // token 是从 Storage 异步读进内存的，上传前要确保已经读到
+  await ensureTokensLoaded();
+
   const path = await resolveUploadPath(filePath);
   const base = ENV.apiBaseUrl.replace(/\/+$/, '');
 

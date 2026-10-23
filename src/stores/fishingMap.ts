@@ -18,7 +18,7 @@
  * 对应功能已确认不做。
  */
 
-import { ref, shallowRef, watch } from 'vue';
+import { ref, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 
 import { fishingApi, fishingSpotApi, type LngLat } from '@/api/fishing';
@@ -327,7 +327,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 坐标默认取用户当前位置；还没定位到就用 MAP_CENTER 兜底（先给一份数据，
    * 定位到了再覆盖）。
    *
-   * 同一坐标不并发两个请求：数据页的取数和坐标变化的自动重取可能在同一刻触发，
+   * 同一坐标不并发两个请求：数据页的 onMounted 与 onPageShow 会在同一刻触发，
    * 两个响应回来会互相覆盖，页面上的地点名会闪一下。
    */
   let inflightKey: string | null = null;
@@ -385,7 +385,10 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 数据页取数：定位 → 按用户坐标取。
    *
    * 已经有「当前坐标的那份」数据就不再取 —— 切回 tab 不该每次都发请求。
-   * 坐标变了则重取（由下面的 watch 负责）。
+   * 坐标变了则重取 —— 靠 `indexLocation` 与当前坐标的对比，
+   * 所以「在地图页改了坐标再切回来」也会重新取到一份对的。
+   *
+   * 全应用只有这一条取数入口：地图页不碰它（那边根本不显示这些数据）。
    */
   async function ensureWeatherAndFishing(): Promise<void> {
     const located = await locateUser();
@@ -407,22 +410,20 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     await fetchWeatherAndFishing(located ?? userLocation.value ?? MAP_CENTER);
   }
 
-  /**
-   * 坐标变了就重取一次指数。
+  /*
+   * 这里**没有**「坐标一变就自动重取指数」的 watch。
    *
-   * 比较用接口同精度（两位小数）：在原地挪几十米不该发一次请求，
-   * 换了城市才该重取 —— 换了地方，之前那份天气和指数都不作数了。
+   * 曾经有过一个，结果是：地图页一进页面、定位一回来，就发一条
+   * `GET /v2/fishing/index?location=…&enriched=true` —— 这条请求是全应用最重的
+   * 一条（实测 TTFB 200~390 ms，响应 22 KB），而**地图页一个像素都不显示它**：
+   * 钓鱼指数、天气、潮汐只有数据页那三张卡在用。
+   * 微信体检因此记了一条「小程序启动时存在耗时较长的请求」。
    *
-   * 这个 watch 活在 store 的作用域里，pinia 实例不销毁它就一直有效，
-   * 不依赖哪个组件挂载过。
+   * 取数归数据页自己管：`ensureWeatherAndFishing` 每次都会拿当前坐标
+   * 跟 `indexLocation` 比一遍，坐标变了就重取。
+   * 地图页改了坐标（点定位键）之后切回数据页，onPageShow 会触发它 ——
+   * 这条路径本来就覆盖了「坐标变了要重取」，不需要一个全局 watch。
    */
-  watch(
-    () => (userLocation.value ? locationKey(userLocation.value) : null),
-    (next) => {
-      if (!next) return;
-      void fetchWeatherAndFishing();
-    },
-  );
 
   /**
    * 面板潮汐的 in-flight 守卫。

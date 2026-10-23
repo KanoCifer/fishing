@@ -51,6 +51,39 @@ export function readStorage<T = unknown>(key: string): T {
 }
 
 /**
+ * 异步读一个 key。
+ *
+ * 什么时候用它，什么时候用同步版：
+ *
+ * - **启动链路上（App.onLaunch ~ 首屏渲染完成）只能用这个。**
+ *   `getStorageSync` 是同步 API，会阻塞 JS 线程；微信体检有一条
+ *   「首屏渲染前多次调用同步 API」，启动期一次都不该有。
+ * - 不在启动链路上、又要立刻拿到值（比如读草稿再决定渲染什么），
+ *   用同步版 `readStorage`。
+ *
+ * 读不出来（宿主抛错或 key 不存在）都返回 undefined —— 调用点本来就得处理
+ * 「没有」这一种情况。key 不存在时微信回的是空字符串，不是 undefined，
+ * 调用点按 falsy 判就够。
+ *
+ * 这个函数**不写内存副本**：异步读回来的值可能晚于一次同步写，
+ * 写进去会把新值盖成旧值。要缓存就用同步版的 readStorage，
+ * 或者让调用方自己持有（见 api/client.ts 的 token 内存副本）。
+ */
+export function readStorageAsync<T = unknown>(key: string): Promise<T | undefined> {
+  return new Promise<T | undefined>((resolve) => {
+    try {
+      uni.getStorage({
+        key,
+        success: (res) => resolve(res.data as T | undefined),
+        fail: () => resolve(undefined),
+      });
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+/**
  * 写一个 key。返回是否真的写进去了。
  *
  * 只有宿主写成功才更新缓存 —— 写失败时 Storage 里还是旧值，

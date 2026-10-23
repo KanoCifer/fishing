@@ -18,7 +18,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
 import { getMe, logout as logoutRequest, uploadAvatar as uploadAvatarRequest, wechatLogin } from '@/api/auth';
-import { clearSession, getRefreshToken, getToken, setRefreshToken, setToken } from '@/api/client';
+import { clearSession, ensureTokensLoaded, getRefreshToken, getToken, setRefreshToken, setToken } from '@/api/client';
 import { mediaUrl } from '@/api/upload';
 import type { AuthUser, WechatLoginResponse } from '@/types/auth';
 
@@ -86,24 +86,32 @@ export const useSessionStore = defineStore('session', () => {
 
   async function restore(): Promise<void> {
     if (user.value) return;
-    if (!getToken() || !getRefreshToken()) return;
     if (restorePending) return restorePending;
 
-    restoring.value = true;
+    restorePending = (async (): Promise<void> => {
+      /*
+       * token 是从 Storage **异步**读进内存的 —— 启动链路上微信体检不许有
+       * 同步 Storage 读（getStorageSync 会阻塞 JS 线程）。
+       * 所以这里要等它读完再判断有没有会话，否则会把「还没读」当成「没有」。
+       */
+      await ensureTokensLoaded();
+      if (!getToken() || !getRefreshToken()) return;
 
-    restorePending = getMe()
-      .then((me) => {
+      restoring.value = true;
+
+      try {
+        const me = await getMe();
         user.value = me;
-      })
-      .catch(() => {
+      } catch {
         // 刷新失败时 clearSession 已经在 auth 层做过了，这里只需要把状态退回未登录
         user.value = null;
         clearSession();
-      })
-      .finally(() => {
+      } finally {
         restoring.value = false;
-        restorePending = null;
-      });
+      }
+    })().finally(() => {
+      restorePending = null;
+    });
 
     return restorePending;
   }

@@ -18,10 +18,13 @@ export function createApp() {
    * 追踪到，$set 退化成一次普通赋值即可，语义与 Vue 2 的实现一致。
    *
    * 写在 main.ts 而不是各页面：这是全局兼容层，作用域一次就够。
+   *
+   * ⚠️ 升级 mp-html 时先确认它还要不要 $set —— v3 已经不用了，
+   * 那时候这层可以整个删掉。判据是 dist/uni-app/components/mp-html/mp-html.vue
+   * 里还有没有 `this.$set(`。
    */
   app.config.globalProperties.$set = (target: Record<string, unknown>, key: string, value: unknown) => {
     target[key] = value;
-    return target;
   };
   app.config.globalProperties.$delete = (target: Record<string, unknown>, key: string) => {
     delete target[key];

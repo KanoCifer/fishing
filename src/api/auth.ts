@@ -21,7 +21,16 @@
 
 import { ENV } from '@/config/env';
 import type { AuthUser, WechatLoginResponse } from '@/types/auth';
-import { ApiError, STATUS_TEXT, getRefreshToken, getToken, request, withSession, type ApiEnvelope } from './client';
+import {
+  ApiError,
+  STATUS_TEXT,
+  ensureTokensLoaded,
+  getRefreshToken,
+  getToken,
+  request,
+  withSession,
+  type ApiEnvelope,
+} from './client';
 import { resolveUploadPath } from './upload';
 
 /* ── 微信登录 ─────────────────────────────────────────────────────────── */
@@ -137,8 +146,13 @@ export function getMe(): Promise<AuthUser> {
  *
  * refresh token 放在 body 里：服务端从这个值解析出会话 id 并吊销这一台设备。
  * 小程序端收不到 HttpOnly cookie，不放 body 服务端就不知道要吊销哪个会话。
+ *
+ * 先 await ensureTokensLoaded：refresh token 是从 Storage 异步读进内存的，
+ * 刚启动还没读完时直接取会拿到空串，服务端就吊销不掉任何会话。
  */
-export function logout(): Promise<void> {
+export async function logout(): Promise<void> {
+  await ensureTokensLoaded();
+
   return withSession(() =>
     request<void>({
       url: 'v3/logout',
@@ -160,6 +174,9 @@ export function logout(): Promise<void> {
  * 是同一个问题：微信靠扩展名推 multipart part 的 Content-Type。
  */
 export async function uploadAvatar(filePath: string): Promise<AuthUser> {
+  // 同 logout：token 是异步读进内存的，上传前要确保已经读到
+  await ensureTokensLoaded();
+
   const path = await resolveUploadPath(filePath);
   const base = ENV.apiBaseUrl.replace(/\/+$/, '');
 

@@ -18,7 +18,7 @@
  * 反代（Nginx）要 `proxy_buffering off`，否则分块被缓存住，流式退化成一次性。
  */
 
-import { ApiError, getToken, withQuery } from '@/api/client';
+import { ApiError, ensureTokensLoaded, getToken, withQuery } from '@/api/client';
 import { ENV } from '@/config/env';
 import { createSseDecoder, createUtf8Decoder } from '@/utils/sse';
 import type { HttpMethod, QueryValue } from '@/api/client';
@@ -123,12 +123,6 @@ export function streamSse(options: StreamOptions): StreamHandle {
     Accept: 'text/event-stream',
   };
 
-  const token = getToken();
-  if (token) {
-    header.Authorization = `Bearer ${token}`;
-  }
-  Object.assign(header, extraHeader);
-
   const base = ENV.apiBaseUrl.replace(/\/+$/, '');
   const fullUrl = withQuery(`${base}/${url.replace(/^\/+/, '')}`, params);
 
@@ -169,48 +163,73 @@ export function streamSse(options: StreamOptions): StreamHandle {
     onDone?.();
   };
 
-  const requestTask = uni.request({
-    url: fullUrl,
-    method,
-    data,
-    header,
-    timeout,
-    // 流式响应不能按 JSON 解析；响应体是原始字节，靠 onChunkReceived 逐块取
-    dataType: 'text',
-    responseType: 'arraybuffer',
-    enableChunked: true,
-    // 声明 enableChunked 后微信会走 HTTP/1.1，这里再显式关一次，
-    // 免得某些反代把 HTTP/2 响应也带成 chunked 反而下发不了分块
-    enableHttp2: false,
-    success: (res) => {
-      // 服务端没开 chunked 时，分块回调一次都不会触发，整段响应走 success ——
-      // 这时把完整 body 补喂一次，不然这一轮会安静地什么都不吐
-      if (!receivedChunk && res.data) {
-        const text = readText(res.data);
-        if (text) emit(sse.push(text));
-      }
-      emit(sse.flush());
+  /**
+   * 真正把请求发出去。
+   *
+   * 为什么不是同步发：token 是从 Storage **异步**读进内存的
+   * （启动链路上微信体检不许有同步 Storage 读），等它读完再发，
+   * header 里才带得上 Authorization —— 否则服务端直接 401。
+   */
+  function start(): void {
+    if (closed || aborted) return;
 
-      const status = res.statusCode;
-      if (status >= 200 && status < 300) {
-        done();
-        return;
-      }
-      fail(new ApiError(readErrorMessage(res.data) || `请求失败（${status}）`, status));
-    },
-    fail: (err) => {
-      // 主动断开也会走 fail，这里不当错误报出去
-      if (aborted) return;
-      const message = /timeout/i.test(err.errMsg) ? '请求超时，请检查网络' : '网络异常，请检查网络连接';
-      fail(new ApiError(message, 0));
-    },
-  }) as unknown as WechatMiniprogram.RequestTask;
+    const token = getToken();
+    if (token) {
+      header.Authorization = `Bearer ${token}`;
+    }
+    Object.assign(header, extraHeader);
 
-  // 回调里用的是 task（可能为 null，用 ?. 兜），这里留一份确定非空的给 abort 用
-  task = requestTask;
+    const requestTask = uni.request({
+      url: fullUrl,
+      method,
+      data,
+      header,
+      timeout,
+      // 流式响应不能按 JSON 解析；响应体是原始字节，靠 onChunkReceived 逐块取
+      dataType: 'text',
+      responseType: 'arraybuffer',
+      enableChunked: true,
+      // 声明 enableChunked 后微信会走 HTTP/1.1，这里再显式关一次，
+      // 免得某些反代把 HTTP/2 响应也带成 chunked 反而下发不了分块
+      enableHttp2: false,
+      success: (res) => {
+        // 服务端没开 chunked 时，分块回调一次都不会触发，整段响应走 success ——
+        // 这时把完整 body 补喂一次，不然这一轮会安静地什么都不吐
+        if (!receivedChunk && res.data) {
+          const text = readText(res.data);
+          if (text) emit(sse.push(text));
+        }
+        emit(sse.flush());
 
-  // 分块监听必须在 task 拿到之后再挂 —— 挂早了拿不到 task，挂晚了会漏掉前面的块
-  requestTask.onChunkReceived(onChunk);
+        const status = res.statusCode;
+        if (status >= 200 && status < 300) {
+          done();
+          return;
+        }
+        fail(new ApiError(readErrorMessage(res.data) || `请求失败（${status}）`, status));
+      },
+      fail: (err) => {
+        // 主动断开也会走 fail，这里不当错误报出去
+        if (aborted) return;
+        const message = /timeout/i.test(err.errMsg) ? '请求超时，请检查网络' : '网络异常，请检查网络连接';
+        fail(new ApiError(message, 0));
+      },
+    }) as unknown as WechatMiniprogram.RequestTask;
+
+    // 回调里用的是 task（可能为 null，用 ?. 兜），这里留一份确定非空的给 abort 用
+    task = requestTask;
+
+    // 分块监听必须在 task 拿到之后再挂 —— 挂早了拿不到 task，挂晚了会漏掉前面的块
+    requestTask.onChunkReceived(onChunk);
+  }
+
+  /*
+   * 等 token 读回来再发。
+   *
+   * 读失败也要发：那时 header 里没有 token，服务端回 401，
+   * 反而能被 withSession 那套静默刷新的逻辑救回来。
+   */
+  void ensureTokensLoaded().then(start, start);
 
   return {
     abort() {
@@ -218,7 +237,7 @@ export function streamSse(options: StreamOptions): StreamHandle {
       aborted = true;
       close();
       try {
-        requestTask.abort();
+        task?.abort();
       } catch {
         // 已经断了就算了
       }

@@ -33,6 +33,42 @@
 
 一条纪律：**改一个值必须整份写回去**。缓存里放的是整个值，就地改它既不会同步到 Storage，也不会更新缓存。
 
+### 启动链路上一次同步 Storage 读都不该有
+
+微信体检有一条「首屏渲染前多次调用同步 API」。判定范围比 `Sync` 后缀宽：
+`uni.getWindowInfo()`、`uni.getMenuButtonBoundingClientRect()` 名字里没有 `Sync`，
+但它们是同步的，会阻塞 JS 线程。启动阶段（`App.onLaunch` ~ 首页首屏渲染完成）
+调用它们的次数会被记成一条未通过。
+
+**启动期就要用的值走异步读。** `readStorageAsync` 用的是 `uni.getStorage`
+（异步，不阻塞），配合 `api/client.ts` 的 `ensureTokensLoaded()`：
+发请求前 await 一次，token 就进内存了。
+
+⚠️ 改异步之后有配套纪律：**任何要拼 Authorization 的地方都得先
+`await ensureTokensLoaded()`** —— 读回来之前 `getToken()` 返回空串，
+带着空串发出去的请求会被服务端判成未登录。当前这几处都改了：
+`api/client.ts` 的 `request`、`api/auth.ts` 的 `logout` 与 `uploadAvatar`、
+`api/upload.ts` 的 `uploadImage`、`api/stream.ts` 的 SSE
+（它的请求要等 token 读回来才发，所以 `streamSse` 把 `uni.request` 挪进了 `start()`）。
+
+### `uni.getDeviceInfo()` 会顺带读一次同步 Storage
+
+这条最容易漏：uni 运行时的 `getDeviceInfo` / `getSystemInfo` / `getAppBaseInfo`
+三个协议都会调 `useDeviceId()`，它内部是 `wx.getStorageSync('__DC_STAT_UUID')` ——
+**一次同步 Storage 读**，而且发生在 App 启动阶段。
+
+本项目踩到的具体位置是 `mp-html`：它的 `parser.js` 在**模块顶层**调
+`uni.getDeviceInfo()`（为了判断是不是 iOS），而 mp-html 被打进
+`common/vendor.js` —— App 一启动就执行。体检于是记了一条
+「首屏渲染前多次调用同步 API」：`App` 上下文一次、`pages/fishing/index` 一次。
+
+解法是打 pnpm 补丁（`patches/mp-html@2.5.2.patch`）：把 `system` 改成惰性取，
+用到（`selectable === 'force'`）时才调。**升级 mp-html 时这个补丁要跟着重做** ——
+pnpm 会在补丁打不上时直接报错，不会悄悄失效。
+
+排查这类问题别只 grep `Sync`：同步 API 的判定范围是运行时的白名单，
+第三方库在模块顶层调一次 `uni.getDeviceInfo()` 就够记一条。
+
 ## 高度
 
 **`100vh` 把原生 tabBar 的高度也算进去了。** 本项目三个页签都是 tabBar 页，页面按 100vh 铺满的话，实际高度比「真正能显示的那部分」高出一个 tabBar（约 50px）—— 页面于是变成可滚动的：多出来的那一截就是用户能拖出去的范围。

@@ -20,7 +20,8 @@
 /**
  * 钓点页 —— 全屏地图 + 钓点标记。
  */
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
+import { onReady } from '@dcloudio/uni-app';
 
 import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
@@ -79,11 +80,19 @@ function openCreate() {
 /**
  * 只拉钓点。
  *
- * 天气和钓鱼指数是 store 里的同一份数据：定位成功后 store 会按用户坐标取一次，
- * 数据页直接用那一份。这里再拉一份就是同一份数据两个消费方各拉各的。
+ * 天气和钓鱼指数是 store 里的同一份数据，只有数据页那三张卡在用，
+ * 这一页一个像素都不显示 —— 这里再拉一份就是白拉一条最重的请求。
+ *
+ * **为什么放在 onReady 而不是 onMounted**：这条请求跟首屏没有依赖关系，
+ * 地图先出来、点后补上完全可以接受；而它在启动阶段发出去就是微信体检
+ * 记的那条「小程序启动时存在耗时较长的请求」（实测 TTFB 250 ms）。
+ * onReady 是「页面初次渲染完成」，之后再让开一个宏任务，
+ * 请求就确定落在启动阶段之外了。
  */
-onMounted(() => {
-  void mapStore.fetchSpots();
+onReady(() => {
+  setTimeout(() => {
+    void mapStore.fetchSpots();
+  }, 0);
 });
 </script>
 

@@ -16,7 +16,7 @@
 
 import { ENV } from '@/config/env';
 import type { SessionTokens } from '@/types/auth';
-import { readStorage, removeStorage, writeStorage } from '@/utils/storage';
+import { readStorageAsync, removeStorage, writeStorage } from '@/utils/storage';
 
 /** access token 在本地存储中的键 */
 const TOKEN_KEY = 'fishing_token';
@@ -26,6 +26,54 @@ const REFRESH_TOKEN_KEY = 'fishing_refresh_token';
 
 /** 与源项目 apiClient 的 10s 对齐 */
 const DEFAULT_TIMEOUT = 10000;
+
+/**
+ * token 的内存副本。
+ *
+ * null = 还没从 Storage 读过；空串 = 读过、确实没有值。
+ * 这两种状态必须分开 —— 把「还没读」当成「没有 token」，
+ * 第一次请求就会不带 Authorization 头，服务端回 401，
+ * 而真正的 token 其实就躺在 Storage 里。
+ */
+let accessToken: string | null = null;
+let refreshToken: string | null = null;
+
+/**
+ * 从 Storage 异步读那两枚 token 的那一次。
+ *
+ * 为什么是异步：getStorageSync 是同步 API，会阻塞 JS 线程。
+ * 微信体检有一条「首屏渲染前多次调用同步 API」—— 启动链路上
+ * （App.onLaunch ~ 首屏渲染完成）一次同步 Storage 读都不该有。
+ * 读回来晚几十毫秒没关系，请求本来就比这慢得多。
+ *
+ * 为什么还要留内存副本：读回来之后拼 header、刷新守卫、
+ * 恢复会话都要用它，一条链上会读好几遍同一个值。
+ */
+let tokensLoading: Promise<void> | null = null;
+
+/**
+ * 确保两枚 token 已经读进内存。
+ *
+ * 发请求前必须 await 它 —— 那时 header 才拼得对。
+ * 同一个 Promise 复用，读一次就够。
+ */
+export function ensureTokensLoaded(): Promise<void> {
+  if (!tokensLoading) {
+    tokensLoading = Promise.all([readStorageAsync<string>(TOKEN_KEY), readStorageAsync<string>(REFRESH_TOKEN_KEY)])
+      .then(([access, refresh]) => {
+        // 读回来之前如果已经有人写过（登录 / 退出），以写的那份为准：
+        // 异步读到的可能是写入之前的旧值，盖回去等于把新会话弄丢。
+        if (accessToken === null) accessToken = typeof access === 'string' ? access : '';
+        if (refreshToken === null) refreshToken = typeof refresh === 'string' ? refresh : '';
+      })
+      .catch(() => {
+        if (accessToken === null) accessToken = '';
+        if (refreshToken === null) refreshToken = '';
+      });
+  }
+
+  return tokensLoading;
+}
 
 /**
  * 后端统一响应信封。
@@ -72,16 +120,20 @@ export class ApiError extends Error {
 /**
  * 取 access token。
  *
- * 走 `@/utils/storage` 而不是直接 `uni.getStorageSync`：
- * 拼 header、刷新守卫、恢复会话都要读它，一条链上会读好几遍同一个 key，
- * 缓存里留着那份就够了（见 storage.ts 的注释）。
+ * 走内存副本而不是直接 `uni.getStorageSync`：
+ * 拼 header、刷新守卫、恢复会话都要读它，一条链上会读好几遍同一个 key；
+ * 而且同步读会阻塞 JS 线程，启动链路上一次都不该有。
+ *
+ * ⚠️ 内存副本还没从 Storage 读回来之前（`ensureTokensLoaded` 没 resolve），
+ * 这里返回空串 —— 需要真实值的调用点必须先 await `ensureTokensLoaded()`。
  */
 export function getToken(): string {
-  const stored = readStorage(TOKEN_KEY);
-  return typeof stored === 'string' ? stored : '';
+  return accessToken ?? '';
 }
 
 export function setToken(token: string): void {
+  accessToken = token;
+
   if (token) {
     writeStorage(TOKEN_KEY, token);
   } else {
@@ -97,11 +149,12 @@ export function setToken(token: string): void {
  * 「body 优先、cookie 回退」，body 里必须带上它。
  */
 export function getRefreshToken(): string {
-  const stored = readStorage(REFRESH_TOKEN_KEY);
-  return typeof stored === 'string' ? stored : '';
+  return refreshToken ?? '';
 }
 
 export function setRefreshToken(token: string): void {
+  refreshToken = token;
+
   if (token) {
     writeStorage(REFRESH_TOKEN_KEY, token);
   } else {
@@ -116,6 +169,9 @@ export function setRefreshToken(token: string): void {
  * 一枚可能已被服务端轮换掉的 refresh 去刷新，然后卡在「刷新失败」上。
  */
 export function clearSession(): void {
+  accessToken = '';
+  refreshToken = '';
+
   removeStorage(TOKEN_KEY);
   removeStorage(REFRESH_TOKEN_KEY);
 }
@@ -164,8 +220,17 @@ export function withQuery(url: string, params?: Record<string, QueryValue>): str
 }
 
 /** 统一走这一层发请求。resolve 出去的是信封里的 `data`，调用点拿到的就是业务对象 */
-export function request<T>(options: RequestOptions): Promise<T> {
+export async function request<T>(options: RequestOptions): Promise<T> {
   const { url, method = 'GET', data, params, timeout = DEFAULT_TIMEOUT } = options;
+
+  /*
+   * 先把 token 读进内存，再拼 header。
+   *
+   * 这一步是异步的（uni.getStorage 而不是 getStorageSync）：
+   * 同步读会阻塞 JS 线程，而启动链路上微信体检会数同步 API 的调用次数。
+   * 代价只是多等几毫秒 —— 请求本身要走几百毫秒的网络，这点等待看不出来。
+   */
+  await ensureTokensLoaded();
 
   const header: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -247,14 +312,14 @@ let refreshPending: Promise<boolean> | null = null;
  * 留着只会让下一次请求继续拿一枚过期 token 去撞 401。
  */
 async function doRefresh(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
+  const stored = getRefreshToken();
+  if (!stored) return false;
 
   try {
     const data = await request<SessionTokens>({
       url: 'v3/refresh-token',
       method: 'POST',
-      data: { refresh_token: refreshToken },
+      data: { refresh_token: stored },
     });
 
     setToken(data.access_token);
