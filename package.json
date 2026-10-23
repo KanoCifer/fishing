@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "uni -p mp-weixin",
-    "build": "uni build -p mp-weixin && node scripts/clean-dist.mjs",
+    "build": "uni build -p mp-weixin && node scripts/clean-dist.mjs && node scripts/check-mp-compat.mjs",
+    "check:compat": "node scripts/check-mp-compat.mjs",
     "assets": "python3 scripts/optimize-assets.py",
     "type-check": "vue-tsc --noEmit",
     "lint": "oxlint",

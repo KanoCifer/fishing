@@ -2,3 +2,6 @@ allowBuilds:
   core-js: true
   core-js-pure: true
   esbuild: true
+patchedDependencies:
+  marked@18.1.1: patches/marked@18.1.1.patch
+  mp-html@2.5.2: patches/mp-html@2.5.2.patch

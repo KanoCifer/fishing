@@ -1,0 +1,45 @@
+diff --git a/dist/uni-app/components/mp-html/parser.js b/dist/uni-app/components/mp-html/parser.js
+index 7804122afc75f1fdc3ed76c4e3ba6af9b082d5cb..277921a1f47e3ed807576392b1c3fdd84eeaeb24 100644
+--- a/dist/uni-app/components/mp-html/parser.js
++++ b/dist/uni-app/components/mp-html/parser.js
+@@ -77,10 +77,30 @@ const config = {
+ }
+ const tagSelector={}
+ let windowWidth, system
++/*
++ * patched by yulu: system 改成惰性取。
++ *
++ * 原来这里是模块顶层直接 `uni.getDeviceInfo()`。小程序端这个 API 会顺带
++ * 读一次**同步** Storage（设备 UUID，uni 运行时的统计模块塞进去的），
++ * 而这个模块被打进 common/vendor.js —— 也就是 App 启动时就会执行。
++ * 微信体检因此记了一条「首屏渲染前多次调用同步 API」。
++ *
++ * system 只在一个地方用到：selectable === 'force' 时判断是不是 iOS。
++ * 改成用到时才取，启动阶段就一次同步 API 都不碰了。
++ */
++function getSystem() {
++  if (!system) {
++    try {
++      system = (uni.getDeviceInfo() || {}).system || ''
++    } catch (e) {
++      system = ''
++    }
++  }
++  return system
++}
+ // #ifdef MP-WEIXIN
+ if (uni.canIUse('getWindowInfo')) {
+   windowWidth = uni.getWindowInfo().windowWidth
+-  system = uni.getDeviceInfo().system
+ } else {
+ // #endif
+   const systemInfo = uni.getSystemInfoSync()
+@@ -1186,7 +1206,7 @@ Parser.prototype.onText = function (text) {
+   node.text = decodeEntity(text)
+   if (this.hook(node)) {
+     // #ifdef MP-WEIXIN
+-    if (this.options.selectable === 'force' && system.includes('iOS') && !uni.canIUse('rich-text.user-select')) {
++    if (this.options.selectable === 'force' && getSystem().includes('iOS') && !uni.canIUse('rich-text.user-select')) {
+       this.expose()
+     }
+     // #endif
