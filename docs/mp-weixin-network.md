@@ -72,7 +72,7 @@ uni.getLocation({ type: 'gcj02' });
 
 **必须是 gcj02** —— 小程序 `<map>` 组件用的是 GCJ-02 火星坐标系。传 wgs84（GPS 原始坐标）会偏移几百米，这是最常见的对不上问题。
 
-全应用只有 `stores/fishingMap` 调 `uni.getLocation` 一处。地图的定位键、结论头的刷新键、数据页的取数共用它 —— 两处各调一次会弹两次权限窗，也会拿到两个略有差异的点。
+全应用只有 `stores/fishingMap` 调 `uni.getLocation` 一处。地图的定位键、概览区的刷新键、数据页的取数共用它 —— 两处各调一次会弹两次权限窗，也会拿到两个略有差异的点。
 
 ⚠️ `getLocation` 是隐私接口，`src/manifest.json` 的 `mp-weixin.requiredPrivateInfos` 必须声明它，否则真机上调用直接被拒：`getLocation:fail the api need to be declared in the requiredPrivateInfos field in app.json`。没声明的表现是：开发者工具里正常，真机一点就失败，连授权弹窗都不弹。
 

@@ -103,6 +103,13 @@ const refreshIcon = icon('refresh-cw', 'muted');
   line-height: 1;
 }
 
+/*
+ * 等级词的颜色。
+ *
+ * 走文字专用的深档（-ink），不用填充档 —— 这一行是当文字读的，
+ * 15pt 的小字撑不住填充档的对比度（见 _color.scss 的说明）。
+ * 与首屏概览里的等级词用同一套，一眼能对上。
+ */
 .verdict-bar__level--success {
   color: $fish-success-ink;
 }
@@ -112,11 +119,11 @@ const refreshIcon = icon('refresh-cw', 'muted');
 }
 
 .verdict-bar__level--warning {
-  color: $fish-warning;
+  color: $fish-warning-ink;
 }
 
 .verdict-bar__level--destructive {
-  color: $fish-destructive;
+  color: $fish-destructive-ink;
 }
 
 .verdict-bar__level--muted {

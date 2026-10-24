@@ -39,3 +39,23 @@ const CAP = 8;
 export function enterDelay(index: number): string {
   return `${Math.min(Math.max(index, 0), CAP) * STEP}ms`;
 }
+
+/**
+ * 入场样式的行内绑定（延迟 + 动画名）。
+ *
+ * CSS 动画同名跑完就是跑完了：二次进入这一页，它停在终态，不会自己再播一遍。
+ * 重播只有一个办法 —— 把 animation-name 摘掉再挂回。
+ *
+ * show 为 false 时写 'none'：动画没了，元素停在自己「先不在」的状态
+ * （opacity: 0 写在 fish-enter mixin 里，见 _motion.scss），
+ * 屏幕上不会先亮一下终态再淡入。翻回 true 时名字换回去，动画从头跑一遍。
+ *
+ * 'fish-enter' 这个名字必须跟 App.vue 里那份 @keyframes 对上 ——
+ * 降级开关关掉关键帧后，这条行内样式引用不到动画，自动失效。
+ */
+export function enterStyle(index: number, show: boolean): Record<string, string> {
+  return {
+    animationDelay: enterDelay(index),
+    animationName: show ? 'fish-enter' : 'none',
+  };
+}

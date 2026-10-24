@@ -12,7 +12,7 @@
 
     关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
     内容从屏幕最顶端开始排，状态栏和胶囊按钮都压在这一屏上。
-    这里给 padding-top 让开 navBarBottom，理由与 VerdictHeader 相同。
+    这里给 padding-top 让开 navBarBottom，理由与 VerdictOverview 相同。
   -->
   <view class="mine" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />

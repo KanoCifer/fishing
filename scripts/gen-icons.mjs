@@ -54,7 +54,7 @@ const ALPHA = { muted: 0.6, muted60: 0.3 };
  * 上的定位键）。其余地方不该加。
  */
 const ICONS = [
-  // —— 结论头 ——
+  // —— 首屏概览 ——
   { name: 'map-pin', color: 'muted', use: '实况地点' },
   { name: 'refresh-cw', color: 'muted', use: '刷新天气与指数' },
   { name: 'fish', color: 'success', use: '钓鱼指数标记' },
@@ -63,7 +63,8 @@ const ICONS = [
   { name: 'wind', color: 'blue600', use: '风速信号' },
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
-  { name: 'sparkles', color: 'blue600', use: 'AI 分析按钮' },
+  { name: 'sparkles', color: 'blue600', use: 'AI 分析入口' },
+  { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头' },
   // —— 地图 toolbar ——
   // 卫星与路况是**两个独立开关**，各自要「开」与「关」两个色值：
   // 图标是颜色烤死的 data URI，状态只能靠换一份色值来表达。

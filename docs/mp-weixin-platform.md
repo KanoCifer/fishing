@@ -119,11 +119,16 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 ## canvas
 
+- **小程序端没有内联 SVG —— WXML 不认 `<svg>` 标签。** 想画环、画路径、画图表，一律走 canvas 2d。
+  （浏览器原型里用 SVG 画的效果很好，但那份代码落不回 `src/`：原型目录 `prototypes/` 不进版本库，
+  能留到仓库里的只有这条结论本身。）
+  SVG 只有一种用法：转成 data URI 塞进 `<image>` 的 `src`，当作一张静态图显示 ——
+  但那样就动不了，`<image>` 里没法逐帧改。
 - **canvas 2d 不解析 `var()`**，只认 rgb/hex。所以主题是编译期常量，canvas 侧色值硬编码，**要与令牌层 `src/styles/tokens/_color.scss` 手工保持一致**（`$fish-tide`、`$fish-temp` 是锚点）
 - **canvas 的字体族要抄 `$fish-font`**，不能写裸 `sans-serif` —— iOS 上 `sans-serif` 落到的是 Helvetica，`-apple-system` 才是 SF Pro（见 `src/utils/poster.ts` 的 `FONT_STACK`）
 - dpr 从 `uni.getWindowInfo().pixelRatio` 取
 - 画布尺寸先 `uni.upx2px()` 换算成 px
-- **逻辑层没有全局 rAF**，取帧走 canvas 节点自带的 `requestAnimationFrame`（基础库 2.7.0+），见 `FishingGauge` 顶部的类型声明
+- **逻辑层没有全局 rAF**，取帧走 canvas 节点自带的 `requestAnimationFrame`（基础库 2.7.0+），见 `LineChart` 顶部的类型声明
 - **要导出成文件的画布，位图按设计分辨率铺，显示尺寸交给 CSS。** 按「CSS 尺寸 × dpr」铺位图，导出时就得把它放大回设计尺寸 —— 存下来的是放大件，字和码都糊
 - **`createImage()` 的 src 只认网络地址与 base64 Data URI**（基础库 2.11.0 起）。代码包里的本地文件不在承诺里，要先 `getFileSystemManager().readFile({ encoding: 'base64' })` 读出来再给画布（见 `src/utils/canvasImage.ts`）
 - **SVG data URI 在 `<image>` 里能显示，但 canvas 的 `createImage()` 吃它没保证** —— canvas 里要图标就用路径画（见 `src/utils/poster.ts` 的 `mapPin`）

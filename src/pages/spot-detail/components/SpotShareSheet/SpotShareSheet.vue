@@ -130,7 +130,7 @@ const cardPath = ref('');
 
 /**
  * `fields({ node: true })` 返回的 canvas 节点没有官方类型，
- * 按实际用到的成员局部声明（与 FishingGauge 保持一致）。
+ * 按实际用到的成员局部声明（与 LineChart 保持一致）。
  */
 interface CanvasNode2D {
   width: number;
@@ -160,7 +160,7 @@ const canvasStyle = computed(() => ({
 
 /* ── 绘制 ────────────────────────────────────────────────────────────── */
 
-/** 画布节点的获取重试节奏（毫秒）。与 FishingGauge 同一套 */
+/** 画布节点的获取重试节奏（毫秒）。与 LineChart 同一套 */
 const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
 
 let retryIndex = 0;

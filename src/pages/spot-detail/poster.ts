@@ -7,7 +7,7 @@
  *
  * ⚠️ canvas 2d **不解析 var()**，只认 rgb/hex。所以这里的色值是硬编码的，
  * 与 `src/styles/tokens/_color.scss` 的同名令牌手工保持一致 ——
- * 改那边要记得回来改这里（跟 FishingGauge / TideChart 是同一套约定）。
+ * 改那边要记得回来改这里（跟 LineChart / TideChart 是同一套约定）。
  *
  * 字号与字距同理：与 `src/styles/tokens/_type.scss` 的字阶角色一一对应，
  * 角色名标在 TYPE 里（见下）。canvas 里没有 mixin，只能手写，
@@ -43,7 +43,7 @@ import { POSTER } from './share';
  * canvas 里的图片对象。
  *
  * `canvas.createImage()` 返回的东西没有官方类型，按实际用到的成员局部声明
- * （与 LineChart / FishingGauge 保持一致）。
+ * （与 LineChart / TideChart 保持一致）。
  */
 export interface PosterImage {
   src: string;

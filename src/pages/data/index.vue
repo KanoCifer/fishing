@@ -19,22 +19,26 @@
         :place="placeName"
         @refresh="onRefresh"
       />
-
-      <!-- 结论 -->
-      <VerdictHeader @feedback="openFeedback" @analysis="openAnalysis" />
+      <!--
+        首屏概览也吃 showAnim：它是这一屏唯一看得见的东西，
+        二次进入时它不重播，下面那些卡片重播了也看不见（都在折线以下）。
+        入场动画的归属在组件里（组件内部是普通 view，不吃宿主节点那个坑），
+        页面只负责把「现在播不播」告诉它。
+      -->
+      <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0)">天气</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
 
-        <view class="sect__card" :style="enterStyle(0)">
+        <view class="sect__card" :style="enterStyle(0, showAnim)">
           <LifeIndexCard />
         </view>
-        <view class="sect__card" :style="enterStyle(1)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <MetricChart />
         </view>
-        <view class="sect__card" :style="enterStyle(2)">
+        <view class="sect__card" :style="enterStyle(2, showAnim)">
           <HourlyWeather />
         </view>
-        <view class="sect__card" :style="enterStyle(3)">
+        <view class="sect__card" :style="enterStyle(3, showAnim)">
           <WeekStrip />
         </view>
       </view>
@@ -45,36 +49,36 @@
         钓鱼是跟日照过不去的活，这一段给的是决定出钓时间的那几个数。
       -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0)">日照与月相</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">日照与月相</text>
 
-        <view class="sect__card" :style="enterStyle(1)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <AstroCard />
         </view>
       </view>
 
       <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0)">潮汐</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">潮汐</text>
 
-        <view class="sect__card" :style="enterStyle(1)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <TideCard />
         </view>
       </view>
 
       <!-- 指数构成：九项子特征各自贡献多少 -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0)">指数构成</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">指数构成</text>
 
-        <view class="sect__card" :style="enterStyle(1)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <FeatureBreakdown />
         </view>
       </view>
 
       <!-- 天气详情：实况的逐项读数 -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0)">天气详情</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">天气详情</text>
 
-        <view class="sect__card" :style="enterStyle(1)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <WeatherCard />
         </view>
       </view>
@@ -121,14 +125,14 @@ import MetricChart from '@/components/MetricChart/MetricChart.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
-import VerdictHeader from '@/components/VerdictHeader/VerdictHeader.vue';
+import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { enterDelay } from '@/utils/motion';
+import { enterStyle } from '@/utils/motion';
 import { levelTone } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
@@ -146,13 +150,6 @@ const feedbackOpen = ref(false);
 const analysisOpen = ref(false);
 
 const showAnim = ref(false);
-
-function enterStyle(index: number): Record<string, string> {
-  return {
-    animationDelay: enterDelay(index),
-    animationName: showAnim.value ? 'fish-enter' : 'none',
-  };
-}
 
 /**
  * 反馈关联的钓点 id，取自钓点页共享过来的选中态。
