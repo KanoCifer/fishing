@@ -47,6 +47,10 @@ page {
     @include fish-enter-frames;
   }
 
+  @keyframes fish-enter-sheet {
+    @include fish-enter-sheet-frames;
+  }
+
   @keyframes fish-enter-media {
     from {
       opacity: 0;

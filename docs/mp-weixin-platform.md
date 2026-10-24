@@ -117,6 +117,23 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 1. uni 的 `.in()` 内部读的是 `component.$scope`。传 Vue 内部实例时 `$scope` 取不到，会退化成一份字段全是 undefined 的 mock，作用域等于没限定
 2. glass-easel 下 `wx.createSelectorQuery()` 走兼容层，比实例上的 `createSelectorQuery()` 慢一截 —— 微信官方适配指引把这条列为「应尽量使用后者」
 
+## 测量与动画互斥：先量后动
+
+`SelectorQuery.boundingClientRect()` 量的是**当下**那个盒子。元素身上带着 `transform` 时，量到的就不是它的布局尺寸 —— 面板入场动画里有 `scale`，量出来的高度会按缩放比例缩水，滚动区就凭空短一截（内容被底部动作区盖住一截）。
+
+所以顺序要反过来：**先量，再动**。
+
+`SnapSheet` 现在的做法：
+
+1. 面板挂上去，但入场动画按住不动（`--preparing`：`animation: none` + `opacity: 0`）
+2. `nextTick` 之后量头部、正文、底部动作区
+3. 量完撤掉 `--preparing`，动画从头播
+
+顺带两条：
+
+- 测量窗口里**不要用位移把元素挪出屏幕**。位移不改尺寸，量到的仍然是真高度；但节点离屏会不会影响查询结果，不值得赌 —— 靠 `opacity: 0` 藏起来就够。
+- 量高回不来要有兜底。回调不回来时面板会一直停在「藏着」的状态，等于浮层打不开。`SnapSheet` 给的是 400ms 兜底：宁可先用估值高度出场。
+
 ## canvas
 
 - **小程序端没有内联 SVG —— WXML 不认 `<svg>` 标签。** 想画环、画路径、画图表，一律走 canvas 2d。

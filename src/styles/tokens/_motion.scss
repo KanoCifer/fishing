@@ -19,7 +19,18 @@ $fish-spring: cubic-bezier(0.2, 0, 0, 1); // 临界阻尼
 
 $fish-dur-fast: 100ms; // 按下
 $fish-dur-base: 500ms; // 状态切换 / 入场落位
-$fish-dur-slow: 800ms; // 面板出入场
+$fish-dur-slow: 800ms; // 内容落位 / 头图显形
+
+/**
+ * 浮层呈现（面板滑进来落定）。
+ *
+ * 与 $fish-dur-slow 分开：800ms 那条给的是「内容慢慢就位」——
+ * 一屏里几块内容依次落位，观众等的是最后一块。
+ * 面板入场是**一次性**的位移：从屏幕外走到落点，观众全程盯着它。
+ * 800ms 走完这一段，等于让人多等半秒才看到东西；600ms 是
+ * 「看得清是滑上来的，但不至于等」的位置。
+ */
+$fish-dur-sheet: 600ms;
 
 /**
  * 按下回弹。
@@ -186,7 +197,7 @@ $fish-enter-y: 40rpx;
 @mixin fish-enter($delay: 0ms) {
   @if $fish-motion {
     opacity: 0;
-    transform: translateY($fish-enter-y) translateZ(0) scale(0.9);
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
     animation: fish-enter $fish-dur-slow $fish-ease-out $delay both;
   }
 }
@@ -208,6 +219,54 @@ $fish-enter-y: 40rpx;
   to {
     opacity: 1;
     transform: translateY(0) translateZ(0) scale(1);
+  }
+}
+
+/**
+ * 浮层内内容的落位幅度。
+ *
+ * 比页面内的 $fish-enter-y（40rpx）小一半：面板本身已经在滑，
+ * 内容再大幅上移就是两层位移叠在一起，读作抖。
+ * 16rpx = 8pt，够看出「落下来」，又不会跟面板打架。
+ */
+$fish-enter-sheet-y: 16rpx;
+
+/**
+ * 浮层内内容的落位。
+ *
+ * 与 fish-enter 同源，但两处不一样：
+ * - 幅度小（$fish-enter-sheet-y），理由同上；
+ * - 不缩放。面板入场末尾自己带一点缩放过冲，里面再来一层缩放，
+ *   文字会被放大缩小地重新光栅化一遍 —— 面板一屏都在动，这一层是纯开销。
+ *
+ * 延迟由调用方给（utils/motion 的 enterDelay，步长 60ms），
+ * 这里不写死：浮层里哪几块内容落位、谁先谁后，调用方自己定。
+ * 延迟走行内 animation-delay，类里这条 animation 的 0s 会被它盖掉。
+ */
+@mixin fish-enter-sheet {
+  @if $fish-motion {
+    opacity: 0;
+    transform: translateY($fish-enter-sheet-y) translateZ(0);
+    animation: fish-enter-sheet $fish-dur-base $fish-ease-out both;
+  }
+}
+
+/**
+ * 浮层内落位的帧内容。
+ *
+ * 与 fish-enter-frames 同一个道理：@keyframes 只能写在全局样式里，
+ * 帧里的值要从令牌层拿，改幅度只改这一处。
+ * 初始状态必须与 from 帧完全一致，否则起手那一帧会跳一下。
+ */
+@mixin fish-enter-sheet-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-enter-sheet-y) translateZ(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
   }
 }
 

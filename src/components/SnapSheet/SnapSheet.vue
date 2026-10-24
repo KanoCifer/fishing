@@ -27,7 +27,7 @@
       class="snap-sheet__panel"
       :class="{
         'snap-sheet__panel--out': closing,
-        'snap-sheet__panel--measuring': measuring,
+        'snap-sheet__panel--preparing': preparing,
         'snap-sheet__panel--dragging': dragging,
       }"
       :style="panelStyle"
@@ -51,7 +51,12 @@
       </view>
 
       <!-- 头部 -->
-      <view v-if="$slots.header" ref="headerRef" class="snap-sheet__header">
+      <view
+        v-if="$slots.header"
+        ref="headerRef"
+        class="snap-sheet__header snap-sheet__enter"
+        :style="{ animationDelay: enterDelay(CONTENT_BASE) }"
+      >
         <slot name="header" />
       </view>
       <scroll-view class="snap-sheet__body" scroll-y :style="bodyStyle">
@@ -61,8 +66,14 @@
           面板高度要按内容算，就得知道正文有多高。而 slot 进来的是各页面
           自己的根节点，样式各不相同，没有一个统一的类可以量 ——
           包一层才有固定的盒子可量。
+
+          这一层也是内容落位的第一段（正文）。落位动的是 transform，
+          不改布局高度 —— 量出来的高度和最终的高度是同一个。
         -->
-        <view class="snap-sheet__body-inner">
+        <view
+          class="snap-sheet__body-inner snap-sheet__enter"
+          :style="{ animationDelay: enterDelay(CONTENT_BASE + 1) }"
+        >
           <slot />
         </view>
       </scroll-view>
@@ -75,7 +86,12 @@
         用插槽而不是让页面自己塞进正文，是因为正文是滚动区，
         塞进去的按钮会跟着滚走，还得自己再补一遍定位。
       -->
-      <view v-if="$slots.footer" ref="footerRef" class="snap-sheet__footer">
+      <view
+        v-if="$slots.footer"
+        ref="footerRef"
+        class="snap-sheet__footer snap-sheet__enter"
+        :style="{ animationDelay: enterDelay(CONTENT_BASE + 2) }"
+      >
         <slot name="footer" />
       </view>
     </view>
@@ -87,6 +103,7 @@ import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { enterDelay } from '@/utils/motion';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 interface Props {
@@ -163,16 +180,34 @@ const footerHeight = ref(0);
 const contentHeight = ref(0);
 
 /**
- * 高度是否已经定下来了。
+ * 准备阶段：面板先量，再动。
  *
- * fitContent 下面板高度是量出来的：量之前只能先给个估值，
- * 那一下浮层会从矮长到高 —— 看着像自己弹了一下。
- * 所以量完之前面板先不显示（--measuring），高度定下来再让它入场。
+ * 测量的那几十毫秒里，面板不能带着缩放 —— 缩放会改盒子高度，
+ * 量出来的正文高度就是假的，滚动区会凭空短一截。
+ * 也不能已经滑进来了：那是内容定高的浮层，从估值高度长到真实高度，
+ * 看着像自己弹了一下。
+ *
+ * 所以这段时间面板的入场动画按着不动，量完再放它入场。
  */
-const settled = ref(false);
+const preparing = ref(false);
 
-/** 是否处于「量高度」的阶段。只有 fitContent 才有这个阶段 */
-const measuring = computed(() => props.fitContent && !settled.value);
+/**
+ * 测量兜底时限（ms）。
+ *
+ * 量高回不来时不能让面板一直藏着 —— 那等于浮层打不开，
+ * 用户只能戳遮罩把它关掉。宁可先用估值高度出场。
+ */
+const PREPARE_TIMEOUT_MS = 400;
+
+/** 兜底定时器。量回来了就撤掉 */
+let prepareTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearPrepareTimer(): void {
+  if (prepareTimer !== null) {
+    clearTimeout(prepareTimer);
+    prepareTimer = null;
+  }
+}
 
 /**
  * 量一次头部、正文、底部动作区。
@@ -203,8 +238,11 @@ function measure(): void {
       // 内容定高的浮层：量完才知道自己该多高，这时候才把它放出来
       if (props.fitContent) {
         heightPx.value = snapToPx(snap.value);
-        settled.value = true;
       }
+
+      // 量完了，放手让它入场
+      clearPrepareTimer();
+      preparing.value = false;
     });
 }
 
@@ -252,6 +290,17 @@ const bodyHeight = computed(() => {
 /** 退场时长（ms），与 CSS 中 snap-sheet-out 的时长保持一致 */
 const EXIT_MS = 260;
 
+/**
+ * 内容落位的起点序号。
+ *
+ * 面板自己还要滑 $fish-dur-sheet 才到位，内容晚一拍开始落位：
+ * 面板先落、内容再落，两层才有先后，不然整块一起动只剩一层。
+ *
+ * 序号走 enterDelay 的 60ms 步长（见 utils/motion）：4 → 240ms，
+ * 头部、正文、底部动作依次往后挪一格。
+ */
+const CONTENT_BASE = 4;
+
 /** 节点真实存在。open 只是意图，动画播完才落到这里 */
 const rendered = ref(false);
 /** 退场中：动画已触发、节点尚未卸载 */
@@ -269,7 +318,10 @@ function clearExitTimer(): void {
   }
 }
 
-onUnmounted(clearExitTimer);
+onUnmounted(() => {
+  clearExitTimer();
+  clearPrepareTimer();
+});
 
 /** 档位 → px */
 function snapToPx(index: number): number {
@@ -310,8 +362,14 @@ watch(
       rendered.value = true;
       closing.value = false;
       cycle.value += 1;
-      // 内容定高的浮层要先量才知道自己多高，量完之前面板不显示
-      settled.value = false;
+      // 先量再动：量完之前入场动画按着不动
+      preparing.value = true;
+      // 量不回来也得让它出来：兜底时限一到就放手
+      clearPrepareTimer();
+      prepareTimer = setTimeout(() => {
+        prepareTimer = null;
+        preparing.value = false;
+      }, PREPARE_TIMEOUT_MS);
       // 等面板真渲染出来再量头部、正文与底部动作区 —— 此刻节点还没进 DOM，量了也是 0
       void nextTick().then(() => {
         measure();
@@ -324,7 +382,8 @@ watch(
     if (!rendered.value) return;
     closing.value = true;
     // 量高度还没完就被关掉：先把它放出来，不然退场动画演给空气看
-    settled.value = true;
+    clearPrepareTimer();
+    preparing.value = false;
     exitTimer = setTimeout(() => {
       rendered.value = false;
       closing.value = false;
@@ -485,16 +544,24 @@ function onMaskTap() {
    */
   box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.16);
   /*
-   * 入场：从底部下方滑上来，落位时归零 transform。
+   * transform-origin 钉在底边。
+   *
+   * 入场末尾要越过落点一点再落定（弹簧感），缩放过冲时底边必须留在屏幕上：
+   * 以中心为原点的话，面板会离地，屏幕底下露出一条缝。
+   * 钉在底边之后，越过的是上沿 —— 读作「它被顶过头了一点」，不是「它飘了一下」。
+   */
+  transform-origin: bottom center;
+  /*
+   * 入场：从底部下方滑上来，越过一点，落定。
    *
    * 这里动 transform 而不是 height：入场是瞬时的一次性动画，
    * 不像拖拽那样每帧都在变 height，中间高度跳来跳去会很难看。
    * 面板始终贴底，滑入过程中露出的是地图，本来就该露。
    *
-   * 曲线用 $fish-ease-out：末端加速后急停，是 iOS 呈现面板的形状。
-   * 800ms 给了它足够的「被拿起来」的分量，再短就退化成淡入了。
+   * 时长用 $fish-dur-sheet（600ms）：面板是一次性位移，观众全程盯着它，
+   * 800ms 那条是给「内容慢慢就位」用的，套在这里等于让人多等半秒。
    */
-  animation: snap-panel-in $fish-dur-slow $fish-ease-out both;
+  animation: snap-panel-in $fish-dur-sheet both;
 }
 
 /* 退场：原路滑回底部。260ms 必须与脚本里的 EXIT_MS 一致 */
@@ -515,20 +582,53 @@ function onMaskTap() {
 }
 
 /*
- * 量高度期间的浮层。
+ * 准备阶段的浮层：先量，再动。
  *
- * 内容定高的浮层要先量才知道自己多高，量之前只能给个估值 ——
+ * 测量的那几十毫秒里，面板不能带缩放 —— 缩放会改盒子高度，
+ * 量出来的正文高度就是假的，滚动区会凭空短一截。
+ * 所以这段时间入场动画先按住（animation: none），量到的就是真的。
+ *
+ * 也不能让它已经滑进来：内容定高的浮层在量之前只有估值高度，
  * 那一下会从矮长到高，看着像自己弹了一下。
- * 所以量完之前先藏起来。
  *
  * 用 opacity 而不是 visibility：元素照样参与布局、照样量得到高度，
  * 只是不画出来；visibility: hidden 在部分内核上不参与命中测试，
  * 这里还要 pointer-events: none 让这一帧的点击穿透到遮罩。
- * 高度定下来、--measuring 摘掉，入场动画才从头播。
+ *
+ * 量完、--preparing 摘掉，入场动画才从头播。切换那一帧不会闪出面板：
+ * 入场动画的 from 帧也是 opacity: 0，摘掉遮罩的那一刻它还是透明的。
  */
-.snap-sheet__panel--measuring {
+.snap-sheet__panel--preparing {
   opacity: 0;
   pointer-events: none;
+  animation: none;
+}
+
+/*
+ * 浮层内内容的落位。
+ *
+ * 头部、正文、底部动作各晚一格落下来（延迟走行内 animation-delay，
+ * 见脚本里的 CONTENT_BASE）。幅度比页面内的小：面板本身在滑，
+ * 内容再大幅上移就是两层位移叠在一起。
+ */
+.snap-sheet__enter {
+  @include fish-enter-sheet;
+}
+
+/*
+ * 测量窗口里，内容回到「没动画」的样子。
+ *
+ * 量的是头部、正文、底部动作区这三个盒子，它们身上带着落位动画。
+ * 落位只动 opacity 和位移，尺寸不变，量到的仍是布局高度 ——
+ * 但让它们在测量时回到常态（可见、不带 transform）最稳：
+ * 量到的就是最终布局，量完动画再从头播。
+ *
+ * 摘掉 --preparing 的那一刻面板也是透明的（入场动画的 from 帧是 opacity: 0），
+ * 所以内容在那一瞬「显形又隐去」看不见。
+ */
+.snap-sheet__panel--preparing .snap-sheet__enter {
+  opacity: 1;
+  transform: none;
   animation: none;
 }
 
@@ -604,18 +704,42 @@ function onMaskTap() {
 }
 
 /**
- * 入场：translateY 用百分比，锚的是面板自身高度，
+ * 入场：滑上来 → 越过一点 → 落定。
+ *
+ * 分三段而不是一条曲线：弹簧的「过冲再回落」得自己写出来。
+ * 一条 cubic-bezier 的过冲是按比例作用于所有属性的 —— 面板位移按自身高度算，
+ * 缩放只有 2%，同一个过冲比例会让面板离地 1%，屏幕底下露出一条缝。
+ * 所以行程和回摆分开写，各自配一条曲线。
+ *
+ * translateY 用百分比，锚的是面板自身高度，
  * 所以不管当前档位多高，起点都在「刚好完全藏在屏幕下方」，
  * 不会出现矮面板只滑一半就露底的情况。
+ *
  * scale 收到 0.98 而不是 0.9：底边钉住不动，只让上沿微微前倾，
  * 缩太狠会看出面板在「变小」。
  */
 @keyframes snap-panel-in {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(100%) scale(0.98);
+    /* 行程：末端加速后急停 */
+    animation-timing-function: $fish-ease-out;
   }
-  to {
+
+  70% {
+    opacity: 1;
+    /* 越过一点：底边钉在屏幕上，越过的是上沿 */
+    transform: translateY(0) scale(1.002);
+    /* 回摆：临界阻尼，不来回弹 */
+    animation-timing-function: $fish-spring;
+  }
+
+  86% {
+    transform: translateY(0);
+    animation-timing-function: $fish-ease-out;
+  }
+
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
