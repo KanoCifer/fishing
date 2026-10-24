@@ -63,9 +63,20 @@ page {
   }
 }
 
+/*
+ * 流光按钮的转角。
+ *
+ * inherits 必须是 true：流光按钮拆成外壳（光）与内层（面 + 描边环）两层，
+ * 旋转的驱动在外壳上，角度要能传到内层的描边环和外壳自己的光晕，
+ * 三者才是同色同速。写成 false 的话，内层拿到的是 initial-value，
+ * 环不转、光晕不转，只有外壳那层在转 —— 环和光会对不上。
+ *
+ * 老设备不支持 @property 时，这条属性就是个普通自定义属性，
+ * 而普通自定义属性本来就继承，行为不变（只是插值不连续，转起来一跳一跳）。
+ */
 @property --fish-flow-angle {
   syntax: '<angle>';
-  inherits: false;
+  inherits: true;
   initial-value: 0deg;
 }
 
@@ -75,6 +86,28 @@ page {
   }
   to {
     --fish-flow-angle: 360deg;
+  }
+}
+
+/*
+ * 打字点 —— AI 建议面板生成中用。
+ *
+ * 三个点错开 160ms：同时跳是「加载」，依次跳才是「在打字」。
+ * 幅度只抬 2rpx，再多就变成弹跳了。
+ *
+ * 放全局一份，理由同上面的入场关键帧。
+ */
+@keyframes fish-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-2rpx);
   }
 }
 </style>

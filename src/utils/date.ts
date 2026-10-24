@@ -61,9 +61,25 @@ export function formatMoment(value: string | null | undefined): string {
 }
 
 /**
+ * 只取「HH:mm」。
+ *
+ * 给「这份数据是什么时候的」这类落款用：脚注要回答的是「几点钟更新的」，
+ * 不是「哪天的几点」—— 日期在页面上已经处处都是（今天、这一周），
+ * 再写一遍是噪音。数据可能来自昨天（缓存的潮汐表），但对用户来说
+ * 「10:31 更新」已经够用。
+ *
+ * 同样只切字符串不 new Date()，理由与 formatMoment 一致。
+ */
+export function formatTimeOfDay(value: string | null | undefined): string {
+  const parsed = parseFxTime(value ?? '');
+  if (!parsed) return '';
+  return parsed.time;
+}
+
+/**
  * 当前时刻，格式 `YYYY-MM-DD HH:mm:ss`。
  *
- * 送进 AI 分析载荷当时间戳用。后端只当字符串展示，不解析，
+ * 送进 AI 建议载荷当时间戳用。后端只当字符串展示，不解析，
  * 所以这里给的是设备本地时间 —— 展示给用户看的，设备本地时间才是对的。
  */
 export function formatDateTime(date: Date = new Date()): string {

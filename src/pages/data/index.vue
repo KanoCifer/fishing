@@ -86,7 +86,7 @@
         @close="feedbackOpen = false"
       />
 
-      <!-- AI 分析 -->
+      <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
     </view>
   </view>

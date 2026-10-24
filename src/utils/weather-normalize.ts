@@ -4,7 +4,7 @@
  * 为什么有这一层：和风新一代接口（/weather/v1/*）把数值和单位拆开
  * （`{ value, unit }`）、把风向风速嵌套成对象、湿度和云量给 [0,1] 的比例，
  * 一天还拆成白天 / 夜间两段。而组件（WeatherCard / VerdictOverview / WeekStrip …）
- * 和 AI 分析载荷要的一直是「扁平 + 全字符串」的视图模型。
+ * 和 AI 建议载荷要的一直是「扁平 + 全字符串」的视图模型。
  *
  * 换算全在这一处做，store 边界调用一次，组件和 AI 载荷一行都不用改 ——
  * 后端 `app/schemas/aiagent.py` 认的仍是 `liveWeather.temp` 这种扁平字段。

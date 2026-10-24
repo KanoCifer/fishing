@@ -144,10 +144,10 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 
 同一条限制在别处也成立，写按钮文案时先数一遍字数：
 
-| 接口                | 限制                                                |
-| ------------------- | --------------------------------------------------- |
-| `showModal`         | `confirmText` / `cancelText` 最多 4 个字符，超了不弹  |
-| `showToast`         | 带 `icon` 时标题最多 7 个汉字；`icon: 'none'` 最多两行 |
+| 接口        | 限制                                                   |
+| ----------- | ------------------------------------------------------ |
+| `showModal` | `confirmText` / `cancelText` 最多 4 个字符，超了不弹   |
+| `showToast` | 带 `icon` 时标题最多 7 个汉字；`icon: 'none'` 最多两行 |
 
 `showToast` 的超长只是被截断，不会失败；`showModal` 的超长是直接不弹 —— 两者的后果不一样，
 前者难看，后者没反馈。
@@ -331,6 +331,41 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
 样式隔离挡的是「选择器匹配到组件内部的节点」，不是「关键帧的名字解析」。
 所以 `fish-enter` / `fish-enter-media` 放在 App.vue 是安全的，
 组件内部直接 `animation: fish-enter …` 就能用，不必每个组件再抄一份关键帧。
+
+## transform 会创建层叠上下文：按一下，底色就没了
+
+`transform`（还有 `filter`、`opacity < 1`、`will-change`）会让元素建立**层叠上下文**。
+平时看不出问题，直到你在这个元素上放一个 `z-index: -1` 的装饰层。
+
+层叠上下文内部的绘制顺序是固定的：**元素自己的背景 → 负 z-index 的子层 → 普通流内容**。
+所以 `z-index: -1` 的伪元素在没有层叠上下文时，是掉到外面那一层去、垫在宿主背景**之下**；
+一旦宿主自己成了层叠上下文，这个 `-1` 就被关在宿主内部，翻成宿主背景**之上**。
+
+流光按钮就撞上了这个：外发光是 `::before` + `z-index: -1` + `blur()`，
+按钮按下去要 `transform: scale(0.97)`。一按，光晕从「垫在按钮底下」翻到「压在按钮面上」，
+白色的面整块消失，整颗按钮糊成一团渐变；光晕的 blur 还会顺着层叠上下文溢到上一层内容上。
+
+**症状是「按下去才坏」**：静止截图里一切正常，一交互就露馅。
+
+**做法**：transform 只能落在一个**困不住装饰层**的层上。所以拆两层：
+
+- 外壳：持渐变定义、光晕、旋转驱动，**不带 transform**
+- 内层：持面色、描边环、按下缩放，**带 transform**
+
+外壳没有 transform 就没有层叠上下文，`z-index: -1` 的光晕照旧掉到外面去，
+稳稳垫在按钮底下；内层的 transform 只影响它自己，碰不到光晕。
+代价是光晕不跟着一起缩（它在外壳上）—— 按下只缩 3%，差 2px 出头，看不出来。
+
+见令牌层 `_motion.scss` 的 `fish-flow`（外壳）与 `fish-flow-face`（内层），
+以及 `FishingAnalysisSheet` 的 `.analysis__btn` / `.analysis__btn-face`。
+
+**配套一条**：`@property` 注册的自定义属性，`inherits: false` 时子元素拿到的是
+`initial-value`，不是父元素正在动的那个值。描边环和光晕要同角同步，
+`--fish-flow-angle` 的 `inherits` 就必须是 `true`（见 `App.vue`）。
+写成 `false` 的后果是：环冻在 0°、光在转，两者对不上。
+
+**自查**：凡是「元素自己带 `transform` / `opacity` / `filter`，
+同时又有 `z-index: -1` 的装饰层」的写法，都要在状态变化时看一眼装饰层还在不在底下。
 
 ## 动画 API：别用 `uni.createAnimation`
 

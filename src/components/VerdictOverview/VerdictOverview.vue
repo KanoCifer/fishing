@@ -132,8 +132,8 @@
     <!--
       底部：一个主动作 + 一个入口 + 一行「下面还有」的提示。
 
-      主动作占满宽度，AI 分析退成一个文字入口 ——
-      这一屏的主动作是反馈，AI 分析是偶尔才想看一眼的补充。
+      主动作占满宽度，AI 建议退成一个文字入口 ——
+      这一屏的主动作是反馈，AI 建议是偶尔才想看一眼的补充。
     -->
     <view class="verdict__foot">
       <!-- 动作只在有数据时出现：没有指数的时候，「反馈今日指数」反馈不了任何东西 -->
@@ -145,7 +145,7 @@
 
         <view class="verdict__link" @tap="emit('analysis')">
           <image class="verdict__icon verdict__icon--accent" :src="sparklesIcon" mode="widthFix" />
-          <text class="verdict__link-text">AI 分析</text>
+          <text class="verdict__link-text">AI 建议</text>
         </view>
       </view>
 
@@ -177,7 +177,7 @@ import { nextHighTide, tideTrend } from '@/utils/tide';
 
 const emit = defineEmits<{
   feedback: [];
-  /** 打开 AI 分析面板 */
+  /** 打开 AI 建议面板 */
   analysis: [];
 }>();
 
@@ -678,10 +678,10 @@ function onRefresh() {
 }
 
 /*
- * AI 分析。
+ * AI 建议。
  *
  * 一个文字入口，不占一块面 —— 这一屏的主动作是反馈，
- * AI 分析是偶尔才想看一眼的补充，重量不该跟主动作一样。
+ * AI 建议是偶尔才想看一眼的补充，重量不该跟主动作一样。
  * 按下变暗不缩小（同分段控件，见 _motion.scss 的 fish-press-dim）。
  */
 .verdict__link {

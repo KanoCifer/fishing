@@ -43,7 +43,7 @@ constants/     文案与生成物
 | `v3/fish/spots/mine`       | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
 | `v3/fish/spots/:id`        | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
 | `v3/fish/spots/:id/review` | POST               | 管理员审核（放行 / 驳回）—— 小程序端不用，审核在 Web 后台  |
-| `v2/llm/weather-analysis`  | POST（SSE）        | AI 钓鱼分析                                                |
+| `v2/llm/weather-analysis`  | POST（SSE）        | AI 钓鱼建议                                                |
 | `v3/auth/wechat/login`     | POST               | 微信登录（服务端自动建号）                                 |
 | `v3/refresh-token`         | POST               | 刷新 token                                                 |
 | `v3/me`                    | GET                | 当前用户                                                   |
@@ -61,7 +61,7 @@ constants/     文案与生成物
 
 ## 归一
 
-上游（和风新一代接口）给的是「数值 + 嵌套对象」，组件和 AI 分析载荷要的是**扁平视图模型**。换算全在 `src/utils/weather-normalize.ts` 里做，**在 store 边界调一次**。
+上游（和风新一代接口）给的是「数值 + 嵌套对象」，组件和 AI 建议载荷要的是**扁平视图模型**。换算全在 `src/utils/weather-normalize.ts` 里做，**在 store 边界调一次**。
 
 组件一行都不用改，后端 `app/schemas/aiagent.py` 认的字段形状也就没变。上游换接口格式时，只改这一个文件。
 

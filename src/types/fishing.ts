@@ -334,7 +334,7 @@ export interface TideApiEnvelope {
 // ---------------------------------------------------------------------------
 
 /**
- * 天气**视图模型** —— 组件、store、AI 分析载荷用的都是这一套。
+ * 天气**视图模型** —— 组件、store、AI 建议载荷用的都是这一套。
  *
  * 字段全是字符串（如 temp: "29"）：渲染时直接拼字符串，
  * 各消费点要什么精度自己转，免得某一处转了另一处没转，出错时找不到源头。
@@ -617,11 +617,11 @@ export interface WeatherDailyBlockV1 {
 }
 
 // ---------------------------------------------------------------------------
-// AI 分析
+// AI 建议
 // ---------------------------------------------------------------------------
 
 /**
- * AI 分析的输入载荷 —— 对应 `POST /v2/llm/weather-analysis` 的 `weather_data`。
+ * AI 建议的输入载荷 —— 对应 `POST /v2/llm/weather-analysis` 的 `weather_data`。
  *
  * 字段名与后端 DTO 保持一致（见文件头的裁剪原则），不做本地改名。
  *
@@ -779,8 +779,8 @@ export interface FishingStats {
  * `fishing/index?enriched=true` 一个入口取天气（信封里那份 indices 后端也不填），
  * 单独再调 weather/full 只会多一次后端往返。真要拆开调时再把这几个类型加回来。
  *
- * FishingScores / AnalysisChunk —— 分数明细与分片类型，AI 分析链路用不到。
- * AI 分析的载荷见上面的 WeatherAnalysisPayload。
+ * FishingScores / AnalysisChunk —— 分数明细与分片类型，AI 建议链路用不到。
+ * AI 建议的载荷见上面的 WeatherAnalysisPayload。
  *
  * RouteInfo / SecurityKeyResponse / RegeoResponseData / PoiItem —— 路线规划
  * 和高德 JS API 的产物，本期不做。相关端点 `v3/amap/security-key` 也不用接了：

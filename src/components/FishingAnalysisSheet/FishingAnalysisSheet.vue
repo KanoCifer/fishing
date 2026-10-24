@@ -1,127 +1,139 @@
 <template>
   <SnapSheet :open="open" :snap-points="SNAP_POINTS" :initial-snap="1" @close="onClose">
     <template #header>
-      <view class="analysis__header">
-        <view class="analysis__header-text">
-          <text class="analysis__title">AI 分析</text>
-          <text class="analysis__subtitle">基于当前天气与潮汐综合判断</text>
-        </view>
-        <view class="analysis__badge" :class="'analysis__badge--' + statusTone">
-          <text class="analysis__badge-text">{{ statusLabel }}</text>
-        </view>
+      <view class="analysis__head">
+        <image class="analysis__head-icon" :src="sparklesIcon" mode="widthFix" />
+        <text class="analysis__title">AI 建议</text>
       </view>
     </template>
 
     <view class="analysis__content">
       <!--
-        工具条：模型选择 + 主操作。
+        没有天气数据：先说清为什么不能生成。
 
-        生成中时换成「停止」——同一个位置换按钮，不新增一行。
-        多一行的话面板刚打开时内容就被推到下面去了，首屏看不到结果。
+        这一屏只有一张「问句」，不是一堆说明文字 ——
+        问句本身就是入口，用户看到问题就想按按钮。
       -->
-      <view class="analysis__toolbar">
-        <!--
-          模型名。静态标签而不是 picker：目前只有一个模型，
-          点开一个只含一项的下拉框是白多点一次。
-          后端上更多模型时，这里换回 picker（见 api/ai.ts 的 AI_MODELS）。
-        -->
-        <view class="analysis__model">
-          <text class="analysis__model-name">{{ modelName }}</text>
-        </view>
-
-        <view v-if="isStreaming" class="analysis__btn analysis__btn--stop" @tap="onStop">
-          <text class="analysis__btn-text">停止</text>
-        </view>
-        <view
-          v-else
-          class="analysis__btn analysis__btn--primary"
-          :class="{ 'analysis__btn--disabled': !hasData }"
-          @tap="onGenerate"
-        >
-          <text class="analysis__btn-text">
-            {{ hasGenerated ? '重新分析' : '生成分析' }}
-          </text>
-        </view>
-      </view>
-
-      <!-- 没有天气数据：先说清为什么不能生成 -->
       <view v-if="!hasData" class="analysis__empty">
         <text class="analysis__empty-title">等待天气与潮汐数据</text>
-        <text class="analysis__empty-text">数据到位后即可生成分析</text>
+        <text class="analysis__empty-text">数据到位后即可生成建议</text>
       </view>
 
       <template v-else>
         <!--
-          思考过程。
+          还没生成：一句话的问句。
 
-          折叠起来放在正文上方：思考是过程，正文是结论，
-          过程默认不该占着结论的位置。
+          不写「点下方按钮，拿到今天的出行与垂钓建议」——
+          按钮就在下面，写出来是同一件事说两遍。
+          问句换一种说法：用户读到的是一个具体的问题，不是一条操作说明。
         -->
-        <view v-if="reasoning" class="analysis__reasoning">
-          <view class="analysis__reasoning-head" @tap="reasoningOpen = !reasoningOpen">
-            <text class="analysis__caret" :class="{ 'analysis__caret--open': reasoningOpen }">›</text>
-            <text class="analysis__reasoning-label">思考过程</text>
-          </view>
-          <text v-if="reasoningOpen" class="analysis__reasoning-text">{{ reasoning }}</text>
+        <view v-if="!hasStarted" class="analysis__empty">
+          <text class="analysis__empty-title">今天适合几点去？</text>
+          <text class="analysis__empty-text">用天气与潮汐给你一个窗口</text>
         </view>
 
-        <!-- 生成中：先给一句正在做什么，再给骨架 -->
-        <view v-if="isStreaming && !summary" class="analysis__loading">
-          <text class="analysis__loading-text">{{ loadingHint }}</text>
-          <view class="analysis__skeleton">
-            <view class="analysis__skeleton-line" />
-            <view class="analysis__skeleton-line analysis__skeleton-line--short" />
-            <view class="analysis__skeleton-line analysis__skeleton-line--mid" />
+        <!--
+          思考过程：一枚胶囊。
+
+          原先把思考过程做成正文上方一个带分隔线的块，占着结论的位置。
+          收成一枚胶囊后，它退到背景里 —— 想看的人点开，不关心的人看不见。
+
+          生成中时胶囊上是那句「正在做什么」的提示（跟着滚动轮播），
+          生成完才变成「思考过程」这个可展开的标签 ——
+          同一枚胶囊，先说进度、后说内容。
+        -->
+        <view v-if="showChip" class="analysis__chip" @tap="onToggleReasoning">
+          <image class="analysis__chip-icon" :src="chevronIcon" mode="widthFix" />
+          <text class="analysis__chip-text">{{ chipLabel }}</text>
+        </view>
+
+        <!-- 展开的思考过程。胶囊正下方，不另开一块地方 -->
+        <view v-if="reasoningOpen && reasoning" class="analysis__reasoning">
+          <text class="analysis__reasoning-text">{{ reasoning }}</text>
+        </view>
+
+        <!-- 生成中：打字点。骨架屏留给「形状可预知」的加载，回答的形状不可预知 -->
+        <view v-if="isStreaming && !summary" class="analysis__bubble analysis__bubble--typing">
+          <view class="analysis__typing">
+            <view class="analysis__typing-dot" />
+            <view class="analysis__typing-dot" />
+            <view class="analysis__typing-dot" />
           </view>
         </view>
 
         <!-- 结果 -->
-        <view v-else-if="summary" class="analysis__result">
+        <view v-else-if="summary" class="analysis__bubble">
           <MarkdownView :content="summary" />
         </view>
 
-        <!-- 还没生成 -->
-        <view v-else class="analysis__placeholder">
-          <text class="analysis__placeholder-text">点「生成分析」，拿到今天的出行与垂钓建议。</text>
-        </view>
-
+        <!-- 错误 -->
         <view v-if="errorMessage" class="analysis__error">
           <text class="analysis__error-text">{{ errorMessage }}</text>
         </view>
 
-        <!-- 脚注：这份分析是基于哪一刻的数据 -->
-        <view class="analysis__foot">
-          <text class="analysis__foot-text">天气更新：{{ weatherUpdated || '--' }}</text>
-          <text class="analysis__foot-text">潮汐更新：{{ tideUpdated || '--' }}</text>
-        </view>
+        <!--
+          脚注：三行并成一行。
+
+          原来分两行写「天气更新 / 潮汐更新」，那是两行说明文字抢结论的视线。
+          并成一行放在最下面：模型名 + 两个时间戳，一眼扫过就行。
+        -->
+        <text v-if="hasStarted" class="analysis__foot">{{ footText }}</text>
       </template>
     </view>
+
+    <template #footer>
+      <!--
+        动作区：固定在面板底部，不跟着正文滚。
+
+        原来按钮在正文最上面，AI 写完一屏长建议之后，
+        「重新生成」就被推出视野了 —— 而那恰恰是最想按的时候。
+      -->
+      <view class="analysis__actions">
+        <!--
+          流光按钮拆两层：外壳管光，内层管面。
+
+          单层做不了 —— transform 会创建层叠上下文，把外壳里
+          z-index: -1 的光晕从「垫在按钮底下」翻成「画在按钮底色之上」，
+          按下时白色面就整块消失。理由写在 _motion.scss 的 fish-flow-face 里。
+        -->
+        <view class="analysis__btn" :class="{ 'analysis__btn--disabled': !hasData }" @tap="onAction">
+          <view class="analysis__btn-face">
+            <text class="analysis__btn-text">{{ actionLabel }}</text>
+          </view>
+        </view>
+      </view>
+    </template>
   </SnapSheet>
 </template>
 
 <script setup lang="ts">
 /**
- * AI 分析面板 —— SnapSheet 承载，内容来自大模型流式分析。
- *
- * 结构照抄源项目（kanocifer-chat-frontend）的 WeatherAnalysis 组件：
- * 工具条（状态 + 模型 + 生成/取消）→ 结果区 → 脚注，
- * 外加一块可折叠的「思考过程」。
- *
- * 与源版本的差异，都是平台差异：
- * - 源版是桌面右侧悬浮卡，这里是底部 SnapSheet（小程序没有 hover 下拉）
- * - 源版用 DOMPurify + v-html 渲染 Markdown，这里走 mp-html（小程序不能碰 DOM）
- * - 源版用 AbortController 取消，这里用 RequestTask.abort（小程序没有 AbortController）
- * - 源版模型选择是 HoverDropdown，这里用原生 picker
+ * AI 建议面板 —— SnapSheet 承载，内容来自大模型流式分析。
  *
  * 数据全部来自 store，组件不自己取数 —— 天气和潮汐已经在 store 里了，
  * 再取一次是白花一次往返。
+ *
+ * 界面走「对话」方向：一枚思考胶囊 + 一枚回答气泡。
+ * 规则来自 docs/design-system.md 的「一件事只说一遍」一节 ——
+ * 旧版把状态徽章、按钮文案、占位文案放在三处说同一件事，
+ * 且结果裸铺在白底上没有材质分层。这一版按「谁来说」分开：
+ * 状态由胶囊说，动作由按钮说，占位由问句说。
+ *
+ * 与源项目（kanocifer-chat-frontend）的 WeatherAnalysis 组件的差异，
+ * 除了平台差异，也是版式差异：
+ * - 源版是桌面右侧悬浮卡，这里是底部 SnapSheet（小程序没有 hover 下拉）
+ * - 源版用 DOMPurify + v-html 渲染 Markdown，这里走 mp-html（小程序不能碰 DOM）
+ * - 源版用 AbortController 取消，这里用 RequestTask.abort（小程序没有 AbortController）
+ * - 源版模型选择是 HoverDropdown，这里只有静态标签（后端上更多模型时换回 picker）
+ * - 源版把状态与动作都摆在正文顶部，这里动作区挪进 SnapSheet 的 footer 插槽
  */
 import { computed, ref, watch } from 'vue';
 
 import { AI_MODELS } from '@/api/ai';
 import { useFishingAnalysis } from '@/composables/useFishingAnalysis';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { formatDateTime, formatMoment } from '@/utils/date';
+import { formatDateTime, formatTimeOfDay } from '@/utils/date';
+import { icon } from '@/constants/icons';
 import type { WeatherAnalysisPayload } from '@/types/fishing';
 
 import MarkdownView from '../MarkdownView/MarkdownView.vue';
@@ -129,7 +141,15 @@ import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
 const SNAP_POINTS = [55, 88] as const;
 
-/** 生成中轮播的提示文案。跟参考实现一样，给一段"正在做什么"的实感 */
+/** 胶囊标签的三种说法。模型名是静态标签，模型多了再换成 picker */
+const MODEL_NAME = AI_MODELS[0]?.name ?? '';
+
+/**
+ * 生成中轮播的提示文案。
+ *
+ * 这几句是「正在做什么」的实感，不是装饰 ——
+ * 一段十秒的等待，没有这几句就只剩一个转圈，用户不知道卡在哪一步。
+ */
 const LOADING_HINTS = ['正在整理天气变化…', '正在评估体感与风况…', '正在结合潮汐节奏…'];
 
 const props = defineProps<{
@@ -143,8 +163,9 @@ const emit = defineEmits<{
 const mapStore = useFishingMapStore();
 const { status, summary, reasoning, errorMessage, start, stop } = useFishingAnalysis();
 
-/** 当前模型。目前只有一个，静态显示；上更多模型时这里换成可选择 */
-const modelName = computed(() => AI_MODELS[0]?.name ?? '');
+const sparklesIcon = icon('sparkles', 'blue600');
+const chevronDownIcon = icon('chevron-down', 'muted60');
+const chevronRightIcon = icon('chevron-right', 'muted60');
 
 /** 思考过程默认收起 */
 const reasoningOpen = ref(false);
@@ -156,38 +177,50 @@ let hintTimer: ReturnType<typeof setInterval> | null = null;
 const isStreaming = computed(() => status.value === 'streaming');
 const hasGenerated = computed(() => status.value === 'done' || status.value === 'stopped');
 
-const statusLabel = computed(() => {
-  switch (status.value) {
-    case 'streaming':
-      return '分析中';
-    case 'done':
-      return '已生成';
-    case 'stopped':
-      return '已停止';
-    case 'error':
-      return '分析失败';
-    default:
-      return '待生成';
-  }
-});
-
-/** 徽章的配色档位 */
-const statusTone = computed(() => {
-  switch (status.value) {
-    case 'streaming':
-      return 'accent';
-    case 'done':
-      return 'success';
-    case 'error':
-      return 'destructive';
-    default:
-      return 'idle';
-  }
-});
-
 const loadingHint = computed(() => LOADING_HINTS[hintIndex.value % LOADING_HINTS.length]);
 
-/** 有没有足够的数据可分析 */
+/**
+ * 这轮生成开始了没有。
+ *
+ * 生成中和生成完都算「开始了」—— 胶囊与脚注在这两种状态下都在。
+ * 只有从没点过按钮的空闲态才不显示它们。
+ */
+const hasStarted = computed(() => isStreaming.value || hasGenerated.value || Boolean(errorMessage.value));
+
+/**
+ * 胶囊什么时候出现。
+ *
+ * 三种情况：生成中（正在想）、有思考内容（可展开）、出错了（说明失败）。
+ * 空闲态不出现 —— 空闲时面板上该说的是那句问句。
+ */
+const showChip = computed(() => isStreaming.value || Boolean(reasoning.value) || Boolean(errorMessage.value));
+
+/** 胶囊上的图标：展开时向下，收起时向右 */
+const chevronIcon = computed(() => (reasoningOpen.value ? chevronDownIcon : chevronRightIcon));
+
+/**
+ * 胶囊文案。
+ *
+ * 三种状态三种说法，但只有一处说状态：
+ * 生成中 → 正在做什么（轮播）；完成 → 「思考过程」这个可展开的标签；
+ * 出错 → 「生成失败」。
+ * 徽章那种「待生成 / 生成中 / 已生成 / 已停止 / 生成失败」全撤了 ——
+ * 动作由按钮说（生成建议 / 停止 / 重新生成），状态再单独列一遍就是重复。
+ */
+const chipLabel = computed(() => {
+  if (errorMessage.value) return '生成失败';
+  if (isStreaming.value) return loadingHint.value;
+  return '思考过程';
+});
+
+/** 按钮文案。空闲与出错是同一件事：还没拿到结果，按钮就是让它发生 */
+const actionLabel = computed(() => {
+  if (isStreaming.value) return '停止';
+  if (hasGenerated.value) return '重新生成';
+  return '生成建议';
+});
+
+/** 有没有足够的数据能给出建议 */
 const hasData = computed(() => {
   const live = mapStore.liveWeather;
   const forecasts = mapStore.forecasts;
@@ -195,8 +228,26 @@ const hasData = computed(() => {
   return Boolean(live || (forecasts && forecasts.length > 0) || tide);
 });
 
-const weatherUpdated = computed(() => formatMoment(mapStore.liveWeather?.obsTime));
-const tideUpdated = computed(() => formatMoment(mapStore.tideData?.updateTime));
+const weatherUpdated = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime));
+const tideUpdated = computed(() => formatTimeOfDay(mapStore.tideData?.updateTime));
+
+/**
+ * 脚注：模型 + 两个时间戳，挤成一行。
+ *
+ * 原来分两行写「天气更新 / 潮汐更新」，两行说明文字会跟结论抢视线。
+ * 并成一行后它是一句落款，一眼扫过就行。
+ */
+const footText = computed(() => {
+  /*
+   * 显式标成 string[]：
+   * 不标的话 parts 被推成 ("DeepSeek Flash")[] —— 元素类型窄成了那个字面量，
+   * 往里 push 「天气 10:24」就推不进去了。
+   */
+  const parts: string[] = [MODEL_NAME];
+  if (weatherUpdated.value) parts.push(`天气 ${weatherUpdated.value}`);
+  if (tideUpdated.value) parts.push(`潮汐 ${tideUpdated.value}`);
+  return parts.join(' · ');
+});
 
 /**
  * 拼装送进模型的载荷。
@@ -231,14 +282,23 @@ const payload = computed<WeatherAnalysisPayload>(() => {
   };
 });
 
+function onAction() {
+  // 生成中按这个键是「停」，不是「再生成一次」
+  if (isStreaming.value) {
+    stop();
+    return;
+  }
+  onGenerate();
+}
+
 function onGenerate() {
   if (!hasData.value || isStreaming.value) return;
   reasoningOpen.value = false;
   start(payload.value, AI_MODELS[0].id);
 }
 
-function onStop() {
-  stop();
+function onToggleReasoning() {
+  reasoningOpen.value = !reasoningOpen.value;
 }
 
 function onClose() {
@@ -246,6 +306,15 @@ function onClose() {
   stop();
   emit('close');
 }
+
+/* 面板重新打开时清掉上一轮的结果，别让旧内容躺在那儿冒充这次的建议 */
+watch(
+  () => props.open,
+  (open) => {
+    if (open) return;
+    reasoningOpen.value = false;
+  },
+);
 
 /* 提示文案轮播：只在生成中转，停下来就停 */
 watch(isStreaming, (streaming) => {
@@ -260,158 +329,233 @@ watch(isStreaming, (streaming) => {
     hintTimer = null;
   }
 });
-
-/* 面板重新打开时清掉上一轮的结果，别让旧内容躺在那儿冒充这次的分析 */
-watch(
-  () => props.open,
-  (open) => {
-    if (open) return;
-    reasoningOpen.value = false;
-  },
-);
 </script>
 
 <style lang="scss" scoped>
-/* 头部 */
-.analysis__header {
+/*
+ * 头部
+ *
+ * 图标 + 标题一行：这一屏的标题是「谁在说话」，不是一句说明。
+ * 副标题撤了 —— 「基于当前天气与潮汐综合判断」是解释，
+ * 而这一屏只有它一个主角，不需要解释自己是谁。
+ */
+.analysis__head {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 0 40rpx 24rpx;
+  align-items: center;
+  padding: 0 40rpx 20rpx;
 }
 
-.analysis__header-text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
+.analysis__head-icon {
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  margin-right: 12rpx;
 }
 
-/* 抽屉的标题比页面内的分区标题大一档：这一屏只有它一个主角 */
 .analysis__title {
   color: $fish-ink;
-  @include fish-type(title2);
-}
-
-.analysis__subtitle {
-  margin-top: 4rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
-}
-
-/* 状态徽章 */
-.analysis__badge {
-  flex-shrink: 0;
-  padding: 6rpx 20rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-surface;
-}
-
-.analysis__badge--accent {
-  background-color: rgba(0, 122, 255, 0.12);
-}
-
-.analysis__badge--success {
-  background-color: rgba(52, 199, 89, 0.14);
-}
-
-.analysis__badge--destructive {
-  background-color: rgba(255, 59, 48, 0.12);
-}
-
-.analysis__badge-text {
-  color: $fish-muted;
-  @include fish-type(caption2);
-}
-
-.analysis__badge--accent .analysis__badge-text {
-  color: $fish-blue-600;
-  font-weight: 600;
-}
-
-.analysis__badge--success .analysis__badge-text {
-  color: $fish-success-ink;
-  font-weight: 600;
-}
-
-.analysis__badge--destructive .analysis__badge-text {
-  color: $fish-destructive;
-  font-weight: 600;
+  @include fish-type(title3);
 }
 
 /* 内容区 */
 .analysis__content {
-  padding: 0 40rpx 64rpx;
+  padding: 0 40rpx 40rpx;
 }
 
-/* 工具条 */
-.analysis__toolbar {
+/*
+ * 空态与问句
+ *
+ * 两种空态共用一套版式：一个问句 + 一行注解。
+ * 问句是主体，注解压到最弱 —— 它只是补一句上下文。
+ */
+.analysis__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 96rpx 0 120rpx 0;
+}
+
+.analysis__empty-title {
+  color: $fish-ink;
+  @include fish-type(title3);
+}
+
+.analysis__empty-text {
+  margin-top: 12rpx;
+  color: $fish-muted;
+  @include fish-type(caption);
+}
+
+/*
+ * 思考胶囊
+ *
+ * 一枚药丸，不是一块分隔线下的正文。
+ * 收进胶囊的代价是它变小了 —— 那是故意的：
+ * 思考是过程，结论才是这一屏要说的。
+ */
+.analysis__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 48rpx;
+  padding: 0 20rpx 0 16rpx;
+  margin-bottom: 20rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-surface;
+  @include fish-press-dim;
+}
+
+.analysis__chip-icon {
+  width: 20rpx;
+  height: 20rpx;
+  flex-shrink: 0;
+  margin-right: 6rpx;
+}
+
+.analysis__chip-text {
+  color: $fish-muted;
+  @include fish-type(caption2);
+}
+
+/* 展开的思考过程。紧跟胶囊，不另起一块地方 */
+.analysis__reasoning {
+  margin-bottom: 20rpx;
+  padding: 20rpx 24rpx;
+  border-radius: $fish-radius-xl;
+  background-color: $fish-surface;
+}
+
+.analysis__reasoning-text {
+  display: block;
+  color: $fish-muted;
+  @include fish-type(caption);
+
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/*
+ * 回答气泡
+ *
+ * 一层浅灰底把正文从面板白底上托起来。
+ * 没有这一层，Markdown 正文直接铺在白底上，跟面板底色是同一张面 ——
+ * 读起来像「面板里的一段字」，不像「一句回答」。
+ */
+.analysis__bubble {
+  padding: 24rpx 28rpx;
+  border-radius: $fish-radius-card;
+  background-color: $fish-surface;
+}
+
+/* 打字点。气泡在生成中只有这三个点 */
+.analysis__bubble--typing {
+  padding: 28rpx 28rpx;
+}
+
+.analysis__typing {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  margin-bottom: 28rpx;
+  height: 36rpx;
+}
+
+.analysis__typing-dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 8rpx;
+  border-radius: 50%;
+  background-color: $fish-muted-60;
+  animation: fish-typing 1.2s $fish-ease-out infinite;
+}
+
+/*
+ * 三个点错开 160ms。
+ *
+ * nth-child 选的是第二个和第三个点，延迟逐个往后挪 ——
+ * 三个点同时跳是「加载」，依次跳才是「在打字」。
+ */
+.analysis__typing-dot:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.analysis__typing-dot:nth-child(3) {
+  animation-delay: 320ms;
+}
+
+/*
+ * 错误
+ *
+ * 文字用 $fish-destructive-ink 而不是 $fish-destructive：
+ * 后者是填充色（#ff3b30），白底上只有 2.6:1，15pt 的正文读不清。
+ * 底色用令牌层的 $fish-destructive-tint，不写裸 rgba。
+ */
+.analysis__error {
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+  border-radius: $fish-radius-xl;
+  background-color: $fish-destructive-tint;
+}
+
+.analysis__error-text {
+  color: $fish-destructive-ink;
+  @include fish-type(subhead);
+}
+
+/* 脚注。一行落款 */
+.analysis__foot {
+  display: block;
+  margin-top: 24rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+}
+
+/*
+ * 底部动作区
+ *
+ * 固定在面板底部，正文滚走它留在原地。
+ * SnapSheet 的 footer 插槽就是干这个的（见 SnapSheet 的模板注释）。
+ */
+.analysis__actions {
+  padding: 12rpx 40rpx 32rpx;
+  border-top: 1rpx solid $fish-border-40;
 
   /*
    * 自己成为层叠上下文。
    *
    * 流光按钮的外发光是 z-index: -1 的伪元素。这里不成上下文的话，它会一路掉到
    * .snap-sheet 那层去，被抽屉面板的白底盖住，光晕就一点也看不见。
-   * 成了上下文，光晕落在工具条这一层的底、按钮背景之上 —— 正好垫在按钮底下。
+   * 成了上下文，光晕落在动作区这一层的底 —— 正好垫在按钮底下。
    */
   position: relative;
   z-index: 0;
 }
 
-/* 模型名。做成一枚 chip：它是这一行的说明，不是可点的控件 */
-.analysis__model {
-  display: flex;
-  align-items: center;
-  padding: 12rpx 24rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-surface;
-}
-
-.analysis__model-name {
-  color: $fish-ink;
-  @include fish-type(subhead);
-}
-
 /*
- * 按钮。
+ * 按钮 —— 外壳，只负责「光」。
  *
- * 88rpx = 44pt，正好是 Apple 判定为「可放心点按」的最小命中尺寸。
- * 按下即反馈（fish-flow 内含），抬手回弹用满 260ms ——
- * 两段时长一短一长，是 iOS 按压手感的关键，缺一段立刻变塑料。
- *
- * 两个状态共用一个位置（生成中换成「停止」），所以流光也在两个状态之间延续：
- * 面板里这一枚会动的描边，是「模型正在跑」这件事的视觉表态。
- *
- * 面色留白：这一屏的注意力给流光描边，不给色块。
- * 阴影留着 —— 面板是块裸白底，白面按钮全靠它才浮得起来。
+ * 外壳不能带 transform：带了就会建立层叠上下文，
+ * 把外壳里的 z-index: -1 光晕从「垫在按钮底下」翻成「压在按钮面上」，
+ * 按下时白色面会整块消失（见 _motion.scss 的 fish-flow-face）。
+ * 所以按下缩放放在内层。
  */
 .analysis__btn {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  min-height: 88rpx;
-  border-radius: $fish-radius-pill;
-  box-shadow: $smooth-shadow-sm;
-
-  /*
-   * 声明写在 @include 之前：fish-flow 里有嵌套规则，
-   * 排在它后面的声明会触发 Sass 的 mixed-decls 弃用警告。
-   */
   @include fish-flow;
 }
 
 /*
- * 主按钮的字重一档。
+ * 按钮 —— 内层，负责「面」与手感。
  *
- * 白面上没有色块撑着，两个状态（全白面）只能靠字重分：
- * 主动作重一点，打断动作轻一点。
+ * 88rpx = 44pt，正好是 Apple 判定为「可放心点按」的最小命中尺寸。
+ * 按下即反馈（fish-flow-face 内含），抬手回弹用满 260ms ——
+ * 两段时长一短一长，是 iOS 按压手感的关键，缺一段立刻变塑料。
+ *
+ * 面色留白：这一屏的注意力给流光描边，不给色块。
+ * 阴影留着 —— 面板是块裸白底，白面按钮全靠它才浮得起来。
+ *
+ * 声明写在 @include 之前：fish-flow-face 里有嵌套规则，
+ * 排在它后面的声明会触发 Sass 的 mixed-decls 弃用警告。
  */
-.analysis__btn--primary .analysis__btn-text {
-  font-weight: 600;
+.analysis__btn-face {
+  box-shadow: $smooth-shadow-sm;
+  @include fish-flow-face;
 }
 
 .analysis__btn--disabled {
@@ -421,137 +565,7 @@ watch(
 .analysis__btn-text {
   color: $fish-ink;
   @include fish-type(callout);
-}
 
-/* 空态 */
-.analysis__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 0;
-}
-
-.analysis__empty-title {
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-.analysis__empty-text {
-  margin-top: 8rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption);
-}
-
-/* 思考过程 */
-.analysis__reasoning {
-  margin-bottom: 24rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid $fish-border-40;
-}
-
-.analysis__reasoning-head {
-  display: flex;
-  align-items: center;
-  @include fish-press-dim;
-}
-
-/* 展开时旋转 90°。用 transform 而不是换图标，省一张图 */
-.analysis__caret {
-  margin-right: 8rpx;
-  color: $fish-muted;
-  @include fish-type(callout);
-
-  transition: transform 200ms $fish-ease-out;
-}
-
-.analysis__caret--open {
-  transform: rotate(90deg);
-}
-
-.analysis__reasoning-label {
-  color: $fish-muted;
-  @include fish-type(caption);
-}
-
-.analysis__reasoning-text {
-  display: block;
-  margin-top: 12rpx;
-  color: $fish-muted;
-  @include fish-type(caption);
-
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-
-/* 加载态 */
-.analysis__loading {
-  padding: 8rpx 0 24rpx;
-}
-
-.analysis__loading-text {
-  color: $fish-muted;
-  @include fish-type(subhead);
-}
-
-/* 骨架：三条不等长的灰条，暗示「下面会有内容」 */
-.analysis__skeleton {
-  margin-top: 24rpx;
-}
-
-.analysis__skeleton-line {
-  height: 24rpx;
-  margin-bottom: 16rpx;
-  border-radius: $fish-radius-sm;
-  background-color: $fish-surface;
-}
-
-.analysis__skeleton-line--short {
-  width: 60%;
-}
-
-.analysis__skeleton-line--mid {
-  width: 80%;
-}
-
-/* 结果 */
-.analysis__result {
-  padding-bottom: 8rpx;
-}
-
-/* 占位 */
-.analysis__placeholder {
-  padding: 80rpx 0;
-}
-
-.analysis__placeholder-text {
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-/* 错误 */
-.analysis__error {
-  margin-top: 24rpx;
-  padding: 20rpx 24rpx;
-  border-radius: $fish-radius-sm;
-  background-color: rgba(255, 59, 48, 0.1);
-}
-
-.analysis__error-text {
-  color: $fish-destructive;
-  @include fish-type(subhead);
-}
-
-/* 脚注 */
-.analysis__foot {
-  display: flex;
-  flex-direction: column;
-  margin-top: 40rpx;
-}
-
-.analysis__foot-text {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-
-  line-height: 1.6;
+  font-weight: 600;
 }
 </style>

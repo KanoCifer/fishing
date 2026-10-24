@@ -27,7 +27,7 @@ const BODY = 'font-size: 28rpx; line-height: 1.6; color: #000000;';
 /**
  * mp-html 的标签默认样式表。
  *
- * 只列 AI 分析里真会出现的标签。表格和图片不列 —— 钓鱼建议里基本不产出，
+ * 只列 AI 建议里真会出现的标签。表格和图片不列 —— 钓鱼建议里基本不产出，
  * 真出现了就是 mp-html 的默认样式，不会塌。
  */
 export const MARKDOWN_TAG_STYLE: Record<string, string> = {

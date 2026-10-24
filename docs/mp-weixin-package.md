@@ -86,7 +86,7 @@ iOS 15.4+ 的 JSC 就有，Android 的 V8 可能还没有。
 
 踩到的一处：marked v18 的分词器用 `.at(-1)` 取栈顶，**任何一段 markdown 都会走到**
 （见 `src/components/MarkdownView/MarkdownView.vue`）。缺这个方法的引擎上，
-每次渲染都抛 `TypeError: t.at is not a function`，AI 分析面板一片空白。
+每次渲染都抛 `TypeError: t.at is not a function`，AI 建议面板一片空白。
 
 **为什么不能靠「基础库最低版本设置」解决**：后台那项筛掉的是**基础库太老**的用户，
 而基础库决定的是「有哪些 wx API」—— 它管不到引擎里有没有 `Array.prototype.at`。
@@ -177,6 +177,33 @@ WXSS 不保证支持新特性。不支持时那一条声明会被**直接丢掉*
 | `inset: 0` 简写                         | Safari 14.1 / Chromium 87 | 声明被丢掉，`&::before` 那层发光没有定位锚点，光晕跑到错误的位置 |
 
 受影响的组件：`FishingAnalysisSheet`（流光），以及全仓库用 `gap` 的列表。
+
+**三条都能在代码里躲开，躲的写法是固定的：**
+
+- **`gap` → 用 margin。** 元素之间靠 `margin-right` 撑开，别处留白用 `margin-left` 或
+  父级的 `padding`。注意父级 `padding` + 子级 `margin` 在 flex 容器里不折叠，
+  相加时要算总间距，别以为写了 margin 就没有 padding。
+- **`inset: 0` → 四边分别写。** `top` / `right` / `bottom` / `left` 各写一遍。
+  这条对**任何** `position: absolute` 都要守着，尤其是带 `z-index: -1` 的装饰层 ——
+  定位锚点一丢，装饰层就不在它该在的位置上，而且不报错。
+- **`@property` → 注册不了就退成两段关键帧。** 但要清楚代价：
+  没注册的自定义属性只能离散插值，`conic-gradient` 的角度会「跳」而不是「转」。
+  真要流畅旋转，得把渐变本身换成一个静态图 + `transform: rotate` 动画。
+
+**为什么强调静默失效**：这三条都不会报错、不会构建失败、开发者工具里也不会标黄。
+一眼看过去代码是对的，坏的是老机器上那台没人再复现的手机 ——
+所以只能靠「写的时候就绕开」，不能靠「测出来再修」。
+
+**另一条静默失效是层叠上下文**：带 `z-index: -1` 的装饰层，
+如果它的祖先里没有一个 `position: relative; z-index: 0` 的容器把它圈住，
+它会一路掉到抽屉/卡片的底色层下面去，光晕看着就是「没有」。
+这跟渲染特性无关，所有内核都一样坏 —— 但同样不报错。
+`FishingAnalysisSheet` 的流光按钮就靠这一行撑着，
+见该组件 `.analysis__actions` 里的注释。
+
+反方向还有一条同源的坑：装饰层所在的祖先**自己带 `transform`** 时，
+这个 `z-index: -1` 会被关在祖先的层叠上下文里，从「垫在背景之下」翻成「压在背景之上」。
+见 `docs/mp-weixin-platform.md` 的「transform 会创建层叠上下文」。
 
 **微信体检里的「UI 异常」条目只给现象、不给机型** —— 必须拿到体检报告详情链接，
 或用多机型真机复现，才能定性。代码里能筛出的候选就是上面这三个。

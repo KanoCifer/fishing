@@ -108,17 +108,17 @@
 
 ## 实测数据
 
-| 项                                | 数值                                                                               |
-| --------------------------------- | ---------------------------------------------------------------------------------- |
-| enriched 钓鱼指数响应             | 22,581 B，本机 TTFB 482 ms —— 全应用最重的一条                                     |
-| 首页钓点列表响应                  | 15,283 B                                                                           |
+| 项                                | 数值                                                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| enriched 钓鱼指数响应             | 22,581 B，本机 TTFB 482 ms —— 全应用最重的一条                                                                              |
+| 首页钓点列表响应                  | 15,283 B                                                                                                                    |
 | 图标字体本体                      | 74,780 B（自建 CDN `cdn.kanocifer.chat/qweather-icons.woff`）；`scripts/subset-qweather-icons.py --ttf-out` 能导 27 KB 子集 |
-| `dist/build/mp-weixin/app.js`     | 594 B —— 顶层只有一次 `installRuntimePolyfills()`，量级微秒级                      |
-| 冷启动 + 切三个 tab 的 storage 读 | 约 5～8 次 `getStorageSync`，其中 `fishing_token` 占 4～6 次                       |
-| 三个域名的 DNS 查询               | `time_namelookup` 均 < 0.2 ms（本机有缓存）；时间花在 TLS 握手（57～274 ms）       |
-| 服务端 HTTP 版本                  | 已是 HTTP/2（`api.kanocifer.chat` 前挂腾讯 EdgeOne，h2 在 CDN 层终结）             |
-| 第二轮：首屏前的同步 Storage 读   | 2 次（App 1 + 地图页 1）→ 改后 0 次                                                |
-| 第二轮：启动阶段的网络请求        | 2 条（enriched 402 ms / spots 366 ms）→ 改后 0 条                                  |
+| `dist/build/mp-weixin/app.js`     | 594 B —— 顶层只有一次 `installRuntimePolyfills()`，量级微秒级                                                               |
+| 冷启动 + 切三个 tab 的 storage 读 | 约 5～8 次 `getStorageSync`，其中 `fishing_token` 占 4～6 次                                                                |
+| 三个域名的 DNS 查询               | `time_namelookup` 均 < 0.2 ms（本机有缓存）；时间花在 TLS 握手（57～274 ms）                                                |
+| 服务端 HTTP 版本                  | 已是 HTTP/2（`api.kanocifer.chat` 前挂腾讯 EdgeOne，h2 在 CDN 层终结）                                                      |
+| 第二轮：首屏前的同步 Storage 读   | 2 次（App 1 + 地图页 1）→ 改后 0 次                                                                                         |
+| 第二轮：启动阶段的网络请求        | 2 条（enriched 402 ms / spots 366 ms）→ 改后 0 条                                                                           |
 
 ## 还没做完的
 
@@ -137,7 +137,7 @@
 2. **HTTP 版本**：真机调试 → Network 面板，看 `protocol` 字段。iOS 上应显示 `h2`；`res.profile.protocol` 也可以直接读（`enableProfile` 默认开着）。
 3. **DNS 预解析**：后台配完后，冷启动首包耗时应能看到 DNS 段被缓存。
 4. **潮汐重复请求**：Network 面板过滤 `weather/tide`，点一次港口应该只有一条。
-5. **UI 异常**：拿一台 iOS 16.3 和一台 iOS 14.4 的机器，重点看 AI 分析按钮的流光边框、用 `gap` 的列表行距。候选与引擎门槛见 `docs/mp-weixin-package.md`「渲染特性有下限」。
+5. **UI 异常**：拿一台 iOS 16.3 和一台 iOS 14.4 的机器，重点看 AI 建议按钮的流光边框、用 `gap` 的列表行距。候选与引擎门槛见 `docs/mp-weixin-package.md`「渲染特性有下限」。
 6. **启动阶段的请求**：冷启动录一段 Performance，启动阶段应该一条网络请求都没有 —— 钓点列表在首屏渲染完成后才发，enriched 只在数据页打开时才发。
 
 ## 参考

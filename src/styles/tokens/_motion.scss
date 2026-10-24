@@ -13,6 +13,14 @@
 // 无缘无故的过冲看着像 bug，不看着像弹性。
 // ===========================================================================
 
+/*
+ * 令牌层内部互引用（圆角、面色）。
+ * 和 _layout.scss / _material.scss / _card.scss 同一个写法：
+ * @use ... as * 把成员平铺进本文件，mixin 里就能直接写 $fish-radius-pill。
+ */
+@use 'color' as *;
+@use 'depth' as *;
+
 $fish-ease-out: cubic-bezier(0.32, 0.72, 0, 1); // 呈现 / 展开
 $fish-ease-in: cubic-bezier(0.4, 0, 1, 1); // 退场
 $fish-spring: cubic-bezier(0.2, 0, 0, 1); // 临界阻尼
@@ -91,33 +99,23 @@ $fish-dur-cross: 160ms;
 }
 
 /**
- * 流光按钮。
+ * 流光按钮 —— 外壳（负责「光」）。
  *
- * 一圈会转的彩虹描边，外面罩一层同色柔光。中间是面色（可换）。
+ * 一圈会转的彩虹描边，外面罩一层同色柔光。
  *
- * 做法是三层：外层渐变铺满 border box（描边环），里层面色盖住 padding box，
- * ::before 拿同一份渐变模糊后垫在底下当外发光。环和光共用一个 --fish-flow，
- * 所以两者永远同色同速，不会各转各的。
+ * 外壳只做三件事：定义 --fish-flow、给光晕当定位锚点、驱动旋转。
+ * **它自己不能带 transform** —— 理由见下面的长注释。
  *
- * 面色必须写成 linear-gradient，不能用 background-color：多层 background 简写里
- * 颜色只能出现在最后一层，写在非末层整条声明作废 —— 按钮会变成全透明，
- * 只剩光晕透上来（看着像光晕盖住了背景，其实是背景根本没画出来）。
- *
- * 按下反馈也包在这里，不单独再调 fish-press：fish-press 自带 &:active 嵌套规则，
- * 本 mixin 也有 &::before 嵌套规则 —— 同一个样式块里，若有声明排在嵌套规则之后，
- * Sass 会报 mixed-decls 弃用警告。两条混在一起、声明全部在前，就没这个问题。
- * 调用方也别在这个 @include 之后再写声明。
+ * 描边环与面色在**内层**（fish-flow-face）。外壳的 background 是空的：
+ * 一旦外壳自己有背景，按下时 transform 建立的层叠上下文会把光晕
+ * 翻到这层背景之上（见下面的长注释），面色就又没了。
  */
-@mixin fish-flow($face: linear-gradient(#ffffff, #ffffff), $scale: 0.97, $blur: 8px, $width: 3px) {
+@mixin fish-flow($blur: 8px) {
   --fish-flow: conic-gradient(from var(--fish-flow-angle), #4f8cff, #b06ab3, #ff5f6d, #ff9f43, #3ccf6e, #4f8cff);
 
   position: relative;
-  border: $width solid transparent;
-  background:
-    #{$face} padding-box,
-    var(--fish-flow) border-box;
+  border-radius: $fish-radius-pill;
   animation: fish-flow-spin 3s linear infinite;
-  transition: transform $fish-dur-press $fish-spring;
 
   /*
   * 外发光。z-index -1 让它垫在按钮底下。
@@ -128,12 +126,79 @@ $fish-dur-cross: 160ms;
   &::before {
     content: '';
     position: absolute;
-    inset: 0;
+
+    /*
+     * 四边分别写，不用 inset: 0 简写。
+     *
+     * 简写在 Safari 14.1 以下被整条丢掉（docs/mp-weixin-package.md 有记录），
+     * 一丢就没了定位锚点，光晕会跑到按钮里某个奇怪的位置上去。
+     * 四条长写法多两行，换老机器上光晕不塌。
+     */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     border-radius: inherit;
     background: var(--fish-flow);
     filter: blur($blur);
     z-index: -1;
   }
+}
+
+/**
+ * 流光按钮 —— 内层（负责「面」与手感）。
+ *
+ * ── 为什么流光按钮要拆成两层 ──
+ *
+ * `transform` 会让元素创建**层叠上下文**。层叠上下文一旦建立，
+ * 里面的 `z-index: -1` 伪元素就不再相对外层定位，而是相对**自己** ——
+ * 于是 ::before 的光晕从「垫在按钮底下」翻成「画在按钮底色之上」。
+ * 按下时按钮缩一下，白色面就没了，整颗按钮糊成一团流光，
+ * 光晕的 blur 还会溢到上一层内容上。
+ *
+ * 修法不是「把 transform 挪到内层」就完事 —— 那样光晕仍然被内层的
+ * 层叠上下文困住，只是白色面保住了，光晕照样在按钮内部抢位置。
+ *
+ * 真正干净的做法是**让 transform 落在一个困不住光晕的层上**：
+ * - 外壳（@include fish-flow）持渐变与光晕，**不带 transform**
+ * - 内层（@include fish-flow-face）持面色与描边环，**带 transform**
+ *
+ * 外壳没有 transform 就没有层叠上下文，::before 的 z-index: -1
+ * 会照旧掉到外面的上下文里 —— 光晕垫在整块动作区的底下，
+ * 和没做缩放时一模一样。内层的 transform 只影响它自己，
+ * 碰不到外壳的光晕。
+ *
+ * 代价：光晕不跟着一起缩（它在外壳上，不在内层里）。
+ * 按下只缩 3%，光晕差 2px 出头，看不出来；
+ * 换来的是白色面一直在、光晕不糊、blur 不外溢。
+ *
+ * ── 为什么面色必须写成 linear-gradient ──
+ *
+ * 多层 background 简写里，颜色只能出现在**最后一层**。
+ * 写在非末层整条声明作废 —— 按钮会变成全透明，只剩光晕透上来
+ * （看着像光晕盖住了背景，其实是背景根本没画出来）。
+ * 所以面色是 `linear-gradient(同色, 同色)`：它是图片层，不是颜色层。
+ *
+ * 描边环靠 `border: 3px solid transparent` +
+ * `background: <面色> padding-box, var(--fish-flow) border-box` 实现：
+ * 流光在 border-box 透出 3px 描边环，面色盖住 padding box。
+ *
+ * 调用方也别在这个 @include 之后再写声明（fish-press 同理）——
+ * 两个 mixin 里都有嵌套规则，声明排在嵌套规则之后会触发
+ * Sass 的 mixed-decls 弃用警告。要加声明就写在 @include 之前。
+ */
+@mixin fish-flow-face($face: linear-gradient($fish-page, $fish-page), $scale: 0.97, $width: 3px) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  border: $width solid transparent;
+  border-radius: $fish-radius-pill;
+  background:
+    #{$face} padding-box,
+    var(--fish-flow) border-box;
+
+  transition: transform $fish-dur-press $fish-spring;
 
   &:active {
     transform: scale($scale);
