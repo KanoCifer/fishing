@@ -200,6 +200,7 @@ import {
   SPOT_CREATE_LEDE,
   SPOT_CREATE_SUBMIT,
   SPOT_CREATE_SUBMITTED,
+  SPOT_CREATE_SUBMITTED_CONFIRM,
   SPOT_CREATE_SUBMITTED_HINT,
   SPOT_CREATE_SUBMITTING,
   SPOT_CREATE_TITLE,
@@ -715,7 +716,7 @@ async function submit() {
       title: SPOT_CREATE_SUBMITTED,
       content: SPOT_CREATE_SUBMITTED_HINT,
       showCancel: false,
-      confirmText: '看我的钓点',
+      confirmText: SPOT_CREATE_SUBMITTED_CONFIRM,
       success: (res) => {
         if (res.confirm) {
           uni.redirectTo({ url: '/pages/my-spots/index' });
@@ -727,6 +728,14 @@ async function submit() {
             uni.switchTab({ url: '/pages/fishing/index' });
           },
         });
+      },
+      fail: (err) => {
+        // 弹窗弹不出来时（参数非法之类），不能让用户停在已经提交过的表单上：
+        // 草稿已经清掉了，再按一次提交就是重复建一条。
+        // 旧版 Android 点蒙层关闭走的是 fail，那种不算失败，直接放过。
+        if (String(err.errMsg ?? '').includes('cancel')) return;
+        uni.showToast({ title: SPOT_CREATE_SUBMITTED, icon: 'none' });
+        uni.redirectTo({ url: '/pages/my-spots/index' });
       },
     });
   } catch (err) {

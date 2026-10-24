@@ -58,3 +58,14 @@ export const SPOT_CREATE_SUBMITTED = '已提交，等待审核';
 
 /** 提交成功后落点提示 */
 export const SPOT_CREATE_SUBMITTED_HINT = '审核通过后会出现在地图上';
+
+/**
+ * 提交成功弹窗的确认按钮。
+ *
+ * **最多 4 个汉字** —— 微信的 `uni.showModal` 对 `confirmText` / `cancelText`
+ * 有硬限制，超出时接口静默失败：弹窗不弹，也不报错，代码继续往下跑。
+ * 「看我的钓点」是 5 个字，正好踩线上，所以曾出现过「提交成功却什么提示都没有」。
+ *
+ * 想说的话放进 content（那行没有长度限制），按钮只留一个动词。
+ */
+export const SPOT_CREATE_SUBMITTED_CONFIRM = '查看钓点';

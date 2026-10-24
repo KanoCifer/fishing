@@ -142,7 +142,8 @@ async function submit() {
     });
 
     selected.value = null;
-    uni.showToast({ title: '反馈已提交，感谢分享', icon: 'success' });
+    // 带 success 图标的 toast 标题最多显示 7 个汉字，超了会被截成「反馈已提交，感…」
+    uni.showToast({ title: '反馈已提交', icon: 'success' });
     emit('success');
     emit('close');
   } catch (err) {
