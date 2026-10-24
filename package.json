@@ -2,6 +2,7 @@
   "name": "yulu",
   "version": "0.0.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "uni -p mp-weixin",
     "build": "uni build -p mp-weixin && node scripts/clean-dist.mjs && node scripts/check-mp-compat.mjs",
