@@ -241,7 +241,7 @@ const advice = computed(() => {
 const placeName = computed(() => mapStore.locationName || '钓鱼地点');
 
 /** 实况观测时刻，只取时分 */
-const updatedAt = computed(() => parseFxTime(mapStore.liveWeather?.obsTime ?? '')?.time ?? '');
+const updatedAt = computed(() => mapStore.liveWeather?.obsTime);
 
 const live = computed(() => mapStore.liveWeather);
 

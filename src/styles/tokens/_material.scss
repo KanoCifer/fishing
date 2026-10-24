@@ -16,13 +16,11 @@
   border-radius: $radius;
   background-color: $fish-glass;
 
-  // 先写一条只有外阴影的兜底：万一 inset 高光那条被解析器丢掉，
-  // 至少还留着抬升用的阴影，不会连卡片都贴回背景上。
-  box-shadow: $smooth-shadow-md;
-  box-shadow: $smooth-shadow-md, $fish-glass-edge;
+  box-shadow: $smooth-shadow-sm;
+  box-shadow: $smooth-shadow-sm, $fish-glass-edge;
 }
 
 @mixin fish-glass-blur {
-backdrop-filter: blur($fish-blur) saturate(1.8);
-    -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
+  backdrop-filter: blur($fish-blur) saturate(1.8);
+  -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
 }

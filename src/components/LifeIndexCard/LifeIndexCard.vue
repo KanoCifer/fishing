@@ -22,16 +22,7 @@
         class="life__item"
         :class="{ 'life__item--divided': i > 0 }"
       >
-        <text class="life__name">{{ entry.name }}</text>
-
         <view class="life__body">
-          <!--
-            档位做成胶囊色块，而不是把「不宜」写成大红字。
-
-            理由是它同时也是**状态**：胶囊的形状本身就在说「这是一档结论」，
-            而一段正文里的红字只会被当成强调。颜色是「不宜」的主信号，
-            形状和留白把它抬到和正文分开的一层。
-          -->
           <text class="life__badge" :class="`life__badge--${entry.tone}`">{{ entry.category }}</text>
 
           <text v-if="entry.text" class="life__text">{{ entry.text }}</text>

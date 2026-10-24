@@ -206,16 +206,8 @@ export function moonPhaseToChinese(phase?: string): string {
 
 /**
  * 新版 current 块 → 视图模型。
- *
- * `fallbackObsTime` 是观测时刻的兜底：新版 current 块**没有**观测时间字段
- * （旧的 obsTime 没了），整块里唯一带时刻的是逐时预报的首条 forecastTime。
- * 它是上游逐时序列的第一个整点（实测 13:15 取数时首条为 14:00，即下一个整点），
- * 语义上是「数据覆盖的第一小时」，比留空让 VerdictHeader 的「更新时间」整段消失要好。
  */
-export function normalizeWeatherCurrent(
-  block: WeatherCurrentV1 | null | undefined,
-  fallbackObsTime = '',
-): WeatherNow | null {
+export function normalizeWeatherCurrent(block: WeatherCurrentV1 | null | undefined): WeatherNow | null {
   if (!block) return null;
 
   const condition = block.condition;
@@ -224,9 +216,10 @@ export function normalizeWeatherCurrent(
   const speed = wind?.speed;
   const amount = block.precipitation?.amount;
   const visibility = block.visibility;
+  const now = new Date().toLocaleTimeString('en-GB');
 
   return {
-    obsTime: fallbackObsTime,
+    obsTime: now,
     temp: fmtNum(measure(block.temperature)),
     feelsLike: fmtNum(measure(block.feelsLike)),
     icon: condition?.code ?? '',
@@ -518,7 +511,7 @@ export function normalizeWeatherPayload(input: {
   const rawHours = hourlyEntries(input.hourly);
   const hourly = rawHours.map(normalizeHour);
   const daily = dailyEntries(input.daily).map((day) => normalizeDay(day, rawHours));
-  const now = normalizeWeatherCurrent(input.current, hourly[0]?.fxTime ?? '');
+  const now = normalizeWeatherCurrent(input.current);
 
   return { now, hourly, daily };
 }

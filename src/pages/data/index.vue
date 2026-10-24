@@ -1,11 +1,4 @@
 <template>
-  <!--
-    最小高度绑 windowHeight（px），不用 100vh。
-
-    100vh 把原生 tabBar 的高度也算进去了，页面会比真正能显示的那部分
-    高出约 50px —— 滚到底之后还能再拖出去一截，脚下只剩底色。
-    详见 useViewport 的注释。
-  -->
   <view class="data" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
@@ -19,12 +12,7 @@
         :place="placeName"
         @refresh="onRefresh"
       />
-      <!--
-        首屏概览也吃 showAnim：它是这一屏唯一看得见的东西，
-        二次进入时它不重播，下面那些卡片重播了也看不见（都在折线以下）。
-        入场动画的归属在组件里（组件内部是普通 view，不吃宿主节点那个坑），
-        页面只负责把「现在播不播」告诉它。
-      -->
+
       <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
       <view class="sect">
         <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
@@ -136,19 +124,10 @@ import { enterStyle } from '@/utils/motion';
 import { levelTone } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
-
-/** px。结论条的位置判断要用它，见 useNavMetrics */
 const { navBarBottom } = useNavMetrics();
-
-/** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
 const { windowHeight } = useViewport();
-
-/** 钓鱼反馈浮层 */
 const feedbackOpen = ref(false);
-
-/** AI 分析浮层 */
 const analysisOpen = ref(false);
-
 const showAnim = ref(false);
 
 /**

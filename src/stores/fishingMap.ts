@@ -1,21 +1,5 @@
 /**
  * 钓点图状态 —— Pinia 全局单例。
- *
- * 从源项目 zustand store 迁过来，先落在 `reactive` 单例上，现在换成 Pinia。
- * 天气、潮汐、钓点三块数据的消费方分散在地图、面板、详情页多个层级，
- * 要的是"同一份数据只有一份"，让它们各自 ref 迟早会各拉各的接口。
- *
- * 选 setup store 而不是 options store，是因为这里有三样东西天生属于闭包：
- * 两个 in-flight 守卫（locatePending / inflightKey）和一个坐标 watch。
- * setup store 里它们就是普通局部变量，作用域跟着 store 实例走 ——
- * 不用再靠"模块级变量 + 只有一份的约定"来维持唯一性。
- *
- * 小程序端每个页面是独立的 Vue 实例，但都挂在 main.ts 那个 app 上
- * （uni 的 $createComponent 最终取的是 getApp().$vm），
- * 所以 pinia 装在 main.ts 就是全应用一份，跨页共享没问题。
- *
- * 本期不含路线规划状态（routeMapStore）和 AI 分析状态（AnalysisContext），
- * 对应功能已确认不做。
  */
 
 import { ref, shallowRef } from 'vue';
@@ -47,7 +31,6 @@ export const HARBOR_OPTIONS = [
   { code: 'P2609', name: '东沙' },
 ] as const;
 
-/** 天气指数的默认中心（广州珠江口），定位成功前先用它出数据 */
 export const MAP_CENTER: LngLat = [113.389549, 23.050067];
 
 /** toast 标题超长会被截断成省略号，反而看不出是哪条错了 */
@@ -63,9 +46,6 @@ function notifyError(message: string): void {
 
 /**
  * 坐标的缓存键。
- *
- * 精度与接口参数一致（两位小数）：后端按这个粒度做缓存与降级，
- * 挪几十米在它看来就是同一个点，不该为这个发一次请求。
  */
 function locationKey(location: LngLat): string {
   return `${location[0].toFixed(2)},${location[1].toFixed(2)}`;
@@ -73,22 +53,12 @@ function locationKey(location: LngLat): string {
 
 /**
  * 定位授权状态。
- *
- * 三档刚好够用，不必更细：
  * - granted 已授权，getLocation 直接给坐标
  * - denied  用户明确拒绝过，微信不会再弹权限窗，只剩设置页一条路
  * - unset   从没问过（第一次进小程序就是这个），getLocation 会弹授权窗
  */
 type LocationAuth = 'granted' | 'denied' | 'unset';
 
-/**
- * 问微信当前的定位授权状态。
- *
- * 不靠 getLocation 的 errMsg 猜「是不是被拒了」—— 那些文案是微信的内部实现，
- * 换个基础库版本就变。这里读的是授权状态本身，语义稳定。
- *
- * 查不到就当没问过：让 getLocation 自己去弹窗，别在这儿替微信做决定。
- */
 function queryLocationAuth(): Promise<LocationAuth> {
   return new Promise((resolve) => {
     uni.getSetting({
@@ -347,12 +317,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     try {
       const data = await fishingApi.getFishingIndex(target, true);
 
-      /*
-       * 归一放在 store 边界：上游换成了和风新一代（数值 + 嵌套对象），
-       * 而组件和 AI 分析载荷要的一直是扁平的视图模型。
-       * 换算全在 `utils/weather-normalize` 里做，这里只调一次 ——
-       * 组件一行都不用改，后端 `app/schemas/aiagent.py` 认的字段形状也就没变。
-       */
       const { now, hourly, daily } = normalizeWeatherPayload({
         current: data.current_weather,
         hourly: data.hourly_weather,
