@@ -112,7 +112,7 @@
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | enriched 钓鱼指数响应             | 22,581 B，本机 TTFB 482 ms —— 全应用最重的一条                                     |
 | 首页钓点列表响应                  | 15,283 B                                                                           |
-| 图标字体本体                      | 74,780 B（jsdelivr）；`scripts/subset-qweather-icons.py --ttf-out` 能导 27 KB 子集 |
+| 图标字体本体                      | 74,780 B（自建 CDN `cdn.kanocifer.chat/qweather-icons.woff`）；`scripts/subset-qweather-icons.py --ttf-out` 能导 27 KB 子集 |
 | `dist/build/mp-weixin/app.js`     | 594 B —— 顶层只有一次 `installRuntimePolyfills()`，量级微秒级                      |
 | 冷启动 + 切三个 tab 的 storage 读 | 约 5～8 次 `getStorageSync`，其中 `fishing_token` 占 4～6 次                       |
 | 三个域名的 DNS 查询               | `time_namelookup` 均 < 0.2 ms（本机有缓存）；时间花在 TLS 握手（57～274 ms）       |
@@ -122,7 +122,7 @@
 
 ## 还没做完的
 
-- **字体子集上传 CDN**，再换 `VITE_QWEATHER_FONT_URL` —— 73 KB → 27 KB，域名从 3 个收敛到 2 个。⚠️ 动手前先确认子集文件已经传到 `cdn.kanocifer.chat` 上（现在那几个常见路径还是 404），直接改 URL 的结果是图标全变豆腐块
+- **字体子集上传 CDN** —— 73 KB → 27 KB。字体本体已迁到自建 CDN `cdn.kanocifer.chat/qweather-icons.woff`（与静态图同域名，域名从 3 个收敛到 2 个，✅ 已完成）；剩下的是把**子集**文件传上去替掉全量。⚠️ 换文件必须同时重算 `src/styles/generated/qweather-icons.css` 的码位映射表（`scripts/subset-qweather-icons.py` 断言会当场炸），只换 URL 不同步映射表 = 图标全变豆腐块
 - **微信后台配「预解析域名」** —— `api.kanocifer.chat`、`cdn.kanocifer.chat`、字体域名，最多 5 个
 - **`<map show-location>` 关掉**，定位只留 store 一条路径 —— 会去掉地图上的蓝点，属产品决策
 - **`installRuntimePolyfills()` 挪进 `createApp()`** —— 体检误报，属于「为了让工具闭嘴」

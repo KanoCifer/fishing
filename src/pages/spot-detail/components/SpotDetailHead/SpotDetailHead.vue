@@ -102,7 +102,7 @@ const ratingEmpty = SPOT_RATING.empty;
  */
 .head {
   padding: 40rpx 32rpx 36rpx;
-  border-radius: $fish-radius-2xl;
+  border-radius: $fish-radius-card;
   background-color: $fish-page;
   box-shadow: $smooth-shadow-lg;
 }

@@ -214,16 +214,20 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 | 项                    | 值                                                                     | 不配的后果                                             |
 | --------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
 | request 合法域名      | `VITE_API_BASE_URL`                                                    | 所有接口失败                                           |
-| downloadFile 合法域名 | 图标字体域名 + API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名） | 天气图标是豆腐块，照片全是裂的；缺图占位插画也拉不下来 |
+| downloadFile 合法域名 | API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名）                | 照片全是裂的；缺图占位插画拉不下来                     |
 | uploadFile 合法域名   | `VITE_API_BASE_URL`                                                    | 照片传不上去                                           |
-| 预解析域名            | `api.kanocifer.chat`、CDN 域名、字体域名                               | 弱网冷启时每次 DNS 都真走一次运营商解析                |
+| 预解析域名            | `api.kanocifer.chat`、`cdn.kanocifer.chat`                             | 弱网冷启时每次 DNS 都真走一次运营商解析                |
 | `scope.userLocation`  | 见 `src/manifest.json`                                                 | 定位键无反应                                           |
 | `scope.userInfo`      | 见 `src/manifest.json`                                                 | 头像昵称取不到                                         |
 
 ⚠️ 三份域名名单是**三份独立的表**，填一份不等于另外两份也生效。
 CDN 域名（`cdn.kanocifer.chat`）是后加的 —— 它承接着从代码包里搬走的
-静态图（见 `docs/mp-weixin-package.md`），漏配的话页面看着正常，只是缺图那一态
-永远是一块空白。
+静态图（见 `docs/mp-weixin-package.md`）**和图标字体**（`qweather-icons.woff`，
+`wx.loadFontFace` 走的就是它），漏配的话页面看着正常，只是缺图那一态
+永远是一块空白、天气图标全是豆腐块。
+
+所以整包只需要**两个域名**（API + CDN）。预解析同理，两个名额就够，
+上限 5 个不必占满。
 
 **预解析域名是后台配置，不在代码里**：位置在同一页（开发 - 开发设置 - 服务器域名），
 无需协议头，最多 5 个。它是**启动时**提前解析业务域名，收益主要在弱网冷启。

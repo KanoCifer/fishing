@@ -138,6 +138,8 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 图标字体走 `wx.loadFontFace` 网络加载：
 
 - 字体域名必须在微信后台配成 **downloadFile 合法域名**，否则加载失败，页面上所有天气图标变成豆腐块（私用区位码位在系统字体里没有对应字形）
+- 字体托管在**自建 CDN**（`cdn.kanocifer.chat/qweather-icons.woff`），和静态图同一域名 —— 合法域名与预解析名额都是共用的，少一个域名就少一份配置
+- **换字体文件必须连码位映射表一起重算**：`src/styles/generated/qweather-icons.css` 的「码 → 私用区位」是和风自己定的，不是顺序排的。换一份字体、只改 URL，图标就会变成豆腐块。重算走 `scripts/subset-qweather-icons.py`（断言会当场炸）
 - 主包里只留「码 → 字形」的映射规则（`src/styles/generated/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
 - 字体族名必须与 css 里 `.qi` 的 `font-family` 完全一致：`qweather-icons`
 - `global: true` —— 图标散在好几个页面里，逐页注册会漏
