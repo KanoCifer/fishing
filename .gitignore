@@ -12,6 +12,10 @@ node_modules
 dist
 *.local
 
+# Python 脚本的字节码缓存（scripts/ 下的抠图与压缩脚本）
+__pycache__/
+*.pyc
+
 # 本地环境变量覆盖（含个人配置，不提交）
 # 注意：.env.development 本身不含密钥，应当提交；
 # .env.production 不提交（里面有本机专用的构建参数）
