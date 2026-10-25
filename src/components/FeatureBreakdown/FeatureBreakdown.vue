@@ -72,7 +72,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
   @include fish-card-head;
 }
 
-/* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
+/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
 .features__title {
   @include fish-card-title;
 }

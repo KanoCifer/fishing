@@ -96,7 +96,7 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
   @include fish-card-head;
 }
 
-/* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
+/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
 .life__title {
   @include fish-card-title;
 }

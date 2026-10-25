@@ -70,8 +70,35 @@
     @include fish-enter;
   }
 
+  /*
+   * 同段内并排的两张卡（当前天气 + 多日预报）。
+   *
+   * 各占一半宽，各是一张方卡 —— 一屏里两张方卡并排，
+   * 比一张大方卡 + 一张窄卡更像一件事（见 pages/data 的天气分区）。
+   *
+   * 间距 16rpx 比同段内上下两张卡的 32rpx 紧一档：
+   * 并排的两张是**一对**（同一件事的两个面），上下两张是**并列**
+   * （各自一件事）。间距要读得出这个差别。
+   */
+  .sect__row {
+    display: flex;
+    align-items: flex-start;
+    @include fish-enter;
+  }
+
+  .sect__half {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sect__half + .sect__half {
+    margin-left: 16rpx;
+  }
+
   /* 同段内的并列。卡与卡之间比跨段紧一档，靠的就是这一条 */
-  .sect__card + .sect__card {
+  .sect__card + .sect__card,
+  .sect__card + .sect__row,
+  .sect__row + .sect__card {
     margin-top: $fish-space-section;
   }
 }

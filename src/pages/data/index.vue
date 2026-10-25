@@ -17,17 +17,29 @@
       <view class="sect">
         <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
 
-        <view class="sect__card" :style="enterStyle(0, showAnim)">
-          <LifeIndexCard />
+        <!--
+          当前天气与多日预报并排，各占一半宽 —— 两张方卡，一屏里一眼看到
+          「现在」和「接下来三天」。
+
+          两张卡都在同一个 view 里做入场动画：自定义组件的**宿主节点**
+          不吃动画（见 docs/mp-weixin-platform.md），动画挂在外层这个普通 view 上。
+        -->
+        <view class="sect__row" :style="enterStyle(0, showAnim)">
+          <view class="sect__half">
+            <CurrentWeather />
+          </view>
+          <view class="sect__half">
+            <DayForecast />
+          </view>
         </view>
         <view class="sect__card" :style="enterStyle(1, showAnim)">
-          <MetricChart />
+          <LifeIndexCard />
         </view>
         <view class="sect__card" :style="enterStyle(2, showAnim)">
-          <HourlyWeather />
+          <MetricChart />
         </view>
         <view class="sect__card" :style="enterStyle(3, showAnim)">
-          <WeekStrip />
+          <HourlyWeather />
         </view>
       </view>
 
@@ -104,6 +116,8 @@ import { computed, onMounted, ref } from 'vue';
 import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
 
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
+import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
+import DayForecast from '@/components/DayForecast/DayForecast.vue';
 import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
@@ -115,7 +129,6 @@ import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
-import WeekStrip from '@/components/WeekStrip/WeekStrip.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';

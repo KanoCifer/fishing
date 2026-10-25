@@ -9,8 +9,8 @@
 /**
  * 分区之间的纵向间距。
  *
- * 之前只有 WeekStrip 自己带 margin-top，其余分区紧贴，于是同一屏里
- * 「MetricChart→HourlyWeather」是 0、「HourlyWeather→WeekStrip」是 32rpx，
+ * 之前只有 DayForecast 自己带 margin-top，其余分区紧贴，于是同一屏里
+ * 「MetricChart→HourlyWeather」是 0、「HourlyWeather→DayForecast」是 32rpx，
  * 密疏不均，读起来像一张没分段的清单而不是几个独立分区。
  *
  * 收在这一处而不是各组件写各自的数：这是「页面里几个区块如何分开」的约定，

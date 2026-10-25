@@ -17,6 +17,8 @@
  * —— 那边的区间由 `scripts/subset-qweather-icons.py` 生成，两边对不上就是豆腐块。
  */
 
+import type { WeatherDay } from '@/types/fishing';
+
 /** 兜底码：和风的「未知」字形，字体子集里保留着 */
 export const FALLBACK_ICON_CODE = '999';
 
@@ -67,6 +69,80 @@ export function weatherIconCode(icon: string | undefined | null): string {
 /** 天气码 → 图标 class，如 `qi qi-104` */
 export function weatherIconClass(icon: string | undefined | null): string {
   return `qi qi-${weatherIconCode(icon)}`;
+}
+
+// ---------------------------------------------------------------------------
+// 天气外观组
+// ---------------------------------------------------------------------------
+
+/**
+ * 天气外观组。
+ *
+ * 六十多个码在界面上只表现十种「看天」的印象 —— 同一组共用一套渐变与字色。
+ *
+ * 组名同时是**样式的一部分**：`CurrentWeather` 组件把它拼成 class 修饰符
+ * （`current-weather--rain`），组件样式里同名的那条规则给出那套配色。
+ * 两边靠组名对上，所以组名改一处要改两处 —— 拼错组名的表现是「这一组没有专属颜色」
+ * （落回通用样式），不会白屏。
+ *
+ * 对应的配色见 `src/components/CurrentWeather/CurrentWeather.vue` 的 `--weather-*` 变量。
+ */
+export type WeatherGroup =
+  | 'sunny'
+  | 'cloudy'
+  | 'night'
+  | 'rain'
+  | 'snow'
+  | 'sleet'
+  | 'dust'
+  | 'hot'
+  | 'cold'
+  | 'generic';
+
+/**
+ * 码区间 → 外观组。
+ *
+ * **按区间归组，不按码名归组。** 和风改过码名：400 这一段在不同版本里是
+ * 「雪 / 小雪 / 中雪」的不同排法。按名字建一张映射表，换个版本就对不上；
+ * 按区间走则与名字无关。
+ *
+ * 区间取自 SUPPORTED_RANGES —— 字体子集里存在的码（68 个，与和风官方码表一致）。
+ */
+const WEATHER_GROUP_RANGES: ReadonlyArray<readonly [number, number, WeatherGroup]> = [
+  [100, 100, 'sunny'], // 晴
+  [101, 104, 'cloudy'], // 多云 / 少云 / 晴间多云 / 阴
+  [150, 153, 'night'], // 夜间四类（晴夜 / 多云夜 / 少云夜 / 晴间多云夜）
+  [300, 318, 'rain'], // 阵雨 ~ 特大暴雨
+  [350, 351, 'rain'], // 小雨 / 中雨
+  [399, 399, 'rain'], // 雨
+  [400, 403, 'snow'], // 小雪 / 中雪 / 大雪 / 暴雪
+  [404, 406, 'sleet'], // 雨夹雪 / 雨雪天气 / 阵雨夹雪
+  [407, 410, 'snow'], // 阵雪 / 小到中雪 / 中到大雪 / 大到暴雪
+  [499, 499, 'snow'], // 雪
+  [500, 504, 'dust'], // 薄雾 / 雾 / 霾 / 扬沙 / 浮尘
+  [507, 515, 'dust'], // 沙尘暴 / 浓雾 / 霾 / 大雾
+  [900, 900, 'hot'], // 热
+  [901, 901, 'cold'], // 冷
+];
+
+/**
+ * 和风 `icon` 字段 → 外观组。
+ *
+ * 认不出的码落「通用」组。通用样式不带天气色，但**读数照常显示** ——
+ * 缺的是外观，不是数据（和风官方明说天气现象与图标会持续新增，
+ * 每来一个新码就配一套颜色是配不完的）。
+ *
+ * 上游给 999（它自己说不知道）也是这一组。
+ */
+export function weatherGroup(icon: string | undefined | null): WeatherGroup {
+  const n = Number(icon);
+  if (!Number.isInteger(n)) return 'generic';
+
+  for (const [lo, hi, group] of WEATHER_GROUP_RANGES) {
+    if (n >= lo && n <= hi) return group;
+  }
+
+  return 'generic';
 }
 
 // ---------------------------------------------------------------------------
@@ -262,4 +338,59 @@ export function indexCategoryTone(category: string | undefined | null): Tone {
     default:
       return 'muted';
   }
+}
+
+// ---------------------------------------------------------------------------
+// 预报日
+// ---------------------------------------------------------------------------
+
+/**
+ * 预报日 → 展示模型。
+ *
+ * 高低温是数字而不是字符串：两张卡都要拿它拼「°」和比大小，
+ * 换算留在这一层，换完就是能直接显示的数。
+ */
+export interface ForecastDay {
+  fxDate: string;
+  max: number;
+  min: number;
+  /** 白天时段的天气码 */
+  icon: string;
+  /** 降水概率文案。概率为 0 时是空串 —— 整排都不下雨却每行都写「0%」是噪音 */
+  probText: string;
+}
+
+/** 取数阶段的形状：高低温还没排除空值 */
+interface ForecastDayRaw {
+  fxDate: string;
+  max: number | null;
+  min: number | null;
+  icon: string;
+  probText: string;
+}
+
+/**
+ * 有效的预报日。
+ *
+ * 只留高低温都有值的那几天 —— 缺一个读数的那天占一行，那一行就只剩半个信息。
+ *
+ * 为什么收在这里而不是两张卡各判一次：
+ * 两张卡都要说「今天」，而「今天」不是接口的第一条 —— 头一天要是脏数据
+ * 整条被丢掉，剩下的第一行才是今天。各判各的，早晚出现一张卡说今天、
+ * 另一张卡说昨天。
+ */
+export function forecastDays(days: WeatherDay[]): ForecastDay[] {
+  const rows: ForecastDayRaw[] = days.map((day) => {
+    const prob = num(day.precipProbability);
+
+    return {
+      fxDate: day.fxDate,
+      max: num(day.tempMax),
+      min: num(day.tempMin),
+      icon: day.iconDay,
+      probText: prob !== null && prob > 0 ? `${prob}%` : '',
+    };
+  });
+
+  return rows.filter((day): day is ForecastDay => day.max !== null && day.min !== null);
 }

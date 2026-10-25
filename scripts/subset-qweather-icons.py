@@ -181,7 +181,7 @@ def main() -> None:
  * 或月相经 `moonPhaseIconClass()` 换算出的码；不要再用 CSS 伪类名直接写字面量。
  *
  * ⚠️ 已知限制：canvas 等原生组件不支持自定义字体。本项目天气图标全在普通 `<text>` 里渲染
- * （HourlyWeather / WeekStrip / AstroCard），不涉及 canvas；若日后要在 TideChart /
+ * （HourlyWeather / DayForecast / AstroCard），不涉及 canvas；若日后要在 TideChart /
  * LineChart / SnapSheet 的 canvas 里画天气图标，此方案不适用。
  *
  * 字体：QWeather Icons，MIT（代码）/ CC BY 4.0（图形），https://github.com/qwd/Icons

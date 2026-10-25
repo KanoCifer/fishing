@@ -253,7 +253,7 @@ const emptyText = computed(() =>
   @include fish-card-head;
 }
 
-/* 分区标题统一走 headline 一级（见 WeekStrip 同名注释） */
+/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
 .astro__title {
   @include fish-card-title;
 }
