@@ -12,13 +12,15 @@
  *   这里只做「数值 → 评价」这一步；
  * - 气压沿用 `utils/weather` 已有的 pressureLevel —— 项目里对气压的
  *   分级口径只有那一处，详情页不另立一套；
- * - 潮汐的「挑下一个满潮」沿用 `utils/tide`，这里只把它变成一句人话。
+ * - 潮汐的「挑下一个满潮」沿用 `utils/tide`，这里只把它变成一句人话；
+ * - 等级词与配色沿用 `utils/weather` 的 levelTone —— 同一个 level
+ *   在数据页和详情页必须是同一个颜色，两处各配一套会被读成两个指标。
  */
 
 import { parseFxTime } from '@/utils/date';
 import { nextHighTideItem, tideTrend } from '@/utils/tide';
-import { num, pressureLevel } from '@/utils/weather';
-import type { FishingIndexLevel, TideData, WeatherNow } from '@/types/fishing';
+import { levelTone, levelVerdict, num, pressureLevel, type Tone } from '@/utils/weather';
+import type { FishingIndexData, TideData, WeatherNow } from '@/types/fishing';
 
 /** 钓况四格。key 固定，顺序即展示顺序 */
 export type SpotConditionKey = 'pressure' | 'wind' | 'temp' | 'tide';
@@ -193,43 +195,45 @@ export function buildConditionCells(now: WeatherNow | null, tide: TideData | nul
 }
 
 // ---------------------------------------------------------------------------
-// 等级 → 适宜度
+// 等级 → 结论
 // ---------------------------------------------------------------------------
 
 /**
- * 钓鱼等级 → 适宜度。
+ * 这一屏的结论。
  *
- * 后端的 level 是「好 / 一般 / 差 / 空军」这套鱼口评级，
- * 界面上要的是「这个钓点现在值不值得去」—— 同一件事的两种说法。
- * 放在这儿是因为它跟四格评价是同一类东西：本地判断，不是上游字段。
+ * 详情页的第一眼要回答的是「今天值不值得去」，所以结论站在数字前面：
+ * 等级词是判断，四格数值是判断的依据。
  */
-const SUITABILITY_TEXT: Readonly<Record<string, string>> = {
-  极好: '很适宜',
-  爆护: '很适宜',
-  好: '较适宜',
-  一般: '一般',
-  差: '不宜',
-  空军: '空军',
-};
-
-/** 适宜度徽标的色调档位。徽标是淡底 + 深字，小字才压得住 */
-export type SuitabilityTone = 'ok' | 'warn' | 'bad';
-
-const SUITABILITY_TONE: Readonly<Record<string, SuitabilityTone>> = {
-  极好: 'ok',
-  爆护: 'ok',
-  好: 'ok',
-  一般: 'warn',
-  差: 'warn',
-  空军: 'bad',
-};
-
-export function suitabilityText(level: FishingIndexLevel | string | undefined): string {
-  return SUITABILITY_TEXT[level ?? ''] ?? '待定';
+export interface SpotVerdict {
+  /** 等级词（"极好" / "爆护" / "好" / "一般" / "差" / "空军"） */
+  word: string;
+  /** 等级词的色调档位 */
+  tone: Tone;
+  /** 一句话结论 */
+  text: string;
 }
 
-export function suitabilityTone(level: FishingIndexLevel | string | undefined): SuitabilityTone {
-  return SUITABILITY_TONE[level ?? ''] ?? 'warn';
+/**
+ * 结论。
+ *
+ * **等级词与配色走 utils/weather 的 levelTone，不另立一套。**
+ * 同一个 level 在数据页和详情页必须是同一个颜色 ——
+ * 两处各配一套的话，用户会以为这是两个不同的指标，
+ * 而同一个词在同一屏里出现两种颜色，只会被读成「有一个是错的」。
+ *
+ * 结论那句优先用和风官方那条「钓鱼」建议：它是接口给的原文，
+ * 比我们自己拼一句更有分量。官方那条还没到时退回等级映射（levelVerdict），
+ * 与数据页是同一个口径。
+ */
+export function buildSpotVerdict(index: FishingIndexData | null): SpotVerdict {
+  const level = index?.level;
+  const fishing = index?.weather_indices?.find((item) => item.name.includes('钓鱼') && item.text);
+
+  return {
+    word: level ?? '',
+    tone: levelTone(level),
+    text: index ? (fishing?.text ?? levelVerdict(level)) : '',
+  };
 }
 
 // ---------------------------------------------------------------------------

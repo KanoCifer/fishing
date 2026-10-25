@@ -1,36 +1,24 @@
 <template>
   <!--
-    钓点信息 —— inset-grouped 列表。
+    钓点信息 —— 2×2 紧凑网格。
 
-    分组卡而不是一整块白：每一行是「标签 / 值」的对，
-    标签靠左 muted、值靠右墨色，读的时候眼睛从左扫到右，
-    一行扫完就知道这个钓点在这一项上是什么情况。
+    四个字段压成两行两列：标签在上、值在下，各占半宽。
+    一屏里要读的东西有五块（名字、结论、四因子、档案、照片），
+    档案再占四条整行的话，它自己就是一屏 —— 压成网格之后，
+    它退回成「一块要扫一眼的信息」，而不是「一页的主体」。
 
     属主单独一行、头像 + 名字 + 浏览量 —— 它不是字段，是「这条信息是谁提供的」，
-    跟上面那几项不在一个层级上。
+    跟上面那几项不在一个层级上，所以那条发丝线留着。
   -->
   <view class="info">
-    <text class="info__title">钓点信息</text>
+    <text class="info__section">钓点信息</text>
 
     <view class="info__group">
-      <view class="info__row">
-        <text class="info__label">道路情况</text>
-        <text class="info__value">{{ roadLabel }}</text>
-      </view>
-
-      <view class="info__row">
-        <text class="info__label">车到水边</text>
-        <text class="info__value">{{ carLabel }}</text>
-      </view>
-
-      <view class="info__row">
-        <text class="info__label">开放时间</text>
-        <text class="info__value">{{ spot.opening_hours || '未知' }}</text>
-      </view>
-
-      <view class="info__row">
-        <text class="info__label">适合钓法</text>
-        <text class="info__value">{{ suitableText }}</text>
+      <view class="info__grid">
+        <view v-for="row in rows" :key="row.label" class="info__cell">
+          <text class="info__label">{{ row.label }}</text>
+          <text class="info__value">{{ row.value }}</text>
+        </view>
       </view>
 
       <view class="info__owner">
@@ -46,7 +34,7 @@
 
 <script setup lang="ts">
 /**
- * SpotDetailInfo —— 钓点信息分组列表。
+ * SpotDetailInfo —— 钓点信息分组。
  *
  * 只管渲染。枚举 → 中文在 utils/types 里换算完再传进来。
  */
@@ -59,17 +47,19 @@ const props = defineProps<{
   spot: FishingSpot;
 }>();
 
-/** 道路情况 */
-const roadLabel = computed(() => fishingSpotRoadLabel(props.spot.road_condition));
-
-/** 能否车到水边 */
-const carLabel = computed(() => fishingSpotCarLabel(props.spot.car_access));
-
-/** 适合的钓法。一项都没有时给个横杠，而不是留一行空白 */
-const suitableText = computed(() => {
-  const list = props.spot.suitable_for ?? [];
-  return list.length ? list.join(' · ') : '—';
-});
+/**
+ * 四个字段。
+ *
+ * 值都换算好了再摆上来 —— 组件里不出现「如果为空就怎么显示」的判断分支，
+ * 那一层在 types/fishing 的 label 函数里。
+ */
+const rows = computed(() => [
+  { label: '道路情况', value: fishingSpotRoadLabel(props.spot.road_condition) },
+  { label: '车到水边', value: fishingSpotCarLabel(props.spot.car_access) },
+  { label: '开放时间', value: props.spot.opening_hours || '未知' },
+  // 一项都没有时给个横杠，而不是留一格空白
+  { label: '适合钓法', value: (props.spot.suitable_for ?? []).join(' · ') || '—' },
+]);
 
 /** 属主名。没有属主时是「未署名」 */
 const ownerName = computed(() => props.spot.owner?.name || '未署名');
@@ -89,49 +79,54 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   margin-top: $fish-space-sectitle;
 }
 
-.info__title {
+/* 分区标签：eyebrow，与钓况、照片两段同一档 */
+.info__section {
   display: block;
   margin-bottom: 20rpx;
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-eyebrow;
 }
 
 /*
  * 分组卡。
  *
- * inset-grouped 的结构：白卡浮在灰底上，靠**面**分层，
- * 行与行之间是一道发丝线而不是描边 —— 1rpx，不是 2rpx。
+ * inset-grouped 的结构：白卡浮在灰底上，靠**面**分层。
+ * 组内不再逐行画发丝线 —— 两行两列的网格靠留白分开就够了，
+ * 再压三道线，卡片会读成一张表格。
  */
 .info__group {
   overflow: hidden;
   border-radius: $fish-radius-card;
   background-color: $fish-page;
   box-shadow: $smooth-shadow-md;
+  padding-top: 24rpx;
 }
 
-.info__row {
+/* 两行两列。flex + 50% 宽，不用 grid（老基础库不认） */
+.info__grid {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24rpx;
-  padding: 26rpx 32rpx;
+  flex-wrap: wrap;
 }
 
-.info__row + .info__row {
-  border-top: 1rpx solid $fish-border-40;
+.info__cell {
+  box-sizing: border-box;
+  width: 50%;
+  padding: 0 32rpx 24rpx;
 }
 
+/* 标签在上、值在下 */
 .info__label {
-  flex-shrink: 0;
+  display: block;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(caption);
+
+  line-height: 1;
 }
 
 .info__value {
+  display: block;
+  margin-top: 14rpx;
   color: $fish-ink;
   @include fish-type(subhead);
-
-  text-align: right;
 }
 
 /*
@@ -139,12 +134,14 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
  *
  * 它不是字段，是「这条信息是谁提供的」—— 所以左右各挂一样东西：
  * 左边是谁，右边有多少人看过。
+ *
+ * 跟上面那两行的分界靠这道发丝线：字段是这一块的档案，
+ * 属主是这段信息的来源，两者不在一个层级上。
  */
 .info__owner {
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  padding: 24rpx 32rpx;
+  padding: 22rpx 32rpx;
   border-top: 1rpx solid $fish-border-40;
 }
 
@@ -158,6 +155,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
 .info__avatar-image {
   width: 60rpx;
   height: 60rpx;
+  margin-right: 18rpx;
   flex-shrink: 0;
   border-radius: 999rpx;
 }

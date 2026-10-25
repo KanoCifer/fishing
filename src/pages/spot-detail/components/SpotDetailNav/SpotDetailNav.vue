@@ -44,7 +44,7 @@ const props = defineProps<{
   title: string;
   /** 反色：蓝箭头 + 黑字 */
   solid: boolean;
-  /** 材质层显形 */
+  /** 材质层显形（磨砂带）。与 solid 是两件事，页面分开给 */
   material: boolean;
   /** 是否给出分享入口 */
   shareable?: boolean;
@@ -140,9 +140,6 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
  * 命中区 88rpx 见方（44pt，iOS 判定为可放心点按的最小尺寸），
  * 图标 40rpx 居中 —— 命中区比图标大，点得准；图标比命中区小，按下不糊。
  *
- * 浮在照片上时给它一块半透明深色圆底：深色底 + 白色箭头在什么照片上都读得出，
- * 这是「返回键在照片上」这件事唯一稳的做法。
- *
  * 按下反馈用变暗而不是缩小 —— 缩小会让标题微微位移（见令牌层 _motion.scss 的 fish-press）。
  */
 .spot-nav__back {
@@ -169,8 +166,7 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
 /*
  * 分享按钮。
  *
- * 与返回键同一套处理：浮在照片上时是白图标配半透明深色圆底，
- * 滚过照片后换成主色图标。
+ * 与返回键同一套处理：照片上用白图标，滚过照片后换成主色图标。
  */
 .spot-nav__share {
   position: absolute;

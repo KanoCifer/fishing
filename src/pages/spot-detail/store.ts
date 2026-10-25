@@ -47,6 +47,15 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
   const loading = ref(false);
   /** 钓况在飞。与本体分开：本体回来了就能看，钓况后到不影响阅读 */
   const conditionsLoading = ref(false);
+  /**
+   * 钓况取到的错误。
+   *
+   * 存下来而不是只弹一次 toast：钓况失败是**这一块内容缺失**，
+   * 不是一次操作失败。toast 两秒半就没了，留下的只有一个空白的分区 ——
+   * 用户不知道是没数据还是没取到。页面据此摆出「重新获取」，
+   * 那一块自己站着，不占别人的位置。
+   */
+  const conditionsError = ref('');
   const error = ref('');
   /** 已经取过的是哪个钓点。同一个钓点二次进入不重复取数 */
   const loadedId = ref<string | null>(null);
@@ -60,6 +69,7 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
    */
   async function loadConditions(location: [number, number]): Promise<void> {
     conditionsLoading.value = true;
+    conditionsError.value = '';
 
     try {
       const data = await fishingApi.getFishingIndex(location, true);
@@ -77,7 +87,9 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
       now.value = normalized.now;
       tide.value = data.tide_data ?? null;
     } catch (err) {
-      notifyError(toErrorMessage(err, '获取钓况失败'));
+      // 不弹 toast：错误落在页面上那一块里（见 conditionsError 的说明）。
+      // 这里再弹一次，等于同一件事说两遍，而 toast 那遍先没。
+      conditionsError.value = toErrorMessage(err, '获取钓况失败');
     } finally {
       conditionsLoading.value = false;
     }
@@ -94,6 +106,19 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
 
     loading.value = true;
     error.value = '';
+
+    /*
+     * 换一条钓点时，先把上一条的钓况清掉。
+     *
+     * 留着的话，新钓点的名字会配着上一条的「爆护」摆出来 —— 那是在撒谎，
+     * 而且比空着更糟：空着读得出「还没取到」，撒谎读不出来。
+     */
+    if (loadedId.value !== id) {
+      index.value = null;
+      now.value = null;
+      tide.value = null;
+      conditionsError.value = '';
+    }
 
     try {
       const detail = await fishingSpotApi.getById(id);
@@ -126,6 +151,7 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
     tide,
     loading,
     conditionsLoading,
+    conditionsError,
     error,
     loadedId,
     load,

@@ -85,6 +85,10 @@ const ICONS = [
   { name: 'chevron-left', color: 'onAccent', use: '钓点详情页压在头图上的返回按钮' },
   { name: 'share-2', color: 'onAccent', use: '钓点详情页压在头图上的分享入口' },
   { name: 'share-2', color: 'blue', use: '钓点详情页滚过照片后的分享入口' },
+  // 页脚那两个入口：一个是读者操作（灰），一个是作者操作（主色）。
+  // 颜色跟着各自那行文字走 —— 图标与文字不同色，一行里就有两个焦点了。
+  { name: 'message-square', color: 'muted', use: '钓点详情页「信息有误」入口' },
+  { name: 'pencil', color: 'blue600', use: '钓点详情页「编辑这条钓点」入口' },
   // —— 分享浮层 ——
   { name: 'x', color: 'muted60', use: '分享浮层的关闭按钮' },
   // —— 钓点页 ——

@@ -5,6 +5,9 @@
     整页只有「去那儿」一件事要做，所以它是满宽的主色 pill：
     独占一行、整条都是热区，比半宽的按钮好按得多。
 
+    **按钮上只有这一件事**：距离在主体卡里，一句话到一个动作，
+    底栏上再挂一段参考信息就把这件事稀释了。
+
     底色是渐隐而不是实色 —— 内容从它底下滚过去时，实底会像刀切一样
     把内容截断，渐隐则让内容「沉进去」。跟头图那头的压暗是同一种手法。
   -->
@@ -12,7 +15,6 @@
     <view class="dock__cta" @tap="emit('nav')">
       <image class="dock__icon" :src="navIcon" mode="aspectFit" />
       <text class="dock__text">前往钓点</text>
-      <text class="dock__dist">· {{ distance }}</text>
     </view>
   </view>
 </template>
@@ -30,11 +32,6 @@ import { icon } from '@/constants/icons';
 
 const emit = defineEmits<{
   nav: [];
-}>();
-
-defineProps<{
-  /** 距离展示文案（"12.1 km" / "距离未知"） */
-  distance: string;
 }>();
 
 /** 导航键的箭头。压在主色按钮上，所以是白色 */
@@ -96,6 +93,7 @@ const navIcon = icon('navigation', 'onAccent');
 .dock__icon {
   width: 36rpx;
   height: 36rpx;
+  margin-right: 16rpx;
 }
 
 /* 实心按钮上的文字必须反色：pill 的蓝底够深，沿用深色文字会糊在底色里 */
@@ -104,19 +102,5 @@ const navIcon = icon('navigation', 'onAccent');
   @include fish-type(callout);
 
   font-weight: 600;
-}
-
-/*
- * 距离。
- *
- * 弱化一档（透明度 0.72 + 字重降到 500）—— 它是补充信息，
- * 不该跟「导航送达」四个字抢同一行的注意力。
- */
-.dock__dist {
-  color: $fish-on-accent;
-  @include fish-type(callout);
-
-  opacity: 0.72;
-  font-weight: 500;
 }
 </style>

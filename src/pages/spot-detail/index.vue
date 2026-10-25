@@ -25,8 +25,24 @@
           <SpotDetailHead :spot="spot" :distance="distanceLabel" />
         </view>
 
-        <view v-if="detailStore.index" class="spot-detail__enter" :style="{ animationDelay: enterDelay(2) }">
-          <SpotDetailConditions :cells="cells" :level="level" />
+        <!--
+          钓况。
+
+          **不看有没有数据就挂上去**：加载中摆骨架、取不到摆失败态，
+          三种状态都在这一块里自己轮换。整块不出现的话，
+          页面会在「名字卡」和「钓点信息」之间空掉一块 —— 用户以为没有钓况。
+
+          但钓点本体没取到时不挂：那时候连名字都没有，一块钓况卡
+          孤零零地杵在页面上，读者不知道自己在看什么。
+        -->
+        <view v-if="spot" class="spot-detail__enter" :style="{ animationDelay: enterDelay(2) }">
+          <SpotDetailConditions
+            :cells="cells"
+            :verdict="verdict"
+            :loading="conditionsBusy"
+            :failed="conditionsFailed"
+            @retry="retryConditions"
+          />
         </view>
 
         <view v-if="spot" class="spot-detail__enter" :style="{ animationDelay: enterDelay(3) }">
@@ -37,26 +53,28 @@
           <SpotDetailGallery :images="images" />
         </view>
 
-        <view
-          v-if="isOwner"
-          class="spot-detail__edit spot-detail__enter"
-          :style="{ animationDelay: enterDelay(5) }"
-          @tap="openEdit"
-        >
-          <text class="spot-detail__edit-text">{{ editLabel }}</text>
-        </view>
+        <!--
+          页脚两个入口，两端对齐。
 
-        <view
-          class="spot-detail__feedback spot-detail__enter"
-          :style="{ animationDelay: enterDelay(6) }"
-          @tap="openFeedback"
-        >
-          <text class="spot-detail__feedback-text">{{ feedbackLabel }}</text>
+          左边是读者动作（信息有误？提交反馈），右边是作者动作（编辑这条钓点）。
+          分开两个端是因为它们是两种身份：读者看到左边，属主两边都看到。
+          挤在中间一行会让两个身份混成一对按钮，读起来像「这页有两个差不多的操作」。
+        -->
+        <view class="spot-detail__foot spot-detail__enter" :style="{ animationDelay: enterDelay(5) }">
+          <view class="spot-detail__foot-link" @tap="openFeedback">
+            <image class="spot-detail__foot-icon" :src="feedbackIcon" mode="aspectFit" />
+            <text class="spot-detail__foot-text spot-detail__foot-text--muted">{{ feedbackLabel }}</text>
+          </view>
+
+          <view v-if="isOwner" class="spot-detail__foot-link" @tap="openEdit">
+            <image class="spot-detail__foot-icon" :src="editIcon" mode="aspectFit" />
+            <text class="spot-detail__foot-text spot-detail__foot-text--accent">{{ editLabel }}</text>
+          </view>
         </view>
       </view>
     </view>
 
-    <SpotDetailDock :distance="distanceLabel" @nav="openNavigation" />
+    <SpotDetailDock @nav="openNavigation" />
 
     <SpotShareSheet :open="shareOpen" :data="posterData" @close="shareOpen = false" @ready="onPosterReady" />
   </view>
@@ -88,13 +106,14 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { SPOT_DETAIL_EDIT, SPOT_HERO_HEIGHT_RPX, SPOT_HERO_OVERLAP_RPX, SPOT_PLACEHOLDER_IMAGE } from './constants';
 import { SHARE_TITLES, SHARE_WXACODE } from './share';
 import { mediaUrl } from '@/api/upload';
+import { icon } from '@/constants/icons';
 import { SPOT_FEEDBACK_ENTRY } from '@/constants/spot-feedback';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from './store';
 import { enterDelay } from '@/utils/motion';
 import type { PosterSpot } from './poster';
-import { buildConditionCells, distanceKm, formatDistance } from './spot-conditions';
+import { buildConditionCells, buildSpotVerdict, distanceKm, formatDistance } from './spot-conditions';
 import { fishingSpotKindLabel } from '@/types/fishing';
 
 const detailStore = useSpotDetailStore();
@@ -181,6 +200,18 @@ const editLabel = SPOT_DETAIL_EDIT.label;
 const feedbackLabel = SPOT_FEEDBACK_ENTRY.label;
 
 /**
+ * 页脚两个入口的图标。
+ *
+ * 纠错是读者动作 —— 灰色小图标，13pt，跟 12pt 的字一个量级；
+ * 编辑是作者动作 —— 品牌蓝，跟它那行字的蓝色是同一个蓝。
+ *
+ * 图标不是可有可无的装饰：页脚这两个入口是这一页仅有的两处文字，
+ * 没有图标的话它们读起来像版权声明，而不是点得动的东西。
+ */
+const feedbackIcon = icon('message-square', 'muted');
+const editIcon = icon('pencil', 'blue600');
+
+/**
  * 这条钓点是不是我的。
  *
  * 认的是钓点上的属主快照（owner.user_id）与当前登录用户 —— 不是
@@ -232,12 +263,18 @@ const title = computed(() => spot.value?.name ?? '');
 /**
  * 导航栏的两态。
  *
- * 头图上永远压着一道暗渐变（照片和占位插画都有），所以只要头图还在，
- * 导航就该是白字 —— 白箭头压在暗渐变上，黑字压在暗渐变上就糊了。
- * 内容滚上来、头图离开导航栏之后，才换成蓝箭头 + 黑字。
+ * **solid 与 material 是两件事**：solid 管图标颜色（蓝箭头 + 黑字），
+ * material 管那条磨砂带。它们不再一起翻。
+ *
+ * 分开的理由是缺图的时候：头图换成浅色占位插画，
+ * 白色箭头压在浅插画上根本读不出来 —— 但这时候底下也没有照片在滚，
+ * 那条磨砂带没有存在意义（它的作用是「托住滚过去的内容」，
+ * 底下什么都没有时铺一块半透明白面，只是把插画切开）。
+ *
+ * 所以：没有照片时**从头**就用实底图标，但不铺磨砂带。
  */
 const past = computed(() => scrollTop.value >= flipAt);
-const solid = computed(() => past.value);
+const solid = computed(() => !hasPhoto.value || past.value);
 
 /** 材质层：内容滚到导航栏底下才显形 */
 const material = computed(() => past.value);
@@ -245,8 +282,36 @@ const material = computed(() => past.value);
 /** 钓况四格 */
 const cells = computed(() => buildConditionCells(detailStore.now, detailStore.tide));
 
-/** 钓鱼等级。徽标的文案与色调从它来 */
-const level = computed(() => detailStore.index?.level);
+/**
+ * 结论：等级词、色调、一句话。
+ *
+ * 换算在 spot-conditions 里做完（见 buildSpotVerdict），
+ * 组件只管把它们摆上去。
+ */
+const verdict = computed(() => buildSpotVerdict(detailStore.index));
+
+/**
+ * 钓况是不是真的取不到。
+ *
+ * 有旧数据时不摆失败态：手里已经有一份能显示的，就别把它换成一句报错。
+ */
+const conditionsFailed = computed(() => !!detailStore.conditionsError && !detailStore.index);
+
+/**
+ * 钓况还在路上。
+ *
+ * 「还没取到」也算在飞 —— 请求刚排上队的那一瞬，conditionsLoading 还是 false，
+ * 但那一瞬必须摆骨架而不是四格 '--'：摆 '--' 像是「这个钓点没气压数据」，
+ * 而真实情况是「还没问完」。
+ */
+const conditionsBusy = computed(
+  () => detailStore.conditionsLoading || (!detailStore.index && !detailStore.conditionsError),
+);
+
+/** 重新取一次钓况 */
+function retryConditions(): void {
+  void detailStore.refreshConditions();
+}
 
 /**
  * 距离。
@@ -426,7 +491,15 @@ function openNavigation() {
 .spot-detail__body {
   position: relative;
   z-index: 2;
-  padding: 16rpx 24rpx;
+
+  /*
+   * 横向留白 32rpx（16pt）。
+   *
+   * 原先 24rpx（12pt）：主体卡的圆角是 32pt，留白只有 12pt 的时候，
+   * 卡片几乎顶到屏幕边，那圈圆角看着是被屏幕切出来的，不是卡片自己的。
+   * 16pt 之后圆角才立得住 —— 这也是数据页那一档留白。
+   */
+  padding: 16rpx 32rpx;
 
   /* 底栏是浮层的，下面这一截留出来，不然最后一段内容被它盖住 */
   padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
@@ -439,41 +512,48 @@ function openNavigation() {
 }
 
 /*
- * 属主的编辑入口。
+ * 页脚两个入口。
  *
- * 单独一行，居中偏右 —— 它是这一页唯一的作者操作，
- * 不该跟公开信息（钓况、档案、照片）混在同一套排版里。
+ * 两端对齐：左边读者动作、右边作者动作。
+ *
+ * 以前这两个入口各自独占一行、都是居中 —— 注释写的是「居中偏右」和「左对齐」，
+ * 代码里却是同一个 justify-content: center，注释与实现对不上，
+ * 读起来就是两个都居中的入口，读者与作者的动作混在一处。
+ * 现在按注释原本的意思摆：两个身份，两端。
  */
-.spot-detail__edit {
+.spot-detail__foot {
   display: flex;
-  justify-content: center;
-  margin-top: 24rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $fish-space-sectitle;
+}
+
+.spot-detail__foot-link {
+  display: flex;
+  align-items: center;
   @include fish-press-dim;
 }
 
-.spot-detail__edit-text {
-  color: $fish-accent;
+.spot-detail__foot-icon {
+  width: 26rpx;
+  height: 26rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+
+.spot-detail__foot-text {
   @include fish-type(caption);
+}
+
+/* 读者动作。灰色 —— 它是这一页最次要的动作 */
+.spot-detail__foot-text--muted {
+  color: $fish-muted;
+}
+
+/* 作者动作。品牌蓝，跟底栏那颗主按钮同一个蓝 */
+.spot-detail__foot-text--accent {
+  color: $fish-blue-600;
 
   font-weight: 600;
-}
-
-/*
- * 纠错入口。
- *
- * 左对齐 —— 它是这一页最次要的动作，挂在正文末尾的左边，
- * 不跟属主那个居右的「编辑」站成一排：一个是读者操作，一个是作者操作。
- * 灰色小字，不跟编辑抢注意力。
- */
-.spot-detail__feedback {
-  display: flex;
-  justify-content: center;
-  margin-top: 24rpx;
-  @include fish-press-dim;
-}
-
-.spot-detail__feedback-text {
-  color: $fish-muted;
-  @include fish-type(caption);
 }
 </style>

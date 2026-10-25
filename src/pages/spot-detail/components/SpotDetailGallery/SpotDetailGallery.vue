@@ -9,7 +9,7 @@
     「右边还有」的唯一提示，比加个箭头干净。
   -->
   <view class="gallery">
-    <text class="gallery__title">现场照片</text>
+    <text class="gallery__section">现场照片</text>
 
     <scroll-view class="gallery__scroll" scroll-x :show-scrollbar="false">
       <view class="gallery__row">
@@ -55,11 +55,11 @@ defineProps<{
   margin-top: $fish-space-sectitle;
 }
 
-.gallery__title {
+/* 分区标签：eyebrow，与钓况、钓点信息两段同一档 */
+.gallery__section {
   display: block;
   margin-bottom: 20rpx;
-  color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-eyebrow;
 }
 
 /*
@@ -75,7 +75,6 @@ defineProps<{
 
 .gallery__row {
   display: inline-flex;
-  gap: 16rpx;
 }
 
 /*
@@ -83,10 +82,14 @@ defineProps<{
  *
  * 264×184rpx（132×92pt）—— 3:2 的横图，比正方形的占位更接近现场照片的样子。
  * flex-shrink: 0 不写的话会被压扁成一条。
+ *
+ * 间距用 margin 而不是 gap：老基础库不认 flex gap，声明被丢掉的话
+ * 照片会一张贴一张（见 docs/mp-weixin-package.md）。
  */
 .gallery__thumb {
   width: 264rpx;
   height: 184rpx;
+  margin-right: 16rpx;
   flex-shrink: 0;
   border-radius: $fish-radius-lg;
 }

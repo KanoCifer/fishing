@@ -8,6 +8,8 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。脚本清单见 `
 
 `pnpm lint` 的 `no-undef` 只认 `uni.*`、定时器与 `console` 这几个全局，所以浏览器 API 写进来会直接报错 —— **这道 lint 就是平台边界的静态版本**。需要这类能力时，先查 `docs/mp-weixin-platform.md` 里的替代路径。
 
+WXSS 编译器不认通配选择器 `*` —— 写了 `> *` 的那一份样式编译不过，用它的页面直接白屏，而构建期一路绿灯。要给子节点加样式就给它自己的类（见 `docs/mp-weixin-package.md`）。
+
 **后端服务项目在 `../Server-Go`、`../Server-Py`。**
 
 ## 约定
@@ -18,6 +20,7 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。脚本清单见 `
 - 接口基址只从 `@/config/env` 读，不在调用点写死域名
 - 环境变量只读 `import.meta.env.VITE_*`（小程序端没有 `process.env`）；往 `.env.*` 加变量时要同步加 `vite.config.ts` 的 `envPrefix` 白名单 —— 那是白名单不是前缀，漏一个变量 `import.meta.env.XXX` 就是 `undefined`，且不报错
 - 运行时量出来的尺寸用 px，设计稿尺寸用 rpx；两者相加先过 `uni.upx2px()`
+- 同一个指标在两个页面上必须是同一个颜色 —— 钓鱼等级的色调用 `utils/weather` 的 `levelTone`，别在页面里另配一套
 - 坐标是 `[经度, 纬度]`，经度在前
 
 ## 改动的四步
