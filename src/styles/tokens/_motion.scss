@@ -238,6 +238,20 @@ $fish-motion: true;
 $fish-enter-y: 40rpx;
 
 /**
+ * ⚠️ 这个开关只管得着 CSS 动效。
+ *
+ * 数字滚动（"0" 滚成 "72"）是唯一一处 JS 驱动的动效 —— 字面在变，
+ * CSS 改不了。它的时长和缓动写在 utils/motion.ts（COUNT_UP_DURATION / easeOutCubic），
+ * 因为 JS 读不到这里的 Sass 变量。
+ *
+ * 代价：$fish-motion 置 false 之后，数字照样滚。差距如实记在
+ * docs/design-system.md 的「现状缺口」第 9 条，不假装已经处理过。
+ *
+ * 真要收口，方向是把这个开关搬到一份两边都读得到的地方
+ * （比如 src/config 下的常量 + 构建时注入 SCSS），代价是一轮构建链改造。
+ */
+
+/**
  * 入场。$delay 由调用方按序号给（见 utils/motion.ts 的 enterDelay），
  * 时长和曲线不在这里另立 —— 沿用上面那条 $fish-dur-base / $fish-ease-out，
  * 「出场是缓入、入场是缓出」是同一套约定，不是两个系统。

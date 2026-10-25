@@ -1,14 +1,4 @@
 <template>
-  <!--
-    首屏概览。
-
-    这一块占满第一屏：高度取 windowHeight（px，不含 tabBar），
-    内容从导航栏底边往下排。第一屏看到的就是结论本身，
-    其余卡片接着往下排（见 pages/data）。
-
-    为什么高度写在这里而不是页面里：这个组件就是第一屏，
-    它的高度就是这一屏的高度；页面只管它下面那些区块怎么排。
-  -->
   <view class="verdict" :style="{ height: windowHeight + 'px', paddingTop: navBarBottom + 'px' }">
     <!-- 顶行：地点 / 更新时间 / 刷新 -->
     <view class="verdict__top">
@@ -85,7 +75,14 @@
         <text class="verdict__eyebrow" :style="enterStyle(0, showAnim)">今日钓鱼指数</text>
 
         <view class="verdict__score" :style="enterStyle(1, showAnim)">
-          <text class="verdict__score-num">{{ score }}</text>
+          <!--
+            数字是滚出来的，不是切出来的。
+
+            滚动这一层是 JS 驱动的（字面在变，CSS 改不了），
+            缓动和时长在 utils/motion.ts 的 createCountUp / COUNT_UP_DURATION。
+            这里只管把当前显示值吐出来。
+          -->
+          <text class="verdict__score-num">{{ displayScore }}</text>
           <text class="verdict__score-max">/100</text>
         </view>
 
@@ -164,15 +161,14 @@
  * 页面滚动直接用页面级滚动，内容超过窗口自动滚（见 pages/data 的注释）。
  * 本组件负责的只有一件事：把「今天能不能钓」说清楚，并且占满第一屏。
  */
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { enterStyle } from '@/utils/motion';
+import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
 import { levelTone, levelVerdict, num } from '@/utils/weather';
-import { parseFxTime } from '@/utils/date';
 import { nextHighTide, tideTrend } from '@/utils/tide';
 
 const emit = defineEmits<{
@@ -181,18 +177,7 @@ const emit = defineEmits<{
   analysis: [];
 }>();
 
-/**
- * 入场动画现在播不播。
- *
- * 默认 true：组件自己就能播，页面不传也不至于内容隐形 ——
- * 入场的初始状态（opacity: 0）写在类上，动画被摘掉时元素停在那个状态，
- * 一旦没人把动画挂回去，这一屏就没了。
- *
- * 页面传 false 是为了重播：CSS 动画同名跑完就是跑完了，
- * 二次进入这一页它停在终态，不会自己再播。页面在 onPageShow 里
- * 先摘后挂，这里只负责跟着翻这个开关（见 utils/motion 的 enterStyle）。
- */
-withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
+const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
 /** px。导航栏是浮层，顶部内容都得自己让开 */
 const { navBarBottom } = useNavMetrics();
@@ -216,15 +201,62 @@ const tone = computed(() => levelTone(mapStore.indexData?.level));
 /** 等级词。接口没给等级时先空着，别拿 undefined 去渲染 */
 const level = computed(() => mapStore.indexData?.level ?? '');
 
-/**
- * 钓鱼指数。
- *
- * 钳到 0–100：后端加权重算后越界过一次（见 FishingGauge 里同一段理由）。
- */
 const score = computed(() => {
   const value = mapStore.indexData?.fishing_index ?? 0;
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, value));
+});
+
+const displayScore = ref<number>(0);
+
+/**
+ * 数字滚动。
+ *
+ * 用 createCountUp 而不是自己写 setInterval：计数期间每改一次值就是一次跨线
+ * setData，控制器只在整数真的变了时才写（0→100 的取值就 101 个，
+ * 再被帧数一压，全程写不满 50 次）。
+ */
+const countUp = createCountUp((value) => {
+  displayScore.value = value;
+});
+
+/**
+ * showAnim 翻动时数字跟着重播。
+ *
+ * 这一屏的入场动画由页面持有开关（见 pages/data 的注释），摘掉时元素回到
+ * 「先不在」的状态。数字跟着回到 0，重播时再数一遍 —— 数字停在旧值上、
+ * 只有别的东西在动，读起来是「卡住了」。
+ */
+watch(
+  () => props.showAnim,
+  (show) => {
+    if (!show) {
+      countUp.set(0);
+      return;
+    }
+    countUp.to(score.value, { delay: enterDelayMs(3) });
+  },
+  { immediate: true },
+);
+
+/**
+ * 分数变了：数据到了，或者刷新回来了一个新值。
+ *
+ * 从当前显示值补间过去，不是从 0 数起 —— 刷新时数字从 60 走到 62，
+ * 那一下「几乎没动」本身就是「刷新成功」的信息；从 0 重数会把这条信息抹掉。
+ */
+watch(score, (target) => {
+  if (!props.showAnim) {
+    // 入场还没播，数字先停在起点，等 showAnim 挂回时再数
+    countUp.set(0);
+    return;
+  }
+  countUp.to(target);
+});
+
+// 组件没了就别再滚：定时器停下来，最后一次 setData 才不会打在卸载后的节点上
+onBeforeUnmount(() => {
+  countUp.cancel();
 });
 
 /**
