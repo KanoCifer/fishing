@@ -69,6 +69,41 @@ pnpm 会在补丁打不上时直接报错，不会悄悄失效。
 排查这类问题别只 grep `Sync`：同步 API 的判定范围是运行时的白名单，
 第三方库在模块顶层调一次 `uni.getDeviceInfo()` 就够记一条。
 
+## WXSS 的选择器
+
+**WXSS 不认属性名选择器（`[...]`）。** 微信官方 WXSS 文档的原话：
+
+> WXSS 支持绝大多数 CSS 选择器，但有个别例外：属性名选择器 `[...]` 不会生效；
+> 不支持带参数的伪类和伪元素选择器。
+
+**后果是静悄悄的**：写了不报错、不白屏，那条规则就是一条都不匹配。
+浏览器里的原型用 `[data-sky='rain']` 一切正常，搬进小程序就变成另一种样子 ——
+而这种差别在开发者工具里也看不出来。
+
+所以「按数据切样式」只能走 class 选择器：
+
+```html
+<view class="current-weather current-weather--rain" data-weather="rain"></view>
+```
+
+```scss
+.current-weather--rain {
+  --weather-grad: linear-gradient(…);
+}
+```
+
+组名是两份约定的接缝：JS 侧出组名（`src/utils/weather.ts` 的 `weatherGroup`），
+SCSS 侧按同名给那组外观（`src/components/CurrentWeather/CurrentWeather.vue` 的
+`--weather-*` 变量）。拼错组名的表现是「这一组没有专属颜色」（落回通用样式），不会白屏。
+
+⚠️ **scoped 样式能用，正是因为它不走属性选择器。** uni-app 把 `data-v-xxx`
+编译成**类**（`.weather-card.data-v-b9f26203`），WXML 里也是
+`class="weather-card data-v-b9f26203"` —— 全程没有一个方括号。
+自己写 `[data-v-xxx=...]` 则是另一回事。
+
+`scripts/check-mp-compat.mjs` 现在扫产物里的 wxss，发现属性名选择器就让构建失败
+（uni-app 框架自带的 `[data-c-h="true"]` 除外）。
+
 ## 高度
 
 **`100vh` 把原生 tabBar 的高度也算进去了。** 本项目三个页签都是 tabBar 页，页面按 100vh 铺满的话，实际高度比「真正能显示的那部分」高出一个 tabBar（约 50px）—— 页面于是变成可滚动的：多出来的那一截就是用户能拖出去的范围。
@@ -186,7 +221,7 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 - `success` 不代表字体真的加载上了，要看 `res.status === 'loaded'`
 - 加载失败不致命：读数全是文字，图标没了照样能读。所以只记状态，不弹 toast 打扰用户
 - 状态是模块级单例 ref —— 小程序所有页面共用一份逻辑层，组件 import 到的都是同一个 ref
-- **加载时机是数据页 `onMounted`，不是 `App.onLaunch`** —— 73 KB 走网络，挂在启动链路上就是一条冷启动长请求。三张消费它的卡（`HourlyWeather` / `WeekStrip` / `AstroCard`）都有 `v-if="qweatherFontReady"` 兜底，字体晚到不会出豆腐块
+- **加载时机是数据页 `onMounted`，不是 `App.onLaunch`** —— 73 KB 走网络，挂在启动链路上就是一条冷启动长请求。三张消费它的卡（`HourlyWeather` / `DayForecast` / `AstroCard`）都有 `v-if="qweatherFontReady"` 兜底，字体晚到不会出豆腐块
 
 ## 原生 map
 
