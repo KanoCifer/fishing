@@ -54,6 +54,13 @@ PNG 版每次请求要多传 60KB。它已经搬去 CDN、不进代码包了，
 而那张码靠对比度识别，糊了就扫不出来。
 PNG 无损，边界比 JPEG 干净，体积还小（52KB → 44KB）。
 
+**勋章走 WebP，且带 alpha。**
+勋章是徽记图（环 / 缎带 / 笔触），边缘是抗锯齿的软边 —— 必须是带 alpha 的格式。
+它在 `<image>` 里出现，不进 canvas，WebP 在 `<image>` 上的支持是稳的，
+而同样的图 PNG 要大一个量级（768 母版 PNG 约 450KB，512 的 WebP 约 45KB）。
+六枚勋章全进代码包，也就三百来 KB —— 它们是「我的」页成就墙的主体，
+每个用户都会看到，走 CDN 反而多一次请求和一份域名配置。
+
 ⚠️ **不能压成 1-bit，也不能转灰度。**
 - 1-bit：这张码中间的鱼是网点画的（半调），不是实心模块 ——
   阈值化会把它打成一片碎点，码直接废掉。
@@ -140,6 +147,64 @@ def kb(size: int) -> str:
     return f"{size / 1024:.0f} KB"
 
 
+# ── 勋章 ──
+#
+# 源是 scripts/assets/medals/master/<方向>/<名字>.png（透明母版，由
+# scripts/key-medals.py 从绿幕原图抠出来）。产物出到 src/static/medals/<方向>/。
+#
+# 为什么 512：勋章详情页里最大约 240pt 宽，@3x 是 720px；徽记的软边在
+# 缩到这个尺寸之前就已经在 512 上平滑掉了，再大只是多背体积。
+#
+# 为什么母版留在 768 而不是直接出 512：母版是「源」，将来要换尺寸、
+# 要做海报、要改抠图容差，都得有一张比任何产物都大的干净底图。
+# 768 是 key-medals.py 抠完就缩好的尺寸，不是这里定的。
+MEDAL_MASTER_DIR = SRC_DIR / "medals" / "master"
+MEDAL_OUT_DIR = OUT_DIR / "medals"
+MEDAL_SIZE = 512
+
+
+def run_medals() -> None:
+    """把每个方向的勋章母版压成带 alpha 的 WebP。
+
+    按方向分目录出，而不是把三个方向混在一处 —— 一个方向就是一套
+    完整的徽记，混在一起就分不清哪张属于哪套了。
+    """
+    if not MEDAL_MASTER_DIR.exists():
+        return
+
+    sets = sorted(p for p in MEDAL_MASTER_DIR.iterdir() if p.is_dir())
+    if not sets:
+        return
+
+    print("勋章：")
+    for sdir in sets:
+        out_dir = MEDAL_OUT_DIR / sdir.name
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for src in sorted(sdir.glob("*.png")):
+            before = src.stat().st_size
+            with Image.open(src) as im:
+                im = im.convert("RGBA")
+                if max(im.size) > MEDAL_SIZE:
+                    im = im.resize(
+                        (round(im.width * MEDAL_SIZE / max(im.size)),) * 2,
+                        Image.LANCZOS,
+                    )
+                out_path = out_dir / f"{src.stem}.webp"
+                im.save(out_path, "WEBP", quality=92, method=6)
+
+            after = out_path.stat().st_size
+            if after >= before:
+                out_path.unlink()
+                raise SystemExit(
+                    f"[error] {src.name} 压完反而更大（{kb(before)} → {kb(after)}），产物已删除。"
+                )
+            print(
+                f"  · {sdir.name}/{src.name} → static/medals/{sdir.name}/{out_path.name}  "
+                f"{kb(before)} → {kb(after)}"
+            )
+    print()
+
+
 def run(job: dict) -> None:
     src_path = SRC_DIR / job["src"]
     out_dir = CDN_DIR if job.get("dest") == "cdn" else job.get("dir", OUT_DIR)
@@ -183,6 +248,8 @@ def main() -> None:
     print("压缩静态图片：")
     for job in JOBS:
         run(job)
+
+    run_medals()
 
     cdn_jobs = [job for job in JOBS if job.get("dest") == "cdn"]
     if cdn_jobs:

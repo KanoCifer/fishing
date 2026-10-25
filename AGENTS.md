@@ -47,5 +47,6 @@ WXSS 编译器不认通配选择器 `*` —— 写了 `> *` 的那一份样式�
 | 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸                 | `docs/mp-weixin-platform.md` |
 | 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 隐私协议 / 域名与后台配置 | `docs/mp-weixin-network.md`  |
 | 动代码包：静态图、分包、包体大小；真机引擎与依赖兼容                  | `docs/mp-weixin-package.md`  |
+| 做成就/勋章素材：生图、绿幕抠图、产物体积                            | `docs/mp-weixin-package.md`  |
 | 写原型、读原型的结论与坑位                                            | `docs/prototypes.md`         |
 | 真机预览、编译、上传发布                                              | `/wechatide-skill`           |

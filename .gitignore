@@ -22,6 +22,11 @@ dist
 # 产物可随时重跑脚本再生，不进版本库
 scripts/assets/cdn/
 
+# 勋章的绿幕原图（scripts/key-medals.py 的输入）
+# 一张 2K 的 jpg 1.8MB，十八张就是三十几 MB —— 原图只是抠像的中间态，
+# 抠好的透明母版才是源（scripts/assets/medals/master/），那个进版本库。
+scripts/assets/medals/raw/
+
 # Editor directories and files
 .idea
 *.suo
