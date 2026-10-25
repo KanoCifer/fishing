@@ -33,23 +33,26 @@ constants/     文案与生成物
 
 ## 端点清单
 
-| 端点                       | 方法               | 用途                                                       |
-| -------------------------- | ------------------ | ---------------------------------------------------------- |
-| `v2/fishing/index`         | GET                | 钓鱼指数；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
-| `v2/fishing/feedback`      | POST               | 提交钓鱼反馈                                               |
-| `v2/fishing/stats`         | GET                | 钓鱼记录统计                                               |
-| `v3/weather/tide`          | GET                | 潮汐（按港口 + 日期）                                      |
-| `v3/fish/spots`            | GET / POST         | 钓点列表 / 创建                                            |
-| `v3/fish/spots/mine`       | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
-| `v3/fish/spots/:id`        | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
-| `v3/fish/spots/:id/review` | POST               | 管理员审核（放行 / 驳回）—— 小程序端不用，审核在 Web 后台  |
-| `v2/llm/weather-analysis`  | POST（SSE）        | AI 钓鱼建议                                                |
-| `v3/auth/wechat/login`     | POST               | 微信登录（服务端自动建号）                                 |
-| `v3/refresh-token`         | POST               | 刷新 token                                                 |
-| `v3/me`                    | GET                | 当前用户                                                   |
-| `v3/logout`                | POST               | 退出登录                                                   |
-| `v3/upload-pic`            | POST               | 头像上传                                                   |
-| `v3/upload`                | POST               | 图片上传（multipart：`file` + `type`）                     |
+| 端点                          | 方法               | 用途                                                       |
+| ----------------------------- | ------------------ | ---------------------------------------------------------- |
+| `v2/fishing/index`            | GET                | 钓鱼指数；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
+| `v2/fishing/feedback`         | POST               | 提交钓鱼反馈                                               |
+| `v2/fishing/stats`            | GET                | 钓鱼记录统计                                               |
+| `v3/weather/tide`             | GET                | 潮汐（按港口 + 日期）                                      |
+| `v3/fish/spots`               | GET / POST         | 钓点列表 / 创建                                            |
+| `v3/fish/spots/mine`          | GET                | 我提交的钓点（含待审核 / 已驳回）                          |
+| `v3/fish/spots/:id`           | GET / PUT / DELETE | 钓点详情 / 更新 / 删除                                     |
+| `v3/fish/spots/:id/review`    | POST               | 管理员审核（放行 / 驳回）—— 小程序端不用，审核在 Web 后台  |
+| `v3/fish/spots/:id/feedback`  | POST               | 提交钓点纠错反馈（不公开，提交者看不到状态）               |
+| `v3/fish/feedback/admin`      | GET                | 管理员看反馈队列 —— 小程序端不调                           |
+| `v3/fish/feedback/:id/status` | PUT                | 管理员处理反馈 —— 小程序端不调                             |
+| `v2/llm/weather-analysis`     | POST（SSE）        | AI 钓鱼建议                                                |
+| `v3/auth/wechat/login`        | POST               | 微信登录（服务端自动建号）                                 |
+| `v3/refresh-token`            | POST               | 刷新 token                                                 |
+| `v3/me`                       | GET                | 当前用户                                                   |
+| `v3/logout`                   | POST               | 退出登录                                                   |
+| `v3/upload-pic`               | POST               | 头像上传                                                   |
+| `v3/upload`                   | POST               | 图片上传（multipart：`file` + `type`）                     |
 
 **取天气只有一条路**：`v2/fishing/index` 的 enriched 响应。旧实现并发调 `weather/full` + `fishing/index`，会导致后端对同一 location 取数两次，已废弃。
 
@@ -140,6 +143,7 @@ FishingAnalysisSheet
 - **新建的钓点不会立刻出现在地图上** —— 后端把普通用户的投稿置为 `pending`，公开列表写死只放 `approved`（`ListSpots` 里 `Status: model.FishingSpotStatusApproved`）。所以提交成功只进 `mySpots`，要看到它得去「我的钓点」页看审核状态。**别把成功提示写成「已添加」** —— 用户回头在地图上找不到，会以为丢了
 - **改不了昵称** —— 服务端没有独立的改昵称接口。`saveNickname` 的做法是重新走一次微信登录带上昵称，服务端只在「这个账号昵称为空」时写入。已有昵称时 store 拦下，不让用户白等一次网络往返
 - **`weather_indices` 曾恒为空** —— 那时后端没往外给，模型只能自己从温度气压反推，丢掉了「官方说今天适宜垂钓」这个最强的信号。现已接通
+- **钓点纠错反馈不公开，提交者看不到状态** —— 这**不是缺口，是刻意的设计**：反馈未核实就公开会变成对钓点的舆论场。所以后端只给管理员留了队列端点，没有面向普通用户的读取端点，也没有「提交者查自己反馈」的端点。小程序这一侧因此没有「我的反馈」页面，提交成功只回一句「已提交，我们会核实」。⚠️ 别「顺手补一个查询端点」
 
 ## 约定细节
 
@@ -155,7 +159,7 @@ FishingAnalysisSheet
 
 **存进数据的必须是相对路径**，不是上传响应里的 `url`：那个字段已经带了 `/v3/media/` 前缀，再过一次 `mediaUrl()` 会变成双前缀地址；而完整 URL 则把部署域名烤进了库里，换域名时所有已存的图片一起失效。
 
-上传端点 `POST /v3/upload` 的 multipart 字段是 `file`（文件）+ `type`（用途）。`type` 只认 `blog` / `gallery` / 空串，其余一律 400。**钓点照片走 `gallery`** —— 它会校验 Content-Type 白名单，`generic` 只限大小不认类型。
+上传端点 `POST /v3/upload` 的 multipart 字段是 `file`（文件）+ `type`（用途）。`type` 只认 `blog` / `gallery` / `feedback` / 空串，其余一律 400。**钓点照片走 `gallery`** —— 它会校验 Content-Type 白名单，`generic` 只限大小不认类型。**钓点纠错反馈的配图走 `feedback`** —— 落到 `feedback/{userID}/` 目录，与图片墙素材分开。
 
 ⚠️ 小程序加载远程图片走 **downloadFile 合法域名**，跟 request / uploadFile 是三份独立的名单 —— 见 `docs/mp-weixin-network.md` 的「微信后台配置」。
 

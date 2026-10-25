@@ -45,6 +45,14 @@
         >
           <text class="spot-detail__edit-text">{{ editLabel }}</text>
         </view>
+
+        <view
+          class="spot-detail__feedback spot-detail__enter"
+          :style="{ animationDelay: enterDelay(6) }"
+          @tap="openFeedback"
+        >
+          <text class="spot-detail__feedback-text">{{ feedbackLabel }}</text>
+        </view>
       </view>
     </view>
 
@@ -80,6 +88,7 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { SPOT_DETAIL_EDIT, SPOT_HERO_HEIGHT_RPX, SPOT_HERO_OVERLAP_RPX, SPOT_PLACEHOLDER_IMAGE } from './constants';
 import { SHARE_TITLES, SHARE_WXACODE } from './share';
 import { mediaUrl } from '@/api/upload';
+import { SPOT_FEEDBACK_ENTRY } from '@/constants/spot-feedback';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from './store';
@@ -168,6 +177,9 @@ const spot = computed(() => detailStore.spot);
 /** 编辑按钮上的字 */
 const editLabel = SPOT_DETAIL_EDIT.label;
 
+/** 纠错入口上的字 */
+const feedbackLabel = SPOT_FEEDBACK_ENTRY.label;
+
 /**
  * 这条钓点是不是我的。
  *
@@ -185,6 +197,18 @@ function openEdit(): void {
   const id = spot.value?.id;
   if (!id) return;
   uni.navigateTo({ url: `/pages/spot-edit/index?id=${id}` });
+}
+
+/**
+ * 去提交纠错反馈。
+ *
+ * 反馈页是独立分包 —— 分包之间不能互相引用资源，
+ * 所以它自己取数，这里只把钓点的 public id 递过去。
+ */
+function openFeedback(): void {
+  const id = spot.value?.id;
+  if (!id) return;
+  uni.navigateTo({ url: `/pages/spot-feedback/index?id=${id}` });
 }
 
 /**
@@ -422,7 +446,7 @@ function openNavigation() {
  */
 .spot-detail__edit {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 24rpx;
   @include fish-press-dim;
 }
@@ -432,5 +456,24 @@ function openNavigation() {
   @include fish-type(caption);
 
   font-weight: 600;
+}
+
+/*
+ * 纠错入口。
+ *
+ * 左对齐 —— 它是这一页最次要的动作，挂在正文末尾的左边，
+ * 不跟属主那个居右的「编辑」站成一排：一个是读者操作，一个是作者操作。
+ * 灰色小字，不跟编辑抢注意力。
+ */
+.spot-detail__feedback {
+  display: flex;
+  justify-content: center;
+  margin-top: 24rpx;
+  @include fish-press-dim;
+}
+
+.spot-detail__feedback-text {
+  color: $fish-muted;
+  @include fish-type(caption);
 }
 </style>

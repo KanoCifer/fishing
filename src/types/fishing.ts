@@ -262,6 +262,81 @@ export interface CreateFishingSpotPayload {
 export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>;
 
 // ---------------------------------------------------------------------------
+// 钓点纠错反馈
+// ---------------------------------------------------------------------------
+
+/**
+ * 反馈类型 —— 与后端 `dto.FishingSpotFeedbackRequest.Type` 的 oneof 校验同集合。
+ *
+ * 五值封闭：location_wrong（位置不对）/ closed（已封闭）/ fee_wrong（收费变更）/
+ * info_stale（信息有误）/ other（其他）。新增类型要同步后端枚举。
+ */
+export type FishingSpotFeedbackType = 'location_wrong' | 'closed' | 'fee_wrong' | 'info_stale' | 'other';
+
+/**
+ * 提交反馈的载荷。
+ *
+ * **修正值按 type 校验**：只有对应类型的字段允许有值，其余必须为空 ——
+ * 「类型是位置不对却填了收费金额」这种组合后端直接 400。
+ * 所以这里每个修正值都是可选的，由调用方按类型只填该填的那几个。
+ */
+export interface FishingSpotFeedbackPayload {
+  type: FishingSpotFeedbackType;
+  /** 说明。5–500 字，按字符数算（中文一个字算一个） */
+  description: string;
+  /** 配图。存**服务端相对路径**（如 `feedback/12/xxx.jpg`），最多 3 张 */
+  images?: string[];
+  /** 修正后的收费情况。只有 fee_wrong 才有值 */
+  corrected_fee_type?: FishingSpotFeeType;
+  /** 修正后的收费金额（元）。只有 corrected_fee_type 为 paid 时才有值 */
+  corrected_fee_amount?: number | null;
+  /** 建议的新名称。只有 info_stale 才有值 */
+  corrected_name?: string;
+  /** 建议的新位置。GCJ-02，经度在前。只有 location_wrong 才有值 */
+  corrected_longitude?: number | null;
+  /** 建议的新纬度 */
+  corrected_latitude?: number | null;
+}
+
+/** 反馈处理状态 —— 与后端 `model.FishingSpotFeedbackStatus` 同集合 */
+export type FishingSpotFeedbackStatus = 'pending' | 'accepted' | 'resolved' | 'dismissed';
+
+/** 提交人快照。昵称与头像是写入时的快照 */
+export interface FishingSpotFeedbackReporter {
+  user_id: number;
+  name: string;
+  /** 头像 URL，omitempty */
+  avatar?: string;
+}
+
+/**
+ * 反馈对象 —— 提交成功的响应体。
+ *
+ * ⚠️ **反馈不公开**：没有面向普通用户的读取端点，也没有「提交者查自己反馈」的端点。
+ * 所以这个类型只出现在「提交成功」那一次响应里 —— 前端不展示它，
+ * 也没有任何地方能再拿到它。别给它加「我的反馈」页面。
+ */
+export interface FishingSpotFeedback {
+  id: string;
+  spot_id: string;
+  spot_name: string;
+  type: FishingSpotFeedbackType;
+  description: string;
+  images: string[];
+  corrected_fee_type?: FishingSpotFeeType;
+  corrected_fee_amount?: number | null;
+  corrected_name?: string;
+  corrected_longitude?: number | null;
+  corrected_latitude?: number | null;
+  status: FishingSpotFeedbackStatus;
+  review_note: string;
+  reporter?: FishingSpotFeedbackReporter;
+  created_at: string;
+  updated_at: string;
+  reviewed_at?: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // 地图标记
 // ---------------------------------------------------------------------------
 

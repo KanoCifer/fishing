@@ -8,7 +8,7 @@
  *
  * 服务端契约（`Server-Go/internal/handler/upload_handler.go`）：
  * - `POST /v3/upload`，multipart 字段 `file`（文件）+ `type`（用途）
- * - `type` 只认 `blog` / `gallery` / 空串（走 generic），其余一律 400
+ * - `type` 只认 `blog` / `gallery` / `feedback` / 空串（走 generic），其余一律 400
  * - 返回 `{ url: "/v3/media/" + rel, filename: rel }`
  *
  * ⚠️ **`url` 已经带了 `/v3/media/` 前缀，而 `mediaUrl()` 会再拼一次** ——
@@ -58,8 +58,11 @@ export function mediaUrl(rel?: string): string {
  *
  * `gallery` 会校验 Content-Type 白名单（jpeg / png / gif / webp / exif），
  * `generic` **只限大小不认类型**。用户选的是照片，认类型的那条路才对。
+ *
+ * `feedback` 是钓点纠错反馈的配图 —— 落到 `feedback/{userID}/` 目录，
+ * 与图片墙素材分开（后端会校验配图路径的前缀与归属，见反馈 service）。
  */
-export type UploadType = 'gallery' | 'blog' | 'generic';
+export type UploadType = 'gallery' | 'blog' | 'feedback' | 'generic';
 
 /** 上传结果。字段名与服务端返回的一致 */
 export interface UploadResult {

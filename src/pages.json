@@ -75,6 +75,17 @@
           }
         }
       ]
+    },
+    {
+      "root": "pages/spot-feedback",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        }
+      ]
     }
   ],
   "globalStyle": {

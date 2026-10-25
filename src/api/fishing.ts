@@ -14,6 +14,8 @@ import type {
   FishingFeedbackResponse,
   FishingIndexData,
   FishingSpot,
+  FishingSpotFeedback,
+  FishingSpotFeedbackPayload,
   FishingStats,
   TideApiEnvelope,
   TideData,
@@ -186,6 +188,38 @@ export const fishingSpotApi = {
         // 只在物理删时带 hard=true，软删不带 —— 带成字符串 "false" 后端一样会当软删，
         // 但这种"写了跟没写一样"的参数最容易在排查时把人带偏
         params: options.hard ? { hard: 'true' } : undefined,
+      }),
+    );
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 钓点纠错反馈
+// ---------------------------------------------------------------------------
+
+/**
+ * 钓点纠错反馈。
+ *
+ * ⚠️ **反馈不公开**：后端只给管理员看反馈队列，提交者也没有查自己反馈的端点。
+ * 所以这里只有「提交」一个方法 —— 没有 list、没有 get。
+ * 前端也不该加「我的反馈」页面：提交完只回一句「已提交，我们会核实」。
+ */
+export const fishingSpotFeedbackApi = {
+  /**
+   * 提交一条纠错反馈。
+   *
+   * 走 withSession：写入类端点全都要求登录，access token 恰好是最容易过期的一枚。
+   *
+   * 修正值按 type 校验 —— 只有对应类型的字段允许有值，其余必须为空，
+   * 否则后端回 400。payload 里 images 存的是**服务端相对路径**
+   * （上传响应的 `filename`，不是 `url`），理由见 api/upload 的注释。
+   */
+  submit(spotId: string, payload: FishingSpotFeedbackPayload): Promise<FishingSpotFeedback> {
+    return withSession(() =>
+      request<FishingSpotFeedback>({
+        url: `${SPOTS_BASE}/${spotId}/feedback`,
+        method: 'POST',
+        data: payload as unknown as Record<string, unknown>,
       }),
     );
   },

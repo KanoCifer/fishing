@@ -1,10 +1,6 @@
 <template>
   <!--
     照片选择器 —— 选图、传图、删图。
-
-    一格一张，格子满了就不再显示「添加」那一格。
-    正在上传的那几张盖一层「上传中」：它们已经在列表里了，
-    但还没拿到服务端地址，此刻还不算提交的一部分。
   -->
   <view class="picker">
     <view class="picker__grid">
@@ -40,19 +36,10 @@
 <script setup lang="ts">
 /**
  * SpotImagePicker —— 钓点照片的选择与上传。
- *
- * **组件自己持有已上传列表**，不是受控的。理由是并发上传：
- * 几张照片同时传完，谁先 emit 谁后 emit 说不准 ——
- * 受控写法里每个回调都读 props.images，而 emit 之后 props 要等下一轮
- * 渲染才更新，于是后完成的那张会把先完成的那张盖掉。
- * 自己持有就没有这个竞态。
- *
- * 父组件通过 `change` 拿到当前的完整列表（服务端相对路径），
- * 通过 `uploading` 知道还有没有没传完的 —— 有的话不能提交。
  */
 import { computed, ref } from 'vue';
 
-import { mediaUrl, uploadImage } from '@/api/upload';
+import { mediaUrl, uploadImage, type UploadType } from '@/api/upload';
 import { icon } from '@/constants/icons';
 import { SPOT_PHOTO_MAX, SPOT_PHOTO_PICK_FAILED, SPOT_PHOTO_UPLOADING } from '@/constants/spot-form';
 import { toErrorMessage } from '@/utils/error';
@@ -71,10 +58,18 @@ const props = withDefaults(
     max?: number;
     /** 初始已有的图片（服务端相对路径）。编辑页回填用 */
     initial?: string[];
+    /**
+     * 上传用途。透传给服务端的 multipart `type` 字段。
+     *
+     * 默认 `gallery` —— 钓点照片走那条（它会校验 Content-Type 白名单）。
+     * 纠错反馈的配图走 `feedback`，落到 `feedback/{userID}/` 目录。
+     */
+    type?: UploadType;
   }>(),
   {
     max: SPOT_PHOTO_MAX,
     initial: () => [],
+    type: 'gallery',
   },
 );
 
@@ -159,7 +154,7 @@ async function uploadAll(files: UniNamespace.MediaFile[]): Promise<void> {
  */
 async function uploadOne(item: PendingUpload, file: UniNamespace.MediaFile): Promise<void> {
   try {
-    const result = await uploadImage(file.tempFilePath);
+    const result = await uploadImage(file.tempFilePath, props.type);
     committed.value = [...committed.value, result.filename];
     emit('change', [...committed.value]);
   } catch (err) {
