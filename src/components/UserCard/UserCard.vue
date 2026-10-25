@@ -4,7 +4,7 @@
 
     这一页原来只有应用身份（图标 + 名称 + 版本）。有了账号之后，
     「我的」页真正要回答的第一个问题是「**我是谁**」，所以身份卡换成了这一张：
-    上面是头像与昵称，下面是能立刻做的动作（登录 / 编辑资料 / 退出登录）。
+    上面是头像与昵称，下面是能立刻做的动作（编辑资料 / 登录）。
 
     三种状态共用一张卡：
     - 未登录：占位头像 + 一句「登录能换来什么」+ 登录按钮
@@ -35,11 +35,24 @@
         hover-class="none"
         @chooseavatar="onChooseAvatar"
       >
-        <image v-if="avatarSrc" class="user-card__avatar" :src="avatarSrc" mode="aspectFill" />
-        <image v-else class="user-card__avatar-glyph" :src="userGlyph" mode="aspectFit" />
+        <view class="user-card__avatar-wrap">
+          <image v-if="avatarSrc" class="user-card__avatar" :src="avatarSrc" mode="aspectFill" />
+          <image v-else class="user-card__avatar-glyph" :src="userGlyph" mode="aspectFit" />
+
+          <!--
+            相机角标。
+
+            头像长得就是一张照片，不给角标没人知道它是可点的 ——
+            「点头像能换头像」这件事得说出来。这一页里换头像只有两条路：
+            点这个角标，或者进「编辑资料」抽屉（那里也有一个头像）。
+          -->
+          <view class="user-card__badge">
+            <image class="user-card__badge-icon" :src="cameraIcon" mode="aspectFit" />
+          </view>
+        </view>
       </button>
 
-      <view v-else class="user-card__avatar-frame">
+      <view v-else class="user-card__avatar-wrap">
         <image class="user-card__avatar-glyph" :src="userGlyph" mode="aspectFit" />
       </view>
 
@@ -49,19 +62,23 @@
       </view>
     </view>
 
-    <view v-if="loggedIn" class="user-card__actions">
-      <view class="user-card__action" @tap="emit('edit')">
-        <image class="user-card__action-icon" :src="pencilIcon" mode="aspectFit" />
-        <text class="user-card__action-text">{{ editLabel }}</text>
-      </view>
+    <!--
+      编辑资料。
 
-      <view class="user-card__action user-card__action--danger" @tap="emit('logout')">
-        <image class="user-card__action-icon" :src="logoutIcon" mode="aspectFit" />
-        <text class="user-card__action-text">退出登录</text>
-      </view>
-    </view>
+      它在身份卡里而不是另起一张卡：改的是「我是谁」，跟上面那块是同一件事。
+      以前这里是两个并排的按钮，其中一个是「退出登录」——
+      破坏性操作跟常规操作同权并排，是这一版要改掉的主要毛病。
+    -->
+    <MineRow v-if="loggedIn" divider :icon-src="pencilIcon" :label="editLabel" chevron @tap="emit('edit')" />
 
+    <!--
+      登录按钮。
+
+      全宽主按钮用品牌渐变：这个页面上它是唯一的主操作，
+      别的可点项都是次级的，一眼能分出该按哪个。
+    -->
     <view v-else class="user-card__cta" @tap="emit('login')">
+      <view class="user-card__cta-divider" />
       <text class="user-card__cta-text">{{ busy ? '登录中…' : '微信登录' }}</text>
     </view>
   </view>
@@ -76,6 +93,7 @@
  */
 import { computed } from 'vue';
 
+import MineRow from '@/components/MineRow/MineRow.vue';
 import { mediaUrl } from '@/api/upload';
 import { icon } from '@/constants/icons';
 import type { AuthUser } from '@/types/auth';
@@ -92,8 +110,6 @@ const emit = defineEmits<{
   login: [];
   /** 点「编辑资料」 */
   edit: [];
-  /** 点「退出登录」 */
-  logout: [];
   /** 选了新头像。参数是 chooseAvatar 给的临时路径（1–5 分钟有效） */
   chooseAvatar: [tempPath: string];
 }>();
@@ -144,8 +160,8 @@ const editLabel = computed(() => {
 });
 
 const userGlyph = icon('user', 'muted60');
-const pencilIcon = icon('pencil', 'muted60');
-const logoutIcon = icon('log-out', 'destructive');
+const pencilIcon = icon('pencil', 'blue');
+const cameraIcon = icon('camera', 'onAccent');
 
 /**
  * 选到了新头像。
@@ -168,12 +184,12 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
  *
  * 玻璃面 + 32pt 圆角，与「我的」页原来的身份卡（AboutHeader）同级 ——
  * 这一张取代了它的位置，就该保持同样的分量。
+ *
+ * overflow: hidden 让圆角把下面那一行的直角裁掉 —— 不裁的话
+ * 行自己的底会在四个角上溢出圆角（见 MineRow 的说明）。
  */
 .user-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding: 36rpx 32rpx 28rpx;
+  overflow: hidden;
   @include fish-glass($fish-radius-2xl);
 }
 
@@ -181,6 +197,18 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 .user-card__head {
   display: flex;
   align-items: center;
+  padding: 36rpx 32rpx;
+}
+
+/*
+ * 组件宿主节点要占满一行。
+ *
+ * 自定义组件在 WXML 里就是一个标签，它的默认 display 不是 block ——
+ * 宿主节点里的行是块级的，行与行之间却会多出一截行内盒子的高度。
+ * 显式钉住，两行之间才是设计好的那个间距。
+ */
+mine-row {
+  display: block;
 }
 
 /*
@@ -201,6 +229,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   border: none;
   border-radius: 50%;
   background-color: $fish-surface;
+  /* 角标要探出按钮的边界，不能被裁掉 */
   overflow: visible;
   line-height: 1;
   font-size: inherit;
@@ -211,8 +240,16 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   }
 }
 
-/* 未登录时的占位头像。没有按钮，只是同样的一个圆 */
-.user-card__avatar-frame {
+/*
+ * 头像的外框。
+ *
+ * 角标是相对它定位的，所以定位的锚要落在这一层 —— 按钮本身是圆形，
+ * 拿它当锚的话角标会跟着圆形走位。
+ *
+ * 未登录时这一层也是同一个圆，只是里面没有人形、没有按钮。
+ */
+.user-card__avatar-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,6 +276,34 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 .user-card__avatar-glyph {
   width: 60rpx;
   height: 60rpx;
+}
+
+/*
+ * 相机角标。
+ *
+ * 蓝色实心圆压着一枚白色的相机。白字压在品牌蓝上，是全项目最省事的一种强调：
+ * 不用再引一档颜色，圆本身已经把「这是个按钮」说清楚了。
+ *
+ * 描边是白色的一圈：头像换成真实照片之后，角标就压在那张照片上，
+ * 没有这一圈它会跟照片糊在一起。
+ */
+.user-card__badge {
+  position: absolute;
+  right: -6rpx;
+  bottom: -6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  border: 4rpx solid $fish-page;
+  border-radius: 50%;
+  background-color: $fish-blue;
+}
+
+.user-card__badge-icon {
+  width: 30rpx;
+  height: 30rpx;
 }
 
 /* 右侧文字块 */
@@ -272,65 +337,35 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   @include fish-type(caption);
 }
 
-/* 动作行 */
-.user-card__actions {
-  display: flex;
-  gap: 16rpx;
-}
-
-/*
- * 次级按钮。
- *
- * 88rpx = 44pt，是 iOS 判定为「可放心点按」的最小命中尺寸。
- * 按下即缩、抬手回弹，理由见令牌层 _motion.scss 的 fish-press。
- */
-.user-card__action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-height: 88rpx;
-  padding: 0 20rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-surface;
-  @include fish-press(0.97);
-}
-
-/* 退出登录是破坏性动作，但仍然是这一行里等重的一个按钮 —— 不给它缩成小字 */
-.user-card__action--danger {
-  background-color: rgba(255, 59, 48, 0.1);
-}
-
-.user-card__action-icon {
-  width: 30rpx;
-  height: 30rpx;
-  margin-right: 10rpx;
-}
-
-.user-card__action-text {
-  color: $fish-ink;
-  @include fish-type(subhead);
-}
-
-.user-card__action--danger .user-card__action-text {
-  color: $fish-destructive;
-}
-
 /*
  * 登录按钮。
  *
  * 全宽主按钮用品牌渐变：这个页面上它是唯一的主操作，
  * 别的可点项都是次级的，一眼能分出该按哪个。
+ *
+ * 分隔线画成真实元素：它要横跨整张卡，而这一层是被 overflow: hidden 裁过的。
  */
 .user-card__cta {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 88rpx;
+  margin: 0 32rpx 28rpx;
   border-radius: $fish-radius-pill;
   background-image: $fish-gradient;
   box-shadow: $smooth-shadow-sm;
   @include fish-press(0.97);
+}
+
+/* 分隔线横在按钮上沿：左右与按钮同宽，与卡内的留白对齐 */
+.user-card__cta-divider {
+  position: absolute;
+  top: -1rpx;
+  right: 0;
+  left: 0;
+  height: 1rpx;
+  background-color: $fish-border;
 }
 
 .user-card__cta-text {

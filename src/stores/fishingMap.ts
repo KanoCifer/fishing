@@ -479,8 +479,11 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 拉我提交的钓点。
    *
    * 只有这个端点能看见待审核 / 已驳回的条目 —— 公开列表把 status 写死成 approved。
+   *
+   * silent = true 时不弹 toast：「我的」页只要一个数量，取不到就当没有，
+   * 不必为一个附属信息打断用户（那一页自己会弹，理由见 fetchMySpots 的调用处）。
    */
-  async function fetchMySpots(): Promise<void> {
+  async function fetchMySpots(options?: { silent?: boolean }): Promise<void> {
     mySpotsLoading.value = true;
     mySpotsError.value = '';
 
@@ -488,11 +491,22 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
       mySpots.value = await fishingSpotApi.listMine();
     } catch (err) {
       const message = err instanceof Error ? err.message : '加载我的钓点失败';
-      notifyError(message);
+      if (!options?.silent) notifyError(message);
       mySpotsError.value = message;
     } finally {
       mySpotsLoading.value = false;
     }
+  }
+
+  /**
+   * 清掉我提交的钓点。
+   *
+   * 退出登录时调用：这些是上一个账号的数据。留着的话，
+   * 登出之后「我的」页还会显示着别人的条数。
+   */
+  function clearMySpots(): void {
+    mySpots.value = [];
+    mySpotsError.value = '';
   }
 
   /**
@@ -564,6 +578,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     mySpots,
     mySpotsLoading,
     mySpotsError,
+    clearMySpots,
     // 选中态
     selectedMarker,
     // 动作

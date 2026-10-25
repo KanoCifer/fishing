@@ -12,15 +12,31 @@ export const MY_SPOTS_TITLE = '我的钓点';
 /**
  * 「我的」页通往「我的钓点」的那一行。
  *
- * 眉标只说这一段是什么（钓点），行标题说点进去是什么（我的钓点）。
- * 与 ABOUT_ENTRY 同一套写法 —— 两个入口页长得一样，排版也共用一套。
+ * 只剩行标题，没有分区眉标 —— 与 ABOUT_ENTRY 同一套写法（两个入口页长得一样）。
+ * 「我的」页现在只有「我的钓点」与「关于渔碌」两个入口，合成一组放，
+ * 不再各配一个章节标题（见 src/pages/mine/index.vue 的说明）。
  */
 export const MY_SPOTS_ENTRY = {
-  /** 分区眉标 */
-  section: '钓点',
   /** 行标题 */
   label: '我的钓点',
 } as const;
+
+/**
+ * 「我的」页那一行右侧的数量。
+ *
+ * 数的是**我提交过的**，含还在审核与被驳回的 ——
+ * 那一页要回答的是「我手上有几条」，不是「地图上公开着几条」。
+ * 公开的那部分只有已过审的，在「我的钓点」页里另有一份清单。
+ */
+export const MY_SPOTS_COUNT = (count: number): string => `${count} 条`;
+
+/**
+ * 还在等审核的条数。
+ *
+ * 只数 pending。被驳回的那些要改完再交（见 MY_SPOTS_ACTIONS.resubmit），
+ * 那是另一件事 —— 跟「还在等审核」混成一类，用户就不知道该等还是该改。
+ */
+export const MY_SPOTS_PENDING = (count: number): string => `${count} 条待审核`;
 
 /**
  * 列表为空时的那一段。

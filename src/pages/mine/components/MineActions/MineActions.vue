@@ -9,7 +9,7 @@
 
     代价是微信 button 自带的一套默认样式（外边距、内边距、背景、边框、
     字号、行高，以及 ::after 伪元素带来的描边），得一项项清干净，
-    长得才跟这一页上别的行一样（见 AboutLinks 的说明）。
+    长得才跟这一页上别的行一样（见 MineRow 的说明）。
 
     hover-class="none"：关掉微信自带的按压态。它那一套是
     `{background-color: rgba(0,0,0,0.1); opacity: 0.7}` ——
@@ -60,11 +60,11 @@ const contactIcon = icon('message-square', 'blue');
 
 <style lang="scss" scoped>
 /*
- * 卡：玻璃面 + 24pt 圆角，和「钓点」「关于」那两张卡是同一种材质 ——
+ * 卡：玻璃面 + 16pt 圆角，和「我的钓点 / 关于渔碌」那一组是同一种材质 ——
  * 这一页上所有卡都该是同一种，不然读起来像拼了几个页面。
  *
  * overflow: hidden 让圆角把子节点的直角裁掉 —— 不裁的话行自己的底
- * 会在四个角上溢出圆角（见 AboutLinks 的说明）。
+ * 会在四个角上溢出圆角（见 MineRow 的说明）。
  */
 .mine-actions {
   overflow: hidden;
@@ -75,7 +75,7 @@ const contactIcon = icon('message-square', 'blue');
  * 一行。
  *
  * 按下反馈用变暗不是缩小：整行做 scale 会让这一行在卡片里挪动，
- * 读起来像「整组跳了一下」—— 与 AboutLinks 的行是同一条规则。
+ * 读起来像「整组跳了一下」—— 与 MineRow 的行是同一条规则。
  */
 .mine-actions__row {
   position: relative;
@@ -105,7 +105,7 @@ const contactIcon = icon('message-square', 'blue');
  *
  * 缩到与行首图标左对齐（左边让出 32rpx），一直走到卡片右边 ——
  * 满宽的线读起来像表格；iOS 的 grouped list 用的就是这种缩进分隔线
- * （与 AboutLinks 的行是同一条规则）。
+ * （与 MineRow 的行是同一条规则）。
  */
 .mine-actions__row::before {
   content: '';
@@ -123,16 +123,19 @@ const contactIcon = icon('message-square', 'blue');
 }
 
 /*
- * 前置图标 16pt。
+ * 前置图标 17pt。
  *
  * 方形图标与 17pt 正文字高齐平，它就退成「这一行的起点」；
  * 再大一点它就开始跟字抢注意力，读着像在看图标而不是在读一行。
+ *
+ * 尺寸与间距跟 MineRow 的行首图标一致 —— 同一个页面上两套行，
+ * 图标却大小不同，读起来就像两页拼起来的。
  */
 .mine-actions__icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: 34rpx;
+  height: 34rpx;
   flex-shrink: 0;
-  margin-right: 16rpx;
+  margin-right: 20rpx;
 }
 
 .mine-actions__label {

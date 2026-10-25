@@ -6,14 +6,23 @@
     「这是什么」搬去了关于页（见 pages/about）：一个页面同时讲身份和讲应用，
     两件事互相稀释，拆开各答各的更清楚。
 
-    底下三段是这一页的目录：钓点、关于、更多。
-    前两段是**入口**（通往别的页面），第三段是**动作**（转发与客服会话）。
-    动作和入口分开放 —— 用户点下去之前就知道会发生什么，
+    底下是两组列表：
+    - **入口组**：我的钓点、关于渔碌。两行都通向别处（都带展开箭头）。
+    - **动作组**：分享渔碌给朋友、联系客服。点下去发生的事就在微信那边，
+      不领人去看新的一页（见 MineActions）。
+
+    入口与动作分开放 —— 用户点下去之前就知道会发生什么，
     不会以为「联系客服」点进去又是一页文档。
 
-    这一页与数据页、关于页共用一套页面骨架（见令牌层 _layout.scss 的 fish-section /
-    fish-eyebrow / fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、
-    同样的分区眉标与间距。三页是同一个 app 的三面，切页签时不该像换了个应用。
+    ⚠️ 为什么这一版没有分区眉标：
+    原来三段各配一个眉标，其中两段各只有**一行**。给一行配一个章节标题，
+    是纯粹的版式浪费 —— 标题比它下面那一行还重，读者要停下来想
+    「这一段叫什么」。现在两组按**行为**分，不按主题分：
+    带箭头的与不带箭头的，读者扫一眼就知道哪一行点进去是另一页。
+
+    这一页与数据页、关于页共用一套页面骨架（见令牌层 _layout.scss 的 fish-section
+    与 PageBackdrop）：同样的环境色底、同样的玻璃卡、同样的分区间距。
+    三页是同一个 app 的三面，切页签时不该像换了个应用。
 
     关于顶部那段内边距：页面配了 navigationStyle: "custom"，导航栏成了浮层，
     内容从屏幕最顶端开始排，状态栏和胶囊按钮都压在这一屏上。
@@ -34,33 +43,27 @@
           :busy="session.loggingIn || session.uploading"
           @login="onLogin"
           @edit="openProfile"
-          @logout="onLogout"
           @choose-avatar="onChooseAvatar"
         />
       </view>
 
       <!--
-        钓点：通往「我的钓点」的那一行。
-        单独一段而不是塞进下面那段里 —— 下面那段的眉标是「关于」，
-        把钓点混进去，读者会以为它在讲应用本身。
+        入口组：两行都通向别处。
+        「我的钓点」那一行带着真实数量 —— 那一页要回答的不只是「我是谁」，
+        还有「我有什么」。
       -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">{{ spotsEntry.section }}</text>
+        <view class="sect__card mine__group" :style="{ animationDelay: enterDelay(1) }">
+          <MineRow
+            :icon-src="spotsIcon"
+            :label="spotsEntry.label"
+            :value="spotsCount"
+            :badge="spotsPending"
+            chevron
+            @tap="openMySpots"
+          />
 
-        <view class="sect__card" :style="{ animationDelay: enterDelay(2) }">
-          <AboutLinks :links="spotsLinks" @select="openMySpots" />
-        </view>
-      </view>
-
-      <!--
-        关于：内容搬去了独立页面，这里只留一个入口。
-        关于页答「这是什么」，这一页不答 —— 想读的人自己点进去。
-      -->
-      <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ aboutEntry.section }}</text>
-
-        <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
-          <AboutLinks :links="aboutLinks" @select="openAbout" />
+          <MineRow divider :icon-src="aboutIcon" :label="aboutEntry.label" chevron @tap="openAbout" />
         </view>
       </view>
 
@@ -68,15 +71,26 @@
         更多：分享渔碌给朋友、联系客服。
 
         这两行是**动作**，不是通往别处的入口 —— 它们自己就是终点。
-        单独一段而不是塞进上面那段里：上面那两段点进去都是「另一页」，
+        单独一组而不是塞进上面那组：上面那组点进去都是「另一页」，
         混进来用户会以为这两行也是，点下去却是微信自己的面板，反差很大。
       -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(5) }">{{ moreEntry.section }}</text>
-
-        <view class="sect__card" :style="{ animationDelay: enterDelay(6) }">
+        <view class="sect__card" :style="{ animationDelay: enterDelay(2) }">
           <MineActions />
         </view>
+      </view>
+
+      <!--
+        退出登录。
+
+        破坏性操作独居一格：不跟别的行挤在一张卡里，也不跟常规操作并排 ——
+        原来它跟「编辑资料」是两个同权并排的按钮，放在全页最显眼的位置。
+        退出是不可逆的，该被看见，但不该被当成一个普通入口。
+      -->
+      <view v-if="session.loggedIn" class="sect">
+        <text class="mine__logout mine__enter" :style="{ animationDelay: enterDelay(3) }" @tap="onLogout">
+          退出登录
+        </text>
       </view>
     </view>
 
@@ -100,26 +114,28 @@
 /**
  * 我的页 —— 账号身份、通往别处的入口，以及两个常用动作（分享、联系客服）。
  *
- * 文案全部来自 @/constants/about，这个文件里只有排版和交互：
- * 文字要改，改那个文件，不要改这里。
+ * 文案全部来自 @/constants/about 与 @/constants/my-spots，
+ * 这个文件里只有排版和交互：文字要改，改那两个文件，不要改这里。
  *
  * 账号相关的动作（登录、传头像、写昵称）都交给 @/stores/session，
+ * 我提交过的钓点交给 @/stores/fishingMap，
  * 这一层只负责把用户的意图翻译成对 store 的调用，并把结果讲给用户听。
  */
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { onLoad, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
 
 import MineActions from './components/MineActions/MineActions.vue';
-import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
+import MineRow from '@/components/MineRow/MineRow.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import ProfileSheet from '@/components/ProfileSheet/ProfileSheet.vue';
 import UserCard from '@/components/UserCard/UserCard.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_ENTRY, MORE_ENTRY, SHARE_APP } from '@/constants/about';
-import type { AboutLink } from '@/constants/about';
-import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
+import { ABOUT_ENTRY, SHARE_APP } from '@/constants/about';
+import { MY_SPOTS_COUNT, MY_SPOTS_ENTRY, MY_SPOTS_PENDING } from '@/constants/my-spots';
+import { icon } from '@/constants/icons';
 import { loginErrorMessage } from '@/api/auth';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { toErrorMessage } from '@/utils/error';
 import { enterDelay } from '@/utils/motion';
@@ -131,18 +147,48 @@ const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
 
 const session = useSessionStore();
+const mapStore = useFishingMapStore();
 
 const aboutEntry = ABOUT_ENTRY;
 
-/** 通往关于页的那一行。AboutLinks 只管排版，点开了什么由页面决定 */
-const aboutLinks: readonly AboutLink[] = [{ key: aboutEntry.label }];
-
-/** 「更多」那一段的眉标。那两行自己的文案在 MineActions 里面（各自是常量） */
-const moreEntry = MORE_ENTRY;
-
 /** 通往「我的钓点」的那一行 */
 const spotsEntry = MY_SPOTS_ENTRY;
-const spotsLinks: readonly AboutLink[] = [{ key: spotsEntry.label }];
+
+/**
+ * 钓点数量取到过没有。
+ *
+ * 没取到过就不显示数字：显示「0 条」跟「真的没提交过钓点」分不清，
+ * 而这一页不该替用户下「你没有钓点」这个结论 —— 取不到就当没数，
+ * 点进去那一页会给出真正的答案。
+ */
+const spotsLoaded = ref(false);
+
+/**
+ * 我提交的钓点总数。
+ *
+ * 数的是我提交过的，含还在审核与被驳回的 —— 这一页要回答的是
+ * 「我手上有几条」，不是「地图上公开着几条」。
+ */
+const spotsCount = computed(() => {
+  if (!spotsLoaded.value || mapStore.mySpotsError) return '';
+  return MY_SPOTS_COUNT(mapStore.mySpots.length);
+});
+
+/**
+ * 还在等审核的条数。
+ *
+ * 只数 pending：被驳回的那些要改完再交，那是另一件事。
+ * 没有待审的就不出徽标 —— 一枚永远为空的徽标只是噪声。
+ */
+const spotsPending = computed(() => {
+  if (!spotsLoaded.value || mapStore.mySpotsError) return '';
+  const pending = mapStore.mySpots.filter((spot) => spot.status === 'pending').length;
+  return pending > 0 ? MY_SPOTS_PENDING(pending) : '';
+});
+
+/** 行首图标。统一蓝色 —— 一行里图标与文字不同色，就有了两个焦点 */
+const spotsIcon = icon('map-pin', 'blue');
+const aboutIcon = icon('info', 'blue');
 
 /** 资料编辑抽屉是否打开 */
 const profileOpen = ref(false);
@@ -171,11 +217,22 @@ function openAbout() {
  * 去「我的钓点」页。
  *
  * 那一页要登录才看得到东西（数据全在服务端），所以点进去时若还没登录，
- * 那一页自己会问 —— 这里不拦，拦了就成了「先登录才能看我的钓点」的
- * 死胡同式提示，绕一步反而更清楚。
+ * 那一页自己会问 —— 这里不拦，拦了就成了「先登录才能看我的钓点」
+ * 的死胡同式提示，绕一步反而更清楚。
  */
 function openMySpots() {
   uni.navigateTo({ url: '/pages/my-spots/index' });
+}
+
+/**
+ * 拉我提交的钓点。
+ *
+ * 这一页要的只是一个数量，所以取不到就当没有（silent）——
+ * 不必为一个附属信息弹一个 toast 把用户打断。
+ */
+async function loadMySpots(): Promise<void> {
+  await mapStore.fetchMySpots({ silent: true });
+  spotsLoaded.value = true;
 }
 
 /**
@@ -207,16 +264,25 @@ onLoad(() => {
 });
 
 /**
- * 进页面先恢复会话。
+ * 进页面先恢复会话，再取我提交的钓点。
  *
  * 小程序冷启动时内存里没有用户，但 Storage 里还留着上一轮的 token。
  * 不恢复的话，用户看到的是「未登录」，而实际上他上一轮登录过 ——
  * 一进「我的」就退登录是最容易失去信任的一种小毛病。
  *
  * 恢复失败（token 过期且刷新也失败）就退回未登录，不留一枚必然失败的 token。
+ *
+ * 取钓点要等会话恢复完：token 是异步读进内存的，没读进来就发请求必然 401。
  */
-onPageShow(() => {
-  void session.restore();
+onPageShow(async () => {
+  await session.restore();
+
+  if (!session.loggedIn) {
+    spotsLoaded.value = false;
+    return;
+  }
+
+  await loadMySpots();
 });
 
 /**
@@ -228,6 +294,7 @@ async function onLogin() {
   try {
     await session.login();
     uni.showToast({ title: '登录成功', icon: 'success' });
+    await loadMySpots();
   } catch (err) {
     uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
   }
@@ -287,6 +354,10 @@ function onLogout() {
     success: async (res) => {
       if (!res.confirm) return;
       await session.logout();
+      // 钓点是上一个账号的数据：留着的话，登出之后这一页
+      // 还会显示着别人的条数。
+      mapStore.clearMySpots();
+      spotsLoaded.value = false;
       uni.showToast({ title: '已退出登录', icon: 'none' });
     },
   });
@@ -312,7 +383,7 @@ function onLogout() {
 /*
  * 一个分区。
  *
- * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
+ * 缩进、卡间距全部走令牌层 _layout.scss 的 fish-section ——
  * 与数据页是同一条规则，两页的分块节奏因此必然一致。
  */
 .sect {
@@ -327,6 +398,48 @@ function onLogout() {
  */
 .sect--hero {
   margin-top: 0;
+}
+
+/*
+ * 入口组的卡。
+ *
+ * 玻璃面 + 16pt 圆角，与「更多」那张卡是同一种材质 ——
+ * 这一页上所有卡都该是同一种，不然读起来像拼了几个页面。
+ *
+ * overflow: hidden 让圆角把行的直角裁掉 —— 不裁的话
+ * 行自己的底会在四个角上溢出圆角（见 MineRow 的说明）。
+ */
+.mine__group {
+  overflow: hidden;
+  @include fish-glass;
+}
+
+/*
+ * 组件宿主节点要占满一行。
+ *
+ * 自定义组件在 WXML 里就是一个标签，它的默认 display 不是 block ——
+ * 宿主节点里的行是块级的，行与行之间却会多出一截行内盒子的高度。
+ * 显式钉住，两行之间才是设计好的那个间距。
+ */
+mine-row {
+  display: block;
+}
+
+/*
+ * 退出登录。
+ *
+ * 独居一格，不套在卡里：它跟别的行不在一个层级 ——
+ * 套进卡里就又变成列表里的一条了。
+ *
+ * 居中：破坏性操作是这一页最后一句，读到它的时候不需要再找左边。
+ */
+.mine__logout {
+  display: block;
+  margin-top: 56rpx;
+  color: $fish-destructive;
+  text-align: center;
+  @include fish-type(body);
+  @include fish-press-dim;
 }
 
 /*
