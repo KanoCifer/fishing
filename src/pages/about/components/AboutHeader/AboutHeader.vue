@@ -22,9 +22,7 @@
 /**
  * AboutHeader —— 应用图标 + 名称 + 版本 + 一句话介绍。
  */
-import { APP_INFO } from '@/constants/about';
-
-import { APP_LOGO } from '../../constants';
+import { APP_INFO, APP_LOGO } from '@/constants/about';
 
 const info = APP_INFO;
 </script>

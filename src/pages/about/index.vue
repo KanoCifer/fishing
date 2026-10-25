@@ -32,7 +32,7 @@
         <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">协议与说明</text>
 
         <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
-          <AboutLinks :links="docLinks" @select="openDoc" />
+          <AboutLinks :links="entries" @select="openEntry" />
         </view>
       </view>
 
@@ -65,6 +65,10 @@
  *
  * 文案全部来自 @/constants/about，这个文件里只有排版和交互：
  * 文字要改，改那个文件，不要改这里。
+ *
+ * ⚠️ 这一页**不提供分享与联系客服**了：那两个入口搬去了「我的」页
+ * （见 src/pages/mine/components/MineActions）。关于页答「这是什么」，
+ * 「我要把这个 App 分享出去」「我有话要说」不是这一页要答的事。
  */
 import { ref } from 'vue';
 import { onPageScroll } from '@dcloudio/uni-app';
@@ -77,9 +81,10 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_DOCS, APP_FOOTER, DISCLAIMER } from '@/constants/about';
-import type { AboutDoc as AboutDocItem, AboutLink } from '@/constants/about';
+import { ABOUT_ENTRIES, APP_FOOTER, DISCLAIMER } from '@/constants/about';
+import type { AboutDoc as AboutDocItem, AboutLink, PrivacyContractEntry } from '@/constants/about';
 import { enterDelay } from '@/utils/motion';
+import { openPrivacyContract } from '@/utils/privacy';
 
 /** 文档两档：够读一段 / 接近满屏。三处抽屉的档位不能各定各的 */
 const DOC_SNAP_POINTS = [62, 88] as const;
@@ -107,27 +112,64 @@ onPageScroll((event) => {
 const disclaimer = DISCLAIMER;
 const footer = APP_FOOTER;
 
-/** 协议列表。AboutLinks 只认「一行字 + 一个箭头」，正文不在行里 */
-const docLinks = ABOUT_DOCS;
+/**
+ * 协议列表。AboutLinks 只认「一行字 + 一个箭头」，正文不在行里。
+ *
+ * 顺序与条目都在 @/constants/about 的 ABOUT_ENTRIES —— 那里还定着
+ * 每一行点开发生什么（抽屉，还是微信官方的隐私协议页）。
+ */
+const entries = ABOUT_ENTRIES;
 
 /**
- * key → 文档。
+ * key → 条目。
  *
- * 列表点回来时只带得出 key，正文得查回来 —— 这里建一张表，
+ * 列表点回来时只带得出 key，点开什么得查回来 —— 这里建一张表，
  * 省得每次点开都在数组里 find 一遍。
  */
-const docByKey = new Map(ABOUT_DOCS.map((doc) => [doc.key, doc]));
+const entryByKey = new Map(ABOUT_ENTRIES.map((entry) => [entry.key, entry]));
 
 /** 当前打开的文档。null 表示抽屉关着 —— 正文随之卸载，不占布局 */
 const activeDoc = ref<AboutDocItem | null>(null);
 const docOpen = ref(false);
 
-function openDoc(link: AboutLink) {
-  const doc = docByKey.get(link.key);
-  if (!doc) return;
+/**
+ * 点开协议区的一行。
+ *
+ * 两种行，走两条路：抽屉里的文档，和微信官方的隐私协议页。
+ */
+function openEntry(link: AboutLink) {
+  const entry = entryByKey.get(link.key);
+  if (!entry) return;
 
-  activeDoc.value = doc;
+  if (entry.kind === 'privacy-contract') {
+    openOfficialPrivacy(entry);
+    return;
+  }
+
+  activeDoc.value = entry;
   docOpen.value = true;
+}
+
+/**
+ * 打开微信官方的隐私协议。
+ *
+ * 官方那份是微信后台「用户隐私保护指引」配的文本，平台要求用户能直达；
+ * 本地那份完整条款另起一行（见 ABOUT_ENTRIES）—— 两者不是同一份文件。
+ *
+ * 打不开就退回本地全文：官方协议能不能弹，取决于后台配没配
+ * 「用户隐私保护指引」（没配直接 fail）。这时候让用户读到本地全文，
+ * 好过按下去什么都没发生。
+ */
+async function openOfficialPrivacy(entry: PrivacyContractEntry) {
+  try {
+    await openPrivacyContract();
+  } catch {
+    const fallback = entryByKey.get(entry.fallbackKey);
+    if (fallback?.kind !== 'doc') return;
+
+    activeDoc.value = fallback;
+    docOpen.value = true;
+  }
 }
 
 function closeDoc() {

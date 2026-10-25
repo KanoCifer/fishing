@@ -2,9 +2,14 @@
   <!--
     我的页 —— tabBar 的第三个页签。
 
-    这一页只回答一件事：**我是谁**。
+    这一页回答两件事：**我是谁**，以及**我要往哪儿走、我要做什么**。
     「这是什么」搬去了关于页（见 pages/about）：一个页面同时讲身份和讲应用，
     两件事互相稀释，拆开各答各的更清楚。
+
+    底下三段是这一页的目录：钓点、关于、更多。
+    前两段是**入口**（通往别的页面），第三段是**动作**（转发与客服会话）。
+    动作和入口分开放 —— 用户点下去之前就知道会发生什么，
+    不会以为「联系客服」点进去又是一页文档。
 
     这一页与数据页、关于页共用一套页面骨架（见令牌层 _layout.scss 的 fish-section /
     fish-eyebrow / fish-foot 与 PageBackdrop）：同样的环境色底、同样的玻璃卡、
@@ -49,13 +54,28 @@
 
       <!--
         关于：内容搬去了独立页面，这里只留一个入口。
-        「我的」页答「我是谁」，关于页答「这是什么」—— 一页一件事。
+        关于页答「这是什么」，这一页不答 —— 想读的人自己点进去。
       -->
       <view class="sect">
         <text class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ aboutEntry.section }}</text>
 
         <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
           <AboutLinks :links="aboutLinks" @select="openAbout" />
+        </view>
+      </view>
+
+      <!--
+        更多：分享渔碌给朋友、联系客服。
+
+        这两行是**动作**，不是通往别处的入口 —— 它们自己就是终点。
+        单独一段而不是塞进上面那段里：上面那两段点进去都是「另一页」，
+        混进来用户会以为这两行也是，点下去却是微信自己的面板，反差很大。
+      -->
+      <view class="sect">
+        <text class="sect__title" :style="{ animationDelay: enterDelay(5) }">{{ moreEntry.section }}</text>
+
+        <view class="sect__card" :style="{ animationDelay: enterDelay(6) }">
+          <MineActions />
         </view>
       </view>
     </view>
@@ -78,7 +98,7 @@
 
 <script setup lang="ts">
 /**
- * 我的页 —— 账号身份，以及通往关于页的入口。
+ * 我的页 —— 账号身份、通往别处的入口，以及两个常用动作（分享、联系客服）。
  *
  * 文案全部来自 @/constants/about，这个文件里只有排版和交互：
  * 文字要改，改那个文件，不要改这里。
@@ -87,15 +107,16 @@
  * 这一层只负责把用户的意图翻译成对 store 的调用，并把结果讲给用户听。
  */
 import { ref } from 'vue';
-import { onPageShow } from '@dcloudio/uni-app';
+import { onLoad, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
 
+import MineActions from './components/MineActions/MineActions.vue';
 import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import ProfileSheet from '@/components/ProfileSheet/ProfileSheet.vue';
 import UserCard from '@/components/UserCard/UserCard.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_ENTRY } from '@/constants/about';
+import { ABOUT_ENTRY, MORE_ENTRY, SHARE_APP } from '@/constants/about';
 import type { AboutLink } from '@/constants/about';
 import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
 import { loginErrorMessage } from '@/api/auth';
@@ -115,6 +136,9 @@ const aboutEntry = ABOUT_ENTRY;
 
 /** 通往关于页的那一行。AboutLinks 只管排版，点开了什么由页面决定 */
 const aboutLinks: readonly AboutLink[] = [{ key: aboutEntry.label }];
+
+/** 「更多」那一段的眉标。那两行自己的文案在 MineActions 里面（各自是常量） */
+const moreEntry = MORE_ENTRY;
 
 /** 通往「我的钓点」的那一行 */
 const spotsEntry = MY_SPOTS_ENTRY;
@@ -153,6 +177,34 @@ function openAbout() {
 function openMySpots() {
   uni.navigateTo({ url: '/pages/my-spots/index' });
 }
+
+/**
+ * 转发渔碌。
+ *
+ * 标题、路径、封面凑成微信聊天里那张卡片。
+ *
+ * 封面**显式指定**应用图标：不指定的话，微信会拿当前页面的截图当封面，
+ * 而这一页的顶部是用户自己的身份卡 —— 一张写着「渔碌｜查潮汐、找钓点、看天气。」
+ * 的卡片上摆着分享者的头像，说不对（理由见 SHARE_APP.cover）。
+ */
+onShareAppMessage(() => ({
+  title: SHARE_APP.title,
+  path: SHARE_APP.path,
+  imageUrl: SHARE_APP.cover,
+}));
+
+/**
+ * 胶囊菜单里的项要显式开。
+ *
+ * 只开转发，不开「分享到朋友圈」—— 与钓点详情页同一套：
+ * 朋友圈那一项留着只会多一个走不通的出口。
+ */
+onLoad(() => {
+  uni.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage'],
+  });
+});
 
 /**
  * 进页面先恢复会话。
@@ -280,7 +332,7 @@ function onLogout() {
 /*
  * 落位。
  *
- * 延迟按**阅读顺序**给：这一屏装得下整页，所以从身份卡到入口依次落位，
+ * 延迟按**阅读顺序**给：从身份卡到最后一段入口依次落位，
  * 眼睛跟着往下走一遍。数据页一屏只装得下一部分，分区内的标题和卡片
  * 各自按序给延迟即可 —— 那是同一条原则的两种排法。
  */

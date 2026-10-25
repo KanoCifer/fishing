@@ -79,12 +79,16 @@ const ICONS = [
   { name: 'user', color: 'muted60', use: '未登录时的头像占位' },
   { name: 'pencil', color: 'muted60', use: '编辑资料' },
   { name: 'log-out', color: 'destructive', use: '退出登录' },
+  // 「更多」那两行的动作标记。两个图标都烤成蓝色 ——
+  // 同一张卡里一个蓝一个灰，一行里就有两个焦点了
+  // （与钓点详情页页脚「图标与文字同色」同一条规则）。
+  { name: 'share-2', color: 'blue', use: '分享入口（钓点详情页、「我的」页）' },
+  { name: 'message-square', color: 'blue', use: '「我的」页「联系客服」入口' },
   // —— 关于页 ——
   { name: 'chevron-left', color: 'blue', use: '子页导航栏的返回按钮' },
   // —— 钓点详情页 ——
   { name: 'chevron-left', color: 'onAccent', use: '钓点详情页压在头图上的返回按钮' },
   { name: 'share-2', color: 'onAccent', use: '钓点详情页压在头图上的分享入口' },
-  { name: 'share-2', color: 'blue', use: '钓点详情页滚过照片后的分享入口' },
   // 页脚那两个入口：一个是读者操作（灰），一个是作者操作（主色）。
   // 颜色跟着各自那行文字走 —— 图标与文字不同色，一行里就有两个焦点了。
   { name: 'message-square', color: 'muted', use: '钓点详情页「信息有误」入口' },

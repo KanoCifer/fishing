@@ -53,11 +53,11 @@
 
 **占位插画和 logo 为什么搬去了 CDN**：`src/static` 里的东西跟着每个用户下载，
 而这两张图各自只在一种场景里露面 —— 插画只在「这条钓点没有照片」时才出现，
-logo 只在关于页顶部出现，绝大多数会话根本用不上。
+logo 只在关于页顶部与转发卡片的封面上出现，绝大多数会话根本用不上。
 158KB 和 15KB 放进 2MB 的主包里，等于让所有人替少数人下载。
 产物现在出到 `scripts/assets/cdn/`（不进版本库），手动上传到
 `VITE_CDN_BASE_URL` 下，代码里引的是那个地址
-（`src/pages/spot-detail/constants.ts` 与 `src/pages/about/constants.ts`）。
+（`src/pages/spot-detail/constants.ts` 与 `src/constants/about.ts`）。
 
 ⚠️ 代价是**多了一个域名依赖**：`cdn.kanocifer.chat` 必须配成
 **downloadFile 合法域名**，否则 `<image>` 和海报的 `canvas.createImage()`

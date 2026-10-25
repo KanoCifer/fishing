@@ -18,9 +18,9 @@
 
 **走 CDN（`scripts/assets/cdn/` 暂存，人工上传）**：按需拉、少数场景才露面的图。
 现在有两张：缺图占位插画 spots（只在「这条钓点没有照片」时出现）和应用 logo
-（只在关于页顶部出现）。放进包里等于让所有人替少数人下载。
+（只在关于页顶部与转发卡片的封面上出现）。放进包里等于让所有人替少数人下载。
 产物出到暂存区，上传到 `VITE_CDN_BASE_URL` 下，代码里引的是那个地址
-（见 `src/pages/spot-detail/constants.ts` 与 `src/pages/about/constants.ts`）。
+（见 `src/pages/spot-detail/constants.ts` 与 `src/constants/about.ts`）。
 
 ⚠️ 搬去 CDN 之后，那个域名要在微信后台配成 **downloadFile 合法域名**，
 否则 `<image>` 和海报的 `canvas.createImage()` 都拿不到图。

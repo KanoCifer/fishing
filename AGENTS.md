@@ -8,6 +8,8 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`。脚本清单见 `
 
 `pnpm lint` 的 `no-undef` 只认 `uni.*`、定时器与 `console` 这几个全局，所以浏览器 API 写进来会直接报错 —— **这道 lint 就是平台边界的静态版本**。需要这类能力时，先查 `docs/mp-weixin-platform.md` 里的替代路径。
 
+**唯一的例外是 `wx.openPrivacyContract`**（微信官方的隐私协议弹窗）—— uni 不转发这个接口，只有微信有。它收在 `src/utils/privacy.ts` 一个文件里，那儿手写了一份收窄的 `wx` 声明，而不是把 `wx` 塞进 lint 的全局白名单：塞进去就等于允许全项目绕过 `uni.*` 直接调 `wx.request`，上面那道 lint 就废了一半。
+
 WXSS 编译器不认通配选择器 `*` —— 写了 `> *` 的那一份样式编译不过，用它的页面直接白屏，而构建期一路绿灯。要给子节点加样式就给它自己的类（见 `docs/mp-weixin-package.md`）。
 
 **后端服务项目在 `../Server-Go`、`../Server-Py`。**
@@ -38,11 +40,11 @@ WXSS 编译器不认通配选择器 `*` —— 写了 `> *` 的那一份样式�
 
 按「要做什么」找对应那一份，不要通读：
 
-| 要做什么                                                   | 读哪份                       |
-| ---------------------------------------------------------- | ---------------------------- |
-| 改界面、加页面、加组件、调间距字号配色                     | `docs/design-system.md`      |
-| 接接口、改数据流、加字段、动 store                         | `docs/architecture.md`       |
-| 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸      | `docs/mp-weixin-platform.md` |
-| 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 域名与后台配置 | `docs/mp-weixin-network.md`  |
-| 动代码包：静态图、分包、包体大小；真机引擎与依赖兼容       | `docs/mp-weixin-package.md`  |
-| 真机预览、编译、上传发布                                   | `/wechatide-skill`           |
+| 要做什么                                             | 读哪份                           |
+| ----------------------------------------------- | ---------------------------- |
+| 改界面、加页面、加组件、调间距字号配色                              | `docs/design-system.md`       |
+| 接接口、改数据流、加字段、动 store                             | `docs/architecture.md`        |
+| 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸          | `docs/mp-weixin-platform.md`  |
+| 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 隐私协议 / 域名与后台配置  | `docs/mp-weixin-network.md`   |
+| 动代码包：静态图、分包、包体大小；真机引擎与依赖兼容                       | `docs/mp-weixin-package.md`   |
+| 真机预览、编译、上传发布                                     | `/wechatide-skill`            |

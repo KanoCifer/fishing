@@ -95,7 +95,7 @@ src/
 | 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸 | [小程序平台能力](docs/mp-weixin-platform.md) |
 | 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 域名与后台配置 | [网络与后台](docs/mp-weixin-network.md) |
 | 动代码包：静态图、分包、包体大小 | [代码包](docs/mp-weixin-package.md) |
-| 关心代码能不能商用、能不能改协议、素材能不能用 | [许可协议](docs/licensing.md) |
+| 关心代码能不能商用、能不能改协议、素材能不能用 | [许可协议](#许可与审查)                   |
 
 开发约定见 [AGENTS.md](AGENTS.md)。
 
