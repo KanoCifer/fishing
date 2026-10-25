@@ -20,6 +20,8 @@ export interface NavMetrics {
   navBarBottom: number;
   /** 胶囊按钮左侧到屏幕右边缘的距离（px）。标题要居中就得给它让出这段 */
   capsuleInsetRight: number;
+
+  capsuleTop: number;
 }
 
 // 胶囊按钮和状态栏高度在一次启动内不会变，算一次就够，避免每个组件重复调 API
@@ -42,6 +44,7 @@ function measure(): NavMetrics {
     navBarHeight,
     navBarBottom: statusBarHeight + navBarHeight,
     capsuleInsetRight: windowWidth - capsule.left,
+    capsuleTop: capsule.top,
   };
   return cached;
 }

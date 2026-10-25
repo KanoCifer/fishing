@@ -1,5 +1,5 @@
 <template>
-  <view class="verdict" :style="{ height: windowHeight + 'px', paddingTop: navBarBottom + 'px' }">
+  <view class="verdict" :style="{ height: windowHeight + 'px', paddingTop: capsuleTop + 'px' }">
     <!-- 顶行：地点 / 更新时间 / 刷新 -->
     <view class="verdict__top">
       <view class="verdict__place">
@@ -180,7 +180,7 @@ const emit = defineEmits<{
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
 /** px。导航栏是浮层，顶部内容都得自己让开 */
-const { navBarBottom } = useNavMetrics();
+const { capsuleTop } = useNavMetrics();
 
 /** px。可用窗口高度（不含 tabBar），就是这一屏真正能显示的高度 */
 const { windowHeight } = useViewport();
@@ -308,17 +308,6 @@ function onRefresh() {
 </script>
 
 <style lang="scss" scoped>
-/*
- * 概览区。
- *
- * 高度由模板绑 windowHeight（px）—— 不用 100vh：100vh 把原生 tabBar 的高度
- * 也算进去了，页面会多出一截能拖出去的范围（详见 useViewport 的注释）。
- * box-sizing: border-box 是为了 padding-top（让开导航栏）算在高度里面，
- * 否则这块会比一屏高出一个导航栏的高度。
- *
- * 这里没有背景色。页面底本身是环境色渐层（见 pages/data），
- * 再叠一层 wash 就成了双份的蓝。
- */
 .verdict {
   box-sizing: border-box;
   display: flex;
@@ -332,8 +321,8 @@ function onRefresh() {
 .verdict__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
+  gap: 12rpx;
 }
 
 .verdict__place {
