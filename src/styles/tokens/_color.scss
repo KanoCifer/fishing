@@ -208,7 +208,9 @@ $fish-destructive-tint: rgba(255, 59, 48, 0.14);
    别的页面底色不动：
    全局 page 底色还得给 tabBar 切换时露出的那一帧兜底，
    一旦全局换成渐变，钓点页的地图边缘会跟着染上颜色。 */
-$fish-page-bg: radial-gradient(130% 70% at 8% -6%, rgba(0, 122, 255, 0.18) 0%, rgba(0, 122, 255, 0) 58%), #f3f4f9;
+$fish-page-bg:
+  radial-gradient(circle at 0% 0%, #dcf5ff, transparent 40%),
+  radial-gradient(circle at 100% -20%, #ffd9a4, transparent 60%), #f3f4f9;
 
 /* ── 图表专用。canvas 侧硬编码的色值要与之手工保持一致 ── */
 $fish-tide: #007aff;
