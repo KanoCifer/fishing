@@ -8,7 +8,7 @@
  * 由调用方决定显示「--」还是整块不渲染 —— 不要在这里编一个假的 0。
  */
 
-import { parseFxTime } from '@/utils/date';
+import { fxMinuteKey, localMinuteKey, parseFxTime } from '@/utils/date';
 import type { TideData, TideTableItem } from '@/types/fishing';
 
 export interface TideExtreme {
@@ -35,13 +35,11 @@ export function nextHighTideItem(tide: TideData | null | undefined): TideTableIt
   const table = tide?.tideTable ?? [];
   if (!table.length) return null;
 
-  const now = new Date();
-  const stamp =
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` +
-    `T${String(now.getHours()).padStart(2, '0')}`;
+  // 潮时表带分钟（`15:20`），比到分钟才分得清同一小时内先后
+  const stamp = localMinuteKey();
 
   const upcoming = table
-    .filter((item) => item.type === 'H' && item.fxTime.slice(0, 14) >= stamp)
+    .filter((item) => item.type === 'H' && fxMinuteKey(item.fxTime) >= stamp)
     .sort((a, b) => a.fxTime.localeCompare(b.fxTime))[0];
 
   return upcoming ?? null;
@@ -50,7 +48,7 @@ export function nextHighTideItem(tide: TideData | null | undefined): TideTableIt
 /**
  * 此刻之后的第一个高潮。
  *
- * 比对用的是 fxTime 字符串的前 14 位（`2026-10-18T15`），不 new Date()：
+ * 比对用的是 fxTime 字符串的前 16 位（`2026-10-18T15:20`），不 new Date()：
  * 后端 fxTime 自带 +08:00，转成 Date 会按设备时区重解释，
  * 开发者工具和真机时区不一致时整条判断会偏几小时，且只在真机复现。
  */

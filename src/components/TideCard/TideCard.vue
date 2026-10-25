@@ -100,7 +100,7 @@ import { computed, onMounted } from 'vue';
 
 import { HARBOR_OPTIONS, useFishingMapStore } from '@/stores/fishingMap';
 import type { TideTableItem } from '@/types/fishing';
-import { parseFxTime } from '@/utils/date';
+import { fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 import TideChart from '../TideChart/TideChart.vue';
@@ -141,14 +141,16 @@ const chartLabels = computed(() => hourly.value.map((point) => parseFxTime(point
 /**
  * 当前时刻落在逐时序列里的下标，画「现在」竖线用。
  *
- * 比对的是字符串前 14 位（`2026-10-17T14`），不 new Date()：
+ * 比对的是小时键（`2026-10-17T14`），不 new Date()：
  * 后端 fxTime 自带 +08:00，转成 Date 会按设备时区重解释，
  * 开发者工具和真机时区不一致时整条标线会偏几小时，且只在真机复现。
+ *
+ * 逐时数据是整点（`...T14:00`），当前时刻是整点内（比如 14:23），
+ * 所以按小时对齐，不去比分钟。
  */
 const nowIndex = computed(() => {
-  const now = new Date();
-  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}`;
-  return hourly.value.findIndex((point) => point.fxTime.slice(0, 14) === stamp);
+  const stamp = localHourKey();
+  return hourly.value.findIndex((point) => fxHourKey(point.fxTime) === stamp);
 });
 
 const highTide = computed(() => extremeTide('H', 'max'));

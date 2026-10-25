@@ -40,6 +40,45 @@ export function parseFxTime(fxTime: string): {
 }
 
 /**
+ * 把后端 fxTime 截成「小时键」，形如 `2026-10-26T01`（13 位）。
+ *
+ * 注意是 13 位而不是 14 位 —— 第 14 位是分钟冒号，
+ * 拿 14 位去和 13 位的字符串比，长度都不等，永远不相等。
+ * 这一层的截法只此一份，需要小时粒度对齐的地方都用它。
+ */
+export function fxHourKey(fxTime: string): string {
+  return fxTime.slice(0, 13);
+}
+
+/**
+ * 把后端 fxTime 截成「分钟键」，形如 `2026-10-26T01:20`（16 位）。
+ *
+ * 需要区分同一小时内先后顺序时用它（潮时表里一天有好几条潮时）。
+ * 同样是切字符串，不 new Date()，理由同 parseFxTime。
+ */
+export function fxMinuteKey(fxTime: string): string {
+  return fxTime.slice(0, 16);
+}
+
+/**
+ * 设备当前本地时刻的小时键 / 分钟键，格式与上面两个对齐。
+ *
+ * 和 fxHourKey / fxMinuteKey 成对使用：一边是后端字符串切出来的墙上时间，
+ * 一边是设备本地时间切出来的墙上时间 —— 两边都不换算时区，
+ * 所以设备时区与后端 +08:00 不一致时会有偏差，那是设计上的取舍，
+ * 不是 bug；真机在小程序里默认跟随系统时区。
+ */
+export function localHourKey(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}`;
+}
+
+export function localMinuteKey(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${localHourKey(date)}:${pad(date.getMinutes())}`;
+}
+
+/**
  * 把 `YYYY-MM-DD` 形式的日期切出 `MM-DD`，图表轴和预报行用。
  *
  * 后端 fxDate 形如 `2026-10-17`，不带时区，这里同样只切字符串。
