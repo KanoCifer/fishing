@@ -15,8 +15,8 @@
       <!-- 未登录：这一页的数据全在服务端，登录了才有得看 -->
       <view v-if="!session.loggedIn" class="sect sect--first">
         <view class="my-spots__empty my-spots__enter">
-          <text class="my-spots__empty-title">{{ empty.title }}</text>
-          <text class="my-spots__empty-hint">{{ empty.hint }}</text>
+          <text class="my-spots__empty-title">{{ loggedOut.title }}</text>
+          <text class="my-spots__empty-hint">{{ loggedOut.hint }}</text>
           <view class="my-spots__empty-action" @tap="onLogin">
             <text class="my-spots__empty-action-text">登录</text>
           </view>
@@ -111,6 +111,7 @@ import {
   MY_SPOTS_EMPTY,
   MY_SPOTS_EMPTY_ACTION,
   MY_SPOTS_HINT,
+  MY_SPOTS_LOGGED_OUT,
   MY_SPOTS_STATUS_TONES,
   MY_SPOTS_TITLE,
 } from '@/constants/my-spots';
@@ -137,6 +138,8 @@ const { windowHeight } = useViewport();
 const title = MY_SPOTS_TITLE;
 const empty = MY_SPOTS_EMPTY;
 const emptyAction = MY_SPOTS_EMPTY_ACTION;
+/** 没登录时的那一段。与空列表分开说 —— 见 MY_SPOTS_LOGGED_OUT */
+const loggedOut = MY_SPOTS_LOGGED_OUT;
 const hint = MY_SPOTS_HINT;
 
 /** 导航栏材质层要不要显形 */
@@ -413,7 +416,7 @@ onPageShow(async () => {
 }
 
 .my-spots__item-action-text {
-  color: $fish-accent;
+  color: $fish-blue-600;
   @include fish-type(caption);
 
   font-weight: 600;

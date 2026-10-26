@@ -12,8 +12,10 @@
         -->
         <image class="picker__image" :src="mediaUrl(path)" mode="aspectFill" lazy-load />
 
-        <view class="picker__remove" @tap="remove(path)">
-          <image class="picker__remove-icon" :src="removeIcon" mode="aspectFit" />
+        <view class="picker__remove-hit" @tap="remove(path)">
+          <view class="picker__remove">
+            <image class="picker__remove-icon" :src="removeIcon" mode="aspectFit" />
+          </view>
         </view>
       </view>
 
@@ -233,18 +235,32 @@ function remove(path: string) {
 /*
  * 删除角标。
  *
- * 压在缩略图右上角，直径 40rpx（20pt）—— 小一点会点不准。
+ * 角标压在缩略图右上角，直径 40rpx（20pt）—— 再大就盖住照片了。
  * 半透明黑底而不是实色：它盖在照片上，实色太抢眼。
+ *
+ * 热区另有 88rpx（44pt），是那一块透明方形：角标本身太小，
+ * 而点不准的偏偏是「删掉一张照片」这种不可逆的动作。
+ * 角标缩在热区的右上角，热区多出来的那一圈往左、往下。
  */
-.picker__remove {
+.picker__remove-hit {
   position: absolute;
-  top: 8rpx;
-  right: 8rpx;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 88rpx;
+  height: 88rpx;
+  @include fish-press-dim;
+}
+
+.picker__remove {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40rpx;
   height: 40rpx;
+  margin: 8rpx 8rpx 0 0;
   border-radius: $fish-radius-pill;
   background-color: rgba(0, 0, 0, 0.5);
 }

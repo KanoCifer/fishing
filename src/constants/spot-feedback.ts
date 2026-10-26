@@ -78,7 +78,7 @@ export const SPOT_FEEDBACK_FIELDS = {
   },
   correctedName: {
     label: '建议的名称',
-    placeholder: '这条钓点现在叫什么',
+    placeholder: '如：北岸老柳树',
   },
   fee: {
     label: '现在的收费',

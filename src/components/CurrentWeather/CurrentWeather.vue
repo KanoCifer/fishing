@@ -154,7 +154,15 @@ const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: 345rpx;
+  /*
+   * 高度给的是下限，不是定值。
+   *
+   * 定值配 overflow: hidden，超出的内容会被直接切掉 ——
+   * 地点名多换一行、现象多两个字，那一行就被削掉半截，
+   * 而页面上看不出是内容被切了，只觉得这张卡矮了一截。
+   * 给下限：内容装得下就是 345rpx，装不下就长一截。
+   */
+  min-height: 345rpx;
   padding: 28rpx 28rpx 24rpx;
   overflow: hidden;
   border-radius: $fish-radius-mid;
@@ -437,7 +445,7 @@ const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到
 .current-weather__skeleton {
   border-radius: $fish-radius-sm;
   background-color: $fish-surface;
-  animation: current-weather-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .current-weather__skeleton--temp {
@@ -469,16 +477,5 @@ const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到
   width: 120rpx;
   height: 34rpx;
   margin-top: 8rpx;
-}
-
-/* 与 SkeletonCard、HourlyWeather、VerdictOverview 的同名 keyframes 保持同一档呼吸幅度 */
-@keyframes current-weather-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 </style>

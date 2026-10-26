@@ -21,8 +21,10 @@
         <view class="share__head-text">
           <text class="share__title">{{ sheet.title }}</text>
         </view>
-        <view class="share__close" @tap="emit('close')">
-          <image class="share__close-icon" :src="closeIcon" mode="aspectFit" />
+        <view class="share__close-hit" @tap="emit('close')">
+          <view class="share__close">
+            <image class="share__close-icon" :src="closeIcon" mode="aspectFit" />
+          </view>
         </view>
       </view>
     </template>
@@ -437,16 +439,31 @@ const closeIcon = icon('x', 'muted60');
   @include fish-type(caption);
 }
 
+/*
+ * 关闭键。
+ *
+ * 可见的圆是 56rpx（28pt），热区另有 88rpx（44pt）——
+ * 关闭键在浮层右上角，是拇指最难够到的位置之一，
+ * 而圆再画大就压过标题了。热区多出来的那一圈往左、往下。
+ */
+.share__close-hit {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  @include fish-press-dim;
+}
+
 .share__close {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 56rpx;
   height: 56rpx;
-  flex-shrink: 0;
   border-radius: 999rpx;
   background-color: $fish-surface;
-  @include fish-press-dim;
 }
 
 .share__close-icon {
@@ -510,13 +527,7 @@ const closeIcon = icon('x', 'muted60');
   border: 3rpx solid $fish-border-40;
   border-top-color: $fish-blue;
   border-radius: 999rpx;
-  animation: share-spin 700ms linear infinite;
-}
-
-@keyframes share-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  animation: fish-spin 700ms linear infinite;
 }
 
 .share__hint {
@@ -571,11 +582,11 @@ const closeIcon = icon('x', 'muted60');
 
 .share__btn--ghost {
   background-color: $fish-fill;
-  color: $fish-blue;
+  color: $fish-blue-600;
 }
 
 .share__btn--primary {
-  background-color: $fish-blue;
+  background-color: $fish-accent;
   color: $fish-on-accent;
 }
 

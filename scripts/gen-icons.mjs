@@ -1,19 +1,6 @@
 #!/usr/bin/env node
 /**
  * 生成内联图标 —— 从 lucide-static 取 SVG，烧成 data URI，输出到 src/constants/icons.ts。
- *
- * 为什么必须是脚本、而不是直接把 svg 引进项目：
- * 小程序端不能把 <svg> 内联进 WXML（渲染层不认），能落地的只有 WeatherHero
- * 里已经在用的那条路 —— <image src="data:image/svg+xml;base64,…">。这条路要手工
- * 维护两件很烦的事：每个图标一份 base64，以及每个图标一份颜色。
- *
- * 关键约束：<image> 里的 SVG 是当图片渲染的，拿不到页面的 CSS 上下文，
- * currentColor 不会继承。所以颜色必须在生成时烤死 —— 这就是下面每个条目
- * 都带一个 color 的原因。改一次令牌层 _color.scss 的色值，要回来重跑本脚本，
- * 和 scripts/tabbar-icons.py 一样，脚本是资产的唯一出处。
- *
- * 用法：pnpm icons
- * 生成后跑一次 type-check，确认 icons.ts 里的联合类型和清单对得上。
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -28,22 +15,19 @@ const OUT_FILE = resolve(ROOT, 'src/constants/icons.ts');
  * 色板。取值必须与 src/styles/tokens/_color.scss 的同名变量一致 —— 这里只能写十六进制，
  * 因为 CSS 变量传不进 <image>。改色值两处都要动，注释是给下一个人看的路标。
  *
- * 注意 muted / muted60 落在 rgba(60, 60, 67, …) 上：它们在 svg 里拆成
- * 十六进制基底 + stroke-opacity 两部分表达（见 ALPHA），不是直接写 rgba。
+ * 全部是实色：SVG 的 stroke-opacity 跟 rgba 一样会被合成到背景上，
+ * 合成结果随背景变 —— 同一个图标压在玻璃卡上和压在白底上会变成两个颜色。
  */
 const COLORS = {
   ink: '#000000', // $fish-ink
-  muted: '#3c3c43', // $fish-muted（secondaryLabel）
-  muted60: '#3c3c43', // $fish-muted-60（tertiaryLabel），同色降透明度（见下方 alpha）
-  blue: '#007aff', // $fish-blue
+  muted: '#3f3f45', // $fish-muted（secondaryLabel）
+  muted60: '#5b5b60', // $fish-muted-60（tertiaryLabel）
+  blue: '#0f66d6', // $fish-blue
   blue600: '#0062cc', // $fish-blue-600
   success: '#34c759', // $fish-success
   destructive: '#ff3b30', // $fish-destructive
   onAccent: '#ffffff', // 主色按钮上的前景色
 };
-
-/** alpha > 1 的条目按半透明烘（muted60 这类 rgba 色值），其余烤成实色 */
-const ALPHA = { muted: 0.6, muted60: 0.3 };
 
 /**
  * 清单：每个图标只列它真正在用的那一两个配色，不铺满色板。
@@ -117,18 +101,17 @@ const ICONS = [
  * 三件事：
  * 1. 删掉 width/height —— 尺寸交给 CSS 的 .icon-* 规则，这样同一个图标
  *    在 24rpx 和 40rpx 下都是同一份数据，不会存两份尺寸。
- * 2. currentColor 换成具体色值（含可选的 stroke-opacity），理由见文件头。
+ * 2. currentColor 换成具体色值，理由见文件头。
  * 3. 去掉 class —— class 在 <image> 里不起作用，留着只是误导。
  */
-function toInlineSvg(raw, color, alpha) {
+function toInlineSvg(raw, color) {
   let svg = raw
     // lucide 每份文件头部都带一条 license 注释，ISC 要求署名，保留
     .replace(/<svg\s+class="[^"]*"\s+/, '<svg ')
     .replace(/\s*width="24"/, '')
     .replace(/\s*height="24"/, '');
 
-  const opacity = alpha === undefined ? '' : ` stroke-opacity="${alpha}"`;
-  svg = svg.replace('stroke="currentColor"', `stroke="${color}"${opacity}`);
+  svg = svg.replace('stroke="currentColor"', `stroke="${color}"`);
   return svg.trim();
 }
 
@@ -141,7 +124,7 @@ function main() {
   const colorNames = Object.keys(COLORS);
   const entries = ICONS.map(({ name, color, use }) => {
     const raw = readFileSync(resolve(ICON_DIR, `${name}.svg`), 'utf8');
-    const svg = toInlineSvg(raw, COLORS[color], ALPHA[color]);
+    const svg = toInlineSvg(raw, COLORS[color]);
     return { key: `${name}__${color}`, name, color, use, uri: toDataUri(svg) };
   });
 

@@ -33,7 +33,7 @@ export const SPOT_FORM_FIELDS = {
   },
   name: {
     label: '名称',
-    placeholder: '给这个钓点起个名字',
+    placeholder: '如：东湖芦苇荡',
   },
   kind: {
     label: '水体类型',
@@ -42,7 +42,7 @@ export const SPOT_FORM_FIELDS = {
   },
   description: {
     label: '简介',
-    placeholder: '说说这里怎么钓、有什么讲究',
+    placeholder: '如：清晨芦苇边能钓鲫鱼，水深 1.5 米',
   },
   fee: {
     label: '收费',

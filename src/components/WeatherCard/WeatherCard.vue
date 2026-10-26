@@ -243,7 +243,7 @@ const rows = computed<Row[]>(() => {
 }
 
 .weather-card__dot--muted {
-  background-color: $fish-muted-60;
+  background-color: $fish-faint;
 }
 
 .weather-card__row-label {

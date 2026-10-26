@@ -234,6 +234,7 @@ mine-row {
   line-height: 1;
   font-size: inherit;
   color: inherit;
+  @include fish-press-dim;
 
   &::after {
     border: none;
@@ -298,7 +299,7 @@ mine-row {
   height: 52rpx;
   border: 4rpx solid $fish-page;
   border-radius: 50%;
-  background-color: $fish-blue;
+  background-color: $fish-accent;
 }
 
 .user-card__badge-icon {

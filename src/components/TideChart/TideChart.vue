@@ -217,8 +217,8 @@ let progress = 1;
 const TIDE_COLOR = '#007aff'; // $fish-tide（systemBlue）
 const GRID_COLOR = 'rgba(60, 60, 67, 0.08)'; // $fish-grid（内部网格线）
 const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（基线）
-const Y_TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
-const X_TEXT_COLOR = 'rgba(60, 60, 67, 0.3)'; // $fish-muted-60（tertiaryLabel）
+const Y_TEXT_COLOR = '#3f3f45'; // $fish-muted（secondaryLabel）
+const X_TEXT_COLOR = '#5b5b60'; // $fish-muted-60（tertiaryLabel）
 const WARNING_COLOR = '#ff9500'; // $fish-warning（systemOrange）
 
 const PAD = { right: 16, top: 18, bottom: 10 };

@@ -448,13 +448,16 @@ onMounted(() => {
 
 /*
  * 工具条按键。
+ *
+ * 命中区 88rpx 见方（44pt，iOS 判定为可放心点按的最小尺寸），
+ * 图标 36rpx 居中 —— 这一列压在地图上，手指是盲按的，点不准最要命。
  */
 .toolbar__btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64rpx;
-  height: 64rpx;
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 18rpx;
 
   /*

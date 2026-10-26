@@ -339,7 +339,7 @@ const emptyText = computed(() => {
 .days__skeleton {
   border-radius: $fish-radius-sm;
   background-color: $fish-surface;
-  animation: days-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .days__skeleton--title {
@@ -380,16 +380,5 @@ const emptyText = computed(() => {
 .days__skeleton--min {
   width: 36rpx;
   height: 28rpx;
-}
-
-/* 与 SkeletonCard、HourlyWeather、CurrentWeather、VerdictOverview 的同名 keyframes 保持同一档呼吸幅度 */
-@keyframes days-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 </style>

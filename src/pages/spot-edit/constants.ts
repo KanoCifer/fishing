@@ -30,6 +30,14 @@ export const SPOT_EDIT_LOADING = '正在载入钓点…';
 /** 载入失败时的那一行 */
 export const SPOT_EDIT_LOAD_FAILED = '钓点载入失败';
 
+/**
+ * 载入失败时那个重试入口。
+ *
+ * 载入失败多半是网络抖一下，不是这条钓点有问题 ——
+ * 只说一句「载入失败」不给下一步，用户只能退回上一页再来一次。
+ */
+export const SPOT_EDIT_LOAD_FAILED_RETRY = '重新载入';
+
 /** 驳回理由那一块的标题 */
 export const SPOT_EDIT_REJECTED_TITLE = '驳回理由';
 
@@ -61,5 +69,14 @@ export const SPOT_EDIT_SAVED = {
   },
 } as const;
 
-/** 保存成功那个弹窗的确认按钮 */
-export const SPOT_EDIT_SAVED_CONFIRM = '知道了';
+/**
+ * 保存成功那个弹窗的确认按钮。
+ *
+ * **最多 4 个汉字** —— 微信的 `uni.showModal` 对 `confirmText` 有硬限制，
+ * 超出时接口静默失败：弹窗不弹，也不报错，代码继续往下跑
+ * （理由见 spot-create 的同名常量）。
+ *
+ * 这个按钮不是「知道了」：它会把人带回「我的钓点」去看这条钓点的状态，
+ * 所以按钮得说清按下之后去哪 —— 一个纯应答的词会让人以为关掉就完事了。
+ */
+export const SPOT_EDIT_SAVED_CONFIRM = '看状态';

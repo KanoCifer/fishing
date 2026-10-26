@@ -137,7 +137,7 @@ const hours = computed(() =>
 /* 「最近的一小时」这一格靠字重站出来，不靠颜色 —— 加了颜色就变成在提示，
    而它其实是状态，不是提醒 */
 .hourly__cell--first .hourly__time {
-  color: $fish-accent;
+  color: $fish-blue-600;
   font-weight: 600;
 }
 
@@ -192,7 +192,7 @@ const hours = computed(() =>
 .hourly__skeleton {
   border-radius: $fish-radius-sm;
   background-color: $fish-surface;
-  animation: hourly-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .hourly__skeleton--time {
@@ -210,17 +210,5 @@ const hours = computed(() =>
 .hourly__skeleton--temp {
   width: 48rpx;
   height: 14rpx;
-}
-
-/* 与 SkeletonCard 的同名 keyframes 保持同一档呼吸幅度（0.35），
-   否则同一个页面里两种加载态一深一浅，像两套组件 */
-@keyframes hourly-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 </style>

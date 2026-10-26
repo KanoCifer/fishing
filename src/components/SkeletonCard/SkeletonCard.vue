@@ -37,8 +37,8 @@
 /**
  * 加载骨架 —— 对应源项目 SkeletonCard。
  *
- * 脉冲用 opacity 0.4↔0.7 的 1.8s 循环，比默认的 animate-pulse 更轻，
- * 避免加载态在弱网下闪得刺眼。
+ * 脉冲用 opacity 1↔0.35 的 1.8s 循环，比一整块死灰轻，
+ * 避免加载态在弱网下闪得刺眼。关键帧是全局一份的 fish-pulse（见 App.vue）。
  *
  * 尺寸全部手写 rpx：manifest 的 transformPx: false 关掉了 px→rpx 自动换算，
  * 这里写 px 不会被转换，在不同机型上会差出一截。
@@ -85,7 +85,7 @@ withDefaults(
 .skeleton-card__bar,
 .skeleton-card__block,
 .skeleton-card__circle {
-  animation: skeleton-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .skeleton-card__bar {
@@ -123,7 +123,7 @@ withDefaults(
 .skeleton-card__block {
   border-radius: $fish-radius-xl;
   background-color: $fish-surface;
-  animation: skeleton-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .skeleton-card__block--hero {
@@ -169,21 +169,5 @@ withDefaults(
 
 .skeleton-card__cell--left:last-child {
   margin-bottom: 0;
-}
-
-/*
- * 呼吸幅度收到 0.35。
- *
- * 骨架屏是一次性出现的加载占位，用户盯着它的时间不确定长；幅度越小、越平缓，
- * 弱网下反复闪烁时的疲劳感越低。1 → 0.35 是既能看出「在动」又不会晃眼的档。
- */
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 </style>

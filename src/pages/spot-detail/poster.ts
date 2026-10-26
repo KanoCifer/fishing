@@ -96,7 +96,7 @@ export interface PosterSpot {
 
 /* ── 色值（与 tokens/_color.scss 手工对齐）───────────────────────────── */
 const INK = '#000000'; // $fish-ink · label
-const MUTED = 'rgba(60, 60, 67, 0.6)'; // $fish-muted · secondaryLabel
+const MUTED = '#3f3f45'; // $fish-muted · secondaryLabel
 const BLUE_600 = '#0062cc'; // $fish-blue-600
 const HAIRLINE = 'rgba(60, 60, 67, 0.29)'; // $fish-border · separator
 const WHITE = '#ffffff';

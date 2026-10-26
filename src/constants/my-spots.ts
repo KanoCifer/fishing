@@ -52,6 +52,18 @@ export const MY_SPOTS_EMPTY = {
 /** 空态里那个按钮 */
 export const MY_SPOTS_EMPTY_ACTION = '去新建钓点';
 
+/**
+ * 没登录时的那一段。
+ *
+ * 与 MY_SPOTS_EMPTY 分开：没登录是「看不到」，没提交过是「没有」——
+ * 拿「还没有提交过钓点」去说没登录，用户会以为自己白登录了，
+ * 或者以为这账号下真的什么都没有。
+ */
+export const MY_SPOTS_LOGGED_OUT = {
+  title: '登录后查看你的钓点',
+  hint: '提交记录和审核状态都存在账号里',
+} as const;
+
 /** 列表顶部的说明 */
 export const MY_SPOTS_HINT = '审核通过的钓点会出现在地图上';
 

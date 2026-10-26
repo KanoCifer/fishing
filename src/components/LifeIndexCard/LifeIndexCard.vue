@@ -165,7 +165,7 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
 
 .life__badge--blue {
   color: $fish-blue-600;
-  background-color: rgba(0, 122, 255, 0.14);
+  background-color: rgba(15, 102, 214, 0.14);
 }
 
 .life__badge--warning {

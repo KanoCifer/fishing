@@ -167,6 +167,8 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
  * 分享按钮。
  *
  * 与返回键同一套处理：照片上用白图标，滚过照片后换成主色图标。
+ * 命中区同样是 88rpx 见方，图标 40rpx 居中 ——
+ * 胶囊按钮就在它右边，两个键挨着，小一号的分享键会被误当成胶囊的一部分。
  */
 .spot-nav__share {
   position: absolute;
@@ -174,8 +176,8 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64rpx;
-  height: 64rpx;
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 999rpx;
   transform: translateY(-50%);
   transition: background-color $fish-dur-base $fish-ease-out;
@@ -187,8 +189,8 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
 }
 
 .spot-nav__share-icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: 40rpx;
+  height: 40rpx;
 }
 
 /*

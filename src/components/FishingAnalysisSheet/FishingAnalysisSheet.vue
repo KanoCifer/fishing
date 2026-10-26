@@ -462,7 +462,7 @@ watch(isStreaming, (streaming) => {
   height: 10rpx;
   margin-right: 8rpx;
   border-radius: 50%;
-  background-color: $fish-muted-60;
+  background-color: $fish-faint;
   animation: fish-typing 1.2s $fish-ease-out infinite;
 }
 

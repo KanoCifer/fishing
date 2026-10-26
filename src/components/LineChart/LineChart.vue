@@ -210,8 +210,8 @@ const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
  */
 const GRID_COLOR = 'rgba(60, 60, 67, 0.08)'; // $fish-grid（内部网格线）
 const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（基线）
-const Y_TEXT_COLOR = 'rgba(60, 60, 67, 0.6)'; // $fish-muted（secondaryLabel）
-const X_TEXT_COLOR = 'rgba(60, 60, 67, 0.3)'; // $fish-muted-60（tertiaryLabel）
+const Y_TEXT_COLOR = '#3f3f45'; // $fish-muted（secondaryLabel）
+const X_TEXT_COLOR = '#5b5b60'; // $fish-muted-60（tertiaryLabel）
 
 /**
  * 画布的 CSS 尺寸（px）。

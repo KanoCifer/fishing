@@ -23,16 +23,17 @@
  *
  * 12pt / 600 / 字距放开 / tertiaryLabel。
  *
- * 不套字阶里的 caption：caption 是 400 字重、字距为 0，那是给说明文字的；
- * 分区标题是「这一段叫什么」的标签，字重和字距都要跟正文拉开，
- * 否则它会读成「上一段的注脚」而不是「下一段的开头」。
+ * 底下一级是 caption，但字重与字距都要跟正文拉开：
+ * caption 是 400 字重、字距为 0，那是给说明文字的；
+ * 分区标题是「这一段叫什么」的标签，不拉开就会读成「上一段的注脚」
+ * 而不是「下一段的开头」。
  */
 @mixin fish-eyebrow {
   color: $fish-muted-60;
-  font-size: 24rpx;
+  @include fish-type(caption);
+
   font-weight: 600;
   letter-spacing: 0.04em;
-  line-height: 1.3;
 }
 
 /**

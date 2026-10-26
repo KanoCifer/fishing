@@ -89,18 +89,18 @@ const refreshIcon = icon('refresh-cw', 'muted');
 
 .verdict-bar__score {
   color: $fish-ink;
-  font-size: 40rpx;
+  @include fish-type(title3);
+
+  /* 数字用 700：这一行里它是主角，字重要压过旁边的等级词 */
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .verdict-bar__level {
   margin-left: 16rpx;
-  font-size: 30rpx;
+  @include fish-type(subhead);
+
   font-weight: 600;
-  line-height: 1;
 }
 
 /*
@@ -149,13 +149,18 @@ const refreshIcon = icon('refresh-cw', 'muted');
   text-overflow: ellipsis;
 }
 
-/* 刷新键：圆形热区，按下即反馈 */
+/*
+ * 刷新键：圆形热区，按下即反馈。
+ *
+ * 命中区 88rpx 见方（44pt）：它挂在导航栏那一行的末尾，又是图标键，
+ * 拇指过去常常是擦着边按下去的 —— 热区不够大，刷新就按不准。
+ */
 .verdict-bar__refresh {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56rpx;
-  height: 56rpx;
+  width: 88rpx;
+  height: 88rpx;
   flex-shrink: 0;
   margin-left: 16rpx;
   border-radius: 50%;

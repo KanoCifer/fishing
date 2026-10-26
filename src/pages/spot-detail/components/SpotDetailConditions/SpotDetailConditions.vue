@@ -280,7 +280,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
 .conditions__skeleton-value,
 .conditions__skeleton-status {
   background-color: $fish-surface;
-  animation: conditions-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 /* 等级词那一行：与 title2 的行盒同高（22pt × 1.25） */
@@ -340,16 +340,6 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   height: 31rpx;
   margin-top: 14rpx;
   border-radius: $fish-radius-sm;
-}
-
-@keyframes conditions-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 
 /* ── 失败 ──────────────────────────────────────────────────────────────── */

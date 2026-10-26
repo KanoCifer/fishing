@@ -171,15 +171,19 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   font-weight: 600;
 }
 
+/*
+ * 属主名。
+ *
+ * 不截断：这个名字整页只有这一处，截了就再也读不到完整的那几个字。
+ * 长就让它换行 —— 昵称最多二十来个字，两行放得下。
+ */
 .info__owner-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
   color: $fish-ink;
   @include fish-type(subhead);
 
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .info__view {

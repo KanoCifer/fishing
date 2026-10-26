@@ -13,6 +13,7 @@
       <!-- 载入失败 -->
       <view v-else-if="loadFailed" class="spot-form__notice">
         <text class="spot-form__notice-text">{{ loadFailedText }}</text>
+        <text class="spot-form__notice-retry" @tap="reload">{{ reloadText }}</text>
       </view>
 
       <template v-else>
@@ -175,6 +176,7 @@ import {
   SPOT_EDIT_LEDE,
   SPOT_EDIT_LOADING,
   SPOT_EDIT_LOAD_FAILED,
+  SPOT_EDIT_LOAD_FAILED_RETRY,
   SPOT_EDIT_REJECTED_TITLE,
   SPOT_EDIT_SAVE_FAILED,
   SPOT_EDIT_SAVED,
@@ -228,6 +230,7 @@ const submitText = SPOT_EDIT_SUBMIT;
 const submittingText = SPOT_EDIT_SUBMITTING;
 const loadingText = SPOT_EDIT_LOADING;
 const loadFailedText = SPOT_EDIT_LOAD_FAILED;
+const reloadText = SPOT_EDIT_LOAD_FAILED_RETRY;
 const rejectTitle = SPOT_EDIT_REJECTED_TITLE;
 
 /** 导航栏材质层要不要显形 */
@@ -405,6 +408,16 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 重新载入。
+ *
+ * 只补这一次请求，不重置表单状态 —— 失败发生在回填之前，
+ * 这时候表单里还没有用户填的东西，重来一次是最直接的下一步。
+ */
+function reload(): void {
+  void load();
 }
 
 /* ── 选点 ──────────────────────────────────────────────────────────────── */
@@ -604,6 +617,17 @@ onPageShow(async () => {
 .spot-form__notice-text {
   color: $fish-muted;
   @include fish-type(callout);
+}
+
+/* 重试。它是这一屏唯一还能做的事，所以给它一个明确的入口 */
+.spot-form__notice-retry {
+  display: inline-block;
+  margin-top: 24rpx;
+  color: $fish-blue-600;
+  @include fish-type(callout);
+
+  font-weight: 600;
+  @include fish-press-dim;
 }
 
 .spot-form__reject {

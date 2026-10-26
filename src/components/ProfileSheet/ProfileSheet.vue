@@ -257,6 +257,7 @@ const userGlyph = icon('user', 'muted60');
   line-height: 1;
   font-size: inherit;
   color: inherit;
+  @include fish-press-dim;
 
   &::after {
     border: none;
@@ -301,7 +302,7 @@ const userGlyph = icon('user', 'muted60');
   border-radius: $fish-radius-lg;
   background-color: $fish-surface;
   color: $fish-ink;
-  font-size: 34rpx;
+  @include fish-type(body);
 }
 
 /* 已有昵称时的只读展示 */

@@ -123,7 +123,7 @@
         </view>
       </template>
 
-      <text v-else class="verdict__empty">暂无数据</text>
+      <text v-else class="verdict__empty">还没有今天的钓鱼指数</text>
     </view>
 
     <!--
@@ -370,13 +370,17 @@ function onRefresh() {
   @include fish-type(caption2);
 }
 
-/* 刷新键：圆形热区，按下即反馈，不用等抬手 */
+/*
+ * 刷新键：圆形热区，按下即反馈，不用等抬手。
+ *
+ * 命中区 88rpx 见方（44pt）：图标键要盲按，热区不够大就按不准。
+ */
 .verdict__refresh {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64rpx;
-  height: 64rpx;
+  width: 88rpx;
+  height: 88rpx;
   flex-shrink: 0;
   border-radius: 50%;
   @include fish-press-dim;
@@ -384,13 +388,7 @@ function onRefresh() {
 
 /* 刷新中的转圈。用 CSS 旋转而不是图标帧图，少一张静态图 */
 .verdict__refresh--busy .verdict__icon {
-  animation: verdict-spin 1s linear infinite;
-}
-
-@keyframes verdict-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  animation: fish-spin 1s linear infinite;
 }
 
 /*
@@ -438,7 +436,7 @@ function onRefresh() {
 .verdict__skeleton-icon,
 .verdict__skeleton-bar {
   background-color: $fish-surface;
-  animation: verdict-pulse 1.8s ease-in-out infinite;
+  animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .verdict__skeleton-label {
@@ -516,17 +514,6 @@ function onRefresh() {
   width: 28rpx;
   height: 10rpx;
   margin-left: 6rpx;
-}
-
-/* 与 SkeletonCard、HourlyWeather 的同名 keyframes 保持同一档呼吸幅度（0.35） */
-@keyframes verdict-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 
 /* 「今日钓鱼指数」这个名号 */

@@ -648,7 +648,7 @@ function onMaskTap() {
   height: 10rpx;
   margin: 0 auto;
   border-radius: $fish-radius-pill;
-  background-color: $fish-muted-60;
+  background-color: $fish-faint;
 }
 
 .snap-sheet__header {
