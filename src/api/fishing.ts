@@ -61,10 +61,24 @@ export const fishingApi = {
     });
   },
 
-  /** 提交钓鱼反馈 */
+  /**
+   * 提交钓鱼反馈。
+   *
+   * 端点从 Python 的 `v2/fishing/feedback` 切到 Go 的 `v3/fish/records`
+   * （ADR 0013：钓鱼记录迁到 PostgreSQL，写入路径由 Go 接管）。
+   *
+   * 请求体字段名与旧端点**逐字相同**（location_id / location_name / fishing_time /
+   * 气象潮汐 9 项 / feedback），响应体也同形（success / record_id / expert_score /
+   * residual）—— `request()` 剥的是 `{message, data}` 信封，两端剥完都是业务对象，
+   * 所以调用方（FeedbackForm）一行都不用改。
+   *
+   * 有一处行为差异要知道：Python 端解析不了 `fishing_time` 会**静默退回当前时间**，
+   * Go 端直接回 400（"钓鱼时间格式无法解析"）。宁可让调用方看见错误自己修，
+   * 也不要造一条时间错位、没人查得出来的训练样本。
+   */
   submitFeedback(payload: FishingFeedbackPayload): Promise<FishingFeedbackResponse> {
     return request<FishingFeedbackResponse>({
-      url: 'v2/fishing/feedback',
+      url: 'v3/fish/records',
       method: 'POST',
       data: payload as unknown as Record<string, unknown>,
     });
