@@ -66,7 +66,7 @@ import { fishingApi } from '@/api/fishing';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import type { FishingFeedbackLevel, FishingIndexData } from '@/types/fishing';
 import { toErrorMessage } from '@/utils/error';
-import { deriveTideMeta, deriveWindLevel } from '@/utils/feedback';
+import { deriveFishingIndexLevel, deriveTideMeta } from '@/utils/feedback';
 
 import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
@@ -133,7 +133,7 @@ async function submit() {
       pressure: finiteOr(Number(weather?.pressure), 1013),
       wind_speed: finiteOr(Number(weather?.windSpeed), 0),
       precipitation: finiteOr(Number(weather?.precip), 0),
-      indices: deriveWindLevel(weather?.windScale),
+      indices: deriveFishingIndexLevel(mapStore.weatherIndices),
 
       tide_level: tideMeta.level,
       tide_type: tideMeta.type,

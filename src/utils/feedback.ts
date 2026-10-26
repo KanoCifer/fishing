@@ -13,12 +13,29 @@
  * 这里改成直接切字符串求分钟差，不做任何时区换算。
  */
 
-import type { TideData } from '@/types/fishing';
+import type { TideData, WeatherIndex } from '@/types/fishing';
 
-/** 风力等级（1-3）：风速等级除以 3 向上取整再夹到 [1, 3] */
-export function deriveWindLevel(windScale: string | number | undefined): number {
-  const scale = Number(windScale) || 1;
-  return Math.min(3, Math.max(1, Math.ceil(scale / 3)));
+/**
+ * 和风官方钓鱼指数档位（1-3）：适宜=1 / 较适宜=2 / 不宜=3。
+ *
+ * 后端专家公式里的 w9 就是这个档位（`FishingExpertScorer.score_indices`），
+ * 所以这里只能传官方钓鱼指数。早先这里传的是按风力等级推的
+ * `deriveWindLevel` —— 语义错位：后端拿到的 w9 变成了风力等级，
+ * 训练出来的残差模型在 w9 上学到的东西是错的。
+ *
+ * 认条目的口径与后端 `parse_index_level` 一致（name 为「钓鱼指数」或 type=4）。
+ * 兜底与后端有一处**故意不同**：后端认不到官方条目时会退回第一条（可能是
+ * 「穿衣指数」这种别的指数），前端不跟这个口径 —— 拿不到官方钓鱼指数就按
+ * 中性档 2 处理，不拿别的指数冒充钓鱼指数。
+ */
+export function deriveFishingIndexLevel(indices: WeatherIndex[] | null | undefined): number {
+  const entries = indices ?? [];
+  const picked = entries.find((item) => item.name === '钓鱼指数' || item.type === '4');
+  if (!picked) return 2;
+
+  const level = Number(picked.level);
+  if (!Number.isFinite(level)) return 2;
+  return Math.min(3, Math.max(1, Math.round(level)));
 }
 
 export interface TideMeta {
