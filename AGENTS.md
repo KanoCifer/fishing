@@ -49,4 +49,5 @@ WXSS 编译器不认通配选择器 `*` —— 写了 `> *` 的那一份样式�
 | 动代码包：静态图、分包、包体大小；真机引擎与依赖兼容                  | `docs/mp-weixin-package.md`  |
 | 做成就/勋章素材：生图、绿幕抠图、产物体积                            | `docs/mp-weixin-package.md`  |
 | 写原型、读原型的结论与坑位                                            | `docs/prototypes.md`         |
+| 做鱼种识别（拍照识鱼）：后端端点、prompt、白名单、计费                  | `docs/fish-identification.md` |
 | 真机预览、编译、上传发布                                              | `/wechatide-skill`           |
