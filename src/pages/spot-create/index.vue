@@ -244,6 +244,7 @@ import type { SpotDraft } from '@/types/draft';
 import { clearSpotDraft, isSpotDraftEmpty, readSpotDraft, writeSpotDraft } from './draft';
 import { formatShortMoment } from '@/utils/date';
 import { toErrorMessage } from '@/utils/error';
+import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
 
 const mapStore = useFishingMapStore();
@@ -793,6 +794,9 @@ async function submit() {
       },
     });
   } catch (err) {
+    // 提交成功弹的是模态框，确认一直留在屏幕上，不需要再补一次震动；
+    // 失败只有一条一闪而过的 toast，重的一下是为了让人不看屏幕也知道没成
+    haptic('heavy');
     uni.showToast({
       title: toErrorMessage(err, '提交失败，请重试'),
       icon: 'none',

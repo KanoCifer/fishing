@@ -67,6 +67,7 @@ import { useFishingMapStore } from '@/stores/fishingMap';
 import type { FishingFeedbackLevel, FishingIndexData } from '@/types/fishing';
 import { toErrorMessage } from '@/utils/error';
 import { deriveFishingIndexLevel, deriveTideMeta } from '@/utils/feedback';
+import { haptic } from '@/utils/haptics';
 
 import SnapSheet from '../SnapSheet/SnapSheet.vue';
 
@@ -142,11 +143,20 @@ async function submit() {
     });
 
     selected.value = null;
+
+    /*
+     * 结果只以 toast 呈现：两秒后连它一起消失，浮层也关了。
+     * 那一刻屏幕上什么都不剩，给一次震动把「提交成了」这件事留下来。
+     */
+    haptic('medium');
+
     // 带 success 图标的 toast 标题最多显示 7 个汉字，超了会被截成「反馈已提交，感…」
     uni.showToast({ title: '反馈已提交', icon: 'success' });
     emit('success');
     emit('close');
   } catch (err) {
+    // 失败与成功必须能盲听区分：失败是重的一下
+    haptic('heavy');
     uni.showToast({
       title: toErrorMessage(err, '提交反馈失败，请重试'),
       icon: 'none',

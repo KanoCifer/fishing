@@ -211,6 +211,7 @@ import {
   type UpdateFishingSpotPayload,
 } from '@/types/fishing';
 import { toErrorMessage } from '@/utils/error';
+import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
 
 const mapStore = useFishingMapStore();
@@ -568,6 +569,8 @@ async function submit() {
       },
     });
   } catch (err) {
+    // 保存成功弹模态框，确认留在屏幕上；失败才需要一条不看屏幕也知道的信号
+    haptic('heavy');
     uni.showToast({
       title: toErrorMessage(err, SPOT_EDIT_SAVE_FAILED),
       icon: 'none',

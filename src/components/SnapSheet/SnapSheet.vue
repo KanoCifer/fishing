@@ -103,6 +103,7 @@ import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from 
 
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
@@ -467,6 +468,21 @@ function onTouchMove(e: TouchEvent) {
   lastMoveTime = Date.now();
 }
 
+/**
+ * 换档。档位真的变了才给一次轻震。
+ *
+ * 震的是「面板落到新的一档」这个物理结果：手已经离开屏幕，
+ * 这一下只靠眼睛盯高度变化容易读漏。
+ *
+ * 档位没变不震（拖到顶又弹回原档）—— 那是回弹，不是落位。
+ */
+function moveSnapTo(index: number): void {
+  const next = Math.min(props.snapPoints.length - 1, Math.max(0, index));
+  if (next === snap.value) return;
+  snap.value = next;
+  haptic('light');
+}
+
 function onTouchEnd() {
   if (!dragging.value) return;
   dragging.value = false;
@@ -481,14 +497,14 @@ function onTouchEnd() {
       emit('close');
       return;
     }
-    snap.value = Math.max(0, snap.value - 1);
+    moveSnapTo(snap.value - 1);
     return;
   }
 
   if (delta > DRAG_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
     // 内容定高的浮层没有下一档，往上拖无处可去
     if (props.fitContent) return;
-    snap.value = Math.min(props.snapPoints.length - 1, snap.value + 1);
+    moveSnapTo(snap.value + 1);
     return;
   }
 

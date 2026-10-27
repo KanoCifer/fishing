@@ -191,6 +191,21 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 （`errMsg` 为 `fail cancel`），那不是失败，直接放过；其余失败（参数非法等）
 至少要把「事情已经成了」用 toast 说出来。
 
+## 触觉
+
+`uni.vibrateShort` 在小程序端可用，**`type` 参数（`heavy` / `medium` / `light`）是微信必填的**。
+
+但 uni 的类型声明里没有它 —— `UniNamespace.VibrateShortOptions` 只声明了 `success` / `fail` / `complete`。
+运行时是通的：`@dcloudio/uni-mp-weixin` 的 `initUni` 对没有特例的接口直接落到 `wx` 上，
+`options` 整个透传，`type` 也就跟着过去了。所以类型缺口自己补，别改 `shims-uni.d.ts`。
+
+三个坑：
+
+- **传 `fail` 回调**，让 uni 走回调模式而不是包成 Promise —— 震不了的设备上接口是失败的，
+  没有 catch 的 Promise 失败会变成一条未捕获的拒绝，真机日志里平白多一条红字。
+- **开发者工具的模拟器不出震**，验不出手感，要走真机预览（见 `/wechatide-skill`）。
+- **连着触发会叠成一段长震**，读起来像卡了一下 —— 间隔控制在 `src/utils/haptics.ts` 里。
+
 ## canvas
 
 - **小程序端没有内联 SVG —— WXML 不认 `<svg>` 标签。** 想画环、画路径、画图表，一律走 canvas 2d。

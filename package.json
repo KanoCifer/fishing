@@ -5,7 +5,7 @@
   "license": "GPL-3.0-only",
   "scripts": {
     "dev": "uni -p mp-weixin",
-    "build": "uni build -p mp-weixin && node scripts/clean-dist.mjs && node scripts/check-mp-compat.mjs",
+    "build": "uni build -p mp-weixin",
     "check:compat": "node scripts/check-mp-compat.mjs",
     "assets": "python3 scripts/optimize-assets.py",
     "type-check": "vue-tsc --noEmit",

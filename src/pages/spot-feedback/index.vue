@@ -84,6 +84,7 @@ import {
 import { useSessionStore } from '@/stores/session';
 import { fishingSpotFeeLabel, type FishingSpot, type FishingSpotFeedbackPayload } from '@/types/fishing';
 import { toErrorMessage } from '@/utils/error';
+import { haptic } from '@/utils/haptics';
 
 const session = useSessionStore();
 
@@ -223,10 +224,13 @@ async function onSubmit(payload: FishingSpotFeedbackPayload): Promise<void> {
      * 不弹窗、不给「查看我的反馈」的入口 —— 反馈不公开，
      * 提交者看不到状态，也没有地方能看到状态。
      */
+    // 确认只靠一条两秒的 toast，两秒后页面就退回去了 —— 震一下把结果留下来
+    haptic('medium');
     uni.showToast({ title: SPOT_FEEDBACK_SUBMITTED, icon: 'none', duration: 2000 });
     setTimeout(goBack, NAVIGATE_DELAY_MS);
   } catch (err) {
     submitting.value = false;
+    haptic('heavy');
     uni.showToast({ title: errorCopy(err), icon: 'none' });
   }
 }
