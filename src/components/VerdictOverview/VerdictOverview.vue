@@ -142,7 +142,7 @@
 
         <view class="verdict__link" @tap="emit('analysis')">
           <image class="verdict__icon verdict__icon--accent" :src="sparklesIcon" mode="widthFix" />
-          <text class="verdict__link-text">AI 建议</text>
+          <text class="verdict__link-text">渔碌建议</text>
         </view>
       </view>
 

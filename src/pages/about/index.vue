@@ -71,7 +71,7 @@
  * 「我要把这个 App 分享出去」「我有话要说」不是这一页要答的事。
  */
 import { ref } from 'vue';
-import { onPageScroll } from '@dcloudio/uni-app';
+import { onLoad, onPageScroll } from '@dcloudio/uni-app';
 
 import AboutDoc from './components/AboutDoc/AboutDoc.vue';
 import AboutHeader from './components/AboutHeader/AboutHeader.vue';
@@ -175,6 +175,17 @@ async function openOfficialPrivacy(entry: PrivacyContractEntry) {
 function closeDoc() {
   docOpen.value = false;
 }
+
+onLoad((options) => {
+  const key = options?.doc;
+  if (!key) return;
+
+  const entry = entryByKey.get(String(key));
+  if (!entry || entry.kind !== 'doc') return;
+
+  activeDoc.value = entry;
+  docOpen.value = true;
+});
 </script>
 
 <style lang="scss" scoped>

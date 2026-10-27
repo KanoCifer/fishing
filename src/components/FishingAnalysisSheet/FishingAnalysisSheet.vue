@@ -3,7 +3,7 @@
     <template #header>
       <view class="analysis__head">
         <image class="analysis__head-icon" :src="sparklesIcon" mode="widthFix" />
-        <text class="analysis__title">AI 建议</text>
+        <text class="analysis__title">渔碌建议</text>
       </view>
     </template>
 
@@ -208,7 +208,7 @@ const chevronIcon = computed(() => (reasoningOpen.value ? chevronDownIcon : chev
  * 动作由按钮说（生成建议 / 停止 / 重新生成），状态再单独列一遍就是重复。
  */
 const chipLabel = computed(() => {
-  if (errorMessage.value) return '生成失败';
+  if (errorMessage.value) return '获取失败';
   if (isStreaming.value) return loadingHint.value;
   return '思考过程';
 });
@@ -216,8 +216,8 @@ const chipLabel = computed(() => {
 /** 按钮文案。空闲与出错是同一件事：还没拿到结果，按钮就是让它发生 */
 const actionLabel = computed(() => {
   if (isStreaming.value) return '停止';
-  if (hasGenerated.value) return '重新生成';
-  return '生成建议';
+  if (hasGenerated.value) return '重新获取';
+  return '获取建议';
 });
 
 /** 有没有足够的数据能给出建议 */

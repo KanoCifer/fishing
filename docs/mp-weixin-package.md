@@ -15,7 +15,7 @@
 | ------------------- | -------- |
 | `pages/about`       | 关于     |
 | `pages/my-spots`    | 我的钓点 |
-| `pages/spot-create` | 新建钓点 |
+| `pages/spot-create` | 钓点投稿 |
 | `pages/spot-detail` | 钓点详情 |
 | `pages/spot-edit`   | 编辑钓点 |
 

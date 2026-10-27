@@ -123,9 +123,9 @@ const emit = defineEmits<{
   /** 底图的两个开关都变了。想把选择持久化的页面听这个就够 */
   'base-map-change': [payload: BaseMapState];
   /**
-   * 点了「新建」。
+   * 点了「投稿」。
    *
-   * 只抛事件，不自己跳页：组件不知道「新建钓点」是什么、也不知道该带什么参数，
+   * 只抛事件，不自己跳页：组件不知道「钓点投稿」是什么、也不知道该带什么参数，
    * 那是业务，交给宿主页去导航。
    */
   create: [];
@@ -184,10 +184,10 @@ const satelliteIcon = computed(() => icon('earth', satellite.value ? 'blue' : 'm
 const trafficIcon = computed(() => icon('road', traffic.value ? 'blue' : 'muted'));
 
 /**
- * 新建键上的加号。
+ * 投稿键上的加号。
  *
  * 用 ink 而不是品牌蓝：蓝色在这条工具条里已经被「开关打开」占用了
- * （卫星 / 路况打开时图标染蓝），新建键要是也是蓝的，就分不清
+ * （卫星 / 路况打开时图标染蓝），投稿键要是也是蓝的，就分不清
  * 「这一层开着」和「这是一个动作」。
  *
  * 也不套实心圆：一枚实心的蓝块压在一列细键中间，它就成了整条工具条
@@ -237,9 +237,9 @@ function setBaseMap(next: BaseMapState) {
 }
 
 /**
- * 新建键。
+ * 投稿键。
  *
- * 只抛事件：组件不知道「新建钓点」是什么、也不知道该跳去哪一页，
+ * 只抛事件：组件不知道「钓点投稿」是什么、也不知道该跳去哪一页，
  * 那是业务，交给宿主页去导航（见钓点页的 openCreate）。
  */
 function emitCreate() {
@@ -446,18 +446,12 @@ onMounted(() => {
   box-shadow: $smooth-shadow-md;
 }
 
-/*
- * 工具条按键。
- *
- * 命中区 88rpx 见方（44pt，iOS 判定为可放心点按的最小尺寸），
- * 图标 36rpx 居中 —— 这一列压在地图上，手指是盲按的，点不准最要命。
- */
 .toolbar__btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 88rpx;
-  height: 88rpx;
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 18rpx;
 
   /*

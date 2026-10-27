@@ -178,7 +178,7 @@ function coverSrc(spot: FishingSpot): string {
   return first ? mediaUrl(first) : '';
 }
 
-/** 去新建钓点 */
+/** 去投稿钓点 */
 function openCreate() {
   uni.navigateTo({ url: '/pages/spot-create/index' });
 }

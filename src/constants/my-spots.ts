@@ -49,8 +49,13 @@ export const MY_SPOTS_EMPTY = {
   hint: '在地图上找到好地方，就把它记下来',
 } as const;
 
-/** 空态里那个按钮 */
-export const MY_SPOTS_EMPTY_ACTION = '去新建钓点';
+/**
+ * 空态里那个按钮。
+ *
+ * 写「去投稿」而不是「去新建钓点」：跳过去的那一页叫「钓点投稿」，
+ * 按钮说的话得跟目标页对得上。
+ */
+export const MY_SPOTS_EMPTY_ACTION = '去投稿';
 
 /**
  * 没登录时的那一段。

@@ -352,7 +352,7 @@ function ensureFreshSession(): Promise<boolean> {
  * 只重试一次 —— 刷新之后还是 401，说明这枚会话真的不行了，
  * 再重试只是把同一个错误抛三遍。
  *
- * 写操作（新建钓点、上传图片）都要走这里：access token 是最容易过期的一枚，
+ * 写操作（投稿钓点、上传图片）都要走这里：access token 是最容易过期的一枚，
  * 裸调 request 的话一次过期就变成用户眼前的失败。
  */
 export async function withSession<T>(fn: () => Promise<T>): Promise<T> {

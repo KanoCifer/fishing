@@ -1,9 +1,9 @@
 /**
- * 钓点表单模型 —— 新建与编辑两页共用的那份表单状态。
+ * 钓点表单模型 —— 投稿与编辑两页共用的那份表单状态。
  *
  * 为什么单独一个类型：这两页填的是同一张表（同一批字段、同一套校验），
  * 草稿、提交载荷、回填都从它出发。模型一旦分成两份，
- * 「新建能填的字段编辑页填不了」这类问题要等用户撞上才发现。
+ * 「投稿能填的字段编辑页填不了」这类问题要等用户撞上才发现。
  *
  * 字段名跟着表单走（name / kind / suitableFor…），不跟后端 DTO 走：
  * 翻译成 DTO 是提交那一刻的事（见 utils/spot-update 与 pages/spot-create）。
@@ -58,7 +58,7 @@ export interface SpotFormModel {
  * 一份空表单。
  *
  * 三个枚举字段的默认值就是「还没选」—— 与后端的 unknown 同义，
- * 新建和回填都用得上。
+ * 投稿和回填都用得上。
  */
 export function createEmptySpotForm(): SpotFormModel {
   return {

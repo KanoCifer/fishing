@@ -89,7 +89,7 @@ const ICONS = [
   // —— 分享浮层 ——
   { name: 'x', color: 'muted60', use: '分享浮层的关闭按钮' },
   // —— 钓点页 ——
-  { name: 'plus', color: 'ink', use: '地图工具条上的新建钓点键' },
+  { name: 'plus', color: 'ink', use: '地图工具条上的投稿键' },
   // —— 钓点照片选择器 ——
   { name: 'plus', color: 'muted', use: '照片选择器的添加格子' },
   { name: 'x', color: 'onAccent', use: '照片缩略图上的删除角标' },

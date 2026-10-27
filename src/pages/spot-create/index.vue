@@ -12,11 +12,12 @@
         </view>
         <text class="spot-form__draft-discard" @tap="confirmDiscardDraft">{{ draftCopy.discard }}</text>
       </view>
+      <!--
+        顶部标注：这条内容提交后要过审。
 
-      <!-- 引子：这一页要干什么，一句话 -->
-      <view class="spot-form__lede spot-form__enter" :style="{ animationDelay: enterDelay(1) }">
-        <text class="spot-form__title">{{ lede.title }}</text>
-      </view>
+        排在必填组之前 —— 它是这一页的前提条件，不是又一组要填的东西。
+      -->
+      <SpotPublishNotice mode="banner" class="spot-form__enter" :style="{ animationDelay: enterDelay(2) }" />
 
       <!--
         必填。
@@ -24,12 +25,12 @@
         名字可以想，描述可以想，坐标只能选。
       -->
       <view class="sect">
-        <view class="sect__head" :style="{ animationDelay: enterDelay(2) }">
+        <view class="sect__head" :style="{ animationDelay: enterDelay(3) }">
           <text class="sect__title">{{ groups.required }}</text>
           <text class="sect__badge" :class="{ 'sect__badge--done': !missingCount }">{{ missingBadge }}</text>
         </view>
 
-        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(2) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(3) }">
           <FormRow
             :label="fields.location.label"
             required
@@ -63,12 +64,12 @@
 
       <!-- 说说这里 -->
       <view class="sect">
-        <view class="sect__head" :style="{ animationDelay: enterDelay(3) }">
+        <view class="sect__head" :style="{ animationDelay: enterDelay(4) }">
           <text class="sect__title">{{ groups.about }}</text>
           <text class="sect__meta">{{ groups.optional }}</text>
         </view>
 
-        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(3) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(4) }">
           <FormField :label="fields.description.label">
             <textarea
               v-model="description"
@@ -102,12 +103,12 @@
 
       <!-- 怎么去 -->
       <view class="sect">
-        <view class="sect__head" :style="{ animationDelay: enterDelay(4) }">
+        <view class="sect__head" :style="{ animationDelay: enterDelay(5) }">
           <text class="sect__title">{{ groups.reach }}</text>
           <text class="sect__meta">{{ groups.optional }}</text>
         </view>
 
-        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(4) }">
+        <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(5) }">
           <FormField :label="fields.fee.label">
             <ChoiceChips :options="feeOptions" :selected="feeType" @change="onFeeChange" />
           </FormField>
@@ -143,6 +144,16 @@
           </FormRow>
         </view>
       </view>
+
+      <!--
+        末尾声明。放在提交条正上方 —— 用户滚到底正要按「提交审核」，
+        这几句话就在他眼前。
+      -->
+      <SpotPublishNotice
+        class="spot-form__enter"
+        :style="{ animationDelay: enterDelay(6) }"
+        @open-doc="openPublishDoc"
+      />
     </view>
 
     <!--
@@ -171,7 +182,7 @@
 
 <script setup lang="ts">
 /**
- * 新建钓点页 —— 提交一份新的钓点。
+ * 钓点投稿页 —— 提交一份新的钓点。
  *
  * 表单攒出一份 `CreateFishingSpotPayload` 交给 store 的 createSpot，
  * 页面只管收集用户意图、把状态翻译给组件、把结果讲给用户听。
@@ -193,6 +204,7 @@ import FormRow from '@/components/FormRow/FormRow.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';
 import SpotImagePicker from '@/components/SpotImagePicker/SpotImagePicker.vue';
+import SpotPublishNotice from '@/components/SpotPublishNotice/SpotPublishNotice.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import {
@@ -214,6 +226,7 @@ import {
   SPOT_PHOTO_UPLOADING_BLOCK,
   SPOT_SUITABLE_OPTIONS,
 } from '@/constants/spot-form';
+import { SPOT_PUBLISH_CONFIRM, SPOT_PUBLISH_REPORT_DOC } from '@/constants/spot-publish';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import {
@@ -249,6 +262,7 @@ const groups = SPOT_FORM_GROUPS;
 const draftCopy = SPOT_CREATE_DRAFT;
 const submitText = SPOT_CREATE_SUBMIT;
 const submittingText = SPOT_CREATE_SUBMITTING;
+const publishConfirm = SPOT_PUBLISH_CONFIRM;
 
 /** 导航栏材质层要不要显形：内容滚到它底下了才要 */
 const scrolled = ref(false);
@@ -646,6 +660,43 @@ function parsedFeeAmount(): number | null {
 }
 
 /**
+ * 打开《内容审核与举报说明》。
+ *
+ * 规范全文在关于页那个分包里 —— 分包之间不能互相引用资源，
+ * 所以这里不是引组件，而是跳过去，并把文档的 key 带上，
+ * 让关于页一进去就把那一篇展开（见关于页的 onLoad）。
+ */
+function openPublishDoc(): void {
+  uni.navigateTo({
+    url: `/pages/about/index?doc=${encodeURIComponent(SPOT_PUBLISH_REPORT_DOC.key)}`,
+  });
+}
+
+/**
+ * 提交前的确认弹窗。
+ *
+ * 这一页填的是要**公开给别人看**的东西，而「提交审核」这个按钮
+ * 和别的按钮长得一样。弹一次窗，是让用户在动手之前知道后果：
+ * 提交后它会进入待审核，通过后会出现在公开地图上，还可能被别的钓友转发。
+ *
+ * 确认了才往下走；用户点了取消，什么都不发生（不发请求、不清草稿）。
+ */
+function confirmPublish(): Promise<boolean> {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title: publishConfirm.title,
+      content: publishConfirm.content,
+      confirmText: publishConfirm.confirm,
+      cancelText: publishConfirm.cancel,
+      success: (res) => resolve(res.confirm),
+      // 弹不出来（参数非法之类）就当没确认 —— 宁可让用户再按一次提交，
+      // 也不能在他没看见后果的情况下把内容发出去
+      fail: () => resolve(false),
+    });
+  });
+}
+
+/**
  * 提交。
  *
  * 登录是后端的要求（未登录直接 401），而 `wx.login` 是静默的 ——
@@ -678,6 +729,9 @@ async function submit() {
   const picked = location.value;
   const pickedKind = kind.value;
   if (!picked || !pickedKind) return;
+
+  // 确认在登录之前：用户不该为了看一句确认，先被静默登录一次
+  if (!(await confirmPublish())) return;
 
   submitting.value = true;
 
