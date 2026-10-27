@@ -30,7 +30,7 @@
 
       <view class="toolbar__divider" />
 
-      <view class="toolbar__btn" @tap="emitCreate">
+      <view v-if="loggedIn" class="toolbar__btn" @tap="emitCreate">
         <image class="toolbar__btn-icon" :src="createIcon" mode="aspectFit" />
       </view>
 
@@ -87,6 +87,17 @@ const props = withDefaults(
     traffic?: boolean;
 
     interactive?: boolean;
+
+    /**
+     * 是否已登录。
+     *
+     * 未登录时不渲染「投稿」键 —— 投稿要写九栏内容，
+     * 让一个连身份都没有的人先填完再登录，等于让他白填一遍。
+     *
+     * 由宿主页传入：这个组件不该自己去读 session store，
+     * 「能不能投稿」是页面的业务判断。
+     */
+    loggedIn?: boolean;
   }>(),
   {
     latitude: 30.2741,
@@ -98,6 +109,7 @@ const props = withDefaults(
     satellite: false,
     traffic: true,
     interactive: true,
+    loggedIn: false,
   },
 );
 
@@ -154,7 +166,7 @@ const locating = computed(() => mapStore.locating);
 /**
  * 定位失败 / 权限被拒。
  *
- * 两处用：给定位键染红，以及让 recenter 走授权补救那条路（见那个函数）。
+ * 两处用：给定位键换图标，以及让 recenter 走授权补救那条路（见那个函数）。
  *
  * 之所以要分成两个状态：被拒答的是「用户明确拒绝了，去设置页才有用」，
  * 失败答的是「这次没成，再试一次可能就成了」。两者的下一步完全不同。
@@ -162,7 +174,7 @@ const locating = computed(() => mapStore.locating);
 const permissionDenied = computed(() => mapStore.locationDenied);
 
 /**
- * 定位键当前该不该报警。
+ * 定位键当前该不该换成「定位已关」的图标。
  *
  * 被拒和其他失败都算「按了没用」，图标上一视同仁；
  * 差别在点击之后走哪条路 —— 被拒去设置页，其他直接重试。
@@ -198,10 +210,15 @@ const createIcon = icon('plus', 'ink');
 /**
  * 定位键图标。
  *
- * 定位失败就染红而不是压灰：压灰和「定位中」撞在一起，分不出是暂时在忙还是
- * 根本定位不了，而这两件事用户该做的下一步完全不同（等一下 vs 去设置页开权限）。
+ * 常态用箭头（navigation）：这一键的动作是「回到我的位置」，箭头比准星更贴切 ——
+ * 准星说的是「你在这儿」，箭头说的是「朝这儿去」。
+ *
+ * 定位失败换成划掉的图钉（map-pin-off）并压灰，不染红：
+ * 「定位用不了」是状态，不是错误 —— 这一列里染红读起来像出了什么岔子，
+ * 而用户能做的下一步（重试 / 去设置页开权限）跟「红色警告」不是一回事。
+ * 两个图形的差别本身已经说清了「有没有定位」，不必再靠颜色喊一遍。
  */
-const locateIcon = computed(() => (locateFailed.value ? icon('crosshair', 'destructive') : icon('crosshair', 'ink')));
+const locateIcon = computed(() => (locateFailed.value ? icon('map-pin-off', 'muted') : icon('navigation', 'ink')));
 
 /**
  * 卫星开关。
@@ -307,7 +324,7 @@ async function locate(force = false): Promise<void> {
  *
  * 用户拒绝授权后小程序**不会再次弹权限窗**，唯一能重来的路径就是设置页。
  * openSetting 返回时会带上用户在设置里做的选择：开了就重新定位，
- * 没开就把定位键继续留在染红状态，别让它看起来"点了没反应"。
+ * 没开就把定位键继续留在「定位不可用」状态，别让它看起来"点了没反应"。
  */
 function openLocationSetting() {
   uni.openSetting({

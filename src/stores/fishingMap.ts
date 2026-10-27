@@ -111,7 +111,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   /**
    * 最近一次定位失败的说明。空串 = 没有失败。
    *
-   * 定位键据此染红：按了没反应这件事必须看得见，
+   * 定位键据此换成「定位已关」的图标：按了没反应这件事必须看得见，
    * 否则用户既不知道出了什么事，也不知道该重试还是该去设置。
    */
   const locationError = ref('');
@@ -260,10 +260,10 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
             locationDenied.value = denied;
             if (denied) {
-              // 被拒不是「出错」，是用户做了决定。图标染红，但别拿一句报错去打扰他
+              // 被拒不是「出错」，是用户做了决定。图标换掉，但别拿一句报错去打扰他
               locationError.value = '';
             } else {
-              // 保留上一次的坐标，靠图标染红告诉用户「定位键按了没用」
+              // 保留上一次的坐标，靠图标换掉告诉用户「定位键按了没用」
               locationError.value = describeLocationError(errMsg);
               notifyError(locationError.value);
             }
@@ -283,7 +283,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   /**
    * 标记定位不可用。
    *
-   * 设置页里没开权限时用 —— 这时用户已经明确表态了，定位键就该一直留在染红状态，
+   * 设置页里没开权限时用 —— 这时用户已经明确表态了，定位键就该一直留在「定位不可用」状态，
    * 别让它看起来「点了没反应」。
    */
   function markLocationDenied(): void {

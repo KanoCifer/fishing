@@ -1,11 +1,4 @@
 <template>
-  <!--
-    我的钓点 —— 我提交的那些，现在怎么样了。
-
-    这一页存在的理由很简单：公开列表只放已过审的钓点，
-    用户刚提交的那条还在待审核，地图上根本看不见。
-    没有这一页，提交完就等于消失。
-  -->
   <view class="my-spots" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 

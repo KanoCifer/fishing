@@ -56,8 +56,11 @@ const ICONS = [
   { name: 'earth', color: 'blue', use: '卫星底图键（开）' },
   { name: 'road', color: 'muted', use: '路况键（关）' },
   { name: 'road', color: 'blue', use: '路况键（开）' },
-  { name: 'crosshair', color: 'ink', use: '地图定位' },
-  { name: 'crosshair', color: 'destructive', use: '定位权限未开时的定位键' },
+  // 定位键：常态用箭头（navigation），失败态换成「定位已关」的图钉（map-pin-off）压灰。
+  // 两个图形的差别就是「有没有定位」本身，不用红色报警 —— 这一列里红色还担着
+  // 别的含义，染红了反而读不出到底是在说定位还是在说别的错。
+  { name: 'navigation', color: 'ink', use: '地图定位（常态）' },
+  { name: 'map-pin-off', color: 'muted', use: '定位键（定位失败或权限未开）' },
   // —— 我的页 ——
   { name: 'chevron-right', color: 'muted60', use: '条目右侧的展开箭头' },
   { name: 'user', color: 'muted60', use: '未登录时的头像占位' },

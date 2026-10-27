@@ -9,6 +9,7 @@
         :top-inset="nav.navBarBottom"
         @markerTap="onMarkerTap"
         @create="openCreate"
+        :logged-in="session.loggedIn"
       />
     </view>
   </view>
@@ -26,9 +27,11 @@ import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
+import { useSessionStore } from '@/stores/session';
 
 const nav = useNavMetrics();
 const mapStore = useFishingMapStore();
+const session = useSessionStore();
 
 /** 可用窗口高度（px）。地图铺满的高度就是它，理由见 useViewport */
 const { windowHeight } = useViewport();
@@ -89,6 +92,20 @@ function openCreate() {
 onReady(() => {
   setTimeout(() => {
     void mapStore.fetchSpots();
+
+    /*
+     * 恢复会话。
+     *
+     * 这一页是 tabBar 首页，冷启动就落在这儿 —— 而工具条上的「投稿」键
+     * 取决于有没有登录。不恢复就判断不出来：用户明明是登录着的，
+     * 却因为进程重启没了内存里的用户，就看不到投稿入口了。
+     *
+     * 跟取钓点放在同一个宏任务里：这一页是启动落点，
+     * 启动阶段不能有请求（见 docs/mp-weixin-network.md）。
+     *
+     * 没登录不会白发请求 —— restore() 读到本地没有 token 就直接返回。
+     */
+    void session.restore();
   }, 0);
 });
 </script>
