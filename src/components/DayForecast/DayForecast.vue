@@ -163,7 +163,19 @@ const emptyText = computed(() => {
    * 卡就比它那一半宽还宽 8rpx，两张卡并排会顶出页面。
    */
   box-sizing: border-box;
-  height: 345rpx;
+
+  /*
+   * 高度是下限，不是定值。
+   *
+   * 定值配 overflow: hidden：预报多出几天时（接口哪天回几天是它的事，
+   * 标题也跟着写「未来 N 天」），多出来的行会被裁掉半截 ——
+   * 页面上看不出是内容被切了，只觉得这张卡矮了一截。
+   *
+   * height: 100% 是「跟左边那张一样高」：并排的两张卡下沿要齐，
+   * 高度由外层那一行拉伸给出（见令牌层 _layout 的 .sect__row）。
+   */
+  min-height: 345rpx;
+  height: 100%;
   padding: 28rpx 28rpx 24rpx;
   overflow: hidden;
   border-radius: $fish-radius-mid;

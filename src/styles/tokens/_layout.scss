@@ -83,7 +83,7 @@
    */
   .sect__row {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     @include fish-enter;
   }
 

@@ -14,69 +14,83 @@
       />
 
       <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
+      <!--
+        指数：两个来源对「今天能不能钓」的判断，紧跟结论放在一处。
+
+        本站指数的构成（九项子特征各占多少）接在结论后面：结论给的是分，
+        构成回答的是「为什么是这个分」—— 这两件事隔着一屏远就断了。
+
+        官方指数跟在构成下面：两个来源并排放，不一致的时候才看得出差别
+        （两个信号打架恰恰是用户最该知道的时刻）。
+
+        这一组不配眉标：两张卡的标题自己就说清了是什么，
+        眉标在这里只是把「指数」两个字再说一遍。
+      -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
-
-        <!--
-          当前天气与多日预报并排，各占一半宽 —— 两张方卡，一屏里一眼看到
-          「现在」和「接下来三天」。
-
-          两张卡都在同一个 view 里做入场动画：自定义组件的**宿主节点**
-          不吃动画（见 docs/mp-weixin-platform.md），动画挂在外层这个普通 view 上。
-        -->
-        <view class="sect__row" :style="enterStyle(0, showAnim)">
-          <view class="sect__half">
-            <CurrentWeather />
-          </view>
-          <view class="sect__half">
-            <DayForecast />
-          </view>
+        <view class="sect__card" :style="enterStyle(0, showAnim)">
+          <FeatureBreakdown />
         </view>
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <LifeIndexCard />
         </view>
+      </view>
+
+      <!--
+        天气：现在什么样，接下来怎么走。
+
+        当前天气与多日预报并排，各占一半宽 —— 两张方卡，一屏里一眼看到
+        「现在」和「接下来三天」。
+
+        动画挂在外面这个普通 view 上：自定义组件的**宿主节点**不吃动画
+        （见 docs/mp-weixin-platform.md）。
+
+        逐时预报在前、指标曲线在后：前者往右滑着扫一眼就够，
+        后者要挑指标、要点曲线 —— 这一组里唯一要动手的，动手的东西放最后。
+      -->
+      <view class="sect">
+        <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
+
+        <view class="sect__row" :style="enterStyle(0, showAnim)">
+          <CurrentWeather class="sect__half" />
+          <DayForecast class="sect__half" />
+        </view>
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
+          <HourlyWeather />
+        </view>
         <view class="sect__card" :style="enterStyle(2, showAnim)">
           <MetricChart />
-        </view>
-        <view class="sect__card" :style="enterStyle(3, showAnim)">
-          <HourlyWeather />
         </view>
       </view>
 
       <!--
-        日照与月相单独一段：它和上面的天气读数不是一回事 ——
-        上面说的是「现在是什么样」，这里说的是「一天里什么时候能下水」。
-        钓鱼是跟日照过不去的活，这一段给的是决定出钓时间的那几个数。
+        出钓时机：一天里什么时候能下水、什么时候能收竿。
+
+        日照与月相说的是天什么时候亮、什么时候暗，潮汐说的是水什么时候动 ——
+        两张卡回答的是同一个问题，所以放在同一组：钓鱼是跟日照过不去的活，
+        这一组给的是决定出钓时间的那几个数。
+
+        眉标留着：两张卡的标题是各自的题目（日照与月相 / 潮汐预报），
+        「出钓时机」说的是这两张卡合起来回答什么 —— 卡片标题替不了这一层。
       -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">日照与月相</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">出钓时机</text>
 
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <AstroCard />
         </view>
-      </view>
-
-      <!-- 潮汐：港口和日期可切，和天气分开是因为它换的是港口不是指标 -->
-      <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">潮汐</text>
-
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
+        <view class="sect__card" :style="enterStyle(2, showAnim)">
           <TideCard />
         </view>
       </view>
 
-      <!-- 指数构成：九项子特征各自贡献多少 -->
-      <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">指数构成</text>
+      <!--
+        实测读数：实况的逐项读数。
 
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
-          <FeatureBreakdown />
-        </view>
-      </view>
-
-      <!-- 天气详情：实况的逐项读数 -->
+        这一组只有一张卡，而且卡片自己不带标题 —— 组名得留着，
+        否则这一段就成了没有名字的一段。
+      -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">天气详情</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">实测读数</text>
 
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <WeatherCard />

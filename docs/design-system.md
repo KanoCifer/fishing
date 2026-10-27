@@ -557,8 +557,13 @@ WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 A
 <view class="sect">
   <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
 
-  <LifeIndexCard class="sect__card" :style="{ animationDelay: enterDelay(0) }" />
-  <MetricChart class="sect__card" :style="{ animationDelay: enterDelay(1) }" />
+  <!-- 动画挂在外层这个普通 view 上：组件标签（宿主节点）不吃动画 -->
+  <view class="sect__card" :style="{ animationDelay: enterDelay(0) }">
+    <HourlyWeather />
+  </view>
+  <view class="sect__card" :style="{ animationDelay: enterDelay(1) }">
+    <MetricChart />
+  </view>
 </view>
 ```
 
@@ -573,6 +578,10 @@ WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 A
 分区用 flex 列而不是块级流：块级流会做外边距合并，两层留白叠在一起时算出来的数不是写下的那个数。
 
 **分区间距由页面给，组件不再自带 margin-top。** 区块之间怎么分开是页面的版式决定，不是各组件自己的事。
+
+**眉标只在「组里有好几张卡，且组名不显然」时才出现。** 卡片自己带标题的时候，眉标只是把卡片标题又说一遍 —— 卡片不带标题的时候（天气详情那张读数表）眉标必须留着，否则那一段就没有名字。
+
+**同段内并排的两张半宽卡共用一个高度。** 左边那张的地点名多换一行，右边就矮一截，一对卡看着像两张各说各话的卡。所以那一行用 stretch 拉伸，两张卡自己 `height: 100%` 填满拉出来的高度（见令牌层 `_layout.scss` 的 `.sect__row`）。
 
 ### 落款
 

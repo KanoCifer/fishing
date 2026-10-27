@@ -148,7 +148,7 @@
 
       <view class="verdict__hint" :style="enterStyle(5, showAnim)">
         <image class="verdict__hint-icon" :src="chevronDownIcon" mode="widthFix" />
-        <text class="verdict__hint-text">往下看天气详情</text>
+        <text class="verdict__hint-text">往下看完整数据</text>
       </view>
     </view>
   </view>

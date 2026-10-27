@@ -163,6 +163,15 @@ const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到
    * 给下限：内容装得下就是 345rpx，装不下就长一截。
    */
   min-height: 345rpx;
+
+  /*
+   * 100% 是「跟右边那张一样高」。
+   *
+   * 并排的两张卡下沿要齐：外层那一行把两张卡拉一样高
+   * （见令牌层 _layout 的 .sect__row），卡自己填满拉出来的高度。
+   * 外层高度解不出来时它退回内容高度，min-height 兜着，两边都不会塌。
+   */
+  height: 100%;
   padding: 28rpx 28rpx 24rpx;
   overflow: hidden;
   border-radius: $fish-radius-mid;
