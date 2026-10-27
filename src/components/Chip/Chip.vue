@@ -1,15 +1,17 @@
 <template>
   <!-- 标签 —— 静态标记，不是可选中的 chip。  -->
-  <text class="chip" :class="`chip--${tone}`"><slot /></text>
+  <text class="chip" :class="[`chip--${tone}`, { 'chip--pill': pill }]"><slot /></text>
 </template>
 
 <script setup lang="ts">
 withDefaults(
   defineProps<{
     tone?: 'default' | 'accent' | 'ok' | 'warn' | 'bad';
+    pill?: boolean;
   }>(),
   {
     tone: 'default',
+    pill: false,
   },
 );
 </script>
@@ -26,6 +28,11 @@ withDefaults(
   @include fish-type(caption);
 
   white-space: nowrap;
+}
+
+/* 胶囊：圆角收到高度的一半 */
+.chip--pill {
+  border-radius: $fish-radius-pill;
 }
 
 .chip--accent {
