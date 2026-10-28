@@ -27,6 +27,8 @@
 
 import { parseFxTime } from '@/utils/date';
 import type {
+  MinutelyForecast,
+  MinutelyResponse,
   WeatherCurrentV1,
   WeatherDailyBlockV1,
   WeatherDay,
@@ -514,4 +516,64 @@ export function normalizeWeatherPayload(input: {
   const now = normalizeWeatherCurrent(input.current);
 
   return { now, hourly, daily };
+}
+
+// ---------------------------------------------------------------------------
+// 分钟级降水
+// ---------------------------------------------------------------------------
+
+/**
+ * "HH:mm" → 当天第几分钟。认不出来给 null。
+ */
+function minutesOfDay(hhmm: string): number | null {
+  const matched = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!matched) return null;
+  const hour = Number(matched[1]);
+  const minute = Number(matched[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+}
+
+/**
+ * 分钟级降水 → 视图模型。
+ *
+ * 这一份做两件事：把 `fxTime` 截成 `HH:mm`，以及算出每格**相对第一格**
+ * 差多少分钟（`offset`）。
+ *
+ * `offset` 从时刻差算出来，不按下标乘 5：上游给的是当地时间字符串，
+ * 差值才是真的间隔。用户问的是「雨什么时候到」，不是「几点到」——
+ * 横轴上写「现在 / 20 分钟 / 60 分钟 / 100 分钟」比写钟点贴题。
+ *
+ * 跨零点按一天回绕：窗口只有两小时，隔了一天的时刻只可能是回绕。
+ *
+ * `precip` **不做数值化**，与别的天气数据不一样：
+ * 上游给的是「5 分钟累计降水量」，空串表示这一格没有数据，
+ * 与 "0.00"（实测没下雨）是两回事 —— 压成同一个 0，图上就会长出一段
+ * 并不存在的降水。数值化交给消费方按 `num()` 的口径做（空串给 null，
+ * null 在曲线上断线）。
+ */
+export function normalizeMinutely(payload: MinutelyResponse): MinutelyForecast {
+  const raw = payload.minutely ?? [];
+
+  const times = raw.map((item) => parseFxTime(item.fxTime)?.time ?? '');
+  const first = minutesOfDay(times[0] ?? '');
+
+  const points = raw.map((item, i) => {
+    const minutes = minutesOfDay(times[i] ?? '');
+    // 头一格的时间认不出来时退回「每格 5 分钟」—— 上游就是 5 分钟一格
+    const offset = first === null || minutes === null ? i * 5 : (((minutes - first) % 1440) + 1440) % 1440;
+
+    return {
+      time: times[i] ?? '',
+      offset,
+      precip: item.precip ?? '',
+      type: item.type ?? '',
+    };
+  });
+
+  return {
+    summary: payload.summary ?? '',
+    updateTime: payload.updateTime ?? '',
+    points,
+  };
 }

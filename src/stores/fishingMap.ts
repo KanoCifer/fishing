@@ -13,6 +13,7 @@ import {
   type FishingIndexData,
   type FishingSpot,
   type MapMarker,
+  type MinutelyForecast,
   type TideData,
   type WeatherDay,
   type WeatherHourly,
@@ -20,7 +21,7 @@ import {
   type WeatherNow,
 } from '@/types/fishing';
 import { formatCompactDate } from '@/utils/date';
-import { normalizeWeatherIndices, normalizeWeatherPayload } from '@/utils/weather-normalize';
+import { normalizeMinutely, normalizeWeatherIndices, normalizeWeatherPayload } from '@/utils/weather-normalize';
 
 /** 潮汐可选港口。code 是国家海洋预报台的站点编号 */
 export const HARBOR_OPTIONS = [
@@ -156,6 +157,21 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 「官方说今天适宜垂钓」这个最强的信号。
    */
   const weatherIndices = shallowRef<WeatherIndex[]>([]);
+
+  /*
+   * 分钟级降水（未来 2 小时、每 5 分钟一条）。
+   *
+   * 它**不随 enriched 响应回来** —— 上游只覆盖中国区域，而 enriched 覆盖全球；
+   * 把它塞进 enriched 就等于让境外用户每次都拿一份失败的响应。
+   * 所以它单独一个端点、单独一份状态，失败也只坏这一张卡。
+   */
+  const minutelyForecast = shallowRef<MinutelyForecast | null>(null);
+  const minutelyLoading = ref(false);
+  const minutelyError = ref('');
+  /** 最近一次取数是按哪个坐标发的（成功失败都记，与 indexLocation 同一套比对口径） */
+  const minutelyLocation = ref<string | null>(null);
+  /** 最近一次取数的时刻（毫秒）。用来判断要不要重取 */
+  const minutelyFetchedAt = ref(0);
 
   // 潮汐（随 enriched 响应一并带回）
   const tideData = shallowRef<TideData | null>(null);
@@ -368,10 +384,95 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    *
    * 重新定位是有意义的 —— 用户可能已经换了个钓点，旧坐标拿到的天气不作数。
    * 定位失败就退回最后一次成功的坐标，再不行才用默认中心。
+   *
+   * 分钟降水跟着一起刷：刷新键的语义是「把这里的数据更新一遍」，
+   * 而分钟降水恰恰是最吃新鲜度的那一份（两小时的有效期、五分钟一更新）。
+   * 两条并行发，不让这张卡排在 enriched 那条重请求后面干等。
    */
   async function refreshIndexData(): Promise<void> {
     const located = await locateUser(true);
-    await fetchWeatherAndFishing(located ?? userLocation.value ?? MAP_CENTER);
+    const target = located ?? userLocation.value ?? MAP_CENTER;
+
+    await Promise.all([fetchWeatherAndFishing(target), fetchMinutely(target)]);
+  }
+
+  /*
+   * 分钟级降水。
+   *
+   * 为什么单独一套取数，不挂进 fetchWeatherAndFishing：
+   * - 上游覆盖范围不同（分钟降水只覆盖中国区域，enriched 覆盖全球）；
+   * - 过期速度不同（上游每 5 分钟更新一次，enriched 是小时级）；
+   * - 失败代价不同（分钟降水取不到只是少一张卡，enriched 取不到是整页天气空掉）。
+   */
+
+  /**
+   * 分钟降水的有效期窗口。
+   *
+   * 上游每 5 分钟更新一次、服务端缓存 5 分钟 —— 与之对齐，
+   * 早了拿到的还是同一份数据，晚了拿到的已经不是刚更新的那份。
+   */
+  const MINUTELY_TTL = 5 * 60 * 1000;
+
+  /**
+   * 分钟降水的 in-flight 守卫。
+   *
+   * 与天气那条同源：同一坐标在飞时不并发第二个 ——
+   * 数据页的 onMounted 与 onPageShow 会在同一刻触发。
+   */
+  let minutelyInflightKey: string | null = null;
+
+  /** 拉分钟级降水。不传参数时用当前坐标，没有就用默认中心 */
+  async function fetchMinutely(location?: LngLat): Promise<void> {
+    const target = location ?? userLocation.value ?? MAP_CENTER;
+    const key = locationKey(target);
+
+    if (key === minutelyInflightKey) return;
+
+    minutelyInflightKey = key;
+    minutelyLoading.value = true;
+    minutelyError.value = '';
+    // 记的是「最近一次尝试」，成功失败都记 —— 失败的那次也要挡住重试，
+    // 否则境外坐标每切一次 tab 就重发一次注定失败的请求。
+    minutelyLocation.value = key;
+    minutelyFetchedAt.value = Date.now();
+
+    try {
+      const data = await fishingApi.getMinutely(target);
+
+      minutelyForecast.value = normalizeMinutely(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '获取分钟降水失败';
+      minutelyError.value = message;
+      // 取不到就把旧数据清掉：留着一份几小时前的降水当「接下来的降水」是骗人
+      minutelyForecast.value = null;
+      /*
+       * 这里不弹 toast。
+       *
+       * 分钟降水只覆盖中国区域，境外坐标必然取不到 —— 每次进页面都弹一次
+       * 报错只是打扰，卡片里给出空态就够了。
+       */
+    } finally {
+      if (minutelyInflightKey === key) minutelyInflightKey = null;
+      minutelyLoading.value = false;
+    }
+  }
+
+  /**
+   * 数据页取分钟降水。
+   *
+   * 坐标没变且最近一次尝试还在 5 分钟内就不重取：切回 tab 不该每次都发请求，
+   * 但这份数据过了 5 分钟就作废（上游每 5 分钟更新一次），
+   * 所以不能像天气那样一直复用。
+   */
+  async function ensureMinutely(): Promise<void> {
+    const located = await locateUser();
+    const target = located ?? userLocation.value ?? MAP_CENTER;
+    const key = locationKey(target);
+
+    const fresh = Date.now() - minutelyFetchedAt.value <= MINUTELY_TTL;
+    if (minutelyLocation.value === key && fresh) return;
+
+    await fetchMinutely(target);
   }
 
   /*
@@ -559,6 +660,12 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     weatherLoading,
     weatherError,
     weatherIndices,
+    // 分钟级降水
+    minutelyForecast,
+    minutelyLoading,
+    minutelyError,
+    minutelyLocation,
+    minutelyFetchedAt,
     // 潮汐
     tideData,
     panelTideData,
@@ -587,6 +694,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     fetchWeatherAndFishing,
     ensureWeatherAndFishing,
     refreshIndexData,
+    fetchMinutely,
+    ensureMinutely,
     fetchPanelTide,
     setSelectedHarbor,
     setSelectedDate,

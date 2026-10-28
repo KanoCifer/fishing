@@ -13,24 +13,29 @@
         @refresh="onRefresh"
       />
 
-      <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
+      <VerdictOverview
+        :show-anim="showAnim"
+        @feedback="openFeedback"
+        @analysis="openAnalysis"
+        @breakdown="openBreakdown"
+      />
       <!--
-        指数：两个来源对「今天能不能钓」的判断，紧跟结论放在一处。
+        指数：官方对「今天能不能钓」的判断，紧跟结论放在一处。
 
-        本站指数的构成（九项子特征各占多少）接在结论后面：结论给的是分，
-        构成回答的是「为什么是这个分」—— 这两件事隔着一屏远就断了。
+        本站指数的构成（九项子特征各占多少）不在这里 —— 它点首屏那个分数
+        才出（见 FeatureBreakdownSheet）。构成是一份「为什么」的说明，
+        摊在页面上会跟结论抢位置；而结论给的是分，构成回答的是
+        「为什么是这个分」，这两件事本来就隔着一屏远。
 
-        官方指数跟在构成下面：两个来源并排放，不一致的时候才看得出差别
-        （两个信号打架恰恰是用户最该知道的时刻）。
+        官方指数留在页面上：它跟结论是同一件事的两个来源，
+        不一致的时候用户一眼就看得出差别（两个信号打架恰恰是
+        用户最该知道的时刻）。
 
-        这一组不配眉标：两张卡的标题自己就说清了是什么，
+        这一组不配眉标：这张卡的标题自己就说清了是什么，
         眉标在这里只是把「指数」两个字再说一遍。
       -->
       <view class="sect">
         <view class="sect__card" :style="enterStyle(0, showAnim)">
-          <FeatureBreakdown />
-        </view>
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
           <LifeIndexCard />
         </view>
       </view>
@@ -41,6 +46,10 @@
         当前天气与多日预报并排，各占一半宽 —— 两张方卡，一屏里一眼看到
         「现在」和「接下来三天」。
 
+        分钟降水放在这一组的**最上面**：它回答的是最要紧的那件事
+        （接下来两小时雨什么时候到、什么时候停），而当前天气与多日预报
+        给的是背景 —— 背景不该排在结论前面。
+
         动画挂在外面这个普通 view 上：自定义组件的**宿主节点**不吃动画
         （见 docs/mp-weixin-platform.md）。
 
@@ -50,14 +59,17 @@
       <view class="sect">
         <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
 
-        <view class="sect__row" :style="enterStyle(0, showAnim)">
+        <view class="sect__card" :style="enterStyle(1, showAnim)">
+          <MinutelyRain />
+        </view>
+        <view class="sect__row" :style="enterStyle(2, showAnim)">
           <CurrentWeather class="sect__half" />
           <DayForecast class="sect__half" />
         </view>
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
+        <view class="sect__card" :style="enterStyle(3, showAnim)">
           <HourlyWeather />
         </view>
-        <view class="sect__card" :style="enterStyle(2, showAnim)">
+        <view class="sect__card" :style="enterStyle(4, showAnim)">
           <MetricChart />
         </view>
       </view>
@@ -114,6 +126,9 @@
 
       <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
+
+      <!-- 钓鱼指数构成 -->
+      <FeatureBreakdownSheet :open="breakdownOpen" @close="breakdownOpen = false" />
     </view>
   </view>
 </template>
@@ -132,12 +147,13 @@ import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
-import FeatureBreakdown from '@/components/FeatureBreakdown/FeatureBreakdown.vue';
+import FeatureBreakdownSheet from '@/components/FeatureBreakdownSheet/FeatureBreakdownSheet.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
 import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import LifeIndexCard from '@/components/LifeIndexCard/LifeIndexCard.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
+import MinutelyRain from '@/components/MinutelyRain/MinutelyRain.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
@@ -155,6 +171,7 @@ const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
 const feedbackOpen = ref(false);
 const analysisOpen = ref(false);
+const breakdownOpen = ref(false);
 const showAnim = ref(false);
 
 /**
@@ -198,6 +215,9 @@ function onRefresh() {
  *
  * 潮汐面板由 TideCard 自己在 onShow / 切港口日期时取，这里不重复触发 ——
  * 面板一直挂载着，若页面也去取，切一次港口就是两个请求。
+ *
+ * 分钟降水单独一路：它打的是另一个端点，上游只覆盖中国区域，
+ * 失败只坏那一张卡，不会把整页天气拖下水。
  */
 
 // onPageShow 在 tab 切回本页时也会触发，所以两个钩子都挂；
@@ -214,9 +234,11 @@ onMounted(() => {
   void loadQweatherIconFont();
 
   void mapStore.ensureWeatherAndFishing();
+  void mapStore.ensureMinutely();
 });
 onPageShow(() => {
   void mapStore.ensureWeatherAndFishing();
+  void mapStore.ensureMinutely();
 
   showAnim.value = false;
   setTimeout(() => {
@@ -230,6 +252,10 @@ function openFeedback() {
 
 function openAnalysis() {
   analysisOpen.value = true;
+}
+
+function openBreakdown() {
+  breakdownOpen.value = true;
 }
 </script>
 

@@ -389,11 +389,12 @@ WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 A
 
 ## 手势与浮层
 
-浮层统一用 `SnapSheet` 容器。当前五处共用同一个，才谈得上「同一个手势、同一种落位」：
+浮层统一用 `SnapSheet` 容器。当前六处共用同一个，才谈得上「同一个手势、同一种落位」：
 
 | 浮层                           | 宿主页                       |
 | ------------------------------ | ---------------------------- |
 | 钓鱼反馈 `FishingFeedbackForm` | 数据页                       |
+| 指数构成 `FeatureBreakdownSheet` | 数据页                    |
 | AI 建议 `FishingAnalysisSheet` | 数据页                       |
 | 资料编辑 `ProfileSheet`        | 我的页                       |
 | 钓点分享 `SpotShareSheet`      | 钓点详情页                   |

@@ -17,6 +17,7 @@ import type {
   FishingSpotFeedback,
   FishingSpotFeedbackPayload,
   FishingStats,
+  MinutelyResponse,
   TideApiEnvelope,
   TideData,
   UpdateFishingSpotPayload,
@@ -101,6 +102,23 @@ export const fishingApi = {
   async getTideData(payload: { harbor: string; date: string }): Promise<TideData> {
     const envelope = await fishingApi.getTide(payload);
     return envelope.data;
+  },
+
+  /**
+   * 分钟级降水预报。
+   *
+   * 未来 2 小时、每 5 分钟一条，共 24 条。`precip` 是这 5 分钟的**累计**降水量
+   * （毫米），上游给的是字符串，原样透传 —— 空串与 "0.00" 不是一回事。
+   *
+   * 上游有两条硬约束决定了调用方必须准备好空态：
+   * - **只认坐标**，不认 LocationID（后端已经替我们换算过了，这里只给坐标串）
+   * - **只覆盖中国区域**，境外坐标取不到数据
+   */
+  getMinutely(location: LngLat): Promise<MinutelyResponse> {
+    return request<MinutelyResponse>({
+      url: 'v3/weather/minutely',
+      params: { location: toLocationParam(location) },
+    });
   },
 };
 

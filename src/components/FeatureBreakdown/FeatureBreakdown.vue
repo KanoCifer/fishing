@@ -1,10 +1,5 @@
 <template>
   <view class="features">
-    <view class="features__head">
-      <text class="features__title">钓鱼指数构成</text>
-      <text class="features__meta">{{ tiles.length }} 项 · 相对水位</text>
-    </view>
-
     <!--
       九条横条而不是一张折线。
       九项子特征量纲不一（气温 20、湿度 80），归一化成相对水位之后要解决的是
@@ -13,13 +8,16 @@
     -->
     <view v-if="tiles.length" class="features__list">
       <!--
-        九条横条依次落位。这一组最吃入场动画：九行是拿来互相比较的，
-        从上到下扫一遍就得出「谁在拉分」，一次全出现的话那一眼扫视没有落点。
+        行与行之间没有逐条落位。
 
-        延迟在 enterDelay 里封了顶（第 9 项起不再累加），九条 × 60ms = 480ms，
-        末条出现时前八条已经落定，不会出现「最后一行还在等」的空档。
+        原来它在页面上是一张卡，九条横条依次落位（enterDelay 逐条错开）：
+        那一组最吃入场动画，九行是拿来互相比较的，一次全出现的话那一眼扫视没有落点。
+
+        现在它在浮层里 —— 浮层的内容由 SnapSheet 统一落位（fish-enter-sheet，
+        延迟 240ms 起）。这一层再自己逐条淡入，就是两层动画叠在一起：
+        面板还在路上内容就开始落位，读起来像面板是空的。
       -->
-      <view v-for="(tile, i) in tiles" :key="tile.key" class="features__row" :style="{ animationDelay: enterDelay(i) }">
+      <view v-for="tile in tiles" :key="tile.key" class="features__row">
         <text class="features__label">{{ tile.label }}</text>
         <view class="features__track">
           <view
@@ -42,12 +40,15 @@
  *
  * 归一化在 types 里（types/fishing.ts 的 toFeatureTiles），这里只做展示：
  * 纵轴是 0~100 的相对水位而非原始值，量纲不同画在同一根轴上比大小没有意义。
+ *
+ * 它现在住在浮层里（见 FeatureBreakdownSheet），所以这一层是**内容**，
+ * 不带卡片外壳、也不带标题 —— 浮层的标题区归浮层自己（见 design-system 的
+ * 「手势与浮层」一节）。
  */
 import { computed } from 'vue';
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { toFeatureTiles } from '@/types/fishing';
-import { enterDelay } from '@/utils/motion';
 
 const mapStore = useFishingMapStore();
 
@@ -59,33 +60,10 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数
 </script>
 
 <style lang="scss" scoped>
-/*
- * 卡片外壳。
- *
- * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
- */
-.features {
-  @include fish-card;
-}
-
-.features__head {
-  @include fish-card-head;
-}
-
-/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
-.features__title {
-  @include fish-card-title;
-}
-
-.features__meta {
-  @include fish-card-meta;
-}
-
 .features__row {
   display: flex;
   align-items: center;
   height: 52rpx;
-  @include fish-enter;
 }
 
 .features__label {

@@ -545,6 +545,127 @@ export interface WeatherIndex {
 }
 
 // ---------------------------------------------------------------------------
+// 分钟级降水
+// ---------------------------------------------------------------------------
+
+/**
+ * 分钟级降水的 wire 形状 —— 与后端 `MinutelyResponse` 逐字对齐。
+ *
+ * `precip` 是**5 分钟累计降水量**（毫米），上游给的是固定两位小数的字符串
+ * （"0.00" / "0.04"）。空串表示「这一格没有数据」，与 "0.00"（实测没下雨）
+ * 不是一回事 —— 数值化会把两者压成同一个 0，图上就多出一段并不存在的降水。
+ */
+export interface MinutelyItem {
+  /** 预报时间（当地时间），形如 "2026-10-27T23:30+08:00" */
+  fxTime: string;
+  /** 5 分钟累计降水量，单位毫米。上游是字符串，原样透传 */
+  precip: string;
+  /** 降水类型：'rain' 雨 / 'snow' 雪 */
+  type: string;
+}
+
+/** 分钟级降水的响应体（`GET /v3/weather/minutely`） */
+export interface MinutelyResponse {
+  /** 回显规范化后的请求位置 */
+  location: string;
+  /** 解析出的地名；坐标输入时为空串 */
+  locationName: string;
+  /** 一句话降水描述，如「95分钟后雨就停了」 */
+  summary: string;
+  /** 上游数据更新时间（当地时间） */
+  updateTime: string;
+  /** 上游降水预报详情页链接 */
+  fxLink: string;
+  /** 逐 5 分钟的降水条目 */
+  minutely: MinutelyItem[];
+}
+
+/**
+ * 分钟级降水的**视图模型**。
+ *
+ * 和别的天气数据一样是「给组件看的扁平结构」，但 precip 保持字符串：
+ * 上游的空串与 "0.00" 意义不同，数值化必须由消费方按 `num()` 的口径做
+ * （空串给 null，null 在图上断线，而不是落到 0）。
+ */
+export interface MinutelyPoint {
+  /** 时刻，HH:mm */
+  time: string;
+  /** 相对第一格的分钟数（第一格是 0）。用户问的是「雨什么时候到」，不是「几点到」 */
+  offset: number;
+  /** 5 分钟累计降水量（毫米）。空串 = 这一格没有数据 */
+  precip: string;
+  /** 降水类型：'rain' 雨 / 'snow' 雪 */
+  type: string;
+}
+
+export interface MinutelyForecast {
+  /** 上游的一句话降水描述 */
+  summary: string;
+  /** 上游数据更新时间 */
+  updateTime: string;
+  points: MinutelyPoint[];
+}
+
+/**
+ * 雨强档位。
+ *
+ * 口径是**1 小时雨强**的通用分档（≤2.5 小雨 / 2.5~8 中雨 / 8~16 大雨 /
+ * ≥16 暴雨）。上游量的是 5 分钟累计量，换算在 utils/precip.ts。
+ *
+ * 'none' 是「测到没下雨」，不是一档雨强 —— 它没有下界。
+ */
+export type PrecipLevel = 'none' | 'light' | 'medium' | 'heavy' | 'storm';
+
+/**
+ * 雨幕的一格。
+ *
+ * value 为 null 表示「这一格没有数据」（上游给的是空串），
+ * 与 value 为 0（测到没下雨）不是一回事。
+ */
+export interface MinutelyBucket {
+  /** 格序号。0 = 现在 */
+  index: number;
+  /** 相对现在的分钟数 */
+  offset: number;
+  /** 5 分钟累计降水量（毫米）。null = 这一格没有数据 */
+  value: number | null;
+  /** 雨强档位。null = 这一格没有数据 */
+  level: PrecipLevel | null;
+  /** 相对窗口峰值的高度百分比（0~100）。没有数据时为 null */
+  heightPct: number | null;
+}
+
+/** 雨幕横轴上的一枚刻度 */
+export interface MinutelyTick {
+  /** 相对现在的分钟数 */
+  offset: number;
+  /** 刻度文字 */
+  label: string;
+  /** 刻度在绘图区里的横向位置（百分比） */
+  leftPct: number;
+  /** 横向对齐方式：起点对齐 / 居中 / 终点对齐 */
+  anchor: 'start' | 'mid' | 'end';
+}
+
+/**
+ * 分钟级降水的**窗口模型** —— 「雨幕」那张图要画的东西。
+ *
+ * 形状与换算在 utils/precip.ts，这里只放形状。
+ */
+export interface MinutelyCurtain {
+  /** 逐格的柱子 */
+  buckets: MinutelyBucket[];
+  /** 横轴刻度 */
+  ticks: MinutelyTick[];
+  /** 窗口跨度（分钟） */
+  spanMinutes: number;
+  /** 窗口内累计降水（毫米）。没有数据的格子不计入 */
+  total: number;
+  /** 峰值格。全窗口都没有数据时为 null */
+  peak: MinutelyBucket | null;
+}
+
+// ---------------------------------------------------------------------------
 // 天气 wire 类型（和风天气新一代 /weather/v1/*）
 // ---------------------------------------------------------------------------
 

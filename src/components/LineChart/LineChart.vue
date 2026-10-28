@@ -55,11 +55,13 @@
             <text class="line-chart__stat-qualifier">最高</text>
             <text class="line-chart__stat-value">{{ summary.high }}</text>
             <text v-if="unit" class="line-chart__stat-unit">{{ unit }}</text>
+            <text v-if="summary.highBand" class="line-chart__stat-band">{{ summary.highBand }}</text>
           </view>
           <view class="line-chart__stat">
             <text class="line-chart__stat-qualifier">最低</text>
             <text class="line-chart__stat-value">{{ summary.low }}</text>
             <text v-if="unit" class="line-chart__stat-unit">{{ unit }}</text>
+            <text v-if="summary.lowBand" class="line-chart__stat-band">{{ summary.lowBand }}</text>
           </view>
         </view>
       </view>
@@ -74,6 +76,7 @@
             <text v-if="isMultiSeries" class="line-chart__name">{{ row.name }}</text>
             <text class="line-chart__number">{{ row.text }}</text>
             <text v-if="unit" class="line-chart__unit">{{ unit }}</text>
+            <text v-if="row.band" class="line-chart__band">{{ row.band }}</text>
           </view>
         </view>
       </view>
@@ -85,7 +88,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { buildCurve, buildPolyline, clipCurve, type CurvePoint, type CurveSegment } from '@/utils/curve';
-import { axisScale, formatTick } from '@/utils/chartAxis';
+import { axisScale, formatTick, type AxisScale } from '@/utils/chartAxis';
 import { CANVAS_FONT_STACK, withAlpha } from '@/utils/canvas';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { windowMetrics } from '@/composables/windowMetrics';
@@ -119,12 +122,17 @@ interface ActiveRow {
   name: string;
   color: string;
   text: string;
+  /** 分档名（如「中雨」）。没有分档表时为空串 */
+  band: string;
 }
 
 /** 轨道常态的两个极值 */
 interface Summary {
   high: string;
   low: string;
+  /** 两个极值各自的分档名 */
+  highBand: string;
+  lowBand: string;
 }
 
 const props = withDefaults(
@@ -162,6 +170,35 @@ const props = withDefaults(
      */
     labelStep?: number;
     /**
+     * X 轴要出标签的采样点下标。
+     *
+     * 传了就按这个集合画，位置是真的；不传时按 labelStep 的等距步长画。
+     *
+     * 用在哪：分钟降水的横轴是「现在 / 20 分钟 / 60 分钟 / 100 分钟」——
+     * 这四个位置不等距（间隔 20、40、40 分钟），等距步长画不出这个。
+     */
+    labelIndices?: number[];
+    /**
+     * 自定义纵轴刻度（值 + 文字）。
+     *
+     * 传了就用它替代自动刻度：刻度值可以不等距，文字由调用方给。
+     * 落在取值域外的刻度不画。
+     *
+     * 用在哪：分钟降水的纵轴是「小雨 / 中雨 / 大雨」这类等级线 ——
+     * 等级的分界本来就不等距（2.5 / 8 / 16），而且轴上不该出现具体数字。
+     */
+    yTicks?: { value: number; label: string }[];
+    /**
+     * 读数的分档标签。
+     *
+     * 一张表：值落在哪一档就用哪一档的名字（表按 min 升序，落不进任何一档给空串）。
+     *
+     * 用在哪：分钟降水的读数要写成「0.18 mm/5m 中雨」。
+     * 分档语义（小雨 / 中雨 / 大雨）留在调用方 —— 组件不知道雨是什么，
+     * 它只管把这段字放在数值后面。
+     */
+    valueBands?: { min: number; label: string }[];
+    /**
      * 是否把采样点连成平滑曲线。
      *
      * 默认开：逐时气温、风速这类连续量，直线连接会在拐点处留下折角，
@@ -172,6 +209,14 @@ const props = withDefaults(
      * 并不存在的降水。
      */
     smooth?: boolean;
+    /**
+     * 读数的小数位。
+     *
+     * 默认一位：气温、风速、逐时降水这些量，一位小数够用。
+     * 分钟级降水的量级在 0.0X~0.4 毫米，一位小数会把 0.15 毫米说成 0.2、
+     * 把 0.04 毫米说成 0 —— 而那一档的差异正是这张图要说的事。
+     */
+    precision?: number;
   }>(),
   {
     width: 690,
@@ -180,6 +225,7 @@ const props = withDefaults(
     animate: true,
     duration: 700,
     smooth: true,
+    precision: 1,
   },
 );
 
@@ -281,14 +327,32 @@ const GUTTER_GAP = 10;
  * 间距 12px，画出来是一串虚线而不是数据。选中点照画。
  */
 const MARKER_LIMIT = 12;
-/** 曲线线宽。两张图用同一档，摆在同一列里才是一套东西 */
-const LINE_WIDTH = 2.5;
-/** 数据点半径。实心圆，和 iOS 图表一致 */
-const MARKER_RADIUS = 3;
+/**
+ * 曲线线宽。两张图用同一档，摆在同一列里才是一套东西。
+ *
+ * 3.5 不是随手加的：线压粗了，下面的面积才撑得住 —— 线是 2.5 的时候
+ * 面积是一层薄雾，看不出是「曲线下面有东西」。
+ */
+const LINE_WIDTH = 3.5;
+/**
+ * 数据点半径。实心圆，和 iOS 图表一致。
+ *
+ * 比线宽的一半大一点：半径小于半条线宽的话，点就整个埋在线里，
+ * 画出来只是一段粗线上的鼓包。
+ */
+const MARKER_RADIUS = 4;
 
-/** 数值格式。跟 Y 轴刻度用同一套：四舍五入到一位小数，再按整数输出 */
+/**
+ * 数值格式。跟 Y 轴刻度用同一套：四舍五入到 `precision` 位小数，再按整数输出。
+ *
+ * 小数位由 props.precision 给（默认一位）。分钟级降水要两位 ——
+ * 0.15 毫米和 0.04 毫米在一位数下都会变成「0」或「0.2」，
+ * 那正是这张图要说清楚的差别。
+ */
 function formatValue(value: unknown): string {
-  return typeof value === 'number' && Number.isFinite(value) ? String(Math.round(value * 10) / 10) : '—';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  const factor = 10 ** props.precision;
+  return String(Math.round(value * factor) / factor);
 }
 
 /**
@@ -325,6 +389,29 @@ function finiteValues(): number[] {
 
 const activeLabel = computed(() => (activeIndex.value >= 0 ? (props.categories[activeIndex.value] ?? '') : ''));
 
+/**
+ * 分档表，按 min 升序。
+ *
+ * 排序放在这里做一次：调用方给的表不保证有序，而分档是「落在哪一档」，
+ * 顺序错了会挑错档。
+ */
+const sortedBands = computed(() => [...(props.valueBands ?? [])].sort((a, b) => a.min - b.min));
+
+/**
+ * 某个值属于哪一档。
+ *
+ * 没有分档表、值不合法、落不进任何一档，都给空串 —— 那一段字就不出现。
+ */
+function bandLabel(value: number): string {
+  if (!Number.isFinite(value)) return '';
+  let hit = '';
+  for (const band of sortedBands.value) {
+    if (value < band.min) break;
+    hit = band.label;
+  }
+  return hit;
+}
+
 const activeRows = computed<ActiveRow[]>(() => {
   const i = activeIndex.value;
   if (i < 0) return [];
@@ -333,6 +420,7 @@ const activeRows = computed<ActiveRow[]>(() => {
     name: s.name,
     color: s.color || PALETTE[si % PALETTE.length],
     text: formatValue(s.data[i]),
+    band: bandLabel(s.data[i]),
   }));
 });
 
@@ -345,10 +433,14 @@ const activeRows = computed<ActiveRow[]>(() => {
  */
 const summary = computed<Summary>(() => {
   const values = finiteValues();
-  if (!values.length) return { high: '—', low: '—' };
+  if (!values.length) return { high: '—', low: '—', highBand: '', lowBand: '' };
+  const high = Math.max(...values);
+  const low = Math.min(...values);
   return {
-    high: formatValue(Math.max(...values)),
-    low: formatValue(Math.min(...values)),
+    high: formatValue(high),
+    low: formatValue(low),
+    highBand: bandLabel(high),
+    lowBand: bandLabel(low),
   };
 });
 
@@ -398,6 +490,23 @@ function measureText(ctx: CanvasRenderingContext2D, text: string, size: number):
 }
 
 /**
+ * 纵轴刻度。
+ *
+ * 传了 yTicks 就用它：等级线的位置本来就不等距，而且轴上不该出现具体数字。
+ * 落在取值域外的刻度不画 —— 画出去就成了轴外的一条线。
+ *
+ * 不传就按 axisScale 的等距刻度来，标签是格式化后的数字。
+ */
+function buildTicks(scale: AxisScale): { value: number; label: string }[] {
+  if (props.yTicks?.length) {
+    return props.yTicks
+      .filter((tick) => tick.value >= scale.min - 1e-9 && tick.value <= scale.max + 1e-9)
+      .map((tick) => ({ value: tick.value, label: tick.label }));
+  }
+  return scale.ticks.map((value) => ({ value, label: formatTick(value) }));
+}
+
+/**
  * 绘图区几何。两层画布共用同一份 —— 静态层画网格、动态层画曲线，
  * 两者必须落在同一套坐标上，否则刻度和曲线会错开。
  */
@@ -412,8 +521,8 @@ interface PlotGeom {
   max: number;
   /** 纵轴跨度，至少 1，避免上下界相等时除零 */
   span: number;
-  /** 刻度值（升序）。轴上的数字必须是整齐的整数 */
-  ticks: number[];
+  /** 刻度（升序）。label 是画在轴上的那行字 */
+  ticks: { value: number; label: string }[];
   len: number;
   /** 相邻采样点的横向间距 */
   labelGap: number;
@@ -449,10 +558,11 @@ function computeGeom(): PlotGeom | null {
    * 那时图还没画出来，几何只是先占个位，initCanvas 里会重算。
    */
   const ctx = baseCtxRef.value;
+  const ticks = buildTicks(scale);
   let gutter = 0;
   if (ctx) {
-    for (const tick of scale.ticks) {
-      const width = measureText(ctx, formatTick(tick), 11);
+    for (const tick of ticks) {
+      const width = measureText(ctx, tick.label, 11);
       if (width > gutter) gutter = width;
     }
   }
@@ -480,7 +590,7 @@ function computeGeom(): PlotGeom | null {
     min: scale.min,
     max: scale.max,
     span: Math.max(1e-6, scale.max - scale.min),
-    ticks: scale.ticks,
+    ticks,
     len,
     labelGap: len > 1 ? plotW / (len - 1) : 0,
     stride: Math.max(1, props.labelStep ?? (len > 8 ? 2 : 1)),
@@ -507,12 +617,19 @@ function drawBase(): void {
   ctx.lineWidth = 1;
   ctx.textBaseline = 'middle';
 
-  g.ticks.forEach((value, i) => {
-    const y = Math.round(g.bottom - ((value - g.min) / g.span) * g.plotH) + 0.5;
+  g.ticks.forEach((tick, i) => {
+    const y = Math.round(g.bottom - ((tick.value - g.min) / g.span) * g.plotH) + 0.5;
     const isBase = i === 0;
-    const isTop = i === g.ticks.length - 1;
+    /*
+     * 顶边不画：一条顶线加上底边，图就框成了一个盒子。
+     *
+     * 判据是「这条线在不在顶边上」，不是「它是不是最后一条」——
+     * 自定义刻度（等级线）的最后一条往往落在轴顶以下，那条线是要画的。
+     * 自动刻度的最后一条正好落在轴顶（axisScale 的刻度到 max 为止），
+     * 所以这条判据对老图表没有行为变化。
+     */
+    const isTop = y <= g.top + 0.5;
 
-    // 顶边不画：一条顶线加上底边，图就框成了一个盒子
     if (!isTop) {
       ctx.strokeStyle = isBase ? AXIS_COLOR : GRID_COLOR;
       ctx.beginPath();
@@ -524,15 +641,17 @@ function drawBase(): void {
     ctx.fillStyle = Y_TEXT_COLOR;
     ctx.font = `11px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'right';
-    ctx.fillText(formatTick(value), g.left - GUTTER_GAP, y);
+    ctx.fillText(tick.label, g.left - GUTTER_GAP, y);
   });
 
   // X 轴标签。比 Y 轴淡一档：它是语境，读的时候顺带扫过
   ctx.fillStyle = X_TEXT_COLOR;
   ctx.font = `10px ${CANVAS_FONT_STACK}`;
   ctx.textBaseline = 'top';
+  // 指定了要出标签的下标就按它来（位置不等距），否则走等距步长
+  const labelSet = props.labelIndices?.length ? new Set(props.labelIndices) : null;
   props.categories.forEach((c, i) => {
-    if (i % g.stride !== 0) return;
+    if (labelSet ? !labelSet.has(i) : i % g.stride !== 0) return;
     const x = g.len > 1 ? g.left + g.labelGap * i : g.left + g.plotW / 2;
     const width = measureText(ctx, c, 10);
     // 贴边的标签改成靠边对齐，否则会被画布切掉一半
@@ -593,7 +712,7 @@ function draw() {
   // 点多时不画常态数据点
   const showMarkers = len <= MARKER_LIMIT;
   // 多系列时面积压淡一档：几层半透明叠在一起会糊成一片
-  const areaAlpha = props.series.length > 1 ? 0.12 : 0.24;
+  const areaAlpha = props.series.length > 1 ? 0.15 : 0.3;
 
   props.series.forEach((s, si) => {
     const color = s.color || PALETTE[si % PALETTE.length];
@@ -607,10 +726,25 @@ function draw() {
       // undefined 的控制点，异常从 rAF 回调里抛出去会连带这一帧的绘制作废
       if (!segments.length) continue;
 
-      // 面积：沿曲线走到底再回到底边闭合。竖直方向上浓下淡
-      const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+      /*
+       * 面积：沿曲线走到底再回到底边闭合。竖直方向上浓下淡。
+       *
+       * 渐变的起点是**曲线自己的顶边**，不是绘图区的顶边。
+       *
+       * 按绘图区算的话，贴底的曲线（降水、零附近的气温）落在渐变
+       * 已经很淡的那一段，取到的透明度接近 0 —— 面积画了等于没画。
+       * 曲线有多高，面积就该从它那里开始往下淡。
+       *
+       * 起点钉在底边上方 1px：曲线正好压在底边时，起止点重合的渐变
+       * 会整片按最后一个色标（透明）填，等于把面积抹掉。
+       */
+      let curveTop = bottom;
+      for (const p of points) {
+        if (p.y < curveTop) curveTop = p.y;
+      }
+      const gradient = ctx.createLinearGradient(0, Math.min(curveTop, bottom - 1), 0, bottom);
       gradient.addColorStop(0, withAlpha(color, areaAlpha));
-      gradient.addColorStop(0.7, withAlpha(color, areaAlpha * 0.2));
+      gradient.addColorStop(0.6, withAlpha(color, areaAlpha * 0.3));
       gradient.addColorStop(1, withAlpha(color, 0));
 
       ctx.beginPath();
@@ -871,7 +1005,7 @@ onMounted(() => {
 // 数据变化时重播动画（除非显式关掉动画，那就直接画最终态）
 // 纵轴上下界也要 watch：数据没变、只是把基线挪了（比如切了指标换量纲）时同样要重画
 watch(
-  () => [props.categories, props.series, props.min, props.max, props.labelStep],
+  () => [props.categories, props.series, props.min, props.max, props.labelStep, props.labelIndices, props.yTicks],
   () => {
     // 换数据后旧的选中点不再有意义，留着会显示另一组数据里的下标
     activeIndex.value = -1;
@@ -1049,6 +1183,13 @@ function onTouchEnd() {
   @include fish-type(footnote);
 }
 
+/* 分档名（小雨 / 中雨 / 大雨）。它跟在单位后面，是读数的定性说明 */
+.line-chart__stat-band {
+  margin-left: 8rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
+}
+
 /* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效，
    这里跟着全项目的做法走 margin */
 .line-chart__rows {
@@ -1086,6 +1227,13 @@ function onTouchEnd() {
 
 .line-chart__unit {
   margin-left: 6rpx;
+  color: $fish-muted;
+  @include fish-type(footnote);
+}
+
+/* 分档名（小雨 / 中雨 / 大雨）。它跟在单位后面，是读数的定性说明 */
+.line-chart__band {
+  margin-left: 8rpx;
   color: $fish-muted;
   @include fish-type(footnote);
 }

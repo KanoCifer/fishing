@@ -74,16 +74,33 @@
       <template v-else-if="mapStore.indexData">
         <text class="verdict__eyebrow" :style="enterStyle(0, showAnim)">今日钓鱼指数</text>
 
-        <view class="verdict__score" :style="enterStyle(1, showAnim)">
-          <!--
-            数字是滚出来的，不是切出来的。
+        <!--
+          分数可点：点开「钓鱼指数构成」。
 
-            滚动这一层是 JS 驱动的（字面在变，CSS 改不了），
-            缓动和时长在 utils/motion.ts 的 createCountUp / COUNT_UP_DURATION。
-            这里只管把当前显示值吐出来。
-          -->
-          <text class="verdict__score-num">{{ displayScore }}</text>
-          <text class="verdict__score-max">/100</text>
+          按下反馈挂在里层。外层这一行带 fish-enter，它是 fill-mode: both，
+          动画的终态（opacity: 1）会盖住 :active 写的 opacity ——
+          动画值在层叠里优先于普通声明，反馈挂在外层等于没挂。
+        -->
+        <view class="verdict__score" :style="enterStyle(1, showAnim)">
+          <view class="verdict__score-hit" @tap="emit('breakdown')">
+            <!--
+              数字是滚出来的，不是切出来的。
+
+              滚动这一层是 JS 驱动的（字面在变，CSS 改不了），
+              缓动和时长在 utils/motion.ts 的 createCountUp / COUNT_UP_DURATION。
+              这里只管把当前显示值吐出来。
+            -->
+            <text class="verdict__score-num">{{ displayScore }}</text>
+            <text class="verdict__score-max">/100</text>
+            <!--
+              可点的样子。
+
+              光标不会在小程序里出现，「这里能点」得让人看得见。
+              右箭头说明这个数字后面还有东西 —— 底边落在数字的基线上，
+              与「/100」齐平。
+            -->
+            <image class="verdict__score-chevron" :src="chevronRightIcon" mode="widthFix" />
+          </view>
         </view>
 
         <text class="verdict__level" :class="`verdict__level--${tone}`" :style="enterStyle(2, showAnim)">{{
@@ -175,6 +192,8 @@ const emit = defineEmits<{
   feedback: [];
   /** 打开 AI 建议面板 */
   analysis: [];
+  /** 点开钓鱼指数的构成 */
+  breakdown: [];
 }>();
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
@@ -195,6 +214,7 @@ const windIcon = icon('wind', 'blue600');
 const messageIcon = icon('message-square', 'onAccent');
 const sparklesIcon = icon('sparkles', 'blue600');
 const chevronDownIcon = icon('chevron-down', 'muted60');
+const chevronRightIcon = icon('chevron-right', 'muted60');
 
 const tone = computed(() => levelTone(mapStore.indexData?.level));
 
@@ -531,9 +551,27 @@ function onRefresh() {
  */
 .verdict__score {
   display: flex;
-  align-items: baseline;
   margin-top: 12rpx;
   @include fish-enter;
+}
+
+/*
+ * 分数本体 —— 可点的那一块。
+ *
+ * 按下变暗不缩小（fish-press-dim）：这一屏的主动作是下面那颗按钮，
+ * 分数跟着缩会跟它抢注意力。
+ */
+.verdict__score-hit {
+  display: flex;
+  align-items: baseline;
+  @include fish-press-dim;
+}
+
+/* 右箭头：可点的样子 */
+.verdict__score-chevron {
+  width: 24rpx;
+  margin-left: 8rpx;
+  opacity: 0.6;
 }
 
 .verdict__score-num {
