@@ -398,6 +398,20 @@ export interface TideData {
   tideHourly: Array<{ fxTime: string; height: number | string }>;
 }
 
+/**
+ * 潮汐来源站 —— 这份潮汐来自哪个站。
+ *
+ * 后端按请求坐标查**最近**的潮汐站（上游 POI 检索只回最近的一个）；
+ * 附近没有潮汐站时退到兜底站，那条潮汐与用户所在地无关。
+ * 站 ID 与名字都带出来，消费方据此判断潮汐是不是本地的。
+ */
+export interface TideStation {
+  /** 站点编号，如 "P2411" */
+  id: string;
+  /** 站名，如 "定海" */
+  name: string;
+}
+
 /** v3 潮汐接口的包装层：data 内含缓存命中标记 */
 export interface TideApiEnvelope {
   data: TideData;
@@ -872,6 +886,14 @@ export interface FishingIndexData {
    */
   location_name?: string;
   tide_data?: TideData;
+  /**
+   * 潮汐来源站 —— `tide_data` 这份潮汐来自哪个站。
+   *
+   * 后端按坐标取**最近**的潮汐站（附近没有潮汐站时是兜底站，
+   * 那条潮汐与用户所在地无关）。潮汐图优先渲染 `tide_data`：
+   * 它是「用户所在地的潮汐」，比面板里手选的港口更贴近当前这条鱼。
+   */
+  tide_station?: TideStation | null;
   /** 新版逐时块 */
   hourly_weather?: WeatherHourlyBlockV1 | null;
   /**

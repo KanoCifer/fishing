@@ -2,7 +2,7 @@
  * 钓点图状态 —— Pinia 全局单例。
  */
 
-import { ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 
 import { fishingApi, fishingSpotApi, type LngLat } from '@/api/fishing';
@@ -15,12 +15,14 @@ import {
   type MapMarker,
   type MinutelyForecast,
   type TideData,
+  type TideStation,
   type WeatherDay,
   type WeatherHourly,
   type WeatherIndex,
   type WeatherNow,
 } from '@/types/fishing';
 import { formatCompactDate } from '@/utils/date';
+import { tideDateKey } from '@/utils/tide';
 import { normalizeMinutely, normalizeWeatherIndices, normalizeWeatherPayload } from '@/utils/weather-normalize';
 
 /** 潮汐可选港口。code 是国家海洋预报台的站点编号 */
@@ -33,6 +35,14 @@ export const HARBOR_OPTIONS = [
 ] as const;
 
 export const MAP_CENTER: LngLat = [113.389549, 23.050067];
+
+/**
+ * 潮汐站分段控件的格数上限。
+ *
+ * 控件是等宽的，5 格是现在的版式。挤到 6 格的话每格只剩一百来 rpx，
+ * 「黄浦公园」这种四字站名会跟旁边的贴在一起 —— 固定端口让出最后一格。
+ */
+const TIDE_STATION_SLOTS = 5;
 
 /** toast 标题超长会被截断成省略号，反而看不出是哪条错了 */
 const TOAST_TITLE_MAX = 14;
@@ -175,13 +185,34 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
   // 潮汐（随 enriched 响应一并带回）
   const tideData = shallowRef<TideData | null>(null);
+  /**
+   * 潮汐来源站 —— `tideData` 这份潮汐来自哪个站。
+   *
+   * 后端按请求坐标查**最近**的潮汐站；附近没有潮汐站时退到兜底站，
+   * 那条潮汐与用户所在地无关。
+   */
+  const tideStation = shallowRef<TideStation | null>(null);
 
   // 潮汐面板：港口和日期可选，单独取数
   const panelTideData = shallowRef<TideData | null>(null);
   const panelTideSpotName = ref<string>(HARBOR_OPTIONS[0].name);
   const tideLoading = ref(false);
-  const selectedHarbor = ref<string>(HARBOR_OPTIONS[0].code);
+  /**
+   * 用户手动选的港口。空串 = 没选过，这时按近站点来。
+   *
+   * 分「自动」与「手动」两态，是为了让近站点晚到时能接管默认选择：
+   * 用户已经明确选过港口，就别再替他改回去。
+   */
+  const selectedHarbor = ref<string>('');
   const selectedDate = ref(formatCompactDate());
+  /**
+   * 近站点到齐没有 —— 潮汐来源站是 enriched 响应里带的，
+   * 响应回来之前不知道该按哪个站取潮汐。
+   *
+   * 失败也算「到齐」：enriched 挂了就没有近站点，面板要退到固定港口出图，
+   * 不能一直挂着等一个不会来的响应。
+   */
+  const nearestStationResolved = ref(false);
 
   // 钓鱼指数
   const indexData = shallowRef<FishingIndexData | null>(null);
@@ -324,6 +355,15 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
     if (key === inflightKey) return;
 
+    // 位置变了，之前手动选的港口就作废 —— 那是给上一个地方选的。
+    // 回到「按近站点」，近站点到了面板自己切过去。
+    if (indexLocation.value && indexLocation.value !== key) {
+      selectedHarbor.value = '';
+    }
+
+    // 新的一轮取数：近站点还没到齐
+    nearestStationResolved.value = false;
+
     inflightKey = key;
     weatherLoading.value = true;
     indexLoading.value = true;
@@ -347,13 +387,31 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
       // 生活指数是 v7 结构（官方没出新版），字段与视图模型一致，只做取值规整。
       weatherIndices.value = normalizeWeatherIndices(data.weather_indices);
       tideData.value = data.tide_data ?? null;
+      tideStation.value = data.tide_station ?? null;
       indexData.value = data;
       indexLocation.value = key;
+      nearestStationResolved.value = true;
+
+      /*
+       * 近站点到了：面板按它取潮汐（今天这一档直接用 full 端点那份）。
+       * 用户手动选过港口就不动 —— 那是他的选择，不替他改。
+       */
+      if (pendingPanelTide || !selectedHarbor.value) {
+        void fetchPanelTide();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取数据失败';
       notifyError(message);
       weatherError.value = message;
       indexError.value = message;
+      // 失败也算近站点「到齐」—— 不会有更准的站了，面板退到固定港口出图
+      nearestStationResolved.value = true;
+
+      // enriched 挂了：近站点等不到，面板退到固定港口出图 ——
+      // 别让潮汐图跟着天气一起空掉。
+      if (pendingPanelTide) {
+        void fetchPanelTide();
+      }
     } finally {
       inflightKey = null;
       weatherLoading.value = false;
@@ -502,10 +560,60 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    */
   let tideInflightKey: string | null = null;
 
-  /** 拉面板潮汐。不传参数时沿用当前选中的港口和日期 */
+  /**
+   * 潮汐站候选：近站点排在最前，其余是固定的那几个港口。
+   *
+   * 近站点就是后端按坐标查到的那个（`tideStation`）—— 潮汐图优先渲染它，
+   * 因为它是「用户所在地的潮汐」。同一个站已经在固定列表里就不重复列：
+   * 列两遍，切过去拿到的还是同一段潮汐。
+   */
+  const tideStations = computed<ReadonlyArray<{ code: string; name: string }>>(() => {
+    const nearest = tideStation.value;
+    const fixed = HARBOR_OPTIONS.filter((option) => option.code !== nearest?.id);
+    if (!nearest) return fixed;
+    return [{ code: nearest.id, name: nearest.name }, ...fixed].slice(0, TIDE_STATION_SLOTS);
+  });
+
+  /**
+   * 当前生效的站：手动选过用他选的，没选过用近站点，再没有就退到固定列表第一个。
+   */
+  const activeHarbor = computed(() => selectedHarbor.value || tideStation.value?.id || HARBOR_OPTIONS[0].code);
+
+  /**
+   * 面板取数挂起中 —— 近站点还没到，等它到了再取。
+   *
+   * 近站点是潮汐图的默认站。先按固定港口取一份再换过来，图会闪一下，
+   * 而潮汐图就在数据页第一屏 —— 宁可晚一点出图，也不要先画错的那条。
+   */
+  let pendingPanelTide = false;
+
+  /** 拉面板潮汐。不传参数时沿用当前生效的港口和日期 */
   async function fetchPanelTide(harbor?: string, date?: string): Promise<void> {
-    const harborToUse = harbor ?? selectedHarbor.value;
+    const harborToUse = harbor ?? activeHarbor.value;
     const dateToUse = date ?? selectedDate.value;
+
+    const nearest = tideStation.value;
+
+    /*
+     * 近站点 + 今天这一档：full 端点那份潮汐就是这个站这一天的，
+     * 同一个上游、同一份数据 —— 直接用，再打一次接口是白花一个往返。
+     */
+    if (nearest && harborToUse === nearest.id && tideDateKey(tideData.value) === dateToUse) {
+      panelTideData.value = tideData.value;
+      panelTideSpotName.value = nearest.name;
+      return;
+    }
+
+    /*
+     * 近站点还没到：先不发。
+     * 那时还不知道该按哪个站取，发出去的多半是固定港口的潮汐，
+     * 近站点一到就得换，图会闪一下。挂起，等 enriched 回来再取。
+     */
+    if (!nearest && !nearestStationResolved.value && !selectedHarbor.value) {
+      pendingPanelTide = true;
+      return;
+    }
+    pendingPanelTide = false;
 
     const key = `${harborToUse}@${dateToUse}`;
     if (key === tideInflightKey) return;
@@ -517,10 +625,17 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
         harbor: harborToUse,
         date: dateToUse,
       });
-      const harborOption = HARBOR_OPTIONS.find((o) => o.code === harborToUse);
+      // 响应回来时生效的站可能已经变了（近站点晚到 / 用户切了站）：
+      // 这份数据是旧站的，扔掉 —— 否则图上画的和选中的是两回事。
+      if (`${harborToUse}@${dateToUse}` !== `${activeHarbor.value}@${selectedDate.value}`) {
+        return;
+      }
+      const station = tideStations.value.find((o) => o.code === harborToUse);
 
       panelTideData.value = data;
-      panelTideSpotName.value = harborOption?.name ?? HARBOR_OPTIONS[0].name;
+      // 站名从候选列表里查 —— 近站点不在固定列表里。查不到就退回收到的编号：
+      // 总比安一个别的站名强。
+      panelTideSpotName.value = station?.name ?? harborToUse;
     } catch (err) {
       const message = err instanceof Error ? err.message : '获取潮汐信息失败';
       notifyError(message);
@@ -537,7 +652,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
 
   function setSelectedDate(date: string): void {
     selectedDate.value = date;
-    void fetchPanelTide(selectedHarbor.value, date);
+    void fetchPanelTide(activeHarbor.value, date);
   }
 
   /** 拉钓点列表并转成地图标记 */
@@ -668,6 +783,9 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     minutelyFetchedAt,
     // 潮汐
     tideData,
+    tideStation,
+    tideStations,
+    activeHarbor,
     panelTideData,
     panelTideSpotName,
     tideLoading,

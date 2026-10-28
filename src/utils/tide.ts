@@ -62,6 +62,23 @@ export function nextHighTide(tide: TideData | null | undefined): TideExtreme | n
 export type TideTrend = 'rising' | 'falling' | 'flat';
 
 /**
+ * 这份潮汐覆盖的日期（`YYYYMMDD`）。取不到时给空串。
+ *
+ * 上游按**站点当地日期**返回一天的逐时潮高，后端 full 端点取的是站点当地今天。
+ * 取逐时首条的 fxTime 前 10 位再拼成紧凑日期 —— 不 new Date()，
+ * 理由同文件头：fxTime 自带 +08:00，转成 Date 会按设备时区重解释。
+ *
+ * 用途：判断「full 端点那份潮汐」能不能直接给潮汐面板用 ——
+ * 站对得上、日期也对得上，就不用再打一次接口。
+ */
+export function tideDateKey(tide: TideData | null | undefined): string {
+  const fxTime = tide?.tideHourly?.[0]?.fxTime ?? tide?.tideTable?.[0]?.fxTime ?? '';
+  const day = fxTime.slice(0, 10);
+  if (day.length !== 10) return '';
+  return `${day.slice(0, 4)}${day.slice(5, 7)}${day.slice(8, 10)}`;
+}
+
+/**
  * 当前是涨潮还是退潮。
  *
  * 取逐时序列末尾两个有效点比大小，而不是拿整条曲线拟合 ——

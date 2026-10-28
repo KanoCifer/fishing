@@ -8,15 +8,15 @@
     <scroll-view class="tide-card__segmented" scroll-x :show-scrollbar="false">
       <view class="tide-card__segmented-track">
         <view
-          v-for="opt in HARBOR_OPTIONS"
+          v-for="opt in mapStore.tideStations"
           :key="opt.code"
           class="tide-card__segment"
-          :class="{ 'tide-card__segment--active': mapStore.selectedHarbor === opt.code }"
+          :class="{ 'tide-card__segment--active': mapStore.activeHarbor === opt.code }"
           @tap="mapStore.setSelectedHarbor(opt.code)"
         >
           <text
             class="tide-card__segment-text"
-            :class="{ 'tide-card__segment-text--active': mapStore.selectedHarbor === opt.code }"
+            :class="{ 'tide-card__segment-text--active': mapStore.activeHarbor === opt.code }"
           >
             {{ opt.name }}
           </text>
@@ -98,7 +98,7 @@
  */
 import { computed, onMounted } from 'vue';
 
-import { HARBOR_OPTIONS, useFishingMapStore } from '@/stores/fishingMap';
+import { useFishingMapStore } from '@/stores/fishingMap';
 import type { TideTableItem } from '@/types/fishing';
 import { fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
 
