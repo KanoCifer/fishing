@@ -2,7 +2,7 @@
  * 海报绘制 —— canvas 2d。
  *
  * 为什么自己画而不是找个海报库：海报上的内容是**这个钓点的此刻** ——
- * 照片、今日鱼口、地址、开放时间。这些数前端已经取在手上了（store 里），
+ * 照片、今日鱼口概率、地址、开放时间。这些数前端已经取在手上了（store 里），
  * 走服务端渲染要多一次往返、多一套模板，值当不上。
  *
  * ⚠️ canvas 2d **不解析 var()**，只认 rgb/hex。所以这里的色值是硬编码的，
@@ -75,7 +75,7 @@ export interface PosterSpot {
    * 所以海报上给它自己的一行，超宽截断，不跟别的东西挤在一行里。
    */
   address?: string;
-  /** 今日鱼口 0–100 */
+  /** 今日鱼口概率 0–100 */
   score: number;
   /** 鱼口等级，如「好」 */
   level: string;
@@ -133,7 +133,7 @@ const TYPE = {
   name: { size: 68, weight: 700, tracking: -0.022 },
   /** caption —— 副信息（照片上那行） */
   meta: { size: 24, weight: 400, tracking: 0 },
-  /** caption2 —— 「今日鱼口」。小字放开一点才读得清 */
+  /** caption2 —— 「今日鱼口概率」。小字放开一点才读得清 */
   label: { size: 22, weight: 400, tracking: 0.006 },
   /**
    * display —— 分数。全篇最大的字。
@@ -141,7 +141,7 @@ const TYPE = {
    * 字距 -0.03 比 large-title 的 -0.022 更紧：字越大，字心距看着越松，
    * 所以越要往回收。
    *
-   * 150 → 120：照片从 400 长到 500，「今日鱼口」那块纸面就矮 100 ——
+   * 150 → 120：照片从 400 长到 500，「今日鱼口概率」那块纸面就矮 100 ——
    * 数字跟着缩，纸面才装得下（见 LAYOUT.scoreBaseline 那段节奏）。
    * 它仍然是全篇最大的字（下一级 large-title 才 68），主次没变。
    */
@@ -183,7 +183,7 @@ const LAYOUT = {
    * 照片带高度。
    *
    * 400 → 500：照片吃掉整张纸的上半张（750×500），
-   * 换来的是「今日鱼口」那块纸面矮 100 —— 分数与齿孔线之间那段收紧，
+   * 换来的是「今日鱼口概率」那块纸面矮 100 —— 分数与齿孔线之间那段收紧，
    * 数字跟着缩（见 TYPE.score）。
    *
    * 为什么先动照片：这张海报的收件人**没去过这个钓点**，
@@ -221,7 +221,7 @@ const LAYOUT = {
   /** 副信息基线（白字，压在照片上）—— 离照片下沿 38 */
   metaBaseline: 462,
   /**
-   * 「今日鱼口」标签基线。
+   * 「今日鱼口概率」标签基线。
    *
    * 552 —— 离照片下沿 52。
    *
@@ -640,14 +640,14 @@ function drawPhoto(ctx: CanvasRenderingContext2D, data: PosterSpot, image: Poste
   drawType(ctx, TYPE.meta, ellipsizeType(ctx, TYPE.meta, meta, w - LAYOUT.padding * 2), x, LAYOUT.metaBaseline);
 }
 
-/** 纸面上的主块：今日鱼口 */
+/** 纸面上的主块：今日鱼口概率 */
 function drawScore(ctx: CanvasRenderingContext2D, data: PosterSpot): void {
   const x = LAYOUT.padding;
 
   ctx.textBaseline = 'alphabetic';
 
   ctx.fillStyle = MUTED;
-  drawType(ctx, TYPE.label, '今日鱼口', x, LAYOUT.scoreLabelBaseline);
+  drawType(ctx, TYPE.label, '今日鱼口概率', x, LAYOUT.scoreLabelBaseline);
 
   // 分数：全篇最大的字
   ctx.fillStyle = INK;

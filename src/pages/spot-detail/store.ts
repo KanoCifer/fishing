@@ -36,7 +36,7 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
 
   /** 钓点本体。后端 `GET /v3/fish/spots/{id}` 的完整出参 */
   const spot = shallowRef<FishingSpot | null>(null);
-  /** 钓况原始响应（钓鱼指数、特征明细、逐时预报都在里面） */
+  /** 钓况原始响应（鱼口概率、特征明细、逐时预报都在里面） */
   const index = shallowRef<FishingIndexData | null>(null);
   /** 归一后的实时天气。组件要的是扁平视图模型，不是上游的 wire 形状 */
   const now = shallowRef<WeatherNow | null>(null);
@@ -64,7 +64,7 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
    * 取钓况（按给定坐标）。
    *
    * 用 `fishingApi.getFishingIndex(location, true)` 而不是天气 + 潮汐两个接口：
-   * 后端对同一 location 取数两次，钓鱼指数自己内部还会再调一次 ——
+   * 后端对同一 location 取数两次，鱼口概率自己内部还会再调一次 ——
    * 一次 enriched 拿全，省两轮往返。
    */
   async function loadConditions(location: [number, number]): Promise<void> {

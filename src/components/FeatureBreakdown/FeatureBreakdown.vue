@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 /**
- * FeatureBreakdown —— 九项子特征对钓鱼指数的贡献。
+ * FeatureBreakdown —— 九项子特征对鱼口概率的贡献。
  *
  * 归一化在 types 里（types/fishing.ts 的 toFeatureTiles），这里只做展示：
  * 纵轴是 0~100 的相对水位而非原始值，量纲不同画在同一根轴上比大小没有意义。
@@ -56,7 +56,7 @@ const tiles = computed(() => toFeatureTiles(mapStore.indexData?.feature_breakdow
 
 const loading = computed(() => mapStore.indexLoading);
 
-const emptyText = computed(() => (loading.value ? '加载中…' : '暂无指数构成数据'));
+const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成数据'));
 </script>
 
 <style lang="scss" scoped>

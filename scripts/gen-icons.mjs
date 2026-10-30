@@ -41,7 +41,7 @@ const ICONS = [
   // —— 首屏概览 ——
   { name: 'map-pin', color: 'muted', use: '实况地点' },
   { name: 'refresh-cw', color: 'muted', use: '刷新天气与指数' },
-  { name: 'fish', color: 'success', use: '钓鱼指数标记' },
+  { name: 'fish', color: 'success', use: '鱼口概率标记' },
   { name: 'thermometer', color: 'destructive', use: '气温信号' },
   { name: 'waves', color: 'blue', use: '潮汐信号' },
   { name: 'wind', color: 'blue600', use: '风速信号' },

@@ -22,7 +22,7 @@
       <!--
         指数：官方对「今天能不能钓」的判断，紧跟结论放在一处。
 
-        本站指数的构成（九项子特征各占多少）不在这里 —— 它点首屏那个分数
+        本站鱼口概率的构成（九项子特征各占多少）不在这里 —— 它点首屏那个分数
         才出（见 FeatureBreakdownSheet）。构成是一份「为什么」的说明，
         摊在页面上会跟结论抢位置；而结论给的是分，构成回答的是
         「为什么是这个分」，这两件事本来就隔着一屏远。
@@ -127,7 +127,7 @@
       <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
 
-      <!-- 钓鱼指数构成 -->
+      <!-- 鱼口概率构成 -->
       <FeatureBreakdownSheet :open="breakdownOpen" @close="breakdownOpen = false" />
     </view>
   </view>
@@ -212,7 +212,7 @@ function onRefresh() {
 /**
  * 取数。
  *
- * 定位 → 按用户坐标取钓鱼指数（天气、潮汐随 enriched 响应一起带回）。
+ * 定位 → 按用户坐标取鱼口概率（天气、潮汐随 enriched 响应一起带回）。
  * 没有用户坐标时才退回默认中心（定位被拒 / 定位不可用）。
  *
  * 潮汐面板由 TideCard 自己在 onShow / 切港口日期时取，这里不重复触发 ——

@@ -160,7 +160,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const weatherLoading = ref(false);
   const weatherError = ref('');
   /**
-   * 生活指数（和风官方指数，含钓鱼指数）。
+   * 生活指数（和风官方指数，含官方钓鱼指数）。
    *
    * 来自 enriched 响应的 `weather_indices`。这一项以前恒为空数组 ——
    * 那时后端根本没往外给，模型只能自己从温度气压反推，丢掉了
@@ -214,7 +214,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    */
   const nearestStationResolved = ref(false);
 
-  // 钓鱼指数
+  // 鱼口概率
   const indexData = shallowRef<FishingIndexData | null>(null);
   const indexLoading = ref(false);
   const indexError = ref('');
@@ -339,7 +339,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   }
 
   /**
-   * 拉钓鱼指数（enriched=true 附带天气和潮汐）。
+   * 拉鱼口概率（enriched=true 附带天气和潮汐）。
    *
    * 坐标默认取用户当前位置；还没定位到就用 MAP_CENTER 兜底（先给一份数据，
    * 定位到了再覆盖）。
@@ -539,7 +539,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 曾经有过一个，结果是：地图页一进页面、定位一回来，就发一条
    * `GET /v2/fishing/index?location=…&enriched=true` —— 这条请求是全应用最重的
    * 一条（实测 TTFB 200~390 ms，响应 22 KB），而**地图页一个像素都不显示它**：
-   * 钓鱼指数、天气、潮汐只有数据页那三张卡在用。
+   * 鱼口概率、天气、潮汐只有数据页那三张卡在用。
    * 微信体检因此记了一条「小程序启动时存在耗时较长的请求」。
    *
    * 取数归数据页自己管：`ensureWeatherAndFishing` 每次都会拿当前坐标
@@ -791,7 +791,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     tideLoading,
     selectedHarbor,
     selectedDate,
-    // 钓鱼指数
+    // 鱼口概率
     indexData,
     indexLoading,
     indexError,

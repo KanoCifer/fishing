@@ -2,7 +2,7 @@
   <SnapSheet :open="open" :snap-points="SNAP_POINTS" :initial-snap="0" @close="emit('close')">
     <template #header>
       <view class="breakdown__head">
-        <text class="breakdown__title">钓鱼指数构成</text>
+        <text class="breakdown__title">鱼口概率构成</text>
         <text class="breakdown__meta">{{ tileCount }} 项 · 相对水位</text>
       </view>
     </template>
@@ -15,11 +15,11 @@
 
 <script setup lang="ts">
 /**
- * 钓鱼指数构成 —— 浮层。
+ * 鱼口概率构成 —— 浮层。
  *
- * 构成图原来是一张卡，摊在数据页的指数分区里。挪到这里是因为：
+ * 构成图原来是一张卡，摊在数据页的鱼口概率分区里。挪到这里是因为：
  * 九条横条是一份「为什么」的说明，摊在页面上会跟结论抢位置；
- * 而「今日钓鱼指数」这个分数才是结论 —— 点分数才看构成，是一条自然的路。
+ * 而「今日鱼口概率」这个分数才是结论 —— 点分数才看构成，是一条自然的路。
  *
  * 标题区归这个浮层（SnapSheet 只提供容器），内容归 FeatureBreakdown。
  */

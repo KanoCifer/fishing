@@ -3,7 +3,7 @@
  *
  * 为什么单独成文件：分享是**要发给别人的话**。
  *
- * 同一句「今日鱼口 78 分」在详情页上是给本人看的一个读数，
+ * 同一句「今日鱼口概率 78 分」在详情页上是给本人看的一个读数，
  * 在转发卡片里是替收的人做的一个判断 —— 措辞、长度、语气都不一样：
  * 卡片标题会被微信截断（聊天列表里只显示一行），朋友圈里更是只有标题，
  * 没有摘要陪着。所以这里把「自己看的话」和「发给别人看的话」分开存，
@@ -43,7 +43,7 @@ export const SHARE_SHEET = {
  * 「哪个钓点」和「此刻值不值得去」两件事 —— 前者是名字，后者是鱼口分。
  */
 export const SHARE_TITLES = {
-  friend: (name: string, score: number, place: string): string => `${name}｜今日鱼口 ${score} 分 · ${place}`,
+  friend: (name: string, score: number, place: string): string => `${name}｜今日鱼口概率 ${score} 分 · ${place}`,
 } as const;
 
 /**

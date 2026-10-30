@@ -72,10 +72,10 @@
 
       <!-- 有数据 -->
       <template v-else-if="mapStore.indexData">
-        <text class="verdict__eyebrow" :style="enterStyle(0, showAnim)">今日钓鱼指数</text>
+        <text class="verdict__eyebrow" :style="enterStyle(0, showAnim)">今日鱼口概率</text>
 
         <!--
-          分数可点：点开「钓鱼指数构成」。
+          分数可点：点开「鱼口概率构成」。
 
           按下反馈挂在里层。外层这一行带 fish-enter，它是 fill-mode: both，
           动画的终态（opacity: 1）会盖住 :active 写的 opacity ——
@@ -140,7 +140,7 @@
         </view>
       </template>
 
-      <text v-else class="verdict__empty">还没有今天的钓鱼指数</text>
+      <text v-else class="verdict__empty">还没有今天的鱼口概率</text>
     </view>
 
     <!--
@@ -150,11 +150,11 @@
       这一屏的主动作是反馈，AI 建议是偶尔才想看一眼的补充。
     -->
     <view class="verdict__foot">
-      <!-- 动作只在有数据时出现：没有指数的时候，「反馈今日指数」反馈不了任何东西 -->
+      <!-- 动作只在有数据时出现：没有鱼口概率的时候，「反馈今日鱼口概率」反馈不了任何东西 -->
       <view v-if="mapStore.indexData" class="verdict__actions" :style="enterStyle(4, showAnim)">
         <view class="verdict__btn verdict__btn--primary" @tap="emit('feedback')">
           <image class="verdict__icon verdict__icon--onaccent" :src="messageIcon" mode="widthFix" />
-          <text class="verdict__btn-text verdict__btn-text--onaccent">反馈今日指数</text>
+          <text class="verdict__btn-text verdict__btn-text--onaccent">反馈今日鱼口概率</text>
         </view>
 
         <view class="verdict__link" @tap="emit('analysis')">
@@ -192,7 +192,7 @@ const emit = defineEmits<{
   feedback: [];
   /** 打开 AI 建议面板 */
   analysis: [];
-  /** 点开钓鱼指数的构成 */
+  /** 点开鱼口概率的构成 */
   breakdown: [];
 }>();
 
@@ -536,7 +536,7 @@ function onRefresh() {
   margin-left: 6rpx;
 }
 
-/* 「今日钓鱼指数」这个名号 */
+/* 「今日鱼口概率」这个名号 */
 .verdict__eyebrow {
   @include fish-eyebrow;
   @include fish-enter;

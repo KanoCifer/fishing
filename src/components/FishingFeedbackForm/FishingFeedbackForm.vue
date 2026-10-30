@@ -12,7 +12,7 @@
       <view class="feedback-form__context">
         <text class="feedback-form__context-place">地点 · {{ locationName }}</text>
         <text class="feedback-form__context-index">
-          当前指数 {{ data.fishing_index }}
+          当前鱼口概率 {{ data.fishing_index }}
           <text class="feedback-form__context-level">（{{ data.level }}）</text>
         </text>
       </view>
@@ -86,7 +86,7 @@ const FEEDBACK_OPTIONS: ReadonlyArray<{
 
 const props = defineProps<{
   open: boolean;
-  /** 打开时由父组件传入的当前钓鱼指数快照 */
+  /** 打开时由父组件传入的当前鱼口概率快照 */
   data: FishingIndexData | null;
   /** 关联钓点 id；无关联钓点时传 'default' */
   locationId: string;

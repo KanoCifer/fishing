@@ -35,7 +35,7 @@ constants/     文案与生成物
 
 | 端点                          | 方法               | 用途                                                       |
 | ----------------------------- | ------------------ | ---------------------------------------------------------- |
-| `v2/fishing/index`            | GET                | 钓鱼指数；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
+| `v2/fishing/index`            | GET                | 鱼口概率；`enriched=true` 时附带天气、预报、潮汐、生活指数 |
 | `v2/fishing/feedback`         | POST               | 提交钓鱼反馈                                               |
 | `v2/fishing/stats`            | GET                | 钓鱼记录统计                                               |
 | `v3/weather/tide`             | GET                | 潮汐（按港口 + 日期）                                      |
@@ -157,7 +157,7 @@ const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
 
 ## 两个 store
 
-**`fishingMap`** —— 用户坐标、天气、潮汐、钓鱼指数、钓点标记、当前选中的钓点、我提交的钓点。
+**`fishingMap`** —— 用户坐标、天气、潮汐、鱼口概率、钓点标记、当前选中的钓点、我提交的钓点。
 
 `mySpots`（我提交的）和 `markers`（地图上的）是**两份不同的数据**，不能合成一份：公开列表只放已过审的，`mySpots` 含待审核和已驳回。合成一份的话，待审核那条会在地图上显示出来 —— 它还没过审。
 

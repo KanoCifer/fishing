@@ -229,8 +229,8 @@ const VERDICT_BY_LEVEL: Readonly<Record<string, string>> = {
 };
 
 export function levelVerdict(level: string | undefined): string {
-  if (!level) return '钓鱼指数计算中';
-  return VERDICT_BY_LEVEL[level] ?? '钓鱼指数计算中';
+  if (!level) return '鱼口概率计算中';
+  return VERDICT_BY_LEVEL[level] ?? '鱼口概率计算中';
 }
 
 // ---------------------------------------------------------------------------

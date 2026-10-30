@@ -28,7 +28,7 @@ withDefaults(
   defineProps<{
     /** 是否显示。页面按滚动位置给 */
     visible: boolean;
-    /** 钓鱼指数 */
+    /** 鱼口概率 */
     score: number;
     /** 等级词 */
     level: string;

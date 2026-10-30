@@ -286,7 +286,7 @@ const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到
   --weather-icon: #7a5a28;
 }
 
-/* 热。橙红，跟钓鱼指数的「不宜出钓」同一档 */
+/* 热。橙红，跟鱼口概率的「不宜出钓」同一档 */
 .current-weather--hot {
   --weather-grad:
     radial-gradient(circle at 0% 0%, #ffb894, transparent 50%),
