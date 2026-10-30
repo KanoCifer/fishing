@@ -215,3 +215,36 @@ $fish-rain-light: rgba($fish-tide, 0.3);
 $fish-rain-medium: rgba($fish-tide, 0.52);
 $fish-rain-heavy: rgba($fish-tide, 0.76);
 $fish-rain-storm: $fish-tide;
+
+/* ── 分钟降水的深色材质面 ──
+   分钟降水卡不走玻璃面，走一块深色的「降水材质面」：整块卡沉下去，
+   柱子是浮在面上的一排釉柱。
+
+   为什么这块面可以是深色而别的卡不行：
+   - 这张卡讲的是雨。雨的强弱要有对比才读得出来，浅底上的蓝柱分不出档。
+   - 它整屏只出现一次（数据页天气分区第一张），深色在这里是**强调**，
+     不是另起一套材质语言。
+   - 深色面上压白字：$fish-on-dark 已经是对深色面配好的白字一档。
+
+   柱色与浅色那四档不是同一组值：浅色面上用透明度叠四档明度，
+   深色面上叠不出来（底下是深色，透明叠上去只会更暗），
+   所以深色面另给一组实色明度档。仍然是同一色相（蓝），仍然只差明度。 */
+$fish-rain-deep-base: #0d1c2c; // 面底
+$fish-rain-deep-top: #16304a; // 面顶（线性渐变的亮端）
+$fish-rain-deep-bottom: #0b1724; // 面底（线性渐变的暗端）
+$fish-rain-deep-glow: rgba(0, 122, 255, 0.42); // 左上光晕
+$fish-rain-deep-glow-2: rgba(0, 122, 255, 0.16); // 右下光晕
+$fish-rain-deep-hairline: rgba(255, 255, 255, 0.14); // 深色面上的发丝线
+$fish-rain-deep-muted: rgba(255, 255, 255, 0.55); // 深色面上的次级文字
+
+/**
+ * 深色面上的雨强四档。
+ *
+ * 同一色相，四档明度 —— 与浅色那四档是同一个口径（档位仍由 utils/precip 判），
+ * 只是换了一组能压在深色面上的实色。
+ */
+$fish-rain-deep-none: rgba(255, 255, 255, 0.24); // 测到 0
+$fish-rain-deep-light: rgba(120, 180, 255, 0.42);
+$fish-rain-deep-medium: rgba(120, 180, 255, 0.66);
+$fish-rain-deep-heavy: rgba(150, 200, 255, 0.86);
+$fish-rain-deep-storm: #ffffff; // 暴雨：白，最亮的一档

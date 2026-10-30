@@ -143,3 +143,19 @@ export function formatSpan(spanMinutes: number): string {
   if (spanMinutes % 60 === 0) return `${spanMinutes / 60} 小时`;
   return `${spanMinutes} 分钟`;
 }
+
+/**
+ * 分钟偏移 → 人话。
+ *
+ * 「现在」/「35 分钟后」/「1 小时 10 分后」。
+ *
+ * 为什么写「后」不写「+35 分钟」：带方向的那个字就是这句话的结论，
+ * 读者先看时间再决定要不要算差。
+ */
+export function offsetLabel(offset: number): string {
+  if (offset <= 0) return '现在';
+  if (offset < 60) return `${offset} 分钟后`;
+  const hours = Math.floor(offset / 60);
+  const minutes = offset % 60;
+  return minutes ? `${hours} 小时 ${minutes} 分后` : `${hours} 小时后`;
+}

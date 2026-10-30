@@ -33,21 +33,34 @@
         离散数据编了一段并不存在的连续性 —— 雨是断续的，曲线会把两场雨
         之间的空当描成一条缓缓下滑的线，看着像雨没停。柱子只声称它知道的
         那一格。
+
+        深色面上这排柱子是**浮在面上**的釉柱，不是贴在面上的色块：
+        顶端一道亮边（inset shadow）让它读成一根立起来的柱，
+        暴雨那档再自带一圈辉光，一眼就看到雨最猛的那一格在哪。
       -->
-      <view class="curtain">
-        <view v-for="bucket in curtain.buckets" :key="bucket.index" class="curtain__col" @tap="select(bucket.index)">
-          <!--
-            选中标记：柱子顶端一个墨点。
-
-            读数轨道在图的下面，手指点了柱子之后视线要一路往下找，
-            这里给一个「就是你这一格」的锚点。
-          -->
-          <view v-if="bucket.index === selected" class="curtain__caret" />
-
-          <view class="minutely__bar" :class="barClass(bucket)" :style="barStyle(bucket)" />
+      <view class="minutely__plot">
+        <view class="minutely__band">
+          <view v-for="bucket in curtain.buckets" :key="bucket.index" class="minutely__col" @tap="select(bucket.index)">
+            <view class="minutely__bar" :class="barClass(bucket)" :style="barStyle(bucket)" />
+          </view>
         </view>
 
-        <!-- 现在：左边界上那道线，与横轴的「现在」刻度对齐 -->
+        <!--
+          读数浮标。
+
+          它长在被读的那根柱子头上：数值 + 档位 + 什么时候。
+          跟底部轨道那套「点了柱子再往下找」的读法相反 —— 眼睛不用离开柱子。
+
+          常态浮在峰值那一格上（峰值是这张卡最该被读到的一格）；
+          点别的格就跟着换过去。选中的格其余柱子压暗一档（dim to focus）。
+        -->
+        <view v-if="readout" class="minutely__chip-anchor" :class="chipAnchorClass" :style="chipStyle">
+          <view class="minutely__chip">
+            <text class="minutely__chip-main">{{ readout.main }}</text>
+            <text class="minutely__chip-sub">{{ readout.sub }}</text>
+          </view>
+        </view>
+
         <!--
           整段没有降水时的说明。
 
@@ -57,16 +70,14 @@
         <view v-if="isDry" class="minutely__dry">
           <text class="minutely__dry-label">{{ dryLabel }}</text>
         </view>
-
-        <view class="curtain__now" />
       </view>
 
-      <view class="curtain__ticks">
+      <view class="minutely__ticks">
         <text
           v-for="tick in curtain.ticks"
           :key="tick.offset"
-          class="curtain__tick"
-          :class="'curtain__tick--' + tick.anchor"
+          class="minutely__tick"
+          :class="'minutely__tick--' + tick.anchor"
           :style="{ left: tick.leftPct + '%' }"
         >
           {{ tick.label }}
@@ -103,37 +114,15 @@
       </view>
 
       <!--
-        读数轨道。
+        窗口合计。
 
-        两组内容叠在同一个格子里交叉淡入，写法跟 LineChart 的轨道一致
-        （绝对定位 + 基态藏起来 + 修饰类显出来）。
+        浮标读的是「某一格」，这里读的是「整段」—— 两件事，不重复。
+        合计只有一行，不做成轨道：轨道是给两套读数交叉淡入用的，
+        这里只有一套。
       -->
-      <view class="minutely__rail">
-        <!-- 常态：没选中任何一格时给这段窗口的总量 -->
-        <view class="minutely__slot" :class="{ 'minutely__slot--idle': selected === null }">
-          <text class="minutely__rail-label">累计降水</text>
-          <view class="minutely__rail-row">
-            <text class="minutely__rail-value">{{ curtain.total.toFixed(1) }}</text>
-            <text class="minutely__rail-unit">毫米</text>
-            <view v-if="peakTag" class="minutely__tag">
-              <view class="minutely__dot" :class="'minutely__dot--' + peakTag.level" />
-              <text class="minutely__tag-text">峰值 {{ peakTag.label }}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 激活：当前选中那一格的读数 -->
-        <view class="minutely__slot" :class="{ 'minutely__slot--active': selected !== null }">
-          <text class="minutely__rail-label">{{ activeLabel }}</text>
-          <view class="minutely__rail-row">
-            <text class="minutely__rail-value">{{ activeValue }}</text>
-            <text class="minutely__rail-unit">毫米 / 5 分钟</text>
-            <view class="minutely__tag">
-              <view v-if="activeLevel" class="minutely__dot" :class="'minutely__dot--' + activeLevel" />
-              <text class="minutely__tag-text">{{ activeTag }}</text>
-            </view>
-          </view>
-        </view>
+      <view class="minutely__total">
+        <text class="minutely__total-label">两小时累计</text>
+        <text class="minutely__total-value">{{ curtain.total.toFixed(1) }} 毫米</text>
       </view>
     </view>
 
@@ -150,6 +139,10 @@
  * 正在下雨的那一小时里它只能给一个平均值；分钟降水给的是接下来两小时的
  * 逐 5 分钟累计量 —— 雨什么时候到、什么时候停，一眼看得出来。
  *
+ * 这张卡是全项目第二块「有颜色的面」（第一块是当前天气卡）：
+ * 深色的降水泥面。浅底上的浅蓝柱分不出雨强档位，深底上柱子自己发光，
+ * 四档才拉得开。代价是它跟同页的玻璃卡不是一套材质语言。
+ *
  * 图用「雨幕」：一格一根柱子，不画曲线。理由写在模板里那段注释中。
  *
  * 上游只覆盖中国区域，所以这张卡取不到数是常态而不是异常：
@@ -159,9 +152,19 @@ import { computed, ref, watch } from 'vue';
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import type { MinutelyBucket } from '@/types/fishing';
-import { buildMinutelyCurtain, formatSpan, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
+import { buildMinutelyCurtain, formatSpan, offsetLabel, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
 
 const mapStore = useFishingMapStore();
+
+/**
+ * 绘图区与柱阵的高度（rpx）。
+ *
+ * 这两个数跟样式里的 .minutely__plot / .minutely__band 是一对：
+ * 柱高按柱阵的高度算百分比，浮标的 bottom 按绘图区的高度算百分比，
+ * 两个基准不同，换算的时候要拿它们相除。
+ */
+const PLOT_HEIGHT = 280;
+const BAND_HEIGHT = 200;
 
 const points = computed(() => mapStore.minutelyForecast?.points ?? []);
 
@@ -198,7 +201,7 @@ const selected = ref<number | null>(null);
  * 数据换了就把选择清掉。
  *
  * 下标是这一份数据里的下标，新一份数据的第 12 格可能完全不是同一段时间 ——
- * 留着旧下标，轨道上会读出一格不相干的读数。
+ * 留着旧下标，浮标会指在一格不相干的数据上。
  */
 watch(
   () => mapStore.minutelyForecast,
@@ -207,22 +210,115 @@ watch(
   },
 );
 
-/** 点柱子：选中这一格。再点一下同一格，取消选择，回到窗口总量 */
+/** 点柱子：读这一格。再点一下同一格，取消读数，回到常态 */
 function select(index: number) {
   selected.value = selected.value === index ? null : index;
 }
 
+/**
+ * 峰值格。
+ *
+ * 峰值是 0 时不算峰值 —— 整段都是 0 的话「峰值」是句废话，
+ * 读者要的「无降水」由干态那段话给。
+ */
+const peak = computed(() => {
+  const bucket = curtain.value.peak;
+  if (!bucket || bucket.value === null || bucket.value <= 0) return null;
+  return bucket;
+});
+
+/**
+ * 浮标读哪一格。
+ *
+ * 常态读峰值：峰值是这张卡最该被读到的一格，不该要用户点一下才看得到。
+ * 点了别的格就改读那一格。
+ */
+const readoutBucket = computed(() => {
+  if (selected.value === null) return peak.value;
+  return curtain.value.buckets[selected.value] ?? null;
+});
+
+/** 浮标上的两行字 */
+const readout = computed(() => {
+  const bucket = readoutBucket.value;
+  if (!bucket) return null;
+
+  if (bucket.value === null) {
+    return { main: '无数据', sub: offsetLabel(bucket.offset) };
+  }
+
+  const level = precipLevelLabel(bucket.level ?? 'none');
+  // 常态（读的是峰值）说「峰值」；点了别的格说「什么时候」。
+  const where = selected.value === null ? `峰值 · ${level}` : `${offsetLabel(bucket.offset)} · ${level}`;
+  return { main: `${bucket.value.toFixed(2)} 毫米`, sub: where };
+});
+
+/**
+ * 浮标的横向锚点。
+ *
+ * 浮标比一根柱子宽，落在最左或最右那一格时会探出卡外。
+ * 所以按列的首尾换锚：首格靠左、末格靠右、中间居中。
+ *
+ * 中间那档的居中位移要用 transform，而入场动画也要用 transform ——
+ * 同一个元素上这两个互相覆盖（后写的赢），所以位移放在外层的锚点元素上，
+ * 动画留给里面的浮标本体。
+ */
+const chipAnchorClass = computed(() => {
+  const index = readoutBucket.value?.index ?? -1;
+  const last = curtain.value.buckets.length - 1;
+  if (index <= 0) return 'minutely__chip-anchor--start';
+  if (index >= last) return 'minutely__chip-anchor--end';
+  return 'minutely__chip-anchor--mid';
+});
+
+/**
+ * 浮标的位置。
+ *
+ * 横向钉在被读那一列的中心（中间那档）；首尾两列的横向由类给，
+ * 这里不再写 left，免得把「靠左 / 靠右」的锚覆盖掉。
+ *
+ * 纵向落在柱顶之上。这里有个容易踩的坑：柱高是「柱阵高度」的百分比，
+ * 而浮标的 bottom 是「绘图区高度」的百分比 —— 两者基准不同，
+ * 不换算的话浮标会浮在柱顶老高一块。
+ */
+const chipStyle = computed(() => {
+  const bucket = readoutBucket.value;
+  if (!bucket) return '';
+
+  // 柱阵 200rpx、绘图区 280rpx（常量与样式里的数字要对上）
+  const topPct = (bucket.heightPct ?? 0) * (BAND_HEIGHT / PLOT_HEIGHT);
+
+  // 缺测那一格没有柱高，浮标落到图底附近，压在虚线空框的下沿上 ——
+  // 它读的是「这一格」，位置得对得上那一列。
+  const bottom = bucket.value === null ? 3 : topPct + 1;
+
+  const style = [`bottom: ${bottom.toFixed(1)}%;`];
+
+  const count = curtain.value.buckets.length;
+  if (bucket.index > 0 && bucket.index < count - 1) {
+    const center = ((bucket.index + 0.5) / count) * 100;
+    style.push(`left: ${center.toFixed(2)}%;`);
+  }
+
+  return style.join(' ');
+});
+
 /** 柱子属于哪一档 —— 决定它的颜色 */
 function barClass(bucket: MinutelyBucket): string {
   if (bucket.value === null) return 'minutely__bar--gap';
-  return `minutely__bar--${bucket.level ?? 'none'}`;
+
+  const level = bucket.level ?? 'none';
+  // 选中别格时，这一格不是主角，压暗一档（dim to focus）。
+  const dim = selected.value !== null && selected.value !== bucket.index ? ' minutely__bar--dim' : '';
+  return `minutely__bar--${level}${dim}`;
 }
 
 /**
  * 柱子的高度与入场延迟。
  *
- * 高度是百分比（相对绘图区），落在行内样式里 —— 格子数是上游给的，
- * 写死在 CSS 里就得跟着上游改。
+ * 高度是百分比，基准是**柱阵**（200rpx 那段），不是整个绘图区 ——
+ * 绘图区顶部留了 80rpx 给浮标，柱子不长在那里。
+ * 格子数是上游给的，写死在 CSS 里就得跟着上游改，所以落在行内样式里。
  */
 function barStyle(bucket: MinutelyBucket): string {
   let height: string;
@@ -239,36 +335,6 @@ function barStyle(bucket: MinutelyBucket): string {
   // 逐格错开入场：柱子从左到右立起来，像雨幕一档档拉开
   return `height: ${height}; animation-delay: ${bucket.index * 14}ms;`;
 }
-
-/** 选中格子的读数 */
-const active = computed(() => (selected.value === null ? null : (curtain.value.buckets[selected.value] ?? null)));
-
-const activeLabel = computed(() => {
-  const bucket = active.value;
-  if (!bucket) return '';
-  return bucket.offset === 0 ? '现在' : `${bucket.offset}分钟后`;
-});
-
-/** 选中格子的数值。没有数据时给一个破折号，不给 0 */
-const activeValue = computed(() => {
-  const bucket = active.value;
-  if (!bucket) return '';
-  return bucket.value === null ? '—' : bucket.value.toFixed(2);
-});
-
-/** 选中格子的档位（决定色点）。没有数据时为 null */
-const activeLevel = computed(() => {
-  const bucket = active.value;
-  if (!bucket || bucket.value === null) return null;
-  return bucket.level ?? 'none';
-});
-
-const activeTag = computed(() => {
-  const bucket = active.value;
-  if (!bucket) return '';
-  if (bucket.value === null) return '无数据';
-  return precipLevelLabel(bucket.level ?? 'none');
-});
 
 /**
  * 整段没有降水。
@@ -292,29 +358,18 @@ const dryLabel = computed(() => {
   const gap = curtain.value.buckets.some((bucket) => bucket.value === null);
   return gap ? '无降水（部分时段缺测）' : '无降水';
 });
-
-/**
- * 峰值标签。
- *
- * 整段没有降水时不挂这个标签 ——「峰值 无降水」是一句废话，
- * 峰值本来就是 0，读者要的信息图上那句结论已经给了。
- */
-const peakTag = computed(() => {
-  const peak = curtain.value.peak;
-  if (!peak || peak.value === null || peak.value <= 0) return null;
-  const level = peak.level ?? 'none';
-  return { level, label: precipLevelLabel(level) };
-});
 </script>
 
 <style lang="scss" scoped>
 /*
  * 卡片外壳。
  *
- * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ * 深色降水材质面（fish-rain-deep）。不是玻璃面 —— 雨强四档是四档明度，
+ * 浅底上的浅蓝柱分不出档，深底上柱子自己发光才拉得开。
  */
 .minutely {
-  @include fish-card;
+  @include fish-rain-deep;
+  padding: 28rpx;
 }
 
 .minutely__head {
@@ -322,48 +377,51 @@ const peakTag = computed(() => {
 }
 
 .minutely__title {
-  @include fish-card-title;
+  color: $fish-on-dark;
+  @include fish-type(headline);
 }
 
 .minutely__meta {
-  @include fish-card-meta;
+  color: $fish-rain-deep-muted;
+  @include fish-type(caption2);
 }
 
 /*
  * 上游那句话。
  *
- * 它是结论不是注脚，所以给正文的字阶与墨色 —— 压成灰色小字就成了一句
+ * 它是结论不是注脚，所以给正文的字阶 —— 压成灰色小字就成了一句
  * 容易被划过去的补充说明，而它恰恰是这张卡最该被先读到的内容。
  */
 .minutely__summary {
   display: block;
   margin-bottom: 20rpx;
-  color: $fish-ink;
+  color: rgba(255, 255, 255, 0.92);
   @include fish-type(subhead);
 }
 
+/* 深色面上的骨架块：白字压一点点透明度，跟玻璃面上的那一档不是一个深浅 */
 .minutely__skeleton-summary {
   width: 320rpx;
   height: 28rpx;
   margin-bottom: 20rpx;
   border-radius: $fish-radius-sm;
-  background-color: $fish-surface;
+  background-color: rgba(255, 255, 255, 0.12);
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 /* 图区的高度照着真图来：数据到了不换版，页面不会往下跳一截 */
 .minutely__skeleton-plot {
   width: 100%;
-  height: 200rpx;
+  height: 280rpx;
   border-radius: $fish-radius-xl;
-  background-color: $fish-surface;
+  background-color: rgba(255, 255, 255, 0.12);
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
 .minutely__empty {
   display: block;
   padding: 64rpx 0;
-  color: $fish-muted-60;
+  color: $fish-rain-deep-muted;
   @include fish-type(subhead);
   text-align: center;
 }
@@ -371,6 +429,170 @@ const peakTag = computed(() => {
 /* ===========================================================================
    雨幕
    =========================================================================== */
+
+/*
+ * 绘图区。
+ *
+ * 顶部留 80rpx 给浮标（它要浮在柱顶之上），下面 200rpx 是柱阵。
+ * 这段留白是给读数留的：柱子最高就是柱顶，浮标没有地方站。
+ */
+.minutely__plot {
+  position: relative;
+  height: 280rpx;
+}
+
+.minutely__band {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  height: 200rpx;
+}
+
+.minutely__col {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+}
+
+/*
+ * 釉柱。
+ *
+ * 顶端一道 1rpx 亮边（inset shadow）让它读成一根立起来的柱，
+ * 而不是一块贴在深色面上的浅蓝方块。
+ */
+.minutely__bar {
+  width: 18rpx;
+  border-radius: 6rpx 6rpx 2rpx 2rpx;
+  transform-origin: bottom center;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.35);
+
+  @if $fish-motion {
+    animation: curtain-rise 520ms $fish-ease-out both;
+  }
+}
+
+/*
+ * 暴雨那档自带一圈辉光：它是雨最猛的一格，整张卡最该被先看到的一格。
+ */
+.minutely__bar--storm {
+  background-color: $fish-rain-deep-storm;
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.6),
+    0 0 16rpx rgba(255, 255, 255, 0.4);
+}
+
+/*
+ * 测到 0 雨的那一格。
+ *
+ * 用 $fish-rain-deep-none 而不是 $fish-surface：surface 那一档淡到几乎看不见，
+ * 整段无雨的时候图上就只剩一片空白，看着像图没加载出来。
+ */
+.minutely__bar--none {
+  background-color: $fish-rain-deep-none;
+}
+
+.minutely__bar--light {
+  background-color: $fish-rain-deep-light;
+}
+
+.minutely__bar--medium {
+  background-color: $fish-rain-deep-medium;
+}
+
+.minutely__bar--heavy {
+  background-color: $fish-rain-deep-heavy;
+}
+
+/*
+ * 选中别格时，这一格不是主角，压暗一档。
+ *
+ * 只压柱身不动高度：高度是数据，压高度等于改数据。
+ */
+.minutely__bar--dim {
+  opacity: 0.45;
+
+  @if $fish-motion {
+    transition: opacity $fish-dur-cross $fish-ease-out;
+  }
+}
+
+/*
+ * 没有数据的那一格。
+ *
+ * 画成虚线空框，而不是一根 0 高度的柱子：0 高度是「这一格测到没下雨」，
+ * 虚线空框是「这一格没测到」。两件事在图上必须长得不一样。
+ */
+.minutely__bar--gap {
+  border: 1rpx dashed $fish-rain-deep-hairline;
+  background-color: transparent;
+  box-shadow: none;
+
+  @if $fish-motion {
+    animation-name: curtain-fade;
+  }
+}
+
+/*
+ * 读数浮标。
+ *
+ * 一块白牌浮在柱子上：深色面上它是全图唯一的高对比小块，
+ * 眼睛先落在它身上，再往下找到那根柱 —— 与其在图底开一条轨道让视线上下跑，
+ * 不如把读数钉在它所描述的那一格头上。
+ *
+ * 分成锚点 + 本体两层：锚点负责「在哪」（横向位移 + 纵向位置），
+ * 本体负责「长什么样」以及入场动画。
+ * 横向居中靠 transform，而入场动画也要用 transform —— 同一个元素上
+ * 这两个会互相覆盖（后写的赢），所以各占一层。
+ */
+.minutely__chip-anchor {
+  position: absolute;
+}
+
+.minutely__chip {
+  padding: 6rpx 14rpx;
+  border-radius: $fish-radius-lg;
+  background-color: #ffffff;
+  box-shadow: 0 4rpx 14rpx rgba(0, 0, 0, 0.32);
+
+  @if $fish-motion {
+    animation: chip-in 260ms $fish-spring both;
+  }
+}
+
+/* 首格靠左、末格靠右：浮标比柱子宽，不换锚会探出卡外 */
+.minutely__chip-anchor--start {
+  left: 0;
+}
+
+.minutely__chip-anchor--mid {
+  transform: translateX(-50%);
+}
+
+.minutely__chip-anchor--end {
+  right: 0;
+}
+
+.minutely__chip-main {
+  display: block;
+  color: $fish-ink;
+  @include fish-type(footnote);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.minutely__chip-sub {
+  display: block;
+  margin-top: 2rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+  white-space: nowrap;
+}
 
 /*
  * 干态说明。
@@ -397,108 +619,8 @@ const peakTag = computed(() => {
 }
 
 .minutely__dry-label {
-  color: $fish-muted;
+  color: $fish-rain-deep-muted;
   @include fish-type(subhead);
-}
-
-/*
- * 绘图区。
- *
- * 柱子从下往上长：每一格是等宽的一列，列里的柱子贴着底边。
- */
-.curtain {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  height: 200rpx;
-}
-
-.curtain__col {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  flex: 1;
-  height: 100%;
-}
-
-.minutely__bar {
-  width: 18rpx;
-  border-radius: 6rpx 6rpx 2rpx 2rpx;
-  transform-origin: bottom center;
-
-  @if $fish-motion {
-    animation: curtain-rise 520ms $fish-ease-out both;
-  }
-}
-
-/*
- * 测到 0 雨的那一格。
- *
- * 用 $fish-faint 而不是 $fish-surface：surface 那一档淡到几乎看不见，
- * 整段无雨的时候图上就只剩一片空白，看着像图没加载出来。
- * faint 是「不是文字的极淡填充」这一档，正是短桩该用的。
- */
-.minutely__bar--none {
-  background-color: $fish-faint;
-}
-
-.minutely__bar--light {
-  background-color: $fish-rain-light;
-}
-
-.minutely__bar--medium {
-  background-color: $fish-rain-medium;
-}
-
-.minutely__bar--heavy {
-  background-color: $fish-rain-heavy;
-}
-
-.minutely__bar--storm {
-  background-color: $fish-rain-storm;
-}
-
-/*
- * 没有数据的那一格。
- *
- * 画成虚线空框，而不是一根 0 高度的柱子：0 高度是「这一格测到没下雨」，
- * 虚线空框是「这一格没测到」。两件事在图上必须长得不一样。
- */
-.minutely__bar--gap {
-  border: 1rpx dashed $fish-border-40;
-  background-color: transparent;
-
-  @if $fish-motion {
-    animation-name: curtain-fade;
-  }
-}
-
-/*
- * 选中标记。
- *
- * 一个墨点，不是一根线：柱子的高矮差很多，线容易跟柱子混在一起，
- * 点则只说明「这一列被选中了」。
- */
-.curtain__caret {
-  position: absolute;
-  top: -6rpx;
-  left: 50%;
-  width: 12rpx;
-  height: 12rpx;
-  margin-left: -6rpx;
-  border-radius: 50%;
-  background-color: $fish-ink;
-}
-
-/* 现在：绘图区左边界上那道线 */
-.curtain__now {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1rpx;
-  background-color: $fish-border-40;
 }
 
 /*
@@ -506,25 +628,25 @@ const peakTag = computed(() => {
  *
  * 刻度按各自那一格的位置摆（不等距），所以用绝对定位落在百分比上。
  */
-.curtain__ticks {
+.minutely__ticks {
   position: relative;
   height: 32rpx;
   margin-top: 8rpx;
 }
 
-.curtain__tick {
+.minutely__tick {
   position: absolute;
   top: 0;
-  color: $fish-muted-60;
+  color: $fish-rain-deep-muted;
   @include fish-type(caption2);
   white-space: nowrap;
 }
 
-.curtain__tick--mid {
+.minutely__tick--mid {
   transform: translateX(-50%);
 }
 
-.curtain__tick--end {
+.minutely__tick--end {
   transform: translateX(-100%);
 }
 
@@ -537,7 +659,7 @@ const peakTag = computed(() => {
   align-items: center;
   margin-top: 8rpx;
   padding-top: 18rpx;
-  border-top: 1rpx solid $fish-border-40;
+  border-top: 1rpx solid $fish-rain-deep-hairline;
 }
 
 .minutely__legend-chip {
@@ -559,131 +681,53 @@ const peakTag = computed(() => {
 
 /* 「无降水」色块：跟「测到 0」的短柱同一个色 */
 .minutely__swatch--none {
-  background-color: $fish-faint;
+  background-color: $fish-rain-deep-none;
 }
 
 .minutely__swatch--light {
-  background-color: $fish-rain-light;
+  background-color: $fish-rain-deep-light;
 }
 
 .minutely__swatch--medium {
-  background-color: $fish-rain-medium;
+  background-color: $fish-rain-deep-medium;
 }
 
 .minutely__swatch--heavy {
-  background-color: $fish-rain-heavy;
+  background-color: $fish-rain-deep-heavy;
 }
 
 .minutely__swatch--storm {
-  background-color: $fish-rain-storm;
+  background-color: $fish-rain-deep-storm;
 }
 
 .minutely__legend-label {
-  color: $fish-muted;
+  color: $fish-rain-deep-muted;
   @include fish-type(caption2);
 }
 
 /* ===========================================================================
-   读数轨道
+   窗口合计
    =========================================================================== */
 
-/*
- * 两个状态叠在同一个格子里交叉淡入。
- *
- * 基态是「藏起来并下移 4rpx」，两个修饰类都是「显出来」——
- * 写法跟 LineChart 的轨道一致，两处读数轨道是同一套行为。
- */
-.minutely__rail {
-  position: relative;
-  height: 132rpx;
-  margin-top: 20rpx;
-  border-top: 1rpx solid $fish-border-40;
-}
-
-.minutely__slot {
-  position: absolute;
-  top: 18rpx;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  opacity: 0;
-  transform: translateY(4rpx);
-
-  @if $fish-motion {
-    transition:
-      opacity $fish-dur-cross $fish-ease-out,
-      transform $fish-dur-cross $fish-ease-out;
-  }
-}
-
-.minutely__slot--idle,
-.minutely__slot--active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.minutely__rail-label {
-  display: block;
-  margin-bottom: 6rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-.minutely__rail-row {
+.minutely__total {
   display: flex;
   align-items: baseline;
+  margin-top: 18rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid $fish-rain-deep-hairline;
 }
 
-.minutely__rail-value {
-  color: $fish-ink;
+.minutely__total-label {
+  color: $fish-rain-deep-muted;
+  @include fish-type(caption2);
+}
+
+.minutely__total-value {
+  margin-left: 10rpx;
+  color: $fish-on-dark;
   @include fish-type(subhead);
   font-weight: 600;
-}
-
-.minutely__rail-unit {
-  margin-left: 6rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-/* 档位标签：色点 + 档位名。跟 LineChart 的分档标记同一套做法 */
-.minutely__tag {
-  display: flex;
-  align-items: center;
-  margin-left: 16rpx;
-}
-
-.minutely__dot {
-  align-self: center;
-  width: 14rpx;
-  height: 14rpx;
-  margin-right: 8rpx;
-  border-radius: 50%;
-}
-
-.minutely__dot--none {
-  background-color: $fish-faint;
-}
-
-.minutely__dot--light {
-  background-color: $fish-rain-light;
-}
-
-.minutely__dot--medium {
-  background-color: $fish-rain-medium;
-}
-
-.minutely__dot--heavy {
-  background-color: $fish-rain-heavy;
-}
-
-.minutely__dot--storm {
-  background-color: $fish-rain-storm;
-}
-
-.minutely__tag-text {
-  color: $fish-muted;
-  @include fish-type(caption2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ===========================================================================
@@ -718,6 +762,23 @@ const peakTag = computed(() => {
 
   to {
     opacity: 1;
+  }
+}
+
+/*
+ * 浮标入场。
+ *
+ * 从柱顶往上浮一点 + 淡入：它是被「读」出来的，不是从天上掉下来的。
+ */
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

@@ -24,3 +24,29 @@
   backdrop-filter: blur($fish-blur) saturate(1.8);
   -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
 }
+
+/**
+ * 分钟降水的深色面。
+ *
+ * 全项目第二块「有颜色的面」（第一块是当前天气卡）。它跟玻璃面不是一回事：
+ * 玻璃面是**半透明的白**，靠底下的环境色透上来分层；这一块是**不透明的深色**，
+ * 整块沉进页面底色里，柱子是浮在它上面的一排釉柱。
+ *
+ * 为什么这里不用玻璃：雨强四档是四档明度，浅底上的浅蓝柱分不出档 ——
+ * 深底上柱子自己发光，四档才拉得开。
+ *
+ * 两团光晕的位置与当前天气卡相反：那张左上托温度、右上托图标；
+ * 这张左上托柱阵的起点、右下托峰值那一头 —— 雨是从现在往未来下，
+ * 光的方向跟着雨的方向走。
+ */
+@mixin fish-rain-deep {
+  border-radius: $fish-radius-card;
+  background-color: $fish-rain-deep-base;
+  background-image:
+    radial-gradient(circle at 18% 0%, $fish-rain-deep-glow, transparent 58%),
+    radial-gradient(circle at 92% 108%, $fish-rain-deep-glow-2, transparent 60%),
+    linear-gradient(180deg, $fish-rain-deep-top 0%, $fish-rain-deep-bottom 100%);
+  box-shadow:
+    $shadow-rain-deep,
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.1);
+}
