@@ -37,10 +37,21 @@
         深色面上这排柱子是**浮在面上**的釉柱，不是贴在面上的色块：
         顶端一道亮边（inset shadow）让它读成一根立起来的柱，
         暴雨那档再自带一圈辉光，一眼就看到雨最猛的那一格在哪。
+
+        手指划过图，读数跟着走：一格一格地扫过去，浮标实时报出那一格
+        下了多少、什么时候、什么档位。事件挂在绘图区而不是某一根柱子上 ——
+        手指压住的是柱顶还是柱子之间的空当，读的人不关心，他要的是
+        「我现在指着第几格」。
       -->
-      <view class="minutely__plot">
-        <view class="minutely__band">
-          <view v-for="bucket in curtain.buckets" :key="bucket.index" class="minutely__col" @tap="select(bucket.index)">
+      <view
+        class="minutely__plot"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+        @touchcancel="onTouchCancel"
+      >
+        <view :id="bandId" class="minutely__band">
+          <view v-for="bucket in curtain.buckets" :key="bucket.index" class="minutely__col">
             <view class="minutely__bar" :class="barClass(bucket)" :style="barStyle(bucket)" />
           </view>
         </view>
@@ -53,8 +64,11 @@
 
           常态浮在峰值那一格上（峰值是这张卡最该被读到的一格）；
           点别的格就跟着换过去。选中的格其余柱子压暗一档（dim to focus）。
+
+          等柱阵量过宽度才出现：浮标收边要靠那个宽度算（见 CHIP_MAX_WIDTH），
+          没有它就先摆位置、量回来再滑过去 —— 边缘那几格会先探出卡外一下。
         -->
-        <view v-if="readout" class="minutely__chip-anchor" :class="chipAnchorClass" :style="chipStyle">
+        <view v-if="readout && bandBox.width > 0" class="minutely__chip-anchor" :style="chipStyle">
           <view class="minutely__chip">
             <text class="minutely__chip-main">{{ readout.main }}</text>
             <text class="minutely__chip-sub">{{ readout.sub }}</text>
@@ -148,13 +162,18 @@
  * 上游只覆盖中国区域，所以这张卡取不到数是常态而不是异常：
  * 失败时给一句空态，不弹 toast、不拖垮同一分区的其它卡。
  */
-import { computed, ref, watch } from 'vue';
+import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import type { MinutelyBucket } from '@/types/fishing';
 import { buildMinutelyCurtain, formatSpan, offsetLabel, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
+import { createSelectorQuery } from '@/utils/selectorQuery';
 
 const mapStore = useFishingMapStore();
+
+const instance = getCurrentInstance()!;
+/** 柱阵的节点 id。同一页里这张卡可能不止一份，id 得唯一 */
+const bandId = `minutely-band-${Math.random().toString(36).slice(2, 8)}`;
 
 /**
  * 绘图区与柱阵的高度（rpx）。
@@ -210,9 +229,178 @@ watch(
   },
 );
 
-/** 点柱子：读这一格。再点一下同一格，取消读数，回到常态 */
-function select(index: number) {
-  selected.value = selected.value === index ? null : index;
+/* ===========================================================================
+   触摸读数
+   =========================================================================== */
+
+/**
+ * 柱阵在**视口**里的位置。
+ *
+ * 触摸换算要用：touches[0].clientX 是视口坐标，而「手指落在第几格」要靠
+ * 横向落在第几个等分算出来 —— 两者之间差的就是这个左边距和这段宽度。
+ * 少了左边距，选中的格子会整体偏右一个绘图区的宽度。
+ *
+ * 只记横向：页面纵向滚动不改变 left，滚动不会让读数指错格子。
+ *
+ * width 同时也是绘图区的宽度（柱阵是绘图区里 left:0/right:0 铺满的那层），
+ * 夹浮标位置时要用。
+ *
+ * 用 ref 而不是普通变量：浮标的位置要靠它算，量回来的值得能触发重算。
+ */
+const bandBox = ref({ left: 0, width: 0 });
+
+/**
+ * 量一次柱阵的位置。
+ *
+ * 柱阵是 flex 等分的，宽度跟着卡片走，所以卡片一换行（横竖屏、数据重排）
+ * 就得重量。这里在两个时机量：柱阵第一次出现（数据到达），
+ * 以及手势开始（用户真的要指了）—— 后者顺带把换行后的新位置补上。
+ */
+function measureBand(): void {
+  createSelectorQuery(instance)
+    .select(`#${bandId}`)
+    .boundingClientRect()
+    .exec((res) => {
+      const rect = (Array.isArray(res?.[0]) ? res?.[0][0] : res?.[0]) as { left?: number; width?: number } | undefined;
+      if (typeof rect?.left !== 'number' || typeof rect?.width !== 'number') return;
+      bandBox.value = { left: rect.left, width: rect.width };
+    });
+}
+
+/** 柱阵出现之后量一次（数据是异步到的，挂载时图上还没有柱子） */
+watch(hasData, () => {
+  nextTick(measureBand);
+});
+
+onMounted(() => {
+  nextTick(measureBand);
+});
+
+/**
+ * 横向坐标 → 格子下标。
+ *
+ * 格子等宽（flex: 1），所以就是「落在第几个等分里」。
+ *
+ * 手指落在图外就钉到最近的一格：拖着划出图的边缘时读数不该凭空消失，
+ * 边缘那几格正是「雨什么时候停」的答案所在。
+ */
+function pickIndex(clientX: number): number | null {
+  const count = curtain.value.buckets.length;
+  const { left, width } = bandBox.value;
+  if (count === 0 || width <= 0) return null;
+
+  const x = clientX - left;
+  if (x <= 0) return 0;
+  if (x >= width) return count - 1;
+  return Math.min(count - 1, Math.floor((x / width) * count));
+}
+
+/**
+ * 手势状态。
+ *
+ * 一次手势要分清三种情况：
+ * - **点了一下**：读它压着的那一格；点在已选中的那一格上就是取消读数。
+ * - **横向划过**：读数跟着手指一格一格走。
+ * - **纵向滑动**：用户在滚页面，读数一个字都不该动。
+ *
+ * 方向在越过 slop 的第一次移动上判定一次就锁定：判定之前不动读数
+ * （还不知道这是划还是滚），判定之后不再改判（半路改判会让读数跳）。
+ */
+let gestureStartX = 0;
+let gestureStartY = 0;
+/** 手指按下时落在哪一格 */
+let gestureStartIndex: number | null = null;
+/** 手势开始前选中的是哪一格（用来分辨「再点一次」） */
+let gestureStartSelected: number | null = null;
+/** 方向判没判 */
+let gestureDecided = false;
+/** 判定的结果：横向划过才动读数 */
+let gestureScrubbing = false;
+
+/**
+ * 判定「动了一下」的位移门槛（px）。
+ *
+ * 8px 是手指的正常抖动量级：小于它的位移当作没动，
+ * 于是「点一下」和「轻轻蹭一下」不会被当成划过。
+ */
+const TOUCH_SLOP = 8;
+
+function resetGesture(): void {
+  gestureStartIndex = null;
+  gestureStartSelected = null;
+  gestureDecided = false;
+  gestureScrubbing = false;
+}
+
+/**
+ * 手指落下。
+ *
+ * 这里只记位置，不动读数：手指刚落、还没动，此刻还不知道用户是要读这一格
+ * 还是要滚页面 —— 先改了读数，滚页面时读数就跟着乱跳。
+ */
+function onTouchStart(e: TouchEvent) {
+  const touch = e.touches[0];
+  if (!touch) return;
+
+  // 顺手补量：卡片换行后位置变了，这一量就把它带回来
+  measureBand();
+
+  gestureStartX = touch.clientX;
+  gestureStartY = touch.clientY;
+  gestureStartSelected = selected.value;
+  gestureStartIndex = pickIndex(touch.clientX);
+  gestureDecided = false;
+  gestureScrubbing = false;
+}
+
+/**
+ * 手指移动。
+ *
+ * 横向位移明显大于纵向位移 → 用户在划图，读数跟着换格；
+ * 纵向位移更大 → 用户在滚页面，这次手势不碰读数。
+ */
+function onTouchMove(e: TouchEvent) {
+  const touch = e.touches[0];
+  if (!touch) return;
+
+  if (!gestureDecided) {
+    const dx = touch.clientX - gestureStartX;
+    const dy = touch.clientY - gestureStartY;
+
+    // 还没动过：先攒着
+    if (Math.abs(dx) < TOUCH_SLOP && Math.abs(dy) < TOUCH_SLOP) return;
+
+    gestureDecided = true;
+    gestureScrubbing = Math.abs(dx) > Math.abs(dy);
+    if (!gestureScrubbing) return;
+  } else if (!gestureScrubbing) {
+    return;
+  }
+
+  const index = pickIndex(touch.clientX);
+  if (index === null) return;
+
+  selected.value = index;
+}
+
+/**
+ * 抬手。
+ *
+ * - 手势没被判成划过（手指基本没动）→ 是一次「点」：读它压着的那一格；
+ *   点在已选中的那一格上就取消读数，回到常态。
+ * - 划过 → 保留最后读到的那格。抬手正是要读数的时刻，一抬手数字就没了，
+ *   等于逼用户用一根手指同时看和记。
+ */
+function onTouchEnd() {
+  if (!gestureDecided && gestureStartIndex !== null) {
+    selected.value = gestureStartSelected === gestureStartIndex ? null : gestureStartIndex;
+  }
+  resetGesture();
+}
+
+/** 手势被系统打断（来电、页面切走）：保留当前读数，只把手势状态清掉 */
+function onTouchCancel() {
+  resetGesture();
 }
 
 /**
@@ -254,28 +442,27 @@ const readout = computed(() => {
 });
 
 /**
- * 浮标的横向锚点。
+ * 浮标的最大宽度（rpx，含左右内边距）。
  *
- * 浮标比一根柱子宽，落在最左或最右那一格时会探出卡外。
- * 所以按列的首尾换锚：首格靠左、末格靠右、中间居中。
+ * 浮标比一根柱子宽得多：一格柱才 10 几 rpx，浮标两百多 rpx。
+ * 所以浮标的中心一旦贴近图的左右边缘，它就会探出卡外 ——
+ * 探出卡外不是「看起来有点挤」，是给整页加了一条横向滚动范围：
+ * 页面能左右滑了，底下的东西跟着错位。
  *
- * 中间那档的居中位移要用 transform，而入场动画也要用 transform ——
- * 同一个元素上这两个互相覆盖（后写的赢），所以位移放在外层的锚点元素上，
- * 动画留给里面的浮标本体。
+ * 所以浮标的位置要**夹**在图内：中心不许越过「半个浮标宽」到边缘的距离。
+ * 夹的基准就是这个上限宽度，样式里 .minutely__chip 的 max-width 与它对应 ——
+ * 两处对不上，浮标还是会探出去（改样式时这个数要一起改）。
  */
-const chipAnchorClass = computed(() => {
-  const index = readoutBucket.value?.index ?? -1;
-  const last = curtain.value.buckets.length - 1;
-  if (index <= 0) return 'minutely__chip-anchor--start';
-  if (index >= last) return 'minutely__chip-anchor--end';
-  return 'minutely__chip-anchor--mid';
-});
+const CHIP_MAX_WIDTH = 300;
+
+/** 半个浮标宽（px）。夹位置时用 */
+const CHIP_HALF_PX = uni.upx2px(CHIP_MAX_WIDTH) / 2;
 
 /**
  * 浮标的位置。
  *
- * 横向钉在被读那一列的中心（中间那档）；首尾两列的横向由类给，
- * 这里不再写 left，免得把「靠左 / 靠右」的锚覆盖掉。
+ * 横向钉在被读那一列的中心，然后**夹**在图内（见 CHIP_MAX_WIDTH 的注释）：
+ * 贴着边缘的那几列，浮标停在离边缘半个浮标宽的地方，不再探出去。
  *
  * 纵向落在柱顶之上。这里有个容易踩的坑：柱高是「柱阵高度」的百分比，
  * 而浮标的 bottom 是「绘图区高度」的百分比 —— 两者基准不同，
@@ -292,15 +479,15 @@ const chipStyle = computed(() => {
   // 它读的是「这一格」，位置得对得上那一列。
   const bottom = bucket.value === null ? 3 : topPct + 1;
 
-  const style = [`bottom: ${bottom.toFixed(1)}%;`];
-
   const count = curtain.value.buckets.length;
-  if (bucket.index > 0 && bucket.index < count - 1) {
-    const center = ((bucket.index + 0.5) / count) * 100;
-    style.push(`left: ${center.toFixed(2)}%;`);
-  }
+  const center = ((bucket.index + 0.5) / count) * 100;
 
-  return style.join(' ');
+  // 夹在图内：中心离边缘太近就把浮标拉回来，别让它探出卡外
+  const plotWidth = bandBox.value.width;
+  const halfPct = plotWidth > 0 ? (CHIP_HALF_PX / plotWidth) * 100 : 0;
+  const left = Math.min(Math.max(center, halfPct), 100 - halfPct);
+
+  return [`left: ${left.toFixed(2)}%;`, `bottom: ${bottom.toFixed(1)}%;`].join(' ');
 });
 
 /** 柱子属于哪一档 —— 决定它的颜色 */
@@ -552,6 +739,32 @@ const dryLabel = computed(() => {
  */
 .minutely__chip-anchor {
   position: absolute;
+
+  /*
+   * 浮标始终居中在被读那一列上。
+   *
+   * 居中位移用 transform：left 是「列中心的百分比」，而 transform 是
+   * 百分比对百分比，两条都能过渡，拖动时浮标是滑过去的。
+   *
+   * 入场动画也在 transform 上，但那是里面的浮标本体（见 .minutely__chip）——
+   * 同一个元素上这两个会互相覆盖（后写的赢），所以各占一层。
+   */
+  transform: translateX(-50%);
+
+  /*
+   * 浮标跟着手指滑。
+   *
+   * 划过图时读数是一格一格换的，浮标一跳一跳就看不出它指的是哪根柱；
+   * 给一条短过渡，它就是「滑过去」的。
+   *
+   * 动的不止 transform：横向位置是「列中心的百分比」，而浮标自身的宽度
+   * 随文案变（0.15 毫米 / 1 小时 10 分后 · 无降水），要换算成像素就得先量
+   * 浮标有多宽。代价是改 left 会重排 —— 但一次划过最多跨 24 格，
+   * 也就是最多 24 次重排，不是每帧一次。
+   */
+  transition:
+    left $fish-dur-fast $fish-ease-out,
+    bottom $fish-dur-fast $fish-ease-out;
 }
 
 .minutely__chip {
@@ -560,30 +773,44 @@ const dryLabel = computed(() => {
   background-color: #ffffff;
   box-shadow: 0 4rpx 14rpx rgba(0, 0, 0, 0.32);
 
+  /*
+   * 浮标宽度的上限。
+   *
+   * 这个数就是脚本里 CHIP_MAX_WIDTH 减去左右内边距 —— 两者必须一致：
+   * 脚本按它把浮标夹在图内，样式按它保证浮标不会比夹的位置更宽。
+   * 对不上，浮标还是会探出卡外，页面就多出一条横向滚动范围。
+   */
+  max-width: 272rpx;
+  overflow: hidden;
+
   @if $fish-motion {
     animation: chip-in 260ms $fish-spring both;
   }
 }
 
-/* 首格靠左、末格靠右：浮标比柱子宽，不换锚会探出卡外 */
-.minutely__chip-anchor--start {
-  left: 0;
-}
+/*
+ * 浮标收边靠脚本里算位置，不靠类换锚。
+ *
+ * 三档锚点（首靠左 / 中居中 / 末靠右）在靠边的几列上会探出卡外 ——
+ * 浮标比柱子宽得多，末列那档更是把浮标整个拽到左边几十像素，
+ * 看着不像指着那一根柱。收边在脚本里夹（见 CHIP_MAX_WIDTH）。
+ */
 
-.minutely__chip-anchor--mid {
-  transform: translateX(-50%);
-}
-
-.minutely__chip-anchor--end {
-  right: 0;
-}
-
+/*
+ * 浮标本体上下的两行字。
+ *
+ * 省略号是给「浮标宽度到上限」兜底的：文案再长也不该把浮标撑出卡外
+ * （见 .minutely__chip 的 max-width 注释）。实际文案离上限还有余量，
+ * 省略号不会真的出现。
+ */
 .minutely__chip-main {
   display: block;
   color: $fish-ink;
   @include fish-type(footnote);
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .minutely__chip-sub {
@@ -592,6 +819,8 @@ const dryLabel = computed(() => {
   color: $fish-muted-60;
   @include fish-type(caption2);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*
