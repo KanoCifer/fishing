@@ -96,6 +96,11 @@ const ICONS = [
   // —— 钓点照片选择器 ——
   { name: 'plus', color: 'muted', use: '照片选择器的添加格子' },
   { name: 'x', color: 'onAccent', use: '照片缩略图上的删除角标' },
+  // —— 记一笔页的渔获步进 ——
+  // 减号压灰、加号压蓝：减号是「退回一步」，加号是「再要一条」，
+  // 一个是收的动作一个是给的动作，不该同色。
+  { name: 'minus', color: 'muted', use: '渔获数量的减号' },
+  { name: 'plus', color: 'blue', use: '渔获数量的加号' },
 ];
 
 /**

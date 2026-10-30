@@ -2,7 +2,7 @@
   <view class="spot-form" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
-    <PageNav :title="title" :scrolled="scrolled" fallback-url="/pages/fishing/index" />
+    <PageNav :title="title" :scrolled="scrolled" fallback-url="/pages/data/index" />
 
     <view class="spot-form__body" :style="{ paddingTop: navBarBottom + 'px' }">
       <view v-if="draftRestored" class="spot-form__draft spot-form__enter" :style="{ animationDelay: enterDelay(0) }">
@@ -87,7 +87,7 @@
             补充说明，不是另一组信息。位置和名字定了之后，照片才拍得出来。
           -->
           <FormField :label="fields.photos.label" :hint="fields.photos.hint">
-            <SpotImagePicker
+            <ImagePicker
               :max="photoMax"
               :initial="draftPhotos"
               @change="onPhotosChange"
@@ -203,7 +203,7 @@ import FormField from '@/components/FormField/FormField.vue';
 import FormRow from '@/components/FormRow/FormRow.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';
-import SpotImagePicker from '@/components/SpotImagePicker/SpotImagePicker.vue';
+import ImagePicker from '@/components/ImagePicker/ImagePicker.vue';
 import SpotPublishNotice from '@/components/SpotPublishNotice/SpotPublishNotice.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
@@ -223,9 +223,9 @@ import {
   SPOT_FORM_MISSING,
   SPOT_FORM_PICK_FAILED,
   SPOT_PHOTO_MAX,
-  SPOT_PHOTO_UPLOADING_BLOCK,
   SPOT_SUITABLE_OPTIONS,
 } from '@/constants/spot-form';
+import { UPLOADING_BLOCK } from '@/constants/upload';
 import { SPOT_PUBLISH_CONFIRM, SPOT_PUBLISH_REPORT_DOC } from '@/constants/spot-publish';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
@@ -413,7 +413,7 @@ const draftSavedAt = ref(0);
 /**
  * 照片的初始值。
  *
- * 照片选择器自己持有已上传列表（见 SpotImagePicker 的注释），
+ * 照片选择器自己持有已上传列表（见 ImagePicker 的注释），
  * 恢复草稿时只能通过 initial 把它填进去 —— 那一栏是它唯一的入口。
  */
 const draftPhotos = ref<string[]>([]);
@@ -717,7 +717,7 @@ async function submit() {
   }
   // 照片没传完就提交，那几张会静默丢掉 —— 用户在界面上明明看见了它们
   if (photoUploading.value) {
-    uni.showToast({ title: SPOT_PHOTO_UPLOADING_BLOCK, icon: 'none' });
+    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
     return;
   }
 

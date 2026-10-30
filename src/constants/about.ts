@@ -86,7 +86,7 @@ export const CONTACT = {
   /** 会话里那张卡片的标题。发出去的是「哪个 App」，不是一句话 */
   messageTitle: '渔碌 · 意见反馈',
   /** 卡片点开回到小程序的哪一页。给的是入口页，不是关于页 —— 关于页是「站在哪儿」，不是「这是什么」 */
-  messagePath: '/pages/fishing/index',
+  messagePath: '/pages/data/index',
 } as const;
 
 /**
@@ -115,7 +115,7 @@ export const SHARE_APP = {
    * 落**首页**，不是本页：收到卡片的人点进来要看到的是渔碌，
    * 不是「关于渔碌」这一页。分享是带人进门，不是带人参观说明页。
    */
-  path: '/pages/fishing/index',
+  path: '/pages/data/index',
   /**
    * 转发卡片的封面。
    *

@@ -37,13 +37,22 @@
 
 <script setup lang="ts">
 /**
- * SpotImagePicker —— 钓点照片的选择与上传。
+ * ImagePicker —— 图片的选择与上传。
+ *
+ * 从钓点照片里长出来的，现在有两个使用方：钓点投稿与钓鱼记录。
+ * 所以它不持有任何业务语义 —— 传进来几张、传到哪个目录，全看调用方给的
+ * `max` 与 `type`。
+ *
+ * 组件自己管已上传列表，不做受控：表单页要把所有字段攒成一份载荷再提交，
+ * 中间没有「就地改状态」这一步，让组件内部持有图片列表更省事
+ * （上传完成的回调只把结果往上抛）。
  */
 import { computed, ref } from 'vue';
 
 import { mediaUrl, uploadImage, type UploadType } from '@/api/upload';
 import { icon } from '@/constants/icons';
-import { SPOT_PHOTO_MAX, SPOT_PHOTO_PICK_FAILED, SPOT_PHOTO_UPLOADING } from '@/constants/spot-form';
+import { SPOT_PHOTO_MAX } from '@/constants/spot-form';
+import { UPLOADING_TEXT, UPLOAD_PICK_FAILED } from '@/constants/upload';
 import { toErrorMessage } from '@/utils/error';
 
 /** 正在上传的一张 */
@@ -65,6 +74,8 @@ const props = withDefaults(
      *
      * 默认 `gallery` —— 钓点照片走那条（它会校验 Content-Type 白名单）。
      * 纠错反馈的配图走 `feedback`，落到 `feedback/{userID}/` 目录。
+     * 钓鱼记录的照片走 `record`，落到 `records/{userID}/` 目录 ——
+     * 与图片墙素材分开，将来清理或加 CDN 规则时互不牵连。
      */
     type?: UploadType;
   }>(),
@@ -88,7 +99,7 @@ const committed = ref<string[]>([...props.initial]);
 /** 正在上传的 */
 const pending = ref<PendingUpload[]>([]);
 
-const uploadingText = SPOT_PHOTO_UPLOADING;
+const uploadingText = UPLOADING_TEXT;
 const addIcon = icon('plus', 'muted');
 const removeIcon = icon('x', 'onAccent');
 
@@ -122,7 +133,7 @@ function choose() {
       // 用户主动取消是正常操作，不该弹一个「失败」
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: SPOT_PHOTO_PICK_FAILED, icon: 'none' });
+      uni.showToast({ title: UPLOAD_PICK_FAILED, icon: 'none' });
     },
   });
 }

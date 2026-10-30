@@ -18,6 +18,51 @@ export function formatCompactDate(date: Date = new Date()): string {
 }
 
 /**
+ * 把一个 ISO 时间戳（带时区）转成设备本地的「HH:mm」。
+ *
+ * 与 `formatTimeOfDay` 的区别在**换不换算**：
+ * 那一处处理的是后端给的**墙上时间**（`2026-10-17T14:00+08:00` 里的 14:00
+ * 就是要显示的 14:00，不换算）；这里处理的是**绝对时刻** —— 用户在 21:30
+ * 记的一笔，显示时应当换算到他自己的本地时间，而不是 UTC 的 13:30。
+ */
+export function formatLocalTimeOfDay(value: string | null | undefined): string {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
+ * 「今天」的日历日 —— 按 **+08:00** 算。
+ *
+ * 为什么不是设备本地时区：服务端判定「这条记录是不是今天」用的就是 +08:00
+ * （中国自 1991 年起不用夏令时，固定 +08:00 与 Asia/Shanghai 等价），
+ * 前后端必须认同一个日子 —— 两边算法不一样时，设备不在 +08 的用户
+ * 提交会被 400 拒掉，而那条记录本身没有毛病。
+ *
+ * 这个 app 的气象数据（和风天气、海洋预报台潮汐站）本来就只覆盖中国，
+ * 记录的日子跟着中国的日历走是自洽的。
+ *
+ * 实现上先把时刻整体挪 8 小时，再取 UTC 字段 —— 挪完之后
+ * UTC 的年月日就是东八区的年月日。
+ */
+export function logDateKey(date: Date = new Date()): string {
+  const shifted = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`;
+}
+
+/**
+ * 「本月」的月份 —— 同样按 +08:00 算，理由见 `logDateKey`。
+ */
+export function logMonthKey(date: Date = new Date()): string {
+  return logDateKey(date).slice(0, 7);
+}
+
+/**
  * 把后端带时区的时间串拆成展示用的月/日和时/分。
  *
  * 只切字符串不 new Date()：fxTime 自带 `+08:00`，一旦转成 Date 再取字段，

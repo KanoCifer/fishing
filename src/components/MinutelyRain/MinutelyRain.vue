@@ -551,11 +551,11 @@ const dryLabel = computed(() => {
 /*
  * 卡片外壳。
  *
- * 深色降水材质面（fish-rain-deep）。不是玻璃面 —— 雨强四档是四档明度，
+ * 深色降水材质面（fish-deep-face）。不是玻璃面 —— 雨强四档是四档明度，
  * 浅底上的浅蓝柱分不出档，深底上柱子自己发光才拉得开。
  */
 .minutely {
-  @include fish-rain-deep;
+  @include fish-deep-face;
   padding: 28rpx;
 }
 
@@ -569,7 +569,7 @@ const dryLabel = computed(() => {
 }
 
 .minutely__meta {
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(caption2);
 }
 
@@ -608,7 +608,7 @@ const dryLabel = computed(() => {
 .minutely__empty {
   display: block;
   padding: 64rpx 0;
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(subhead);
   text-align: center;
 }
@@ -668,7 +668,7 @@ const dryLabel = computed(() => {
  * 暴雨那档自带一圈辉光：它是雨最猛的一格，整张卡最该被先看到的一格。
  */
 .minutely__bar--storm {
-  background-color: $fish-rain-deep-storm;
+  background-color: $fish-rain-step-storm;
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.6),
     0 0 16rpx rgba(255, 255, 255, 0.4);
@@ -677,23 +677,23 @@ const dryLabel = computed(() => {
 /*
  * 测到 0 雨的那一格。
  *
- * 用 $fish-rain-deep-none 而不是 $fish-surface：surface 那一档淡到几乎看不见，
+ * 用 $fish-rain-step-none 而不是 $fish-surface：surface 那一档淡到几乎看不见，
  * 整段无雨的时候图上就只剩一片空白，看着像图没加载出来。
  */
 .minutely__bar--none {
-  background-color: $fish-rain-deep-none;
+  background-color: $fish-rain-step-none;
 }
 
 .minutely__bar--light {
-  background-color: $fish-rain-deep-light;
+  background-color: $fish-rain-step-light;
 }
 
 .minutely__bar--medium {
-  background-color: $fish-rain-deep-medium;
+  background-color: $fish-rain-step-medium;
 }
 
 .minutely__bar--heavy {
-  background-color: $fish-rain-deep-heavy;
+  background-color: $fish-rain-step-heavy;
 }
 
 /*
@@ -716,7 +716,7 @@ const dryLabel = computed(() => {
  * 虚线空框是「这一格没测到」。两件事在图上必须长得不一样。
  */
 .minutely__bar--gap {
-  border: 1rpx dashed $fish-rain-deep-hairline;
+  border: 1rpx dashed $fish-deep-hairline;
   background-color: transparent;
   box-shadow: none;
 
@@ -848,7 +848,7 @@ const dryLabel = computed(() => {
 }
 
 .minutely__dry-label {
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(subhead);
 }
 
@@ -866,7 +866,7 @@ const dryLabel = computed(() => {
 .minutely__tick {
   position: absolute;
   top: 0;
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(caption2);
   white-space: nowrap;
 }
@@ -888,7 +888,7 @@ const dryLabel = computed(() => {
   align-items: center;
   margin-top: 8rpx;
   padding-top: 18rpx;
-  border-top: 1rpx solid $fish-rain-deep-hairline;
+  border-top: 1rpx solid $fish-deep-hairline;
 }
 
 .minutely__legend-chip {
@@ -910,27 +910,27 @@ const dryLabel = computed(() => {
 
 /* 「无降水」色块：跟「测到 0」的短柱同一个色 */
 .minutely__swatch--none {
-  background-color: $fish-rain-deep-none;
+  background-color: $fish-rain-step-none;
 }
 
 .minutely__swatch--light {
-  background-color: $fish-rain-deep-light;
+  background-color: $fish-rain-step-light;
 }
 
 .minutely__swatch--medium {
-  background-color: $fish-rain-deep-medium;
+  background-color: $fish-rain-step-medium;
 }
 
 .minutely__swatch--heavy {
-  background-color: $fish-rain-deep-heavy;
+  background-color: $fish-rain-step-heavy;
 }
 
 .minutely__swatch--storm {
-  background-color: $fish-rain-deep-storm;
+  background-color: $fish-rain-step-storm;
 }
 
 .minutely__legend-label {
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(caption2);
 }
 
@@ -943,11 +943,11 @@ const dryLabel = computed(() => {
   align-items: baseline;
   margin-top: 18rpx;
   padding-top: 18rpx;
-  border-top: 1rpx solid $fish-rain-deep-hairline;
+  border-top: 1rpx solid $fish-deep-hairline;
 }
 
 .minutely__total-label {
-  color: $fish-rain-deep-muted;
+  color: $fish-deep-muted;
   @include fish-type(caption2);
 }
 

@@ -42,3 +42,4 @@ prototypes/
 .env.production
 .tmp/
 .zed/
+posters/

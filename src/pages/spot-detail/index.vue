@@ -433,9 +433,6 @@ onLoad((options) => {
 
 /**
  * 返回上一页。
- *
- * 页面栈里只有这一页时（分享链接直接打开、开发者工具预览），没有上一页可退，
- * navigateBack 会失败。这时候退回钓点页，而不是让按钮点了没反应。
  */
 function onBack() {
   uni.navigateBack({

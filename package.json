@@ -13,7 +13,8 @@
     "lint:fix": "oxlint --fix",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "format": "oxfmt .",
-    "icons": "node scripts/gen-icons.mjs && oxfmt src/constants/icons.ts"
+    "icons": "node scripts/gen-icons.mjs && oxfmt src/constants/icons.ts",
+    "tabbar": "node scripts/gen-tabbar-icons.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029001",

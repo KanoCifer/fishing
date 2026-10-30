@@ -61,8 +61,12 @@ export function mediaUrl(rel?: string): string {
  *
  * `feedback` 是钓点纠错反馈的配图 —— 落到 `feedback/{userID}/` 目录，
  * 与图片墙素材分开（后端会校验配图路径的前缀与归属，见反馈 service）。
+ *
+ * `record` 是钓鱼记录的照片 —— 落到 `records/{userID}/` 目录。
+ * 它同样走 Content-Type 白名单：记录照片是给人看现场的样子，
+ * 而 `generic` 会把任意文件当图片收下。
  */
-export type UploadType = 'gallery' | 'blog' | 'feedback' | 'generic';
+export type UploadType = 'gallery' | 'blog' | 'feedback' | 'record' | 'generic';
 
 /** 上传结果。字段名与服务端返回的一致 */
 export interface UploadResult {

@@ -5,7 +5,7 @@
     它只管**渲染与交互**：取数在页面，提交也在页面。
     组件自己攒出一份 payload 抛给页面，页面拿去发接口。
 
-    为什么表单自己管状态而不是受控：跟 SpotImagePicker 同一个理由 ——
+    为什么表单自己管状态而不是受控：跟 ImagePicker 同一个理由 ——
     几张照片同时传完，谁先 emit 谁后 emit 说不准；
     受控写法里每个回调都读 props，而 props 要等下一轮渲染才更新，
     于是后完成的那张会把先完成的那张盖掉。
@@ -137,7 +137,7 @@
 
       <view class="sect__card spot-form__group" :style="{ animationDelay: enterDelay(3) }">
         <FormField :label="fields.photos.label" :hint="photosHint">
-          <SpotImagePicker :max="imageMax" type="feedback" @change="onImagesChange" @uploading="onUploadingChange" />
+          <ImagePicker :max="imageMax" type="feedback" @change="onImagesChange" @uploading="onUploadingChange" />
         </FormField>
       </view>
     </view>
@@ -171,7 +171,7 @@ import { computed, ref } from 'vue';
 import ChoiceChips from '@/components/ChoiceChips/ChoiceChips.vue';
 import FormField from '@/components/FormField/FormField.vue';
 import FormRow from '@/components/FormRow/FormRow.vue';
-import SpotImagePicker from '@/components/SpotImagePicker/SpotImagePicker.vue';
+import ImagePicker from '@/components/ImagePicker/ImagePicker.vue';
 import {
   SPOT_FEEDBACK_DESCRIPTION,
   SPOT_FEEDBACK_ERRORS,
@@ -183,7 +183,7 @@ import {
   SPOT_FEEDBACK_SUBMITTING,
   SPOT_FEEDBACK_TYPE_OPTIONS,
 } from '@/constants/spot-feedback';
-import { SPOT_PHOTO_UPLOADING_BLOCK } from '@/constants/spot-form';
+import { UPLOADING_BLOCK } from '@/constants/upload';
 import type { FishingSpotFeeType, FishingSpotFeedbackPayload, FishingSpotFeedbackType } from '@/types/fishing';
 import { enterDelay } from '@/utils/motion';
 
@@ -315,7 +315,7 @@ const locationAddress = computed(() => (location.value ? location.value.address 
 const photosHint = computed(() => fields.photos.maxHint(imageMax));
 
 /** 提交条左边那一行 */
-const submitNote = computed(() => (uploading.value ? SPOT_PHOTO_UPLOADING_BLOCK : ''));
+const submitNote = computed(() => (uploading.value ? UPLOADING_BLOCK : ''));
 
 /** 按钮按不按得住 */
 const disabled = computed(() => props.submitting || uploading.value);
@@ -443,7 +443,7 @@ function submit() {
 
   // 图没传完就提交，那几张会静默丢掉 —— 用户在界面上明明看见了它们
   if (uploading.value) {
-    uni.showToast({ title: SPOT_PHOTO_UPLOADING_BLOCK, icon: 'none' });
+    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
     return;
   }
 

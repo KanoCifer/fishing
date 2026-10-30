@@ -81,7 +81,7 @@
             </FormField>
 
             <FormField :label="fields.photos.label" :hint="fields.photos.hint">
-              <SpotImagePicker
+              <ImagePicker
                 :max="photoMax"
                 :initial="photos"
                 @change="onPhotosChange"
@@ -169,7 +169,7 @@ import FormField from '@/components/FormField/FormField.vue';
 import FormRow from '@/components/FormRow/FormRow.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';
-import SpotImagePicker from '@/components/SpotImagePicker/SpotImagePicker.vue';
+import ImagePicker from '@/components/ImagePicker/ImagePicker.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import {
@@ -191,9 +191,9 @@ import {
   SPOT_FORM_MISSING,
   SPOT_FORM_PICK_FAILED,
   SPOT_PHOTO_MAX,
-  SPOT_PHOTO_UPLOADING_BLOCK,
   SPOT_SUITABLE_OPTIONS,
 } from '@/constants/spot-form';
+import { UPLOADING_BLOCK } from '@/constants/upload';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import {
@@ -509,7 +509,7 @@ async function submit() {
     return;
   }
   if (photoUploading.value) {
-    uni.showToast({ title: SPOT_PHOTO_UPLOADING_BLOCK, icon: 'none' });
+    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
     return;
   }
 

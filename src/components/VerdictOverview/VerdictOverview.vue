@@ -28,8 +28,13 @@
         这里**不用** SkeletonCard —— 那张骨架是列表卡的形状（标题行 + 数值块 + 三列），
         摆在这块屏幕上跟最终的形状完全不像：数据到了要换一次版，版一换位置就跳。
         骨架要照着这块屏最终的样子摆：标签、分数、等级词、一句话、一行因子。
+
+        indexPending 也算「加载中」：数据页是冷启动落点，取数被推到
+        onReady 之后，那之前有一段「还没开始取」的窗口（见 stores/fishingMap）。
+        不把它算进来，那段窗口会显示「还没有今天的鱼口概率」的空态，
+        接着才切骨架、再切数据 —— 三段式闪一下。
       -->
-      <view v-if="mapStore.indexLoading && !mapStore.indexData" class="verdict__skeleton">
+      <view v-if="(mapStore.indexPending || mapStore.indexLoading) && !mapStore.indexData" class="verdict__skeleton">
         <view class="verdict__skeleton-label" />
 
         <view class="verdict__skeleton-score">

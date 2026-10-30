@@ -94,7 +94,7 @@ uni.getLocation({ type: 'gcj02' });
 uni.chooseLocation({ success: (res) => res.longitude / res.latitude });
 ```
 
-钓点投稿页用它选位置。选的是**微信自己那张地图** —— 搜索、定位、路网都在，用户在自己认得的地方点一下，比我们再画一张地图准得多。
+钓点投稿页与钓鱼记录页（`/pages/record/create`）用它选位置。选的是**微信自己那张地图** —— 搜索、定位、路网都在，用户在自己认得的地方点一下，比我们再画一张地图准得多。
 
 - 回来的坐标是 **GCJ-02**，和小程序 `<map>`、和后端存的 `location` 同一套，不用再换算；经度在前
 - `res.address` 直接就是后端 `address` 字段要的东西，不用自己拼
@@ -122,6 +122,7 @@ uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
 ## 分享
 
 钓点详情页的分享走两条路：海报存相册、转发给好友。「我的」页的分享走一条：转发渔碌给朋友。
+三个 tab 页各有自己的转发卡片（文案与落点在 `src/constants/share.ts`）。
 碰分享先读这一节。
 
 ### 转发面板只能由按钮唤起
@@ -148,6 +149,12 @@ uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
 留着朋友圈只会多一个走不通的出口（朋友圈那条路还有一条硬限制：页面发不了朋友圈，
 只能由用户从胶囊菜单点，见下）。
 
+这一处调用收在 `src/utils/share.ts` 的 `enableShareMenu()`，四个页面都调它 ——
+参数与理由只有一份，改一处不会漏另一处。
+
+**菜单项是页面级的**：每个页面自己设一份。tab 页的 `onLoad` 只触发一次
+（页面实例一直在），所以设一次就够，不需要挪到 `onShow` 里每次重设。
+
 ### 朋友圈页面发不了
 
 微信不允许页面自己打开朋友圈面板，只能由用户从右上角胶囊菜单发起。
@@ -157,7 +164,7 @@ uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'] });
 
 转发卡片的自定义图（`imageUrl`）按 **5:4** 显示，朋友圈按 1:1。
 所以一张 3:4 的海报要先裁出中间那条 5:4 带再交出去；
-裁切框与海报绘制共用同一个数（`src/constants/share.ts` 的 `POSTER`），
+裁切框与海报绘制共用同一个数（`src/pages/spot-detail/share.ts` 的 `POSTER`），
 两处各写一个，版面一改就会错位。
 
 `imageUrl` 支持本地临时路径 —— 海报画完用 `uni.canvasToTempFilePath` 导出来直接给它，
@@ -278,16 +285,16 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 ## 微信后台配置
 
-| 项                    | 值                                                                     | 不配的后果                                             |
-| --------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
-| request 合法域名      | `VITE_API_BASE_URL`                                                    | 所有接口失败                                           |
-| downloadFile 合法域名 | API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名）                | 照片全是裂的；缺图占位插画拉不下来                     |
-| uploadFile 合法域名   | `VITE_API_BASE_URL`                                                    | 照片传不上去                                           |
-| 预解析域名            | `api.kanocifer.chat`、`cdn.kanocifer.chat`                             | 弱网冷启时每次 DNS 都真走一次运营商解析                |
-| `scope.userLocation`  | 见 `src/manifest.json`                                                 | 定位键无反应                                           |
-| `scope.userInfo`      | 见 `src/manifest.json`                                                 | 头像昵称取不到                                         |
-| 客服人员              | 公众平台后台「客服反馈」添加成员并设为在线                             | 「联系客服」按下去没反应，也不报错                     |
-| 用户隐私保护指引     | 公众平台后台「设置 → 基本设置 → 服务内容声明」                        | 「隐私政策」打不开官方弹窗                            |
+| 项                    | 值                                                      | 不配的后果                              |
+| --------------------- | ------------------------------------------------------- | --------------------------------------- |
+| request 合法域名      | `VITE_API_BASE_URL`                                     | 所有接口失败                            |
+| downloadFile 合法域名 | API 域名 + **CDN 域名**（`VITE_CDN_BASE_URL` 的主机名） | 照片全是裂的；缺图占位插画拉不下来      |
+| uploadFile 合法域名   | `VITE_API_BASE_URL`                                     | 照片传不上去                            |
+| 预解析域名            | `api.kanocifer.chat`、`cdn.kanocifer.chat`              | 弱网冷启时每次 DNS 都真走一次运营商解析 |
+| `scope.userLocation`  | 见 `src/manifest.json`                                  | 定位键无反应                            |
+| `scope.userInfo`      | 见 `src/manifest.json`                                  | 头像昵称取不到                          |
+| 客服人员              | 公众平台后台「客服反馈」添加成员并设为在线              | 「联系客服」按下去没反应，也不报错      |
+| 用户隐私保护指引      | 公众平台后台「设置 → 基本设置 → 服务内容声明」          | 「隐私政策」打不开官方弹窗              |
 
 ⚠️ 三份域名名单是**三份独立的表**，填一份不等于另外两份也生效。
 CDN 域名（`cdn.kanocifer.chat`）是后加的 —— 它承接着从代码包里搬走的

@@ -1,6 +1,12 @@
 {
   "pages": [
     {
+      "path": "pages/data/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/fishing/index",
       "style": {
         "navigationStyle": "custom",
@@ -8,7 +14,7 @@
       }
     },
     {
-      "path": "pages/data/index",
+      "path": "pages/records/index",
       "style": {
         "navigationStyle": "custom"
       }
@@ -86,6 +92,23 @@
           }
         }
       ]
+    },
+    {
+      "root": "pages/record",
+      "pages": [
+        {
+          "path": "create/index",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detail/index",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        }
+      ]
     }
   ],
   "globalStyle": {
@@ -100,16 +123,22 @@
     "borderStyle": "white",
     "list": [
       {
+        "pagePath": "pages/data/index",
+        "text": "天气",
+        "iconPath": "static/tabbar/data.png",
+        "selectedIconPath": "static/tabbar/data-active.png"
+      },
+      {
         "pagePath": "pages/fishing/index",
         "text": "钓点",
         "iconPath": "static/tabbar/spots.png",
         "selectedIconPath": "static/tabbar/spots-active.png"
       },
       {
-        "pagePath": "pages/data/index",
-        "text": "天气",
-        "iconPath": "static/tabbar/data.png",
-        "selectedIconPath": "static/tabbar/data-active.png"
+        "pagePath": "pages/records/index",
+        "text": "记录",
+        "iconPath": "static/tabbar/records.png",
+        "selectedIconPath": "static/tabbar/records-active.png"
       },
       {
         "pagePath": "pages/mine/index",

@@ -135,14 +135,14 @@
 
 <script setup lang="ts">
 /**
- * 数据页 —— tabBar 的第二个页签。
+ * 数据页 —— tabBar 的第一个页签，也是冷启动落点。
  *
  * 页面滚动直接用页面级滚动（内容超过窗口自动滚），不套 scroll-view：
  * scroll-view 必须给确定高度，而这里内容高度随接口返回的条数变化，
  * 给死高度要么留白要么裁切。
  */
-import { computed, onMounted, ref } from 'vue';
-import { onLoad, onPageScroll, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { onLoad, onPageScroll, onPageShow, onReady, onShareAppMessage } from '@dcloudio/uni-app';
 
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
@@ -164,11 +164,13 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSessionStore } from '@/stores/session';
 import { enterStyle } from '@/utils/motion';
 import { enableShareMenu } from '@/utils/share';
 import { levelTone } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
+const session = useSessionStore();
 const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
 const feedbackOpen = ref(false);
@@ -222,30 +224,66 @@ function onRefresh() {
  * 失败只坏那一张卡，不会把整页天气拖下水。
  */
 
-// onPageShow 在 tab 切回本页时也会触发，所以两个钩子都挂；
-// ensureWeatherAndFishing 内部有「已有当前坐标的那份数据就复用」的守卫，
-// 首帧两次调用只会真的发一次请求。
-onMounted(() => {
-  /*
-   * 图标字体在这里加载，不在 App.onLaunch。
-   *
-   * 字体本体 73 KB，走网络。放 onLaunch 就是一条冷启动阶段的长请求；
-   * 而消费它的三张卡都在这一页 —— 谁要用，谁负责把字体拉来。
-   * 组件侧有 `v-if="qweatherFontReady"` 兜底，字体晚到只是图标晚出现，不会出豆腐块。
-   */
-  void loadQweatherIconFont();
+/**
+ * 首屏这一轮取数交给 onReady（见下），切回本页交给 onPageShow。
+ *
+ * 两个钩子都挂着：onPageShow 在冷启动时也会触发一次，而那一次落在启动阶段内，
+ * 不能在那里发请求（见下）。onShow 在 onReady 之前，所以首屏那一次 ready 是 false。
+ */
+let ready = false;
 
-  void mapStore.ensureWeatherAndFishing();
-  void mapStore.ensureMinutely();
+/**
+ * **为什么放在 onReady 而不是 onMounted**：这一页是冷启动落点，
+ * 而 enriched 那条是全应用最重的请求（实测 TTFB 180~390 ms，响应 22 KB）——
+ * 在启动阶段（App.onLaunch ~ 首页首屏渲染完成）发出去，
+ * 微信体检就会记一条「小程序启动时存在耗时较长的请求」。
+ * onReady 是「页面初次渲染完成」，之后再让开一个宏任务，
+ * 请求就确定落在启动阶段之外了。详见 docs/mp-weixin-network.md。
+ */
+onReady(() => {
+  ready = true;
+
+  setTimeout(() => {
+    /*
+     * 图标字体也在这里拉，不在 App.onLaunch，也不在 onMounted。
+     *
+     * 字体本体 73 KB，走网络。放启动阶段就是一条冷启动长请求；
+     * 而消费它的三张卡都在这一页 —— 谁要用，谁负责把字体拉来。
+     * 组件侧有 `v-if="qweatherFontReady"` 兜底，字体晚到只是图标晚出现，不会出豆腐块。
+     */
+    void loadQweatherIconFont();
+
+    void mapStore.ensureWeatherAndFishing();
+    void mapStore.ensureMinutely();
+
+    /*
+     * 恢复会话。
+     *
+     * 首页上的「渔碌建议」要带 token：SSE 那条不走 withSession，
+     * access token 过期了不会静默刷新 —— 只有 restore() 里的 /me 才会触发刷新。
+     * 冷启动后登录态是空的，不恢复就带不上 token。
+     *
+     * 跟取数放在同一个宏任务里：这一页是启动落点，启动阶段不能有请求。
+     * 没登录不会白发请求 —— restore() 读到本地没有 token 就直接返回。
+     */
+    void session.restore();
+  }, 0);
 });
-onPageShow(() => {
-  void mapStore.ensureWeatherAndFishing();
-  void mapStore.ensureMinutely();
 
+/**
+ * 切回本页时取数。
+ *
+ * 首屏那一次不在这里取 —— 见上面的 ready 说明。
+ */
+onPageShow(() => {
   showAnim.value = false;
   setTimeout(() => {
     showAnim.value = true;
   }, 50);
+
+  if (!ready) return;
+  void mapStore.ensureWeatherAndFishing();
+  void mapStore.ensureMinutely();
 });
 
 /**

@@ -118,19 +118,5 @@ export const SPOT_FORM_MISSING = {
  */
 export const SPOT_PHOTO_MAX = 6;
 
-/** 上传中的那几格盖着的字 */
-export const SPOT_PHOTO_UPLOADING = '上传中';
-
-/**
- * 照片没传完就点提交时的提示。
- *
- * 与盖在格子上的「上传中」区分开：那一处说的是「这一张在传」，
- * 这一处说的是「整个提交被拦住了」，两件事。
- */
-export const SPOT_PHOTO_UPLOADING_BLOCK = '照片还在上传，请稍候';
-
-/** 选图失败时的说法 */
-export const SPOT_PHOTO_PICK_FAILED = '选图失败，请重试';
-
 /** 选点失败时的说法 */
 export const SPOT_FORM_PICK_FAILED = '选点失败，请重试';
