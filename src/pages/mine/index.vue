@@ -131,7 +131,8 @@ import ProfileSheet from '@/components/ProfileSheet/ProfileSheet.vue';
 import UserCard from '@/components/UserCard/UserCard.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_ENTRY, SHARE_APP } from '@/constants/about';
+import { ABOUT_ENTRY } from '@/constants/about';
+import { SHARE_CARDS } from '@/constants/share';
 import { MY_SPOTS_COUNT, MY_SPOTS_ENTRY, MY_SPOTS_PENDING } from '@/constants/my-spots';
 import { icon } from '@/constants/icons';
 import { loginErrorMessage } from '@/api/auth';
@@ -139,6 +140,7 @@ import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { toErrorMessage } from '@/utils/error';
 import { enterDelay } from '@/utils/motion';
+import { enableShareMenu } from '@/utils/share';
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
@@ -243,11 +245,13 @@ async function loadMySpots(): Promise<void> {
  * 封面**显式指定**应用图标：不指定的话，微信会拿当前页面的截图当封面，
  * 而这一页的顶部是用户自己的身份卡 —— 一张写着「渔碌｜查潮汐、找钓点、看天气。」
  * 的卡片上摆着分享者的头像，说不对（理由见 SHARE_APP.cover）。
+ *
+ * 文案在 @/constants/share（唯一出处）。
  */
 onShareAppMessage(() => ({
-  title: SHARE_APP.title,
-  path: SHARE_APP.path,
-  imageUrl: SHARE_APP.cover,
+  title: SHARE_CARDS.mine.title,
+  path: SHARE_CARDS.mine.path,
+  imageUrl: SHARE_CARDS.mine.cover,
 }));
 
 /**
@@ -255,12 +259,12 @@ onShareAppMessage(() => ({
  *
  * 只开转发，不开「分享到朋友圈」—— 与钓点详情页同一套：
  * 朋友圈那一项留着只会多一个走不通的出口。
+ *
+ * 放在 onLoad：tab 页的 onLoad 只触发一次（页面实例一直在），
+ * 而菜单项是页面级的设置，设一次就够。
  */
 onLoad(() => {
-  uni.showShareMenu({
-    withShareTicket: true,
-    menus: ['shareAppMessage'],
-  });
+  enableShareMenu();
 });
 
 /**

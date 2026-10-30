@@ -20,14 +20,16 @@
  * 钓点页 —— 全屏地图 + 钓点标记。
  */
 import { ref } from 'vue';
-import { onReady } from '@dcloudio/uni-app';
+import { onLoad, onReady, onShareAppMessage } from '@dcloudio/uni-app';
 
 import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { SHARE_CARDS } from '@/constants/share';
 import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
+import { enableShareMenu } from '@/utils/share';
 
 const nav = useNavMetrics();
 const mapStore = useFishingMapStore();
@@ -76,6 +78,30 @@ function onMarkerTap(payload: { markerId: number }) {
 function openCreate() {
   uni.navigateTo({ url: '/pages/spot-create/index' });
 }
+
+/**
+ * 转发这一页。
+ *
+ * 标题与封面在 @/constants/share（唯一出处），这里只把它交出去。
+ *
+ * 落回本页：收的人点进来看到的是一张钓点地图 —— 跟卡片上写的是同一件事。
+ */
+onShareAppMessage(() => ({
+  title: SHARE_CARDS.fishing.title,
+  path: SHARE_CARDS.fishing.path,
+  imageUrl: SHARE_CARDS.fishing.cover,
+}));
+
+/**
+ * 打开胶囊菜单里的「转发」。
+ *
+ * 放在 onLoad 而不是 onShow：tab 页的 onLoad 只触发一次（页面实例一直在），
+ * 而菜单项是页面级的设置，设一次就够。三个 tab 页各设各的 ——
+ * 菜单跟着当前页走，谁被显示谁的那份设置生效。
+ */
+onLoad(() => {
+  enableShareMenu();
+});
 
 /**
  * 只拉钓点。

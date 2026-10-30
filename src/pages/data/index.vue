@@ -142,7 +142,7 @@
  * 给死高度要么留白要么裁切。
  */
 import { computed, onMounted, ref } from 'vue';
-import { onPageScroll, onPageShow } from '@dcloudio/uni-app';
+import { onLoad, onPageScroll, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
 
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
@@ -159,11 +159,13 @@ import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
+import { SHARE_CARDS } from '@/constants/share';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { enterStyle } from '@/utils/motion';
+import { enableShareMenu } from '@/utils/share';
 import { levelTone } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
@@ -244,6 +246,30 @@ onPageShow(() => {
   setTimeout(() => {
     showAnim.value = true;
   }, 50);
+});
+
+/**
+ * 转发这一页。
+ *
+ * 标题与封面在 @/constants/share（唯一出处），这里只把它交出去。
+ *
+ * 标题里不写读数：收的人点进来看到的是**他自己所在地的**读数，
+ * 标题替一个他没法验证的数字报账，说不对。理由见 constants/share 的说明。
+ */
+onShareAppMessage(() => ({
+  title: SHARE_CARDS.data.title,
+  path: SHARE_CARDS.data.path,
+  imageUrl: SHARE_CARDS.data.cover,
+}));
+
+/**
+ * 打开胶囊菜单里的「转发」。
+ *
+ * 放在 onLoad 而不是 onShow：tab 页的 onLoad 只触发一次（页面实例一直在），
+ * 而菜单项是页面级的设置，设一次就够。
+ */
+onLoad(() => {
+  enableShareMenu();
 });
 
 function openFeedback() {

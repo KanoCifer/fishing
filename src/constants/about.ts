@@ -43,6 +43,7 @@ export const APP_INFO = {
  * 让「我的」页反过来 import 关于页的常量，是把两页绑在一起 —— 不该这样。
  */
 export const APP_LOGO = `${ENV.cdnBaseUrl}/logo.webp`;
+export const APP_COVER = `${ENV.cdnBaseUrl}/yulu-cover.png`;
 
 /**
  * 「我的」页通往关于页的那一行。

@@ -112,6 +112,7 @@ import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from './store';
 import { enterDelay } from '@/utils/motion';
+import { enableShareMenu } from '@/utils/share';
 import type { PosterSpot } from './poster';
 import { buildConditionCells, buildSpotVerdict, distanceKm, formatDistance } from './spot-conditions';
 import { fishingSpotKindLabel } from '@/types/fishing';
@@ -407,10 +408,7 @@ onLoad((options) => {
    * 只开转发，不开「分享到朋友圈」—— 这一版分享只走两条路：
    * 存相册、转发给好友。朋友圈那一项留着只会多一个走不通的出口。
    */
-  uni.showShareMenu({
-    withShareTicket: true,
-    menus: ['shareAppMessage'],
-  });
+  enableShareMenu();
 
   /*
    * 先恢复会话。
