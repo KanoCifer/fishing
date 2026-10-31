@@ -1,22 +1,16 @@
 <template>
-  <!--
-    钓鱼记录页 —— tabBar 的第三页。
-
-    这一页回答三件事，按顺序从上到下：**我钓了多少**（四个数）、
-    **哪天钓的**（月历）、**那天具体记了什么**（当天的记录）。
-
-    为什么先给数再给日历：数字是结论，日历是索引。
-    先看到「连着 12 天」的人，才会去翻日历找是哪几天 ——
-    反过来先给一整屏格子，数字就埋在下面没人看。
-
-    为什么「记一笔」排在日历下面而不是浮在角上：这一页要记的东西很轻
-    （当天去了、钓到啥），浮层按钮会把它变成一个需要「打开」的功能；
-    而日历下面那个按钮就在视线落到的位置，点一下就是新建页。
-  -->
   <view class="records" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
-    <view class="records__body" :style="{ paddingTop: navBarBottom + 'px' }">
+    <!--
+      正文从屏幕最顶端开始排：头图一路顶进状态栏和导航栏底下。
+
+      页面配了 navigationStyle: "custom"，导航栏是浮在内容之上的透明层 ——
+      头图从顶端起，状态栏那行字就压在照片上（照片顶部压了一道 42% 的暗渐变，
+      白字读得清）。这是这一页唯一的主视觉，让它从屏幕顶端开始比让出
+      一条导航栏更像一张照片。
+    -->
+    <view class="records__body">
       <!--
         会话还在恢复。这段期间不该显示成「未登录」——
         小程序冷启动时 store 是空的，但 Storage 里还留着上一轮的 token。
@@ -31,6 +25,7 @@
         而不是给一个空日历（那会让人以为记录丢了）。
       -->
       <view v-else-if="!session.loggedIn" class="records__empty">
+        <image class="records__empty-img" :src="emptyImage" mode="aspectFit" />
         <text class="records__empty-title">{{ login.title }}</text>
         <text class="records__empty-hint">{{ login.hint }}</text>
         <view class="records__empty-action" @tap="onLogin">
@@ -39,75 +34,93 @@
       </view>
 
       <template v-else>
-        <!-- 统计 -->
-        <view class="sect">
-          <view class="sect__card records__stats">
-            <RecordStats :stats="logStore.stats" />
+        <!-- 头图：最近一次出行 -->
+        <view class="records__hero">
+          <RecordHero :log="heroLog" :today="today" @select="openDetail" />
+        </view>
+
+        <!--
+          日历卡。
+
+          卡里只放两样东西：格子，和格子颜色各代表什么的说明。
+          翻月在卡里完成 —— 日历是这一页的索引，索引的操作就该在索引上。
+        -->
+        <view class="records__cal">
+          <RecordCalendar
+            :month="logStore.month"
+            :day-states="logStore.dayStates"
+            :photo-days="photoDays"
+            :today="today"
+            :is-current-month="isCurrentMonth"
+            @select="onSelect"
+            @shift="onShift"
+          />
+
+          <view class="records__legend">
+            <view class="records__legend-item">
+              <view class="records__swatch records__swatch--catch" />
+              <text class="records__legend-text">{{ legend.catch }}</text>
+            </view>
+            <view class="records__legend-item">
+              <view class="records__swatch records__swatch--checkin" />
+              <text class="records__legend-text">{{ legend.checkin }}</text>
+            </view>
           </view>
         </view>
 
-        <!-- 日历 -->
-        <view class="sect">
-          <view class="sect__card records__calendar">
-            <RecordCalendar
-              :month="logStore.month"
-              :day-states="logStore.dayStates"
-              :photo-days="photoDays"
-              :today="today"
-              :is-current-month="isCurrentMonth"
-              @select="onSelect"
-              @shift="onShift"
-            />
-
-            <view class="records__create" @tap="openCreate">
-              <image class="records__create-icon" :src="createIcon" mode="aspectFit" />
-              <text class="records__create-text">{{ createLabel }}</text>
-            </view>
-          </view>
+        <!-- 四个数。注脚 -->
+        <view class="records__stats">
+          <RecordStats :stats="logStore.stats" />
         </view>
 
-        <!-- 选中的那天 -->
-        <view class="sect">
-          <view class="sect__card records__day">
-            <view class="records__day-head">
-              <text class="records__day-title">{{ selectedTitle }}</text>
-              <text v-if="selectedLogs.length" class="records__day-count">{{ dayCount }}</text>
-            </view>
+        <!--
+          往期行程。
 
-            <!-- 这天有记录 -->
-            <view v-if="selectedLogs.length" class="records__list">
-              <view v-for="log in selectedLogs" :key="log.log_id" class="records__row" @tap="openDetail(log.log_id)">
-                <image
-                  v-if="log.images.length"
-                  class="records__thumb"
-                  :src="mediaUrl(log.images[0])"
-                  mode="aspectFill"
-                  lazy-load
-                />
+          只有这个月除头图之外还有别的记录时才出现 ——
+          一次出行的人看到一条空的横滑条，只会觉得页面没加载完。
+        -->
+        <template v-if="railLogs.length">
+          <view class="records__sechead">
+            <text class="records__sechead-title">{{ trips.title }}</text>
+            <text class="records__sechead-hint">{{ trips.hint }}</text>
+          </view>
 
-                <view class="records__row-body">
-                  <RecordCatchList v-if="log.catches.length" :catches="log.catches" />
-                  <text v-else class="records__row-nocatch">{{ noCatchText }}</text>
+          <RecordTripRail :logs="railLogs" @select="openDetail" />
+        </template>
 
-                  <view class="records__row-meta">
-                    <text class="records__row-time">{{ logTime(log.started_at) }}</text>
-                    <text v-if="log.methods.length" class="records__row-methods">
-                      {{ log.methods.join(' · ') }}
-                    </text>
-                  </view>
-                </view>
-              </view>
-            </view>
+        <!--
+          底部动作条。
 
-            <!-- 这天没记录 -->
-            <view v-else class="records__day-empty">
-              <text class="records__day-empty-text">{{ emptyText }}</text>
-              <text class="records__day-empty-hint">{{ emptyHint }}</text>
-            </view>
+          「记一笔」是这一页唯一的主动作，摆在页面最底下 ——
+          拇指够得着，而且滚到哪儿都在。
+
+          常驻底部的一条，内容从它底下滚过去，所以底色不能是透明的
+          （不然会看见字从按钮底下穿出来）。
+        -->
+        <view class="records__bar">
+          <view class="records__create" @tap="openCreate">
+            <image class="records__create-icon" :src="createIcon" mode="aspectFit" />
+            <text class="records__create-text">{{ createLabel }}</text>
           </view>
         </view>
       </template>
     </view>
+
+    <!--
+      某一天的详情。
+
+      点日历上的某一天，这一天的行程从底部升起来；
+      往下拖或者点遮罩就收回去。
+    -->
+    <RecordDaySheet
+      :open="dayOpen"
+      :date="selected"
+      :logs="selectedLogs"
+      :today="today"
+      @close="closeDay"
+      @create="openCreate"
+      @select="openDetail"
+    />
   </view>
 </template>
 
@@ -116,37 +129,33 @@
  * 钓鱼记录页。
  *
  * 取数在 store（`stores/fishingLog`），这一层只负责编排：
- * 把月份切好、把选中的那天摆出来、把结果讲给用户听。
+ * 把月份切好、把挑出来的那条摆成头图、把那一天送进抽屉。
  *
- * ⚠️ 这一页只支持记录**今天**（后端也只收今天）。
- * 所以「记一笔」永远是记今天 —— 日历里翻到过去的某天，
- * 那一段只读，不能补记。翻到未来也没用，未来没到。
+ * 这一页显示的东西都跟着**当前显示的月份**走：头图、往期行程、日历是同一批数据。
+ * 只有四个数是全历史的 —— 那是服务端算的跨月量，翻月不该让它变。
  */
 import { computed, ref } from 'vue';
 import { onPageShow } from '@dcloudio/uni-app';
 
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import RecordCalendar from '@/components/RecordCalendar/RecordCalendar.vue';
-import RecordCatchList from '@/components/RecordCatchList/RecordCatchList.vue';
+import RecordDaySheet from '@/components/RecordDaySheet/RecordDaySheet.vue';
+import RecordHero from '@/components/RecordHero/RecordHero.vue';
 import RecordStats from '@/components/RecordStats/RecordStats.vue';
-import { mediaUrl } from '@/api/upload';
-import { useNavMetrics } from '@/composables/useNavMetrics';
+import RecordTripRail from '@/components/RecordTripRail/RecordTripRail.vue';
 import { useViewport } from '@/composables/useViewport';
 import { icon } from '@/constants/icons';
 import {
-  RECORD_CALENDAR,
+  RECORD_CALENDAR_LEGEND,
   RECORD_CREATE_ENTRY,
-  RECORD_DAY_COUNT,
-  RECORD_DETAIL,
+  RECORD_EMPTY_IMAGE,
   RECORD_LOGIN_REQUIRED,
+  RECORD_TRIPS,
 } from '@/constants/record';
 import { loginErrorMessage } from '@/api/auth';
 import { useFishingLogStore } from '@/stores/fishingLog';
 import { useSessionStore } from '@/stores/session';
-import { formatLocalTimeOfDay, logDateKey, logMonthKey } from '@/utils/date';
-
-/** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
-const { navBarBottom } = useNavMetrics();
+import { logDateKey, logMonthKey } from '@/utils/date';
 
 /** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
 const { windowHeight } = useViewport();
@@ -156,8 +165,9 @@ const logStore = useFishingLogStore();
 
 const login = RECORD_LOGIN_REQUIRED;
 const createLabel = RECORD_CREATE_ENTRY;
-const noCatchText = RECORD_DETAIL.noCatch;
-const emptyText = RECORD_CALENDAR.emptyTitle;
+const legend = RECORD_CALENDAR_LEGEND;
+const trips = RECORD_TRIPS;
+const emptyImage = RECORD_EMPTY_IMAGE;
 const loadingText = '加载中';
 
 const createIcon = icon('plus', 'onAccent');
@@ -165,14 +175,52 @@ const createIcon = icon('plus', 'onAccent');
 /** 会话恢复完了没有 */
 const ready = ref(false);
 
-/** 选中的那天。默认今天 */
+/** 抽屉里看的是哪天 */
 const selected = ref(logDateKey());
+
+/** 抽屉开没开 */
+const dayOpen = ref(false);
 
 /** 今天 */
 const today = computed(() => logDateKey());
 
 /** 当前显示的月份是不是本月 */
 const isCurrentMonth = computed(() => logStore.month === logMonthKey());
+
+/**
+ * 当月的记录，新的在前。
+ *
+ * 同一天有多条时按开始时间倒序 —— 一天出去两趟时，先看到后出去的那趟。
+ */
+const monthLogs = computed(() => {
+  return [...logStore.logs].sort((a, b) => {
+    if (a.log_date !== b.log_date) return a.log_date < b.log_date ? 1 : -1;
+    return a.started_at < b.started_at ? 1 : -1;
+  });
+});
+
+/**
+ * 头图那一条。
+ *
+ * 挑**最近一次带照片的**出行，不是最近一次出行 ——
+ * 满幅头图上是一张空白，比换一张旧照片更糟。
+ * 一次照片都没留过的月份，就用最近那次的渐变兜底面。
+ */
+const heroLog = computed(() => {
+  const logs = monthLogs.value;
+  if (!logs.length) return null;
+  return logs.find((log) => log.images?.length) ?? logs[0];
+});
+
+/**
+ * 往期行程：头图之外的那些。
+ *
+ * 最多六张 —— 再多就不是「扫一眼」，是「翻页」了。
+ */
+const railLogs = computed(() => {
+  const hero = heroLog.value;
+  return monthLogs.value.filter((log) => log.log_id !== hero?.log_id).slice(0, 6);
+});
 
 /** 有照片的那些天。给日历画角标用 */
 const photoDays = computed(() => {
@@ -183,27 +231,8 @@ const photoDays = computed(() => {
   return days;
 });
 
-/** 选中那天的记录 */
+/** 抽屉里那天的记录 */
 const selectedLogs = computed(() => logStore.dayLogs(selected.value));
-
-/** 选中那天的记录数 */
-const dayCount = computed(() => RECORD_DAY_COUNT(selectedLogs.value.length));
-
-/**
- * 空态的提示。
- *
- * 选中的就是今天 → 「记一笔，今天就算来过了」；
- * 选中的是过去某天 → 那天的记录补不上了（只支持记当天）。
- */
-const emptyHint = computed(() =>
-  selected.value === today.value ? RECORD_CALENDAR.emptyToday : RECORD_CALENDAR.emptyPast,
-);
-
-/** 选中那天的标题。「10月30日」 */
-const selectedTitle = computed(() => {
-  const [, month, day] = selected.value.split('-');
-  return `${Number(month)}月${Number(day)}日`;
-});
 
 /* ── 取数 ──────────────────────────────────────────────────────────────── */
 
@@ -227,9 +256,20 @@ onPageShow(async () => {
 
 /* ── 交互 ──────────────────────────────────────────────────────────────── */
 
-/** 选了一天 */
+/**
+ * 点了日历上的一天。
+ *
+ * 升起抽屉看那天的行程 —— 抽屉里才有「记一笔」，因为只有今天能记，
+ * 按钮该出现在真正放得下的地方。
+ */
 function onSelect(date: string): void {
   selected.value = date;
+  dayOpen.value = true;
+}
+
+/** 收起抽屉 */
+function closeDay(): void {
+  dayOpen.value = false;
 }
 
 /**
@@ -237,8 +277,13 @@ function onSelect(date: string): void {
  *
  * 翻到过去的月份照样取数 —— 过去的记录是存在的，用户想回看。
  * 往后翻只在「已经是本月」时允许：未来没有记录，翻过去是一片空白。
+ *
+ * 翻月之前先收起抽屉：抽屉里是上一个月的那一天，
+ * 月份都换了它还开着，读起来是内容没更新。
  */
 async function onShift(delta: number): Promise<void> {
+  closeDay();
+
   const next = shiftMonth(logStore.month, delta);
   if (next > logMonthKey()) return;
 
@@ -254,11 +299,18 @@ function shiftMonth(month: string, delta: number): string {
 
 /** 记一笔 —— 永远是记今天 */
 function openCreate(): void {
+  closeDay();
   uni.navigateTo({ url: '/pages/record/create/index' });
 }
 
-/** 看一条记录的详情 */
+/**
+ * 看一条记录的详情。
+ *
+ * 先收起抽屉：抽屉浮在这一页上，详情页是压上来的，
+ * 抽屉不收的话返回时它还开着，白占掉一屏。
+ */
 function openDetail(id: string): void {
+  closeDay();
   uni.navigateTo({ url: `/pages/record/detail/index?id=${id}` });
 }
 
@@ -271,11 +323,6 @@ async function onLogin(): Promise<void> {
     uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
   }
 }
-
-/** 一条记录的开始时间 */
-function logTime(value: string): string {
-  return formatLocalTimeOfDay(value);
-}
 </script>
 
 <style lang="scss" scoped>
@@ -284,9 +331,12 @@ function logTime(value: string): string {
  *
  * 这一页要取会话 + 两个月的数据，恢复期间得有个交代 ——
  * 空着会读成「这天没有记录」。
+ *
+ * 顶部留出状态栏那一截：正文不再给导航栏让位了（头图从屏幕顶端起），
+ * 但这两块没有头图顶着，得自己让开状态栏。
  */
 .records__notice {
-  padding: 96rpx 32rpx;
+  padding: 180rpx 32rpx 96rpx;
   text-align: center;
 }
 
@@ -305,8 +355,20 @@ function logTime(value: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 48rpx;
+  padding: 180rpx 48rpx 96rpx;
   text-align: center;
+}
+
+/*
+ * 空态插画。
+ *
+ * 1:1 的浅色插画放在文案上面：它说的是「这里还没有东西」，
+ * 比一句「还没有记录」更快把这句话说清楚。
+ */
+.records__empty-img {
+  width: 320rpx;
+  height: 320rpx;
+  margin-bottom: 32rpx;
 }
 
 .records__empty-title {
@@ -342,47 +404,62 @@ function logTime(value: string): string {
 }
 
 /*
- * 一个分区。
+ * 页面底。
  *
- * 缩进、卡间距走令牌层 _layout.scss 的 fish-section ——
- * 与数据页、我的页是同一条规则，三页的分块节奏因此一致。
+ * 定位 + z-index 是为了压在环境色底之上 ——
+ * PageBackdrop 是 fixed + z-index: 0，而定位元素排在普通流内容之后绘制，
+ * 不给这一层定位的话，环境色底会盖住所有没带 transform 的内容
+ * （正文里的卡片就是那些）。
+ *
+ * 与数据页、我的页的 `.data__content` / `.mine__body` 同一套做法。
+ *
+ * 顶部不给内边距：头图从屏幕顶端起，先撞上状态栏和微信胶囊。
+ *
+ * 底部留出底部动作条的高度 + 安全区，不然最后一段内容被它盖住。
  */
-.sect {
-  @include fish-section;
+.records__body {
+  position: relative;
+  z-index: 1;
+  padding-bottom: (160rpx + env(safe-area-inset-bottom));
 }
 
-/* 统计卡 */
-.records__stats {
-  @include fish-card;
-}
-
-/* 日历卡 */
-.records__calendar {
-  @include fish-card;
+/*
+ * 底部动作条。
+ *
+ * 常驻底部。底色不是透明的 —— 内容从它底下滚过去，
+ * 透明的话会看见字从按钮底下穿出来。
+ */
+.records__bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 16rpx 32rpx;
+  background-color: $fish-glass-strong;
+  box-shadow: inset 0 1rpx 0 $fish-border-40;
+  @include fish-glass-blur;
 }
 
 /*
  * 「记一笔」。
  *
- * 放在日历下面而不是浮在角上：这一页要记的东西很轻，
- * 浮层按钮会把它变成一个需要「打开」的功能。
- *
- * 整条是按钮的样子（实心蓝），因为它是这一页唯一的主动作。
+ * 通栏：这一页只有一个主动作，它得是页面上最宽、最重的一件东西。
+ * 实心渐变，跟同链路的记录创建页提交按钮一套。
  */
 .records__create {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 88rpx;
-  margin-top: 24rpx;
   border-radius: $fish-radius-pill;
-  background-color: $fish-accent;
+  background-image: $fish-gradient;
   @include fish-press(0.97);
 }
 
 .records__create-icon {
-  width: 28rpx;
-  height: 28rpx;
+  width: 30rpx;
+  height: 30rpx;
   margin-right: 10rpx;
 }
 
@@ -393,101 +470,97 @@ function logTime(value: string): string {
   font-weight: 600;
 }
 
-/* 当天那一张卡 */
-.records__day {
-  @include fish-card;
+/*
+ * 头图外面这一层。
+ *
+ * 动画挂在这一层而不是组件的宿主节点上：自定义组件的宿主节点不吃动画
+ * （见 docs/mp-weixin-platform.md）。这一层没有边距，头图才是真正满幅的。
+ */
+.records__hero {
+  @include fish-enter;
 }
 
 /*
- * 标题行：左边是日期，右边是条数。
+ * 日历卡。
  *
- * 两条都贴在基线上 —— 日期是标题，条数是它的注脚。
+ * 左右 32rpx：与页面里其它内容同一条对齐线（分区版式也是这个数）。
  */
-.records__day-head {
+.records__cal {
+  margin: 24rpx 32rpx 0;
+  @include fish-card(32rpx);
+  @include fish-enter(60ms);
+}
+
+/*
+ * 图例。
+ *
+ * 深浅两档底色读得出分别，但不解释的话读者得自己猜 ——
+ * 猜错一次就会以为深的那档是「去得更多」。
+ */
+.records__legend {
+  display: flex;
+  align-items: center;
+  margin-top: 20rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid $fish-border-40;
+}
+
+.records__legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 28rpx;
+}
+
+/* 色块。与日历格子上的两档底色是同一个值 */
+.records__swatch {
+  width: 20rpx;
+  height: 20rpx;
+  margin-right: 10rpx;
+  border-radius: 6rpx;
+}
+
+.records__swatch--catch {
+  background-color: $fish-cal-catch;
+}
+
+.records__swatch--checkin {
+  background-color: $fish-cal-checkin;
+}
+
+.records__legend-text {
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+}
+
+/*
+ * 四个数。
+ *
+ * 不套卡：它们是注脚，注脚不需要一张自己的卡。
+ * 上下各一道发丝线，把这一行从日历卡和往期行程之间托出来。
+ */
+.records__stats {
+  margin: 28rpx 32rpx 0;
+  padding: 24rpx 0;
+  border-top: 1rpx solid $fish-border-40;
+  border-bottom: 1rpx solid $fish-border-40;
+  @include fish-enter(120ms);
+}
+
+/* 分区标题行 */
+.records__sechead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin: 44rpx 32rpx 20rpx;
+  @include fish-enter(180ms);
 }
 
-.records__day-title {
+.records__sechead-title {
   color: $fish-ink;
-  @include fish-type(title3);
-
-  font-weight: 600;
+  @include fish-type(headline);
 }
 
-.records__day-count {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-/* 记录行 */
-.records__row {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 0;
-  border-top: 1rpx solid $fish-border-40;
-  @include fish-press-dim;
-}
-
-/*
- * 缩略图。
- *
- * 81×81（9pt 的三倍）—— 够看清是张照片，又不至于把一行撑成两行。
- * 没有照片就不占位：空出来一个空框比没有更难看。
- */
-.records__thumb {
-  width: 108rpx;
-  height: 108rpx;
-  margin-right: 20rpx;
-  border-radius: $fish-radius-lg;
-  background-color: $fish-fill;
-}
-
-.records__row-body {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 渔获下面那行：时间与钓法 */
-.records__row-meta {
-  display: flex;
-  align-items: center;
-  margin-top: 8rpx;
-}
-
-.records__row-time {
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-.records__row-methods {
-  margin-left: 16rpx;
-  color: $fish-muted-60;
-  @include fish-type(caption2);
-}
-
-/* 这天没有渔获（只有打卡） */
-.records__row-nocatch {
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-/* 这天什么也没有 */
-.records__day-empty {
-  padding: 40rpx 0 32rpx;
-}
-
-.records__day-empty-text {
-  display: block;
-  color: $fish-ink;
-  @include fish-type(callout);
-}
-
-.records__day-empty-hint {
-  display: block;
-  margin-top: 8rpx;
+.records__sechead-hint {
   color: $fish-muted-60;
   @include fish-type(caption);
 }

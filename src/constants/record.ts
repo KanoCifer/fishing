@@ -6,6 +6,8 @@
  * 这种对不上的情况。
  */
 
+import { ENV } from '@/config/env';
+
 import { FISH_IMAGES } from './fish-images';
 
 /** 页面标题（日历页与详情页共用） */
@@ -78,6 +80,54 @@ export const RECORD_DAY_COUNT = (count: number): string => `${count} 条`;
 
 /** 打卡那天的标记 */
 export const RECORD_CHECKIN_TAG = '打卡';
+
+/* ── 记录页（卡历） ──────────────────────────────────────────────────────── */
+
+export const RECORD_HERO = {
+  /** 这个月一条记录都没有时，头图上那一句话 */
+  emptyMonth: '这个月还没有记录',
+} as const;
+
+/**
+ * 空态插画。
+ *
+ * 与钓点详情那张占位图是同一张（`spots.jpg`）：一张浅色的 1:1 插画，
+ * 画的是「相机 + 鱼 + 水」，说的是「这里还没有东西」。
+ *
+ * 走 CDN 不进代码包 —— 主包上限 2MB，而这张图只有空态才用得上。
+ * CDN 域名要在微信后台配成 downloadFile 合法域名，否则 `<image>` 拉不到图
+ * （不报错，只是空一块）。
+ */
+export const RECORD_EMPTY_IMAGE = `${ENV.cdnBaseUrl}/spots.jpg`;
+
+/**
+ * 没记地点时的兜底。
+ *
+ * 头图与行程卡共用一个说法 —— 两处各写一遍的话，改了一处就有一处对不上。
+ */
+export const RECORD_NO_PLACE = '没记地点';
+
+export const RECORD_TRIPS = {
+  /** 分区标题 */
+  title: '往期行程',
+  /** 分区副标 */
+  hint: '横滑看更多',
+  /** 只打了卡，没钓到鱼 */
+  checkinOnly: '只打卡',
+} as const;
+
+/**
+ * 日历格子的两档颜色各是什么。
+ *
+ * 深浅两档底色读得出「钓到鱼」和「只打卡」的分别，
+ * 但不解释的话读者得自己猜 —— 猜错一次就会以为深的那档是「去得更多」。
+ */
+export const RECORD_CALENDAR_LEGEND = {
+  /** 深蓝那档 */
+  catch: '钓到鱼',
+  /** 浅灰那档 */
+  checkin: '只打卡',
+} as const;
 
 /* ── 新建页 ─────────────────────────────────────────────────────────────── */
 

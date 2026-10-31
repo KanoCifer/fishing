@@ -101,6 +101,10 @@ const ICONS = [
   // 一个是收的动作一个是给的动作，不该同色。
   { name: 'minus', color: 'muted', use: '渔获数量的减号' },
   { name: 'plus', color: 'blue', use: '渔获数量的加号' },
+  // —— 记录页 ——
+  // 底部「记一笔」是实心主色按钮，加号压在它上面，得是白的。
+  // 不烤这一档的话 icon() 会退回 muted，灰加号压在蓝底上像画错了。
+  { name: 'plus', color: 'onAccent', use: '记录页底部「记一笔」按钮' },
 ];
 
 /**
