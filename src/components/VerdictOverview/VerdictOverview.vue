@@ -35,37 +35,76 @@
         而空态说的是「没有」，其实只是「还没取到」。
       -->
       <view v-if="loading && !mapStore.indexData" class="verdict__skeleton">
-        <view class="verdict__skeleton-label" />
-
-        <view class="verdict__skeleton-score">
-          <view class="verdict__skeleton-number" />
-          <view class="verdict__skeleton-max" />
+        <!--
+          眉标行。行盒 31rpx（caption 24rpx × 1.3），色块只占字那么高。
+        -->
+        <view class="verdict__sk-row verdict__sk-row--eyebrow">
+          <view class="verdict__sk-bar verdict__sk-bar--eyebrow" />
         </view>
 
-        <view class="verdict__skeleton-level" />
-        <view class="verdict__skeleton-say" />
+        <!--
+          分数行。行盒 152rpx，跟真分数那一行一样高。
 
-        <view class="verdict__skeleton-factors">
-          <view class="verdict__skeleton-factor">
-            <view class="verdict__skeleton-icon" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--value" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--meta" />
+          数字占的是**三位数**的位宽、右对齐 —— 真数据的数字也是这么摆的
+          （见 .verdict__score-num）：数字滚动时位数会变，位宽跟着变的话
+          这一行是居中的，「/100」和那个可点的箭头就会跟着左右跳。
+
+          末尾留一个箭头位：真数据里分数右边有个箭头，数据到了才冒出来，
+          不先占住，箭头一出现就把「/100」顶走。
+        -->
+        <view class="verdict__sk-row verdict__sk-row--score">
+          <view class="verdict__sk-number">
+            <view class="verdict__sk-bar verdict__sk-bar--number" />
+          </view>
+          <view class="verdict__sk-bar verdict__sk-bar--max" />
+          <view class="verdict__sk-slot" />
+        </view>
+
+        <!-- 等级行。行盒 55rpx（title2 44rpx × 1.25） -->
+        <view class="verdict__sk-row verdict__sk-row--level">
+          <view class="verdict__sk-bar verdict__sk-bar--level" />
+        </view>
+
+        <!--
+          一句话。行盒 42rpx（subhead 30rpx × 1.4），占一行。
+
+          这一行是唯一有行数风险的地方：文案长到要折行（上限 520rpx ≈ 17 个字），
+          真实内容会变成两行、84rpx，下面那行因子跟着往下挪。
+          官方钓鱼指数的文案与等级映射的兜底都是短的（见 advice 的注释），
+          真折了行也是文案长度带来的，不是骨架摆错。
+        -->
+        <view class="verdict__sk-row verdict__sk-row--say">
+          <view class="verdict__sk-bar verdict__sk-bar--say" />
+        </view>
+
+        <!--
+          三个成因压成的一行。行盒 42rpx —— 撑住这一行的是值的行盒（subhead），
+          图标（28rpx）和元信息（caption2 22rpx）都比它矮。
+        -->
+        <view class="verdict__sk-row verdict__sk-row--factors">
+          <!-- 温度 -->
+          <view class="verdict__sk-factor">
+            <view class="verdict__sk-icon" />
+            <view class="verdict__sk-bar verdict__sk-bar--value verdict__sk-bar--temp-value" />
+            <view class="verdict__sk-bar verdict__sk-bar--meta verdict__sk-bar--temp-meta" />
           </view>
 
           <view class="verdict__factor-sep" />
 
-          <view class="verdict__skeleton-factor">
-            <view class="verdict__skeleton-icon" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--value" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--meta" />
+          <!-- 潮汐 -->
+          <view class="verdict__sk-factor">
+            <view class="verdict__sk-icon" />
+            <view class="verdict__sk-bar verdict__sk-bar--value verdict__sk-bar--tide-value" />
+            <view class="verdict__sk-bar verdict__sk-bar--meta verdict__sk-bar--tide-meta" />
           </view>
 
           <view class="verdict__factor-sep" />
 
-          <view class="verdict__skeleton-factor">
-            <view class="verdict__skeleton-icon" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--value" />
-            <view class="verdict__skeleton-bar verdict__skeleton-bar--meta" />
+          <!-- 风 -->
+          <view class="verdict__sk-factor">
+            <view class="verdict__sk-icon" />
+            <view class="verdict__sk-bar verdict__sk-bar--value verdict__sk-bar--wind-value" />
+            <view class="verdict__sk-bar verdict__sk-bar--meta verdict__sk-bar--wind-meta" />
           </view>
         </view>
       </view>
@@ -196,6 +235,24 @@
         <view class="verdict__link" @tap="emit('analysis')">
           <image class="verdict__icon verdict__icon--accent" :src="sparklesIcon" mode="widthFix" />
           <text class="verdict__link-text">渔碌建议</text>
+        </view>
+      </view>
+
+      <!--
+        加载态：先把动作区的高度占住。
+
+        这一块是「后来才出现的东西」—— 有数据了才有反馈按钮。
+        不先占住，数据一到脚部就长出一行 88rpx，头部那块居中的内容被顶下去，
+        那一跳比行盒差几 rpx 显眼得多。
+
+        占位只有形状，没有文字，也不挂 tap：它是个还没长成按钮的东西。
+      -->
+      <view v-else-if="loading" class="verdict__sk-foot">
+        <view class="verdict__sk-btn" />
+
+        <view class="verdict__sk-link">
+          <view class="verdict__sk-icon" />
+          <view class="verdict__sk-bar verdict__sk-bar--link" />
         </view>
       </view>
 
@@ -394,7 +451,8 @@ const tideMeta = computed(() => {
 });
 
 function onRefresh() {
-  if (mapStore.indexLoading) return;
+  // 定位那一段也算「正在忙」：图标已经在转了，这时候再按就是并发第二轮取数
+  if (mapStore.indexLoading || mapStore.locating) return;
   void mapStore.refreshIndexData();
 }
 </script>
@@ -502,13 +560,19 @@ function onRefresh() {
 /*
  * 加载骨架。
  *
- * 每一块的尺寸都照着上面真实元素的**行盒**摆，不是照着字面高度：
- * 标签行 31rpx、分数行 152rpx、等级词行 55rpx、一句话两行之内、
- * 因子行 28rpx。占位比真实内容矮一截的话，数据到了版式一换，
- * 下面的东西会往上跳一下 —— 那一跳读起来就是「页面散架了」。
+ * 分两层：**行盒**管位置，**色块**管形状。
+ *
+ * 行盒的高度照着上面真实元素的行盒摆 —— 眉标 31rpx（caption 24rpx × 1.3）、
+ * 分数 152rpx、等级 55rpx（title2 44rpx × 1.25）、一句话 42rpx（subhead 30rpx × 1.4）、
+ * 因子 42rpx（撑住这一行的是值的行盒，值是 subhead）；
+ * 色块的高度照着字的墨迹摆 —— 24 / 106 / 44 / 30 / 22rpx。
+ *
+ * 拿行盒的高度直接当色块的高度，出来的就是一块块灰砖：位置对了，看着还是不对。
+ * 行盒齐了，数据到了版式就不用换，下面那些东西一寸都不挪 ——
+ * 挪一下读起来就是「页面散架了」。
  *
  * 底色是 $fish-surface，跟 SkeletonCard 同一档；
- * 呼吸幅度也是同一档（0.35），否则同一个页面里两种加载态一深一浅，像两套组件。
+ * 呼吸幅度也是同一档（0.35 / 1.8s），否则同一个页面里两种加载态一深一浅，像两套组件。
  */
 .verdict__skeleton {
   display: flex;
@@ -516,92 +580,219 @@ function onRefresh() {
   align-items: center;
 }
 
-.verdict__skeleton-label,
-.verdict__skeleton-max,
-.verdict__skeleton-level,
-.verdict__skeleton-say,
-.verdict__skeleton-number,
-.verdict__skeleton-icon,
-.verdict__skeleton-bar {
+/* 所有色块同一档呼吸 */
+.verdict__sk-bar,
+.verdict__sk-icon,
+.verdict__sk-btn {
   background-color: $fish-surface;
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
-.verdict__skeleton-label {
-  width: 96rpx;
-  height: 31rpx;
-  border-radius: $fish-radius-sm;
+/*
+ * 行盒：只管高度，不管长相。
+ *
+ * 行距跟真内容一模一样（12 / 4 / 8 / 40rpx），真内容里也没有别的外边距，
+ * 这里也就不多不少地补 —— 补出来的间距是凭空多出来的高度，
+ * 数据到了它不会消失，下面那几行照样会跳。
+ */
+.verdict__sk-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 分数行占满 152rpx 的行盒高度，跟真分数那一行一样高 */
-.verdict__skeleton-score {
-  display: flex;
+/* 眉标 */
+.verdict__sk-row--eyebrow {
+  height: 31rpx;
+}
+
+/*
+ * 分数。
+ *
+ * 这一行贴底对齐：数字、「/100」、箭头三块都压着同一条基线，
+ * 基线离行盒底 19rpx —— 152rpx 的行盒里，基线落在 133rpx 处。
+ */
+.verdict__sk-row--score {
+  --verdict-sk-baseline: 19rpx;
+
   align-items: flex-end;
   height: 152rpx;
   margin-top: 12rpx;
 }
 
-.verdict__skeleton-number {
-  width: 220rpx;
-  height: 120rpx;
-  border-radius: $fish-radius-xl;
-}
-
-.verdict__skeleton-max {
-  width: 44rpx;
-  height: 12rpx;
-  margin-left: 8rpx;
-  margin-bottom: 24rpx;
-  border-radius: $fish-radius-sm;
-}
-
-.verdict__skeleton-level {
-  width: 120rpx;
-  height: 44rpx;
+/* 等级 */
+.verdict__sk-row--level {
+  height: 55rpx;
   margin-top: 4rpx;
-  margin-bottom: 11rpx;
-  border-radius: $fish-radius-sm;
 }
 
-.verdict__skeleton-say {
-  width: 280rpx;
-  height: 30rpx;
+/* 一句话 */
+.verdict__sk-row--say {
+  height: 42rpx;
   margin-top: 8rpx;
-  margin-bottom: 12rpx;
-  border-radius: $fish-radius-sm;
 }
 
-.verdict__skeleton-factors {
-  display: flex;
-  align-items: center;
+/* 三个成因 */
+.verdict__sk-row--factors {
+  height: 42rpx;
   margin-top: 40rpx;
 }
 
-.verdict__skeleton-factor {
+/* 眉标：「今日鱼口概率」6 个字 × 24rpx */
+.verdict__sk-bar--eyebrow {
+  width: 144rpx;
+  height: 24rpx;
+  border-radius: $fish-radius-sm;
+}
+
+/*
+ * 数字的位宽：三位数。
+ *
+ * 真数据的数字也是这个宽度（见 .verdict__score-num），两边一样，
+ * 数到了才落在同一个位置。
+ */
+.verdict__sk-number {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  width: 252rpx;
+  flex-shrink: 0;
+}
+
+/* 数字本身：两位数的墨迹（152rpx 字号的数字高约 0.7em） */
+.verdict__sk-bar--number {
+  width: 168rpx;
+  height: 106rpx;
+  margin-bottom: var(--verdict-sk-baseline);
+  border-radius: $fish-radius-xl;
+}
+
+/* 「/100」 */
+.verdict__sk-bar--max {
+  width: 52rpx;
+  height: 20rpx;
+  margin-left: 8rpx;
+  margin-bottom: var(--verdict-sk-baseline);
+  border-radius: $fish-radius-sm;
+}
+
+/*
+ * 箭头位：只占住位置，不画灰块。
+ *
+ * 真数据里那是一枚细线图标，灰方块比它重得多 ——
+ * 位置留住就行，形状留不住也不留。
+ */
+.verdict__sk-slot {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 8rpx;
+  margin-bottom: var(--verdict-sk-baseline);
+}
+
+/* 等级：两三个字 × 44rpx */
+.verdict__sk-bar--level {
+  width: 120rpx;
+  height: 44rpx;
+  border-radius: $fish-radius-sm;
+}
+
+/* 一句话：八到九个字 */
+.verdict__sk-bar--say {
+  width: 240rpx;
+  height: 30rpx;
+  border-radius: $fish-radius-sm;
+}
+
+/* 三个成因 */
+.verdict__sk-factor {
   display: flex;
   align-items: center;
 }
 
-.verdict__skeleton-icon {
+.verdict__sk-icon {
   width: 28rpx;
   height: 28rpx;
   margin-right: 8rpx;
+  flex-shrink: 0;
   border-radius: 50%;
 }
 
-.verdict__skeleton-bar {
-  height: 12rpx;
+/* 值：subhead 30rpx */
+.verdict__sk-bar--value {
+  height: 30rpx;
   border-radius: $fish-radius-sm;
 }
 
-.verdict__skeleton-bar--value {
-  width: 40rpx;
+/* 元信息：caption2 22rpx */
+.verdict__sk-bar--meta {
+  height: 22rpx;
+  margin-left: 6rpx;
+  border-radius: $fish-radius-sm;
 }
 
-.verdict__skeleton-bar--meta {
-  width: 28rpx;
-  height: 10rpx;
-  margin-left: 6rpx;
+/*
+ * 三块的宽度按**常见值**摆：温度「28°」约 48rpx、潮汐「涨潮」60rpx、风「12 km/h」96rpx；
+ * 元信息分别是「多云」44rpx、「高潮 15:30」100rpx、「东南风」66rpx。
+ *
+ * 真实宽度随数据变，摆得准是运气 —— 摆成常见值的形状，
+ * 数据到了之后的位移就是几 rpx，看不出来。
+ */
+.verdict__sk-bar--temp-value {
+  width: 48rpx;
+}
+
+.verdict__sk-bar--temp-meta {
+  width: 44rpx;
+}
+
+.verdict__sk-bar--tide-value {
+  width: 60rpx;
+}
+
+.verdict__sk-bar--tide-meta {
+  width: 100rpx;
+}
+
+.verdict__sk-bar--wind-value {
+  width: 96rpx;
+}
+
+.verdict__sk-bar--wind-meta {
+  width: 66rpx;
+}
+
+/*
+ * 底部动作区的占位。
+ *
+ * 见模板里的说明：这一块是「后来才出现的东西」，不先占住，
+ * 数据一到脚部就长出一行，头部那块居中的内容被顶下去。
+ */
+.verdict__sk-foot {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* 主动作：一个胶囊，跟真按钮一样高（88rpx = 44pt） */
+.verdict__sk-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: $fish-radius-pill;
+}
+
+/* AI 建议：一个文字入口 */
+.verdict__sk-link {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 8rpx;
+}
+
+/* 「渔碌建议」四个字 × 32rpx */
+.verdict__sk-bar--link {
+  width: 128rpx;
+  height: 32rpx;
+  border-radius: $fish-radius-sm;
 }
 
 /* 「今日鱼口概率」这个名号 */
@@ -642,13 +833,28 @@ function onRefresh() {
   opacity: 0.6;
 }
 
+/*
+ * 数字。
+ *
+ * 宽度定死成三位数、右对齐。
+ *
+ * 数字滚动时位数会变（0 → 62 → 100），宽度跟着变的话这一行是居中的 ——
+ * 「/100」和那个可点的箭头就会跟着左右跳。位数从右往左长，箭头钉在原地。
+ *
+ * 空出来的那一截不是浪费：右边挂着「/100 ›」，两边的分量正好抵平，
+ * 数字落在屏幕中间。骨架那边摆的是同一个位宽（见 .verdict__sk-number），
+ * 数到了才落在同一个位置。
+ */
 .verdict__score-num {
+  width: 252rpx;
+  flex-shrink: 0;
   color: $fish-ink;
   font-size: 152rpx;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* 「/100」是刻度的上限，不是第二个数字：压到最小一档 */
