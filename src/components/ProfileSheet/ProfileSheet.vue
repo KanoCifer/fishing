@@ -9,8 +9,8 @@
     - **昵称**：随登录请求提交，服务端在「这个账号还没有昵称」时才写入，
       所以它要等用户点保存（见 saveNickname 的注释）。
 
-    抽屉用项目里已有的 SnapSheet —— 与钓点详情、钓鱼反馈同一种浮层，
-    三处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
+    抽屉用项目里已有的 SnapSheet —— 与钓点分享、行程抽屉同一种浮层，
+    几处抽屉共用一个容器，才谈得上「同一个手势、同一种落位」。
   -->
   <SnapSheet :open="open" :snap-points="SNAP_POINTS" :initial-snap="0" @close="emit('close')">
     <template #header>

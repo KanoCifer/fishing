@@ -241,8 +241,9 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 当前选中的钓点。
    *
    * 放 store 而不是地图页的局部 state：选中动作发生在钓点页（点 marker），
-   * 消费方却是数据页的钓鱼反馈表单，两边跨页了。跨页只能靠 URL 传，
-   * 而 URL 带 marker 还得额外处理刷新和失效，不如共享状态直接。
+   * 消费方却是记录新建页（反馈与记录合成一张表单），两边跨页了。
+   * 跨页只能靠 URL 传，而 URL 带 marker 还得额外处理刷新和失效，
+   * 不如共享状态直接。
    */
   const selectedMarker = shallowRef<MapMarker | null>(null);
 

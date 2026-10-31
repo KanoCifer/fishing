@@ -88,15 +88,6 @@
           <RecordTripRail :logs="railLogs" @select="openDetail" />
         </template>
 
-        <!--
-          底部动作条。
-
-          「记一笔」是这一页唯一的主动作，摆在页面最底下 ——
-          拇指够得着，而且滚到哪儿都在。
-
-          常驻底部的一条，内容从它底下滚过去，所以底色不能是透明的
-          （不然会看见字从按钮底下穿出来）。
-        -->
         <view class="records__bar">
           <view class="records__create" @tap="openCreate">
             <image class="records__create-icon" :src="createIcon" mode="aspectFit" />
@@ -430,15 +421,8 @@ async function onLogin(): Promise<void> {
  * 透明的话会看见字从按钮底下穿出来。
  */
 .records__bar {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
   padding: 16rpx 32rpx;
-  background-color: $fish-glass-strong;
   box-shadow: inset 0 1rpx 0 $fish-border-40;
-  @include fish-glass-blur;
 }
 
 /*

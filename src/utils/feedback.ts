@@ -13,7 +13,8 @@
  * 这里改成直接切字符串求分钟差，不做任何时区换算。
  */
 
-import type { TideData, WeatherIndex } from '@/types/fishing';
+import type { FishingFeedbackLevel, FishingFeedbackPayload, TideData, WeatherIndex } from '@/types/fishing';
+import type { FishingLogWeather } from '@/types/record';
 
 /**
  * 和风官方钓鱼指数档位（1-3）：适宜=1 / 较适宜=2 / 不宜=3。
@@ -116,4 +117,58 @@ export function deriveTideMeta(tideData: TideData | null): TideMeta {
     range: Number.isFinite(nextLevel) ? Math.abs(nextLevel - level) : TIDE_FALLBACK.range,
     hoursToNext,
   };
+}
+
+/**
+ * 拼出鱼口反馈的提交载荷。
+ *
+ * 缺的气象项按后端的默认口径兜底（温度 20、湿度 50、气压 1013、风 0、
+ * 降水 0、官方钓鱼指数 2、潮位 1.5、涨潮、潮差 1.5、距下一潮 3 小时）——
+ * 与旧反馈表单一致：宁可给一个中性值，也不要让后端拿零值当真值算分
+ * （气压 0 会把气压分项直接打成 0）。
+ *
+ * 天气快照优先用记录里那份 —— 用户手改过的那份才是「当时」的。
+ */
+export function buildFishingFeedbackPayload(input: {
+  /** 用户选的那一档 */
+  level: FishingFeedbackLevel;
+  /** 钓点 id。没有关联钓点时传 'default' */
+  locationId: string;
+  /** 地点名 */
+  locationName: string;
+  /** 钓鱼时间，RFC3339 */
+  fishingTime: string;
+  /** 天气快照。整份缺字段就按上面的默认口径兜底 */
+  weather?: FishingLogWeather | null;
+}): FishingFeedbackPayload {
+  const w = input.weather ?? {};
+
+  return {
+    location_id: input.locationId,
+    location_name: input.locationName,
+    fishing_time: input.fishingTime,
+    feedback: input.level,
+
+    temperature: finiteOr(w.temperature, 20),
+    humidity: finiteOr(w.humidity, 50),
+    pressure: finiteOr(w.pressure, 1013),
+    wind_speed: finiteOr(w.wind_speed, 0),
+    precipitation: finiteOr(w.precipitation, 0),
+    indices: finiteOr(w.indices, 2),
+
+    tide_level: finiteOr(w.tide_level, 1.5),
+    tide_type: w.tide_type === '退潮' ? '退潮' : '涨潮',
+    tide_range: finiteOr(w.tide_range, 1.5),
+    hours_to_next_tide: finiteOr(w.hours_to_next_tide, 3),
+  };
+}
+
+/**
+ * 数字兜底。
+ *
+ * 用 `Number.isFinite` 而不是 `||`：0 对风速、降水、潮差都是合法值，
+ * `||` 会把它们换成兜底值 —— 那等于往模型里塞一条假数据。
+ */
+function finiteOr(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) ? value : fallback;
 }

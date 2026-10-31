@@ -1,6 +1,6 @@
 <template>
   <!--
-    记一笔 —— 新建一条钓鱼记录。
+    记一笔 —— 新建一条钓鱼记录，顺带反馈今天的鱼口。
 
     它在**分包**里（日历页是 tab 页，必须在主包；这一页不必），
     所以它能引用主包的组件，不能反过来。
@@ -17,6 +17,9 @@
     为什么不让渔获变成「全选填」：随手提交一下就多一条空记录，
     日历上多一个浅色的格子，而那格子代表的是「我今天去了」——
     这件事用户得是有意为之的。
+
+    同一份表单也是鱼口反馈的入口：登录时一次提交两样东西
+    （钓鱼记录 + 鱼口反馈），未登录时只剩鱼口反馈那一半。
   -->
   <view class="create" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
@@ -29,14 +32,32 @@
         <text class="create__notice-text">{{ loadingText }}</text>
       </view>
 
-      <!-- 未登录 -->
-      <view v-else-if="!session.loggedIn" class="create__empty">
-        <text class="create__empty-title">{{ login.title }}</text>
-        <text class="create__empty-hint">{{ login.hint }}</text>
-        <view class="create__empty-action" @tap="onLogin">
-          <text class="create__empty-action-text">{{ login.action }}</text>
+      <!--
+        未登录：只反馈鱼口概率。
+
+        记录要绑定用户，没有「游客记录」这回事 —— 所以这一档只剩反馈：
+        用户照样能对今天的鱼口概率表个态，渔获、照片、地点要登录之后才谈得上。
+      -->
+      <template v-else-if="!session.loggedIn">
+        <view class="scene" :style="{ animationDelay: enterDelay(0) }">
+          <text class="scene__place">{{ guestPlace }}</text>
+
+          <view class="scene__meta">
+            <text class="scene__meta-item">{{ indexSummary }}</text>
+          </view>
         </view>
-      </view>
+
+        <view class="sect">
+          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(1) }">
+            <FishBiteFeedback :selected="level" @change="onLevelChange" />
+          </view>
+        </view>
+
+        <view class="create__guest" :style="{ animationDelay: enterDelay(2) }">
+          <text class="create__guest-hint">{{ feedback.guestHint }}</text>
+          <text class="create__guest-action" @tap="onLogin">{{ feedback.guestLogin }}</text>
+        </view>
+      </template>
 
       <template v-else>
         <!-- 情境：什么时候、在哪儿、怎么钓的 -->
@@ -94,11 +115,24 @@
           </view>
         </view>
 
+        <!--
+          鱼口体验。紧挨着渔获 —— 两者说的是同一件事的结果：
+          钓到了什么，以及那天的鱼口到底怎么样。
+
+          这一档是喂给模型的：它跟服务端算的专家评分一比，
+          差值就是残差模型要学的东西。所以它跟渔获一起提交，不另开一条路。
+        -->
+        <view class="sect">
+          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(2) }">
+            <FishBiteFeedback :selected="level" @change="onLevelChange" />
+          </view>
+        </view>
+
         <!-- 备注 -->
         <view class="sect">
-          <view class="sect__title" :style="{ animationDelay: enterDelay(2) }">{{ remarkTitle }}</view>
+          <view class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ remarkTitle }}</view>
 
-          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(2) }">
+          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(3) }">
             <textarea
               class="create__remark"
               :value="remark"
@@ -112,16 +146,16 @@
 
         <!-- 照片 -->
         <view class="sect">
-          <view class="sect__title" :style="{ animationDelay: enterDelay(3) }">{{ imageTitle }}</view>
+          <view class="sect__title" :style="{ animationDelay: enterDelay(4) }">{{ imageTitle }}</view>
 
-          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(3) }">
+          <view class="sect__card create__card" :style="{ animationDelay: enterDelay(4) }">
             <ImagePicker :max="imageMax" type="record" @change="onImagesChange" @uploading="onUploadingChange" />
           </view>
         </view>
 
         <!-- 当时的天气。深色面，收在最后一段 -->
         <view class="sect">
-          <view class="sect__card create__weather-card" :style="{ animationDelay: enterDelay(4) }">
+          <view class="sect__card create__weather-card" :style="{ animationDelay: enterDelay(5) }">
             <view class="create__weather-head">
               <text class="create__weather-title">{{ weatherTitle }}</text>
               <text v-if="hasWeather" class="create__weather-action" @tap="weatherEditing = !weatherEditing">
@@ -163,13 +197,25 @@
     </view>
 
     <!-- 提交条。内容从它底下滚过去 -->
-    <view v-if="ready && session.loggedIn" class="create__dock">
-      <view class="create__btn create__btn--ghost" @tap="onCheckinOnly">
-        <text class="create__btn-text">{{ checkinLabel }}</text>
-      </view>
+    <view v-if="ready" class="create__dock">
+      <template v-if="session.loggedIn">
+        <view class="create__btn create__btn--ghost" @tap="onCheckinOnly">
+          <text class="create__btn-text">{{ checkinLabel }}</text>
+        </view>
 
-      <view class="create__btn create__btn--primary" :class="{ 'create__btn--disabled': submitting }" @tap="onSave">
-        <text class="create__btn-text">{{ submitting ? savingText : saveLabel }}</text>
+        <view class="create__btn create__btn--primary" :class="{ 'create__btn--disabled': submitting }" @tap="onSave">
+          <text class="create__btn-text">{{ submitting ? savingText : saveLabel }}</text>
+        </view>
+      </template>
+
+      <!-- 未登录：只有鱼口反馈这一件事可做 -->
+      <view
+        v-else
+        class="create__btn create__btn--primary"
+        :class="{ 'create__btn--disabled': submitting }"
+        @tap="onSubmitFeedback"
+      >
+        <text class="create__btn-text">{{ submitting ? feedback.submitting : feedback.guestSubmit }}</text>
       </view>
     </view>
   </view>
@@ -188,6 +234,7 @@ import { computed, ref } from 'vue';
 import { onLoad, onPageScroll } from '@dcloudio/uni-app';
 
 import ChoiceChips from '@/components/ChoiceChips/ChoiceChips.vue';
+import FishBiteFeedback from '@/components/FishBiteFeedback/FishBiteFeedback.vue';
 import ImagePicker from '@/components/ImagePicker/ImagePicker.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';
@@ -195,16 +242,20 @@ import RecordCatchEditor from '@/components/RecordCatchEditor/RecordCatchEditor.
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { loginErrorMessage } from '@/api/auth';
+import { fishingApi } from '@/api/fishing';
+import { FISHING_FEEDBACK } from '@/constants/feedback';
 import { icon } from '@/constants/icons';
-import { RECORD_CREATE, RECORD_LOGIN_REQUIRED, RECORD_METHODS } from '@/constants/record';
+import { RECORD_CREATE, RECORD_METHODS } from '@/constants/record';
 import { UPLOADING_BLOCK } from '@/constants/upload';
 import { useFishingLogStore } from '@/stores/fishingLog';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
-import { deriveFishingIndexLevel, deriveTideMeta } from '@/utils/feedback';
+import { buildFishingFeedbackPayload, deriveFishingIndexLevel, deriveTideMeta } from '@/utils/feedback';
 import { logDateKey } from '@/utils/date';
 import { toErrorMessage } from '@/utils/error';
+import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
+import type { FishingFeedbackLevel } from '@/types/fishing';
 import type { FishingLogCatch, FishingLogWeather } from '@/types/record';
 
 /**
@@ -232,8 +283,17 @@ const session = useSessionStore();
 const logStore = useFishingLogStore();
 const mapStore = useFishingMapStore();
 
-const title = RECORD_CREATE.title;
-const login = RECORD_LOGIN_REQUIRED;
+/**
+ * 页面标题。
+ *
+ * 未登录时这一页只做鱼口反馈 —— 标题得说清这一页在干什么，
+ * 否则「记一笔」三个字会让人以为有一份记录等着填。
+ */
+const title = computed(() => (session.loggedIn ? RECORD_CREATE.title : FISHING_FEEDBACK.guestTitle));
+
+/** 鱼口反馈的文案 */
+const feedback = FISHING_FEEDBACK;
+
 const catchCardTitle = RECORD_CREATE.catchCardTitle;
 const methodTitle = RECORD_CREATE.methodTitle;
 const imageTitle = RECORD_CREATE.imageTitle;
@@ -313,6 +373,14 @@ const weather = ref<FishingLogWeather>({});
 /** 天气区块是否展开编辑 */
 const weatherEditing = ref(false);
 
+/**
+ * 鱼口体验。null = 还没选
+ *
+ * 它跟渔获是同一件事的两面：渔获是「钓到了什么」，这一档是「那天鱼口怎么样」。
+ * 提交时跟记录一起发（见 submit）。
+ */
+const level = ref<FishingFeedbackLevel | null>(null);
+
 /** 正在提交。锁住按钮，防连点发两次 */
 const submitting = ref(false);
 
@@ -344,6 +412,39 @@ function currentTime(): string {
 const placeText = computed(() => {
   if (picked.value) return picked.value.name;
   return mapStore.selectedMarker?.extraData?.name ?? '';
+});
+
+/**
+ * 未登录时显示的地点。
+ *
+ * 反馈没有「选点」这一步 —— 游客报的是「我这儿今天的鱼口」，
+ * 地点就用当前定位那份地名，定位不到就说钓鱼地点。
+ */
+const guestPlace = computed(() => mapStore.locationName || placeText.value || '钓鱼地点');
+
+/**
+ * 当前鱼口概率。一句话告诉用户「你在给哪一条鱼打分」。
+ *
+ * 没有数据就说没有 —— 报一个猜出来的分数，比不报更坏。
+ */
+const indexSummary = computed(() => {
+  const data = mapStore.indexData;
+  if (!data) return '当前鱼口概率未知';
+  return `当前鱼口概率 ${data.fishing_index}（${data.level}）`;
+});
+
+/**
+ * 提交时用的那一档。
+ *
+ * 渔获为空时默认「空军」—— 去了、一条没钓到，这本身就是一条信息，
+ * 而模型正需要这种「差样本」才能学会区分。
+ *
+ * 有渔获就不替用户猜：钓到一条到底是「好」还是「一般」，他说才算。
+ */
+const effectiveLevel = computed<FishingFeedbackLevel | null>(() => {
+  if (level.value) return level.value;
+  if (session.loggedIn && !catches.value.length) return '空军';
+  return null;
 });
 
 /**
@@ -506,6 +607,11 @@ function onCatchesChange(next: FishingLogCatch[]): void {
   catches.value = next;
 }
 
+/** 选了哪一档鱼口体验 */
+function onLevelChange(value: FishingFeedbackLevel): void {
+  level.value = value;
+}
+
 function onMethodsChange(next: string | string[]): void {
   methods.value = Array.isArray(next) ? next : [next];
 }
@@ -582,9 +688,39 @@ function collectLocation(): {
 }
 
 /**
+ * 提交鱼口反馈。
+ *
+ * 反馈走的是 `v3/fish/records` —— 匿名端点，没有归属人，所以登录与否都能发。
+ * 天气快照用记录里那份（用户手改过的那份才是「当时」的）。
+ */
+async function submitFeedback(params: {
+  level: FishingFeedbackLevel;
+  /** 钓鱼时间，RFC3339 */
+  fishingTime: string;
+  /** 关联钓点 id。没有关联钓点时传 'default' */
+  locationId?: string;
+  /** 地点名 */
+  locationName?: string;
+}): Promise<void> {
+  await fishingApi.submitFeedback(
+    buildFishingFeedbackPayload({
+      level: params.level,
+      locationId: params.locationId ?? 'default',
+      locationName: params.locationName || '钓鱼地点',
+      fishingTime: params.fishingTime,
+      weather: weather.value,
+    }),
+  );
+}
+
+/**
  * 提交。
  *
  * `withCatch` 为 false 时是「仅打卡」：渔获可以为空。
+ *
+ * 登录时一次提交两样东西：钓鱼记录（v3/fish/logs）与鱼口反馈（v3/fish/records）。
+ * 先写记录 —— 那是这一页的正事，反馈搭车走；反馈失败不回滚记录，
+ * 只提示一句：记录已经在了，用户可以再去反馈一次。
  */
 async function submit(withCatch: boolean): Promise<void> {
   if (submitting.value) return;
@@ -599,6 +735,12 @@ async function submit(withCatch: boolean): Promise<void> {
     return;
   }
 
+  const chosen = effectiveLevel.value;
+  if (!chosen) {
+    uni.showToast({ title: FISHING_FEEDBACK.noLevelToast, icon: 'none' });
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -606,10 +748,12 @@ async function submit(withCatch: boolean): Promise<void> {
     const startedAt = new Date();
     startedAt.setHours(hour || 0, minute || 0, 0, 0);
 
+    const location = collectLocation();
+
     await logStore.create({
       log_date: logDate,
       started_at: startedAt.toISOString(),
-      ...collectLocation(),
+      ...location,
       catches: withCatch ? catches.value : [],
       methods: collectMethods(),
       images: images.value,
@@ -617,7 +761,22 @@ async function submit(withCatch: boolean): Promise<void> {
       remark: remark.value.trim() || undefined,
     });
 
-    uni.showToast({ title: RECORD_CREATE.savedToast, icon: 'none' });
+    /*
+     * 鱼口反馈。跟记录同一次提交，但它是独立的一件事 ——
+     * 它失败不该把已经存下的记录说成没存上。
+     */
+    try {
+      await submitFeedback({
+        level: chosen,
+        fishingTime: startedAt.toISOString(),
+        locationId: location.location_id,
+        locationName: location.location_name,
+      });
+      uni.showToast({ title: RECORD_CREATE.savedToast, icon: 'none' });
+    } catch {
+      uni.showToast({ title: FISHING_FEEDBACK.recordOnlyToast, icon: 'none' });
+    }
+
     setTimeout(goBack, 600);
   } catch (err) {
     submitting.value = false;
@@ -633,6 +792,43 @@ function onSave(): void {
 /** 仅打卡。渔获可以为空 */
 function onCheckinOnly(): void {
   void submit(false);
+}
+
+/**
+ * 未登录时只提交鱼口反馈。
+ *
+ * 记录要绑定用户，没有游客记录；反馈匿名可写，所以这一半照样能走通。
+ */
+async function onSubmitFeedback(): Promise<void> {
+  if (submitting.value) return;
+
+  const chosen = effectiveLevel.value;
+  if (!chosen) {
+    uni.showToast({ title: FISHING_FEEDBACK.noLevelToast, icon: 'none' });
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    await submitFeedback({
+      level: chosen,
+      fishingTime: new Date().toISOString(),
+      locationId: mapStore.selectedMarker?.extraData?.id,
+      locationName: guestPlace.value,
+    });
+
+    // 结果只以 toast 呈现：两秒后连它一起消失，页面也退了。
+    // 那一刻屏幕上什么都不剩，给一次震动把「提交成了」这件事留下来。
+    haptic('medium');
+    uni.showToast({ title: FISHING_FEEDBACK.submittedToast, icon: 'success' });
+    setTimeout(goBack, 600);
+  } catch (err) {
+    submitting.value = false;
+    // 失败与成功必须能盲听区分：失败是重的一下
+    haptic('heavy');
+    uni.showToast({ title: toErrorMessage(err, '提交反馈失败，请重试'), icon: 'none' });
+  }
 }
 
 /** 回上一页 */
@@ -673,9 +869,14 @@ onLoad(async () => {
   await session.restore();
   ready.value = true;
 
-  if (!session.loggedIn) return;
-
-  if (mapStore.liveWeather) fillWeather();
+  /*
+   * 天气快照两份用途：记录里那份（手改过的是「当时」的），
+   * 鱼口反馈里那份（模型校准要的是同一份气象条件）。
+   *
+   * 所以无条件抄一份 —— 没取到实况时，实况那几项留空，
+   * 而潮汐与官方钓鱼指数跟实况无关，照样带得上。
+   */
+  fillWeather();
 });
 </script>
 
@@ -1020,44 +1221,35 @@ onLoad(async () => {
   @include fish-type(callout);
 }
 
-/* 未登录时的空态 */
-.create__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 48rpx;
-  text-align: center;
-}
-
-.create__empty-title {
-  color: $fish-ink;
-  @include fish-type(title3);
-}
-
-.create__empty-hint {
-  margin-top: 12rpx;
-  color: $fish-muted;
-  @include fish-type(callout);
-}
-
-.create__empty-action {
+/*
+ * 未登录时的那一行提示。
+ *
+ * 一句话加一个入口，不是一张卡：它说的是「还有件事没做」，
+ * 不是这一页的内容 —— 内容只有上面那五档。
+ */
+.create__guest {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 200rpx;
-  min-height: 80rpx;
-  margin-top: 40rpx;
-  padding: 0 40rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-accent;
-  @include fish-press(0.97);
+  padding: 8rpx 32rpx 0;
+  @include fish-enter;
 }
 
-.create__empty-action-text {
-  color: $fish-on-accent;
-  @include fish-type(callout);
+.create__guest-hint {
+  flex: 1;
+  min-width: 0;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+}
+
+/* 去登录。主色，因为它是个能点的动作，不是一句说明 */
+.create__guest-action {
+  flex-shrink: 0;
+  margin-left: 20rpx;
+  color: $fish-blue-600;
+  @include fish-type(caption);
 
   font-weight: 600;
+  @include fish-press-dim;
 }
 
 /* ── 提交条 ────────────────────────────────────────────────────────────── */

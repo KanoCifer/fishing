@@ -243,6 +243,17 @@ $fish-deep-hairline: rgba(255, 255, 255, 0.14); // 深色面上的发丝线
 $fish-deep-muted: rgba(255, 255, 255, 0.55); // 深色面上的次级文字
 
 /**
+ * 弧形表（潮位表）的值弧渐变。
+ *
+ * canvas 2d 不解析 SCSS 变量，弧形表那侧只能硬编码 ——
+ * 这两个值就是硬编码的**锚点**，改色时两处一起改（见 utils/canvas.ts）。
+ *
+ * 轨道色不另立：深色面上的发丝线那一档（$fish-deep-hairline）就是它。
+ */
+$fish-gauge-from: #4f8cff;
+$fish-gauge-to: #82d4ff;
+
+/**
  * 深色面上的雨强四档。
  *
  * 同一色相，四档明度 —— 与浅色那四档是同一个口径（档位仍由 utils/precip 判），

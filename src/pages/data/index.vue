@@ -116,14 +116,6 @@
         在可滚动页面上同样成立（浮层固定在视口，不随内容滚走）。
       -->
 
-      <!-- 钓鱼反馈 -->
-      <FishingFeedbackForm
-        :open="feedbackOpen"
-        :data="mapStore.indexData"
-        :location-id="locationId"
-        @close="feedbackOpen = false"
-      />
-
       <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
 
@@ -149,7 +141,6 @@ import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
 import FeatureBreakdownSheet from '@/components/FeatureBreakdownSheet/FeatureBreakdownSheet.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
-import FishingFeedbackForm from '@/components/FishingFeedbackForm/FishingFeedbackForm.vue';
 import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import LifeIndexCard from '@/components/LifeIndexCard/LifeIndexCard.vue';
 import MetricChart from '@/components/MetricChart/MetricChart.vue';
@@ -173,21 +164,9 @@ const mapStore = useFishingMapStore();
 const session = useSessionStore();
 const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
-const feedbackOpen = ref(false);
 const analysisOpen = ref(false);
 const breakdownOpen = ref(false);
 const showAnim = ref(false);
-
-/**
- * 反馈关联的钓点 id，取自钓点页共享过来的选中态。
- *
- * 用户在钓点页选了哪个点，切到这页提交反馈时就记到那个点头上；
- * 没选过就是 'default'（后端约定）。
- */
-const locationId = computed(() => {
-  const spot = mapStore.selectedMarker?.extraData;
-  return spot ? String(spot.id) : 'default';
-});
 
 /* ── 常驻结论条 ──────────────────────────────────────────────────────── */
 
@@ -310,8 +289,15 @@ onLoad(() => {
   enableShareMenu();
 });
 
+/**
+ * 去反馈鱼口。
+ *
+ * 走独立页而不是浮层：反馈与记录已经合成一张表单了 ——
+ * 登录时一次提交两样东西（记录 + 鱼口反馈），未登录时只剩反馈那一半。
+ * 浮层装不下这张表单。
+ */
 function openFeedback() {
-  feedbackOpen.value = true;
+  uni.navigateTo({ url: '/pages/record/create/index' });
 }
 
 function openAnalysis() {
