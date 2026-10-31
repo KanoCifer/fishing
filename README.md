@@ -25,14 +25,14 @@
 
 ## 技术栈
 
-| 项目 | 选型 |
-| --- | --- |
-| 框架 | uni-app 3 + Vue 3 + TypeScript |
-| 状态管理 | Pinia |
-| 目标平台 | 微信小程序（`mp-weixin`） |
-| 构建 | Vite 5 |
-| 包管理 | pnpm |
-| 格式化 / 校验 | oxfmt / oxlint + vue-tsc |
+| 项目          | 选型                           |
+| ------------- | ------------------------------ |
+| 框架          | uni-app 3 + Vue 3 + TypeScript |
+| 状态管理      | Pinia                          |
+| 目标平台      | 微信小程序（`mp-weixin`）      |
+| 构建          | Vite 5                         |
+| 包管理        | pnpm                           |
+| 格式化 / 校验 | oxfmt / oxlint + vue-tsc       |
 
 > 平台边界：小程序没有浏览器运行时，`document` / `window` / `localStorage` / `fetch` 一律不可用，
 > 所有平台能力走 `uni.*` 命名空间。`pnpm lint` 的 `no-undef` 就是这条边界的静态版本。
@@ -59,11 +59,11 @@ pnpm lint
 
 所有变量只从 `import.meta.env.VITE_*` 读取。复制 [.env.example](.env.example) 为 `.env.local` 后按需填写：
 
-| 变量 | 作用 |
-| --- | --- |
-| `VITE_API_BASE_URL` | 接口基址，默认走 `@/config/env` 的默认值 |
+| 变量                     | 作用                                                         |
+| ------------------------ | ------------------------------------------------------------ |
+| `VITE_API_BASE_URL`      | 接口基址，默认走 `@/config/env` 的默认值                     |
 | `VITE_QWEATHER_FONT_URL` | 和风天气图标字体地址，需在微信后台配为 downloadFile 合法域名 |
-| `VITE_CDN_BASE_URL` | 静态资源 CDN 基址，同样需配合法域名 |
+| `VITE_CDN_BASE_URL`      | 静态资源 CDN 基址，同样需配合法域名                          |
 
 新增 `VITE_*` 变量时，记得同步把它加进 `vite.config.ts` 的 `envPrefix` 白名单 ——
 那是白名单不是前缀，漏一个变量运行时就取到 `undefined` 且不报错。
@@ -88,14 +88,14 @@ src/
 
 按「要做什么」找对应那一份：
 
-| 要做什么 | 读哪份 |
-| --- | --- |
-| 改界面、加页面、加组件、调间距字号配色 | [设计系统](docs/design-system.md) |
-| 接接口、改数据流、加字段、动 store | [架构](docs/architecture.md) |
-| 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸 | [小程序平台能力](docs/mp-weixin-platform.md) |
-| 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 域名与后台配置 | [网络与后台](docs/mp-weixin-network.md) |
-| 动代码包：静态图、分包、包体大小 | [代码包](docs/mp-weixin-package.md) |
-| 关心代码能不能商用、能不能改协议、素材能不能用 | [许可协议](#许可与审查)                   |
+| 要做什么                                                   | 读哪份                                       |
+| ---------------------------------------------------------- | -------------------------------------------- |
+| 改界面、加页面、加组件、调间距字号配色                     | [设计系统](docs/design-system.md)            |
+| 接接口、改数据流、加字段、动 store                         | [架构](docs/architecture.md)                 |
+| 碰 canvas / map / 字体 / 动画 / 自定义事件 / 窗口尺寸      | [小程序平台能力](docs/mp-weixin-platform.md) |
+| 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 域名与后台配置 | [网络与后台](docs/mp-weixin-network.md)      |
+| 动代码包：静态图、分包、包体大小                           | [代码包](docs/mp-weixin-package.md)          |
+| 关心代码能不能商用、能不能改协议、素材能不能用             | [许可协议](#许可与审查)                      |
 
 开发约定见 [AGENTS.md](AGENTS.md)。
 

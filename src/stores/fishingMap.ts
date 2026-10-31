@@ -219,20 +219,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const indexLoading = ref(false);
   const indexError = ref('');
 
-  /**
-   * 这一轮鱼口概率**还没开始取**。
-   *
-   * 与 indexLoading 分开的原因：数据页是冷启动落点，取数被推到
-   * onReady 之后（见 docs/mp-weixin-network.md「启动阶段别发请求」）。
-   * 从首屏渲染到请求发出之间有一段窗口，那段时间 indexLoading 还是 false
-   * —— 页面会以为「没有数据」，于是显示「还没有今天的鱼口概率」的空态，
-   * 接着才切成骨架、再切成真数据。三段式闪一下。
-   *
-   * 这个标志让那段时间被当成「加载中」：骨架屏从头就在，不闪。
-   *
-   * 它是 store 的状态而不是页面的局部变量：读它的是卡片组件，
-   * 而「这一轮取数什么时候开始」是 store 才知道的事。
-   */
   const indexPending = ref(true);
 
   // 钓点标记
@@ -386,6 +372,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     weatherError.value = '';
     indexError.value = '';
 
+    indexPending.value = false;
+
     try {
       const data = await fishingApi.getFishingIndex(target, true);
 
@@ -445,9 +433,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 全应用只有这一条取数入口：地图页不碰它（那边根本不显示这些数据）。
    */
   async function ensureWeatherAndFishing(): Promise<void> {
-    // 从这一刻起就不是「还没开始取」了 —— 骨架屏到这儿就交给 indexLoading 管
-    indexPending.value = false;
-
     const located = await locateUser();
     const target = located ?? userLocation.value ?? MAP_CENTER;
 

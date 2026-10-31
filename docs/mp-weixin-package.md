@@ -43,12 +43,12 @@
 `src/static` 下的文件是代码包的一部分，会跟着每个用户下载。
 产物由脚本生成，源图在 `scripts/assets/`，**产物不手改**：
 
-| 源图                  | 产物                  | 去哪儿                                  | 为什么是这个格式                                  |
-| --------------------- | --------------------- | --------------------------------------- | ------------------------------------------------- |
-| `spots.png`（1.2MB）  | `spots.jpg`（158KB）  | **CDN**，不进代码包                     | 要进 canvas，海报路径上只认 jpg/png               |
-| `logo.png`（76KB）    | `logo.webp`（15KB）   | **CDN**，不进代码包                     | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha |
-| `wxacode.jpg`（51KB） | `wxacode.png`（44KB） | `src/pages/spot-detail/static/`（分包） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来         |
-| `medals/master/A/*.png` | `medals/A/*.webp`  | `src/static/medals/A/`（主包）         | 徽记边缘是抗锯齿软边，必须带 alpha；只在 `<image>` 里出现 |
+| 源图                    | 产物                  | 去哪儿                                  | 为什么是这个格式                                          |
+| ----------------------- | --------------------- | --------------------------------------- | --------------------------------------------------------- |
+| `spots.png`（1.2MB）    | `spots.jpg`（158KB）  | **CDN**，不进代码包                     | 要进 canvas，海报路径上只认 jpg/png                       |
+| `logo.png`（76KB）      | `logo.webp`（15KB）   | **CDN**，不进代码包                     | 只在 `<image>` 里出现，不进 canvas；WebP 带 alpha         |
+| `wxacode.jpg`（51KB）   | `wxacode.png`（44KB） | `src/pages/spot-detail/static/`（分包） | 彩色码，JPEG 会把边界糊了，糊了就扫不出来                 |
+| `medals/master/A/*.png` | `medals/A/*.webp`     | `src/static/medals/A/`（主包）          | 徽记边缘是抗锯齿软边，必须带 alpha；只在 `<image>` 里出现 |
 
 跑 `pnpm assets` 重新生成。理由写在 `scripts/optimize-assets.py` 的注释里。
 

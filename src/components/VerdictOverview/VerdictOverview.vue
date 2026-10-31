@@ -29,12 +29,12 @@
         摆在这块屏幕上跟最终的形状完全不像：数据到了要换一次版，版一换位置就跳。
         骨架要照着这块屏最终的样子摆：标签、分数、等级词、一句话、一行因子。
 
-        indexPending 也算「加载中」：数据页是冷启动落点，取数被推到
-        onReady 之后，那之前有一段「还没开始取」的窗口（见 stores/fishingMap）。
-        不把它算进来，那段窗口会显示「还没有今天的鱼口概率」的空态，
-        接着才切骨架、再切数据 —— 三段式闪一下。
+        loading 把取数的**每一段**都算进来（见 computed 的注释）：
+        indexPending 管「还没开始取」的那段，locating 管定位那段，
+        indexLoading 管请求那段。少算一段，那一段就会摆出空态 ——
+        而空态说的是「没有」，其实只是「还没取到」。
       -->
-      <view v-if="(mapStore.indexPending || mapStore.indexLoading) && !mapStore.indexData" class="verdict__skeleton">
+      <view v-if="loading && !mapStore.indexData" class="verdict__skeleton">
         <view class="verdict__skeleton-label" />
 
         <view class="verdict__skeleton-score">
@@ -68,11 +68,6 @@
             <view class="verdict__skeleton-bar verdict__skeleton-bar--meta" />
           </view>
         </view>
-      </view>
-
-      <!-- 错误 -->
-      <view v-else-if="mapStore.indexError && !mapStore.indexData" class="verdict__state">
-        <text class="verdict__error">{{ mapStore.indexError }}</text>
       </view>
 
       <!-- 有数据 -->
@@ -145,7 +140,43 @@
         </view>
       </template>
 
-      <text v-else class="verdict__empty">还没有今天的鱼口概率</text>
+      <!--
+        没取到。
+
+        取不到数据有两种，界面上要分开说：
+        - 出错了（indexError）—— 这是「取不到」，重试有可能成；
+        - 没取到（还没有 indexData，也没有错）—— 数据还没到手。
+
+        两种都在这一块里：版式一样，一句标题 + 一行注解 + 一个动作。
+        出错时标题说「暂时取不到」，跟规范里的措辞一致；
+        没取到时标题是这一屏真正在问的问句（今天能不能钓），不是操作说明。
+
+        动作是「重新获取」：这一屏没有别的出口，
+        把用户堵在这儿等于让人自己找路（见 docs/design-system.md「路径寻找」）。
+      -->
+      <view v-else class="verdict__empty">
+        <text class="verdict__empty-title" :style="enterStyle(0, showAnim)">{{ emptyTitle }}</text>
+        <text class="verdict__empty-text" :style="enterStyle(1, showAnim)">{{ emptyText }}</text>
+
+        <!--
+          按钮里不放图标。
+
+          accent 底 + 主色文字是这一档按钮的固定搭配，
+          图标只有 muted 一档颜色（生成物里没有 onAccent 的 refresh-cw），
+          灰图标压在 accent 底上会读成「禁用」。
+        -->
+        <!--
+          按下反馈挂在里层，跟上面分数那一行同一个道理：
+          外层带 fish-enter，它是 fill-mode: both，动画的终态
+          （transform: scale(1)）会盖住 :active 写的 transform ——
+          动画值在层叠里优先于普通声明，反馈挂在外层等于没挂。
+        -->
+        <view class="verdict__empty-action" :style="enterStyle(2, showAnim)">
+          <view class="verdict__empty-action-hit" @tap="onRefresh">
+            <text class="verdict__empty-action-text">重新获取</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!--
@@ -210,6 +241,42 @@ const { capsuleTop } = useNavMetrics();
 const { windowHeight } = useViewport();
 
 const mapStore = useFishingMapStore();
+
+/**
+ * 这一屏现在在等什么。
+ *
+ * 取数有两段：定位（授权询问 + 一次往返）和请求。
+ * 加载判定要覆盖**两段** —— 少算一段，那一段就会摆出空态，
+ * 而空态说的是「没有」，其实只是「还没取到」，说假话
+ * （见 docs/architecture.md「空态不是加载态」）。
+ *
+ * indexPending 覆盖的是「这一轮还没发出请求」的窗口（冷启动那一段，
+ * 以及定位那一段），indexLoading 覆盖请求本身，locating 兜住
+ * 别的入口发起的定位（地图上的定位键）。
+ */
+const loading = computed(() => mapStore.indexPending || mapStore.indexLoading || mapStore.locating);
+
+/**
+ * 空态的头一句。
+ *
+ * 出错与没取到分开说：前者是「取不到」（重试可能成），
+ * 后者是「还没取到」。混成一句就是把两种情况说成了同一种
+ * （见 docs/architecture.md「空态不是加载态」）。
+ *
+ * 「还没取到」那一档写成问句：占位文案要说清这一屏在问什么，
+ * 而不是变成一句操作说明（见 docs/design-system.md「谁来说，事先分好」）。
+ */
+const emptyTitle = computed(() => (mapStore.indexError ? '今天的鱼口概率暂时取不到' : '今天能不能钓？'));
+
+/**
+ * 空态的注解。
+ *
+ * 出错时给具体原因 —— 后端原文只在这一层出现，卡片那边不摆
+ * （见 docs/architecture.md「别把后端原文摆到卡上」：
+ * 原因交给 toast 与这一块结论头）。
+ * 没出错时说清这一屏在等什么，不重复按钮上的话。
+ */
+const emptyText = computed(() => mapStore.indexError || '数据还没到，取到就能回答这个问题');
 
 const pinIcon = icon('map-pin', 'muted');
 const refreshIcon = icon('refresh-cw', 'muted');
@@ -430,10 +497,6 @@ function onRefresh() {
   flex: 1;
   min-height: 0;
   text-align: center;
-}
-
-.verdict__state {
-  width: 100%;
 }
 
 /*
@@ -777,13 +840,64 @@ function onRefresh() {
   @include fish-type(caption2);
 }
 
-.verdict__error {
-  color: $fish-destructive;
-  @include fish-type(callout);
+/*
+ * 空态。
+ *
+ * 不是一张卡：这一屏没有「条目」可套卡片形状，硬套一张卡像坏了。
+ * 版式照 my-spots 的空态：一句标题 + 一行注解 + 一个动作。
+ */
+.verdict__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 48rpx;
+  text-align: center;
 }
 
-.verdict__empty {
+.verdict__empty-title {
+  color: $fish-ink;
+  @include fish-type(title3);
+  @include fish-enter;
+}
+
+.verdict__empty-text {
+  margin-top: 12rpx;
   color: $fish-muted;
   @include fish-type(callout);
+  @include fish-enter;
+}
+
+/*
+ * 空态里那个按钮。
+ *
+ * 分两层：外层带入场动画，内层是真正被按的那块。
+ * 按下反馈必须挂在内层 —— 外层的 fish-enter 是 fill-mode: both，
+ * 动画终态会把 :active 的 transform 盖掉（同一件事见上面分数那一行）。
+ *
+ * 内层的样式只有纯声明：嵌套规则后面再跟声明，Sass 会报 mixed-decls 弃用警告。
+ */
+.verdict__empty-action {
+  display: flex;
+  margin-top: 40rpx;
+  @include fish-enter;
+}
+
+.verdict__empty-action-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200rpx;
+  min-height: 80rpx;
+  padding: 0 40rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent;
+  @include fish-press(0.97);
+}
+
+.verdict__empty-action-text {
+  color: $fish-on-accent;
+  @include fish-type(callout);
+
+  font-weight: 600;
 }
 </style>

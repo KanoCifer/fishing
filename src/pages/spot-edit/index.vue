@@ -81,12 +81,7 @@
             </FormField>
 
             <FormField :label="fields.photos.label" :hint="fields.photos.hint">
-              <ImagePicker
-                :max="photoMax"
-                :initial="photos"
-                @change="onPhotosChange"
-                @uploading="onUploadingChange"
-              />
+              <ImagePicker :max="photoMax" :initial="photos" @change="onPhotosChange" @uploading="onUploadingChange" />
             </FormField>
 
             <FormField :label="fields.suitable.label" :hint="fields.suitable.hint">
