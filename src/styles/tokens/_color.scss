@@ -184,17 +184,7 @@ $fish-tone-tint: rgba(52, 199, 89, 0.14);
 $fish-warning-tint: rgba(255, 149, 0, 0.14);
 $fish-destructive-tint: rgba(255, 59, 48, 0.14);
 
-/* ── 页面底：环境色渐层 ──
-   有了阴影之后，纯 #f2f2f7 的底会把阴影吃掉 —— 卡片像是浮在一张纸上。
-   给底加一层极淡的冷暖环境色，阴影才有东西可以压。
-
-   这层渐变只给有内容的页面用（数据页 / 我的页 / 关于页，见 PageBackdrop），
-   别的页面底色不动：
-   全局 page 底色还得给 tabBar 切换时露出的那一帧兜底，
-   一旦全局换成渐变，钓点页的地图边缘会跟着染上颜色。 */
-$fish-page-bg:
-  radial-gradient(circle at 0% 0%, #dcf5ff, transparent 40%),
-  radial-gradient(circle at 100% -20%, #ffd9a4, transparent 60%), #f3f4f9;
+$fish-page-bg: radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%), #f3f4f9;
 
 /* ── 图表专用。canvas 侧硬编码的色值要与之手工保持一致 ── */
 $fish-tide: #007aff;
