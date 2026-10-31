@@ -68,8 +68,7 @@
           </view>
         </view>
 
-        <!-- 四个数。注脚 -->
-        <view class="records__stats">
+        <view v-if="logStore.stats" class="records__stats">
           <RecordStats :stats="logStore.stats" />
         </view>
 
@@ -521,12 +520,13 @@ async function onLogin(): Promise<void> {
  *
  * 不套卡：它们是注脚，注脚不需要一张自己的卡。
  * 上下各一道发丝线，把这一行从日历卡和往期行程之间托出来。
+ *
+ * 这一行跟着统计一起出现（见模板里的 v-if）：取数没回来之前它不在，
+ * 回来时连着这一行一起落位。
  */
 .records__stats {
   margin: 28rpx 32rpx 0;
   padding: 24rpx 0;
-  border-top: 1rpx solid $fish-border-40;
-  border-bottom: 1rpx solid $fish-border-40;
   @include fish-enter(120ms);
 }
 

@@ -1,22 +1,27 @@
 <template>
-  <!--
-    统计面板 —— 四个数：当前连续、打卡天数、渔获天数、最长连续。
-
-    为什么把「打卡」和「渔获」分成两个数：它们是不同的事。
-    打卡是「我去了」，哪怕空军也算；渔获是「我钓到了」。
-    只给一个总数的话，连续三十天的人不知道自己其中有几天真有收获 ——
-    那才是这个功能真正的产出。
-
-    为什么「当前连续」排在第一个：这一屏扫的是数字，
-    而四个数里只有它回答的是「我现在还在不在状态」。
-    打卡 42 天是历史，当前连着 6 天才是此刻 —— 结论在前，账本在后。
-
-    数字比标签大一号：这一屏扫的是数字，标签是注脚。
-  -->
   <view class="stats">
-    <view v-for="item in items" :key="item.key" class="stats__item">
-      <text class="stats__value">{{ item.value }}</text>
-      <text class="stats__label">{{ item.label }}</text>
+    <view class="stats__lead">
+      <text class="stats__eyebrow">{{ lead.label }}</text>
+
+      <!--
+        环。分母是最长连续：环长画的是「现在离自己的最好成绩有多远」。
+
+        环心的数字放在 DOM 里（RecordRing 的 slot）——
+        canvas 里画字只能用硬编码色值与 px 字号，跟令牌层对不上。
+      -->
+      <RecordRing :value="lead.value" :max="longest" :size="152" :stroke="8">
+        <view class="stats__ringmid">
+          <text class="stats__num">{{ lead.value }}</text>
+          <text class="stats__unit">{{ unit }}</text>
+        </view>
+      </RecordRing>
+    </view>
+
+    <view class="stats__rest">
+      <view v-for="item in items" :key="item.key" class="stats__item">
+        <text class="stats__value">{{ item.value }}</text>
+        <text class="stats__label">{{ item.label }}</text>
+      </view>
     </view>
   </view>
 </template>
@@ -30,33 +35,102 @@
  */
 import { computed } from 'vue';
 
-import { RECORD_STATS } from '@/constants/record';
+import RecordRing from '@/components/RecordRing/RecordRing.vue';
+import { RECORD_DAY_UNIT, RECORD_STATS } from '@/constants/record';
 import type { FishingLogStats } from '@/types/record';
 
 const props = defineProps<{
   stats: FishingLogStats | null;
 }>();
 
+/** 单位。数字与单位分开摆 —— 单位跟着数字大一号会压过数字本身 */
+const unit = RECORD_DAY_UNIT;
+
+/** 主角：当前连续 */
+const lead = computed(() => ({
+  label: RECORD_STATS.currentStreak,
+  value: props.stats?.current_streak ?? 0,
+}));
+
+/** 环的分母：历史最长连续。没比过就没有比，环画成空环 */
+const longest = computed(() => props.stats?.longest_streak ?? 0);
+
+/** 配角：三个平级的数 */
 const items = computed(() => [
-  { key: 'current', value: props.stats?.current_streak ?? 0, label: RECORD_STATS.currentStreak },
-  { key: 'checkin', value: props.stats?.checkin_days ?? 0, label: RECORD_STATS.checkinDays },
-  { key: 'catch', value: props.stats?.catch_days ?? 0, label: RECORD_STATS.catchDays },
-  { key: 'longest', value: props.stats?.longest_streak ?? 0, label: RECORD_STATS.longestStreak },
+  { key: 'checkin', value: props.stats?.checkin_days ?? 0, label: RECORD_STATS.checkin },
+  { key: 'catch', value: props.stats?.catch_days ?? 0, label: RECORD_STATS.catch },
+  { key: 'longest', value: props.stats?.longest_streak ?? 0, label: RECORD_STATS.longest },
 ]);
 </script>
 
 <style lang="scss" scoped>
-/*
- * 四个数平分一行。
- *
- * 不分两行两列：四个数要能一眼横扫着比较，分两行就得分两次看。
- * 每个格子等宽，数字右对齐还是居中？居中 —— 这一排是四个独立的数，
- * 不是一组需要对齐的表格。
- */
 .stats {
   display: flex;
+  align-items: center;
 }
 
+/* 主角：眉标 + 环 */
+.stats__lead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/*
+ * 眉标。当前连续是这一块的结论，先给它名字，再给数。
+ *
+ * caption2 是全页最低的一档：它是数字的注脚，不是小标题。
+ */
+.stats__eyebrow {
+  margin-bottom: 16rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+}
+
+/* 环心的数字与单位并排 */
+.stats__ringmid {
+  display: flex;
+  align-items: baseline;
+}
+
+/*
+ * 主角的数字。
+ *
+ * title1（28pt / 700）—— 比三个配角大一号，这一块扫的是它。
+ * 这一档比头图的地点名（title2）还大一档：主角方案就是让这一块
+ * 自己成为主角，头图那一行压在照片上，靠材质仍然更重。
+ *
+ * 等宽数字：位数变化时整块环心的宽度会跳。
+ */
+.stats__num {
+  color: $fish-ink;
+  @include fish-type(title1);
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* 单位。跟在小数后面，不跟主角同一档 —— 单位是注脚 */
+.stats__unit {
+  margin-left: 6rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption2);
+
+  line-height: 1;
+}
+
+/* 三个配角 */
+.stats__rest {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * 每一格等宽，数字居中。
+ *
+ * 居中而不右对齐：这一排是三个独立的数，不是一组需要对齐的表格。
+ */
 .stats__item {
   display: flex;
   flex: 1;
@@ -65,27 +139,18 @@ const items = computed(() => [
   min-width: 0;
 }
 
-/*
- * 数字。
- *
- * headline（17pt / 600）—— 这一屏第一眼扫的是数字本身。
- * 不再往上加一档：这一页的头图才是主角，四个数字是它的注脚，
- * 加到 22pt 会跟头图的地点名抢同一档声音。
- */
 .stats__value {
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(title3);
+
+  font-variant-numeric: tabular-nums;
 }
 
-/*
- * 标签。
- *
- * caption2 是全页最低的一档：它是数字的注脚，不是小标题。
- */
+/* 配角的标签 */
 .stats__label {
   margin-top: 4rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   text-align: center;
 }

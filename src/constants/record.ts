@@ -39,14 +39,19 @@ export const RECORD_SPECIES_SUGGESTIONS: readonly string[] = Object.values(FISH_
 /* ── 统计面板 ───────────────────────────────────────────────────────────── */
 
 export const RECORD_STATS = {
-  /** 打过卡的天数 */
-  checkinDays: '打卡天数',
+  /**
+   * 打过卡的天数。
+   *
+   * 标签只留词，不留「天数」：主角那一行（当前连续）已经带着单位，
+   * 这里再写一遍只会把这一行挤窄。
+   */
+  checkin: '打卡',
   /** 钓到鱼的天数 */
-  catchDays: '渔获天数',
-  /** 当前连续 */
+  catch: '渔获',
+  /** 当前连续。全称保留 —— 它是这一块的主角，标签要说清是什么 */
   currentStreak: '当前连续',
   /** 最长连续 */
-  longestStreak: '最长连续',
+  longest: '最长',
 } as const;
 
 /** 连续天数的单位。数字与单位分开拼，是为了让数字大一号 */
