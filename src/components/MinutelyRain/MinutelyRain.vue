@@ -550,12 +550,6 @@ const dryLabel = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-/*
- * 卡片外壳。
- *
- * 深色降水材质面（fish-deep-face）。不是玻璃面 —— 雨强四档是四档明度，
- * 浅底上的浅蓝柱分不出档，深底上柱子自己发光才拉得开。
- */
 .minutely {
   @include fish-deep-face;
   padding: 28rpx;

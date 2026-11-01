@@ -87,7 +87,7 @@ const mode = ref<Mode>('hours');
   display: flex;
   flex-shrink: 0;
   padding: 3rpx;
-  border-radius: $fish-radius-mid;
+  border-radius: $fish-radius-lg;
   background-color: $fish-fill;
 }
 

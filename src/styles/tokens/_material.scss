@@ -1,18 +1,8 @@
-// ===========================================================================
 // 材质：玻璃面
-//
-// 「玻璃」在这里不是特效，是**材质**：一块半透明的浮面，靠面本身和底下的
-// 环境色分层，而不是靠描边把两块区域隔开。这是 Apple 近年那套大圆角 +
-// 半透明 + 多层阴影的观感的底层 —— 圆角和阴影只是它的外壳（见 _depth.scss），
-// 材质才是本体。
-// ===========================================================================
-
-// 玻璃面要引用别处的令牌：色值在 _color.scss，阴影在 _depth.scss。
-// as * 把它们摊平，mixin 里就能直接写 $fish-glass / $smooth-shadow-md。
 @use 'color' as *;
 @use 'depth' as *;
 
-@mixin fish-glass($radius: $fish-radius-card) {
+@mixin fish-glass($radius: $fish-radius-mid) {
   border-radius: $radius;
   background-color: $fish-glass;
 
@@ -25,21 +15,7 @@
   -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
 }
 
-/**
- * 深色面。
- *
- * 不透明。不走玻璃面 —— 玻璃是「半透明白」，靠底下的环境色透上来分层；
- * 这块面是「整块沉进页面底色里」，上面的东西浮在它上面（读数、釉柱）。
- *
- * 为什么雨强与读数都走这块面：它们要的是**对比**。
- * 雨强四档是四档明度，浅底上的浅蓝柱分不出档，深底上柱子自己发光才拉得开；
- * 读数同理 —— 白字压深底比灰字压浅底更稳。
- *
- * 光晕的方向与当前天气卡相反：那张左上托温度、右上托图标；
- * 这张左上托柱阵的起点、右下托峰值那一头 —— 雨是从现在往未来下，
- * 光的方向跟着雨的方向走。
- */
-@mixin fish-deep-face($radius: $fish-radius-card) {
+@mixin fish-deep-face($radius: $fish-radius-mid) {
   border-radius: $radius;
   background-color: $fish-deep-base;
   background-image:
