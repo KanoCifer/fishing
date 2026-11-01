@@ -259,6 +259,47 @@ export function pressureLevel(pressure: number): {
   return { label: '很高', tone: 'destructive' };
 }
 
+// ---------------------------------------------------------------------------
+// 风力
+// ---------------------------------------------------------------------------
+
+/**
+ * 蒲福风级的名字。
+ *
+ * 「3 级风」是所有人都懂的，「12.4 km/h」没人有直觉 ——
+ * 这是数据页概览把风速换成级数的理由（同一口径见 pages/spot-detail/spot-conditions）。
+ *
+ * 词取的是国标那一套：钓鱼圈说的「微风」「和风」就是这几个字。
+ */
+const WIND_LEVEL_NAMES: readonly string[] = [
+  '无风',
+  '软风',
+  '轻风',
+  '微风',
+  '和风',
+  '清风',
+  '强风',
+  '疾风',
+  '大风',
+  '烈风',
+  '狂风',
+  '暴风',
+  '飓风',
+];
+
+/**
+ * 风级 → 风名。
+ *
+ * 上游给的就是蒲福级数（weather-normalize 从 wind.scale 归一而来），所以这里只查表，
+ * 不从 km/h 反推 —— 反推出来的是另一套口径，同一个数字会被读成两个值
+ * （见 utils/feedback.ts 里关于 deriveWindLevel 的那段）。
+ *
+ * 超出表的范围给空串，由调用方决定怎么兜。
+ */
+export function windLevelName(scale: number): string {
+  return WIND_LEVEL_NAMES[scale] ?? '';
+}
+
 /**
  * 和风的数值字段全是字符串（temp: "29"），消费点按需转。
  *
