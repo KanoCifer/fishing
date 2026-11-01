@@ -135,7 +135,7 @@
         这里只有一套。
       -->
       <view class="minutely__total">
-        <text class="minutely__total-label">两小时累计</text>
+        <text class="minutely__total-label">累计降水</text>
         <text class="minutely__total-value">{{ curtain.total.toFixed(1) }} 毫米</text>
       </view>
     </view>
@@ -211,7 +211,9 @@ const windowLabel = computed(() => `未来 ${formatSpan(curtain.value.spanMinute
 /**
  * 空态文案分两种：取不到（多为境外坐标，上游没覆盖）和拿到了但没数据。
  */
-const emptyText = computed(() => (mapStore.minutelyError ? '分钟降水暂不可用' : '未来两小时暂无降水数据'));
+const emptyText = computed(() =>
+  mapStore.minutelyError ? '分钟降水暂时取不到，其余天气数据不受影响' : '这个窗口内没有降水记录',
+);
 
 /** 选中的格子序号。没选中时为 null */
 const selected = ref<number | null>(null);
@@ -582,7 +584,7 @@ const dryLabel = computed(() => {
 .minutely__summary {
   display: block;
   margin-bottom: 20rpx;
-  color: rgba(255, 255, 255, 0.92);
+  color: $fish-on-dark;
   @include fish-type(subhead);
 }
 
@@ -592,7 +594,7 @@ const dryLabel = computed(() => {
   height: 28rpx;
   margin-bottom: 20rpx;
   border-radius: $fish-radius-sm;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: $fish-deep-fill;
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
@@ -601,7 +603,7 @@ const dryLabel = computed(() => {
   width: 100%;
   height: 280rpx;
   border-radius: $fish-radius-xl;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: $fish-deep-fill;
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
@@ -657,7 +659,7 @@ const dryLabel = computed(() => {
   width: 18rpx;
   border-radius: 6rpx 6rpx 2rpx 2rpx;
   transform-origin: bottom center;
-  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1rpx 0 $fish-deep-edge;
 
   @if $fish-motion {
     animation: curtain-rise 520ms $fish-ease-out both;
@@ -670,8 +672,8 @@ const dryLabel = computed(() => {
 .minutely__bar--storm {
   background-color: $fish-rain-step-storm;
   box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.6),
-    0 0 16rpx rgba(255, 255, 255, 0.4);
+    inset 0 1rpx 0 $fish-deep-edge,
+    0 0 16rpx $fish-deep-edge;
 }
 
 /*

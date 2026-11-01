@@ -5,7 +5,7 @@
       <text class="hourly__meta">未来 24 小时</text>
     </view>
 
-    <scroll-view class="hourly__scroll" scroll-x :show-scrollbar="false">
+    <scroll-view v-if="hours.length || loading" class="hourly__scroll" scroll-x :show-scrollbar="false">
       <view v-if="hours.length" class="hourly__track">
         <view
           v-for="(hour, i) in hours"
@@ -46,7 +46,7 @@
         </view>
       </view>
 
-      <!-- 空态骨架 -->
+      <!-- 加载中：骨架照着真实格子的行盒摆 -->
       <view v-else class="hourly__track">
         <view v-for="i in 8" :key="i" class="hourly__cell">
           <view class="hourly__skeleton hourly__skeleton--time" />
@@ -55,6 +55,11 @@
         </view>
       </view>
     </scroll-view>
+    <!--
+      空态不是加载态。取不到逐时数据的时候，这张卡要是继续摆骨架，
+      它会一直呼吸下去 —— 用户读到的是「还在取」，其实早就没有数据了。
+    -->
+    <text v-else class="hourly__empty">{{ emptyText }}</text>
   </view>
 </template>
 
@@ -73,6 +78,13 @@ import { parseFxTime } from '@/utils/date';
 import { num, weatherIconClass } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
+
+const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
+
+const emptyText = computed(() => {
+  if (mapStore.weatherError) return '逐时预报暂时取不到，其余天气数据不受影响';
+  return '未来 24 小时没有逐时数据';
+});
 
 const hours = computed(() =>
   mapStore.weatherHourly.slice(0, 24).map((hour) => {
@@ -210,5 +222,12 @@ const hours = computed(() =>
 .hourly__skeleton--temp {
   width: 48rpx;
   height: 14rpx;
+}
+.hourly__empty {
+  display: block;
+  padding: 64rpx 0;
+  color: $fish-muted-60;
+  @include fish-type(subhead);
+  text-align: center;
 }
 </style>

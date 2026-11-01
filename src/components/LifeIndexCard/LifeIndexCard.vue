@@ -22,6 +22,7 @@
         class="life__item"
         :class="{ 'life__item--divided': i > 0 }"
       >
+        <text class="life__name">{{ entry.name }}</text>
         <view class="life__body">
           <text class="life__badge" :class="`life__badge--${entry.tone}`">{{ entry.category }}</text>
 
@@ -79,7 +80,11 @@ const title = computed(() =>
   entries.value.length && entries.value.every((entry) => entry.name.includes('钓鱼')) ? '官方垂钓指数' : '官方生活指数',
 );
 
-const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '暂无官方指数'));
+const emptyText = computed(() => {
+  if (mapStore.weatherLoading) return '加载中…';
+  if (mapStore.weatherError) return '官方指数暂时取不到，刷新可重试';
+  return '暂无官方指数数据';
+});
 </script>
 
 <style lang="scss" scoped>
@@ -124,8 +129,11 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
 }
 
 .life__name {
+  display: block;
+  margin-bottom: 10rpx;
   color: $fish-muted;
   @include fish-type(subhead);
+  font-weight: 600;
 }
 
 /*
@@ -138,7 +146,6 @@ const emptyText = computed(() => (mapStore.weatherLoading ? '加载中…' : '�
 .life__body {
   display: flex;
   align-items: center;
-  margin-top: 14rpx;
 }
 
 .life__badge {

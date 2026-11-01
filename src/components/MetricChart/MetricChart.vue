@@ -78,7 +78,7 @@ interface Metric {
 const METRICS: ReadonlyArray<Metric> = [
   { key: 'temp', label: '气温', unit: '°C', color: '#ff3b30' }, // $fish-temp
   { key: 'precip', label: '降水', unit: 'mm', color: '#007aff' }, // $fish-tide 的蓝：水
-  { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#5ac8fa' }, // systemTeal
+  { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#0e7490' }, // $fish-wind-ink（canvas 侧硬编码）
 ];
 
 const mapStore = useFishingMapStore();
@@ -126,7 +126,7 @@ const axis = computed(() => {
   return { min: Math.max(0, min), max };
 });
 
-const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时数据'));
+const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时数据，刷新可重试'));
 </script>
 
 <style lang="scss" scoped>

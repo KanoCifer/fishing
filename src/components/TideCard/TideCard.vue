@@ -81,7 +81,7 @@
         </view>
       </view>
 
-      <text v-else-if="!mapStore.tideLoading" class="tide-card__empty">暂无潮汐数据</text>
+      <text v-else-if="!mapStore.tideLoading" class="tide-card__empty">暂无潮汐数据，换个港口或日期试试</text>
     </view>
   </view>
 </template>
@@ -286,7 +286,7 @@ onMounted(() => {
   padding: 0 28rpx;
   border-radius: $fish-radius-pill;
   background-color: $fish-surface;
-  @include fish-press(0.94);
+  @include fish-press;
 }
 
 .tide-card__chip--active {

@@ -383,7 +383,9 @@ watch(
       countUp.set(0);
       return;
     }
-    countUp.to(score.value, { delay: enterDelayMs(3) });
+    /* 分数是入场序列的第 1 项，数字用同一条延迟起滚 —— 数字跟它那一行
+       同时开始、同时落位，读起来是「一次落位」而不是两件事各演各的 */
+    countUp.to(score.value, { delay: enterDelayMs(1) });
   },
   { immediate: true },
 );
@@ -536,8 +538,13 @@ function onRefresh() {
   @include fish-press-dim;
 }
 
-/* 刷新中的转圈。用 CSS 旋转而不是图标帧图，少一张静态图 */
+/*
+ * 刷新中。转起来只是加强信号 —— 静态的那一份是变暗：
+ * 动效不跑的时候（系统关掉动画、编译期降级）也得看得出「在刷」。
+ * 转圈用 CSS 旋转而不是图标帧图，少一张静态图。
+ */
 .verdict__refresh--busy .verdict__icon {
+  opacity: 0.4;
   animation: fish-spin 1s linear infinite;
 }
 

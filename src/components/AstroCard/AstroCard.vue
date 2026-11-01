@@ -234,9 +234,11 @@ const civilText = computed(() => {
   return `民用晨昏 ${dawn}–${dusk}`;
 });
 
-const emptyText = computed(() =>
-  mapStore.weatherLoading ? '加载中…' : mapStore.forecasts.length ? '暂无日照数据' : '暂无预报数据',
-);
+const emptyText = computed(() => {
+  if (mapStore.weatherLoading) return '加载中…';
+  if (mapStore.weatherError) return '日照数据暂时取不到，刷新可重试';
+  return mapStore.forecasts.length ? '暂无日照数据，刷新可重试' : '暂无预报数据，刷新可重试';
+});
 </script>
 
 <style lang="scss" scoped>

@@ -38,7 +38,7 @@
       </view>
     </view>
 
-    <text v-else class="weather-card__empty">暂无天气数据</text>
+    <text v-else class="weather-card__empty">暂无天气数据，刷新可重试</text>
   </view>
 </template>
 
@@ -278,7 +278,7 @@ const rows = computed<Row[]>(() => {
 }
 
 .weather-card__error {
-  color: $fish-destructive;
+  color: $fish-destructive-ink;
   @include fish-type(callout);
 }
 

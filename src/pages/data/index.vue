@@ -10,6 +10,7 @@
         :level="level"
         :tone="tone"
         :place="placeName"
+        :busy="mapStore.indexLoading || mapStore.locating"
         @refresh="onRefresh"
       />
 

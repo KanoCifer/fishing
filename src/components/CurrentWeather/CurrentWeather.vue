@@ -143,7 +143,9 @@ const min = computed(() => (today.value ? `${today.value.min}°` : null));
  * 具体原因已经在 toast 里报过、也在结论头那块一直摆着，
  * 这里只说清「这一块没取到」，免得让人以为整页都废了。
  */
-const plainText = computed(() => (mapStore.weatherError ? '天气暂时取不到' : '暂无天气数据'));
+const plainText = computed(() =>
+  mapStore.weatherError ? '天气暂时取不到，其余数据不受影响' : '暂无天气数据，刷新可重试',
+);
 </script>
 
 <style lang="scss" scoped>

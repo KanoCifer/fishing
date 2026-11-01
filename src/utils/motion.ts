@@ -94,7 +94,7 @@ export function startAnimation(callback: (progress: number) => void, duration: n
  * ⚠️ 这里手写 800 而不是引用 SCSS 的变量：JS 读不到 Sass 变量。
  * 改的时候两处一起改（_motion.scss 里那条也有同样的提醒）。
  */
-export const COUNT_UP_DURATION = 1200;
+export const COUNT_UP_DURATION = 800;
 
 /**
  * 数字滚动的缓动。

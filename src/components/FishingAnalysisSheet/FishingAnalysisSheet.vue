@@ -16,7 +16,7 @@
       -->
       <view v-if="!hasData" class="analysis__empty">
         <text class="analysis__empty-title">等待天气与潮汐数据</text>
-        <text class="analysis__empty-text">数据到位后即可生成建议</text>
+        <text class="analysis__empty-text">数据到位后这里会自动生成</text>
       </view>
 
       <template v-else>
@@ -193,7 +193,7 @@ const hasStarted = computed(() => isStreaming.value || hasGenerated.value || Boo
  * 三种情况：生成中（正在想）、有思考内容（可展开）、出错了（说明失败）。
  * 空闲态不出现 —— 空闲时面板上该说的是那句问句。
  */
-const showChip = computed(() => isStreaming.value || Boolean(reasoning.value) || Boolean(errorMessage.value));
+const showChip = computed(() => isStreaming.value || Boolean(reasoning.value));
 
 /** 胶囊上的图标：展开时向下，收起时向右 */
 const chevronIcon = computed(() => (reasoningOpen.value ? chevronDownIcon : chevronRightIcon));
@@ -201,23 +201,14 @@ const chevronIcon = computed(() => (reasoningOpen.value ? chevronDownIcon : chev
 /**
  * 胶囊文案。
  *
- * 三种状态三种说法，但只有一处说状态：
- * 生成中 → 正在做什么（轮播）；完成 → 「思考过程」这个可展开的标签；
- * 出错 → 「生成失败」。
+ * 只有一处说状态：生成中 → 正在做什么（轮播）；完成 → 「思考过程」这个可展开的标签。
  * 徽章那种「待生成 / 生成中 / 已生成 / 已停止 / 生成失败」全撤了 ——
  * 动作由按钮说（生成建议 / 停止 / 重新生成），状态再单独列一遍就是重复。
+ * 出错时胶囊根本不出现：失败由错误块说一遍就够了，胶囊再说一次是同一件事说两遍。
  */
 const chipLabel = computed(() => {
-  if (errorMessage.value) return '获取失败';
   if (isStreaming.value) return loadingHint.value;
   return '思考过程';
-});
-
-/** 按钮文案。空闲与出错是同一件事：还没拿到结果，按钮就是让它发生 */
-const actionLabel = computed(() => {
-  if (isStreaming.value) return '停止';
-  if (hasGenerated.value) return '重新获取';
-  return '获取建议';
 });
 
 /** 有没有足够的数据能给出建议 */
@@ -226,6 +217,15 @@ const hasData = computed(() => {
   const forecasts = mapStore.forecasts;
   const tide = mapStore.tideData;
   return Boolean(live || (forecasts && forecasts.length > 0) || tide);
+});
+
+/** 按钮文案。空闲与出错是同一件事：还没拿到结果，按钮就是让它发生 */
+const actionLabel = computed(() => {
+  /* 禁用态说不可用，不说动作 —— 「获取建议」在一个按不动的按钮上是在骗人 */
+  if (!hasData.value) return '等待数据';
+  if (isStreaming.value) return '停止';
+  if (hasGenerated.value) return '重新获取';
+  return '获取建议';
 });
 
 const weatherUpdated = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime));
@@ -396,8 +396,8 @@ watch(isStreaming, (streaming) => {
 .analysis__chip {
   display: inline-flex;
   align-items: center;
-  height: 48rpx;
-  padding: 0 20rpx 0 16rpx;
+  min-height: 88rpx;
+  padding: 0 24rpx 0 20rpx;
   margin-bottom: 20rpx;
   border-radius: $fish-radius-pill;
   background-color: $fish-surface;
@@ -514,7 +514,7 @@ watch(isStreaming, (streaming) => {
  * SnapSheet 的 footer 插槽就是干这个的（见 SnapSheet 的模板注释）。
  */
 .analysis__actions {
-  padding: 12rpx 40rpx 32rpx;
+  padding: 12rpx 40rpx calc(32rpx + env(safe-area-inset-bottom));
   border-top: 1rpx solid $fish-border-40;
 
   /*
@@ -558,8 +558,16 @@ watch(isStreaming, (streaming) => {
   @include fish-flow-face;
 }
 
+/* 禁用态：停掉流光、停掉按压缩放。
+   一个转着的彩虹描边 + 会缩的按钮读起来是「可用/正在加载」，不是「不可用」。 */
 .analysis__btn--disabled {
   opacity: 0.4;
+  animation: none;
+
+  .analysis__btn-face:active {
+    transform: none;
+    transition-duration: $fish-dur-press;
+  }
 }
 
 .analysis__btn-text {

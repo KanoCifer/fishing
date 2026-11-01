@@ -56,7 +56,7 @@ const tiles = computed(() => toFeatureTiles(mapStore.indexData?.feature_breakdow
 
 const loading = computed(() => mapStore.indexLoading);
 
-const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成数据'));
+const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成数据，刷新可重试'));
 </script>
 
 <style lang="scss" scoped>

@@ -103,6 +103,23 @@ function describeLocationError(errMsg: string): string {
   return '定位失败，请重试';
 }
 
+/**
+ * 把取数失败翻译成一句用户能照着做的话。
+ *
+ * 不直接端 err.message：那是后端信封里的原文，或者是「请求失败（500）」这类
+ * 机器文案 —— 它既不说明出了什么事，也不说明下一步做什么。同一屏上别的卡
+ * 都在说「天气暂时取不到」这类话术，这里得是同一套口气。
+ *
+ * 网络层的两条文案（超时 / 异常）本身就写着下一步，原样用；
+ * 其余不端上屏 —— 空串交给调用方填各自的兜底。
+ */
+function describeFetchError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : '';
+  if (!raw) return '';
+  if (/超时|网络|检查网络/.test(raw)) return raw;
+  return '';
+}
+
 export const useFishingMapStore = defineStore('fishingMap', () => {
   /**
    * 用户当前位置。
@@ -405,10 +422,14 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
         void fetchPanelTide();
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : '获取数据失败';
+      /* 两处错误各带各的兜底：天气卡说的是天气，结论头说的是鱼口概率 */
+      const networkMessage = describeFetchError(err);
+      const message = networkMessage || '服务暂时不可用，请稍后重试';
       notifyError(message);
-      weatherError.value = message;
+      weatherError.value = networkMessage || '天气取不到，请稍后重试';
       indexError.value = message;
+      /* 机器文案不上屏，但也不丢 —— 留在控制台里查 */
+      if (!networkMessage) console.warn('[fishingMap] 取数失败：', err);
       // 失败也算近站点「到齐」—— 不会有更准的站了，面板退到固定港口出图
       nearestStationResolved.value = true;
 

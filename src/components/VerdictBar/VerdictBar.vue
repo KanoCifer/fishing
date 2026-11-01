@@ -12,7 +12,7 @@
 
       <text class="verdict-bar__place">{{ place }}</text>
 
-      <view class="verdict-bar__refresh" @tap="emit('refresh')">
+      <view class="verdict-bar__refresh" :class="{ 'verdict-bar__refresh--busy': busy }" @tap="emit('refresh')">
         <image class="verdict-bar__icon" :src="refreshIcon" mode="widthFix" />
       </view>
     </view>
@@ -36,10 +36,13 @@ withDefaults(
     tone?: Tone;
     /** 地点名 */
     place?: string;
+    /** 刷新进行中：图标转起来并变暗 */
+    busy?: boolean;
   }>(),
   {
     tone: 'muted',
     place: '',
+    busy: false,
   },
 );
 
@@ -170,5 +173,12 @@ const refreshIcon = icon('refresh-cw', 'muted');
 .verdict-bar__icon {
   width: 30rpx;
   height: 30rpx;
+}
+
+/* 刷新中。转起来只是加强信号，静态的那一份是变暗 ——
+   动效不跑的时候也得看得出「在刷」，否则这一下点击像是没落下去。 */
+.verdict-bar__refresh--busy .verdict-bar__icon {
+  opacity: 0.4;
+  animation: fish-spin 1s linear infinite;
 }
 </style>

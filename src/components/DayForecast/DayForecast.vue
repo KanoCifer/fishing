@@ -147,9 +147,9 @@ const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
  * 这里只说清「这一块没取到」，免得让人以为整页都废了。
  */
 const emptyText = computed(() => {
-  if (mapStore.weatherError) return '预报暂时取不到';
+  if (mapStore.weatherError) return '预报暂时取不到，刷新可重试';
 
-  return mapStore.forecasts.length ? '预报数据不完整' : '暂无预报数据';
+  return mapStore.forecasts.length ? '预报数据不完整，刷新可重试' : '暂无预报数据，刷新可重试';
 });
 </script>
 

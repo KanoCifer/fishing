@@ -12,6 +12,7 @@
       见 FullscreenMap 的 interactive。
     -->
     <view
+      v-if="mask"
       class="snap-sheet__mask"
       :class="{ 'snap-sheet__mask--out': closing }"
       @tap.stop="onMaskTap"
@@ -149,19 +150,25 @@ const nav = useNavMetrics();
 const instance = getCurrentInstance()!;
 
 /**
- * 拖拽把手区实测高度（px）：上下 padding（24 + 12）+ 指示条 10 = 46rpx。
+ * 拖拽把手区实测高度（px）：上下 padding（32 + 20）+ 指示条 10 = 62rpx。
  *
  * 用 upx2px 现场换算而不是写死数字：这个值要参与滚动区高度的算式
  * （面板高 − 把手 − 头部），写死等于把样式里那串 padding 又抄了一份，
  * 以后改 padding 忘了回来改这里，滚动区就会凭空短一截或长一截。
  * 代价只有一次函数调用，换掉的是一整类「两处必须同时改」的坑。
  */
-const HANDLE_HEIGHT = uni.upx2px(46);
+const HANDLE_HEIGHT = uni.upx2px(62);
 
 const { windowHeight } = useViewport();
 
-/** 面板最大可用高度：视口减去导航栏高度 */
-const maxHeight = computed(() => windowHeight - nav.navBarBottom);
+/**
+ * 面板最大可用高度：视口减去导航栏高度。
+ *
+ * maxHeightRatio 是上限而不是倍数 —— 倍数会让默认的 0.95 把每一张浮层都矮掉 5%，
+ * 而上限只在导航栏留白不足视口 5% 时才咬合（真机上都咬不上），
+ * 所以接上这个 prop 不会改动今天任何一张浮层的样子。
+ */
+const maxHeight = computed(() => Math.min(windowHeight - nav.navBarBottom, windowHeight * props.maxHeightRatio));
 
 const snap = ref(props.initialSnap);
 
@@ -650,11 +657,14 @@ function onMaskTap() {
 
 /*
  * 拖拽把手。
- * HANDLE_HEIGHT 是脚本里按这套 padding + 指示条高度算出来的常量（54px），
+ * HANDLE_HEIGHT 是脚本里按这套 padding + 指示条高度算出来的常量（62rpx），
  * 改这里的 padding 必须回去同步那个数，否则滚动区会算错高度。
+ *
+ * 命中带做到 62rpx（31pt）：这是六个浮层共用的唯一拖拽入口，
+ * 手指粗的人起手太容易滑脱。
  */
 .snap-sheet__handle {
-  padding: 24rpx 40rpx 12rpx;
+  padding: 32rpx 40rpx 20rpx;
   flex-shrink: 0;
 }
 
