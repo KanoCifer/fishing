@@ -45,6 +45,20 @@ $fish-warning: #ff9500;
 $fish-warning-on-dark: #ffc266;
 $fish-warning-tint-on-dark: rgba(255, 149, 0, 0.22);
 
+/* ── 天气页头图 ──
+   亮天（晴 / 多云）的头图顶部是一片浅蓝白，压深墨才读得出字；
+   纯黑（$fish-ink）压在那张图上太硬，深一档的蓝墨更贴画面的调子。
+   暗天（夜 / 雨）走 $fish-on-dark 那一档白。 */
+$fish-hero-ink: #0f2a3d;
+
+/**
+ * 中性档的填充色。
+ *
+ * 只给图形用（弧形表那条灰弧）：灰是「没有信号」的意思，
+ * 拿文字档的 $fish-muted 去画弧会重到像一条实线。
+ */
+$fish-muted-fill: #8e8e93;
+
 /* ── 文字：iOS 的 label 三阶 ── */
 /**
  * 弱化的两档不再用 iOS 的半透明灰。
@@ -194,7 +208,17 @@ $fish-tone-tint: rgba(52, 199, 89, 0.14);
 $fish-warning-tint: rgba(255, 149, 0, 0.14);
 $fish-destructive-tint: rgba(255, 59, 48, 0.14);
 
-$fish-page-bg: radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%), #f3f4f9;
+/**
+ * 页面底色。
+ *
+ * $fish-page-bg 的底那一层：上面那圈蓝调是渐变的亮端，淡出之后剩下的就是它。
+ * 单独立一个令牌，是因为别处要拿它当**渐变的终点**——
+ * 天气页头图的底边要化进页面底色，接的就是这个值
+ * （接 $fish-grouped 会留一条细缝：那是 .data 的底，被 backdrop 盖住了）。
+ */
+$fish-page-base: #f3f4f9;
+
+$fish-page-bg: radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%), $fish-page-base;
 
 /* ── 图表专用。canvas 侧硬编码的色值要与之手工保持一致 ── */
 $fish-tide: #007aff;

@@ -14,39 +14,11 @@
         @refresh="onRefresh"
       />
 
-      <VerdictOverview
-        :show-anim="showAnim"
-        @feedback="openFeedback"
-        @analysis="openAnalysis"
-        @breakdown="openBreakdown"
-      />
+      <WeatherHero :show-anim="showAnim" @breakdown="openBreakdown" />
+
+      <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
 
       <view class="sect">
-        <view class="sect__card" :style="enterStyle(0, showAnim)">
-          <LifeIndexCard />
-        </view>
-      </view>
-
-      <!--
-        天气：现在什么样，接下来怎么走。
-
-        四张卡，从上到下各答一件事：
-
-        1. 分钟降水 —— 接下来两小时雨什么时候到、什么时候停。
-           它回答的是最要紧的那件事，其余给的是背景，
-           背景不该排在结论前面。
-        2. 当前天气 —— 「现在」。整宽，它是这一段的主视觉。
-        3. 未来 3 天 —— 「接下来三天」。今日高低温只有这一处说，
-           当前天气卡不再重复一遍。
-        4. 未来 24 小时 —— 逐时格子与指标曲线合成一张卡，右上角分段切换。
-           曲线默认看风速：气温在逐时格子里已经给过一遍。
-
-        动画挂在外面这些普通 view 上：自定义组件的**宿主节点**不吃动画
-        （见 docs/mp-weixin-platform.md）。
-      -->
-      <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
-
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <MinutelyRain />
         </view>
@@ -130,6 +102,7 @@ import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
+import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { SHARE_CARDS } from '@/constants/share';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { loadQweatherIconFont } from '@/composables/useQweatherFont';

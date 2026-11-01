@@ -1,23 +1,6 @@
 <template>
-  <!--
-    弧形表 —— 一条 270° 的弧，弧长就是量程里占掉的那一段。
-
-    为什么画在 canvas 上而不是用 WXML 元素拼：
-    WXML 不认 `<svg>` 标签（见 docs/mp-weixin-platform.md），
-    能画弧的只有 canvas 2d。
-
-    表上的数字**不在 canvas 里**，放在中间的 slot 里 ——
-    canvas 里画字只能用硬编码色值和 px 字号，跟令牌层对不上；
-    放在 DOM 里就能直接吃样式层的字阶与颜色。
-  -->
   <view class="gauge" :style="{ width: sizePx + 'px', height: sizePx + 'px' }">
-    <!--
-      宽高必须是确定的数值，不能用百分比：小程序端拿不到百分比的实际尺寸，
-      会画成 0 宽。display: block 写在样式里，否则微信端 canvas 是 inline 元素，
-      尺寸计算会偏。
-    -->
     <canvas :id="canvasId" type="2d" class="gauge__canvas" :style="{ width: sizePx + 'px', height: sizePx + 'px' }" />
-
     <view class="gauge__center">
       <slot />
     </view>

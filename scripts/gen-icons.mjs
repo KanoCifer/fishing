@@ -27,6 +27,8 @@ const COLORS = {
   success: '#34c759', // $fish-success
   destructive: '#ff3b30', // $fish-destructive
   onAccent: '#ffffff', // 主色按钮上的前景色
+  // 天气页头图上的深墨。亮天的头图顶部是一片浅蓝白，纯黑压上去太硬
+  heroInk: '#0f2a3d', // $fish-hero-ink
 };
 
 /**
@@ -49,6 +51,17 @@ const ICONS = [
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 建议入口' },
   { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头' },
+  // —— 天气页头图 ——
+  // 头图上的图标跟着天色换：亮天压深墨，暗天压白。
+  // 同一枚图形两个色值，说的就是「它在两种底色上各有一份」。
+  { name: 'map-pin', color: 'heroInk', use: '头图 · 亮天的地点标记' },
+  { name: 'map-pin', color: 'onAccent', use: '头图 · 暗天的地点标记' },
+  { name: 'refresh-cw', color: 'heroInk', use: '头图 · 亮天的刷新键' },
+  { name: 'refresh-cw', color: 'onAccent', use: '头图 · 暗天的刷新键' },
+  { name: 'fish', color: 'heroInk', use: '头图 · 亮天的鱼口概率标记' },
+  { name: 'fish', color: 'onAccent', use: '头图 · 暗天的鱼口概率标记' },
+  { name: 'chevron-right', color: 'heroInk', use: '头图 · 亮天的「看构成」箭头' },
+  { name: 'chevron-right', color: 'onAccent', use: '头图 · 暗天的「看构成」箭头' },
   // —— 地图 toolbar ——
   // 卫星与路况是**两个独立开关**，各自要「开」与「关」两个色值：
   // 图标是颜色烤死的 data URI，状态只能靠换一份色值来表达。

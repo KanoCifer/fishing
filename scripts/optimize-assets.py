@@ -140,6 +140,46 @@ JOBS = [
         "dir": SUBPACKAGE_DIR,
         "note": "小程序码 —— 彩色，不能转灰度；JPEG 会糊掉边界。只在分享海报时出现，住在 spot-detail 分包里",
     },
+    # —— 天气页头图（四张，按天气外观组）——
+    # 生图出来的平涂风景：山脊线是硬边，色度抽样（4:2:0）正好在这种边缘上
+    # 漏色 —— 山的蓝边会渗进天上。所以 subsampling=0，宁可多几 KB。
+    # 四张合计约 300KB：主包只剩 300KB 余量，放不下，走 CDN。
+    {
+        "src": "weather/hero-sunny.jpg",
+        "out": "weather/hero-sunny.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 82, "subsampling": 0, "optimize": True},
+        "dest": "cdn",
+        "note": "天气页头图 · 晴 —— 走 CDN，不进代码包",
+    },
+    {
+        "src": "weather/hero-cloudy.jpg",
+        "out": "weather/hero-cloudy.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 82, "subsampling": 0, "optimize": True},
+        "dest": "cdn",
+        "note": "天气页头图 · 多云 —— 走 CDN，不进代码包",
+    },
+    {
+        "src": "weather/hero-rain.jpg",
+        "out": "weather/hero-rain.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 82, "subsampling": 0, "optimize": True},
+        "dest": "cdn",
+        "note": "天气页头图 · 阵雨 —— 走 CDN，不进代码包",
+    },
+    {
+        "src": "weather/hero-night.jpg",
+        "out": "weather/hero-night.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 82, "subsampling": 0, "optimize": True},
+        "dest": "cdn",
+        "note": "天气页头图 · 晴夜 —— 走 CDN，不进代码包",
+    },
 ]
 
 
@@ -210,6 +250,8 @@ def run(job: dict) -> None:
     out_dir = CDN_DIR if job.get("dest") == "cdn" else job.get("dir", OUT_DIR)
     out_path = out_dir / job["out"]
     out_dir.mkdir(parents=True, exist_ok=True)
+    # 产物可能带子目录（weather/），那一层也得建
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     if not src_path.exists():
         raise SystemExit(f"[error] 找不到源图：{src_path}")
