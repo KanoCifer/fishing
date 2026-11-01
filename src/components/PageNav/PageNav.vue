@@ -218,7 +218,7 @@ function onBack() {
 .page-nav__title {
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 
   white-space: nowrap;
   text-overflow: ellipsis;

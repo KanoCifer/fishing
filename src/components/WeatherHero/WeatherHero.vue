@@ -355,7 +355,7 @@ function onRefresh() {
 .hero__place-name {
   max-width: 300rpx;
   overflow: hidden;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   white-space: nowrap;
@@ -372,7 +372,7 @@ function onRefresh() {
 
 .hero__updated {
   margin-left: 12rpx;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .hero--light .hero__updated {
@@ -535,8 +535,8 @@ function onRefresh() {
 }
 
 /*
- * 不套字阶：字阶里最小的一级（caption2 22rpx）撑不起一枚芯片，
- * 最小能用的（caption 24rpx）又太小。36rpx 是这两者之间的一档，
+ * 不套字阶：字阶里最小的一级（caption 24rpx）撑不起一枚芯片，
+ * 往上一档（title 40rpx）又太大。36rpx 是这两者之间的一档，
  * 字重与字距跟 title 那一族走 —— 与分数那一行同一个理由。
  */
 .hero__chip {
@@ -579,7 +579,7 @@ function onRefresh() {
   top: 660rpx;
   left: 48rpx;
   max-width: 420rpx;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 .hero--light .hero__lead {

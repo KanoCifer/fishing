@@ -148,7 +148,7 @@ export const RECORD_CREATE = {
   /**
    * 渔获卡标题。
    *
-   * 渔获是这一页的主角，它的标题是卡里的标题（headline），
+   * 渔获是这一页的主角，它的标题是卡里的标题（body 尺寸 + 600 字重），
    * 不是分区的眉标（caption）—— 层级差一档，措辞也跟着差一档。
    */
   catchCardTitle: '钓到了什么',

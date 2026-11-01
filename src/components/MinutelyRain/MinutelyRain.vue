@@ -561,12 +561,12 @@ const dryLabel = computed(() => {
 
 .minutely__title {
   color: $fish-on-dark;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .minutely__meta {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -579,7 +579,7 @@ const dryLabel = computed(() => {
   display: block;
   margin-bottom: 20rpx;
   color: $fish-on-dark;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /* 深色面上的骨架块：白字压一点点透明度，跟玻璃面上的那一档不是一个深浅 */
@@ -605,7 +605,7 @@ const dryLabel = computed(() => {
   display: block;
   padding: 64rpx 0;
   color: $fish-deep-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
   text-align: center;
 }
 
@@ -802,7 +802,7 @@ const dryLabel = computed(() => {
 .minutely__chip-main {
   display: block;
   color: $fish-ink;
-  @include fish-type(footnote);
+  @include fish-type(caption);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -813,7 +813,7 @@ const dryLabel = computed(() => {
   display: block;
   margin-top: 2rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -845,7 +845,7 @@ const dryLabel = computed(() => {
 
 .minutely__dry-label {
   color: $fish-deep-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -863,7 +863,7 @@ const dryLabel = computed(() => {
   position: absolute;
   top: 0;
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
   white-space: nowrap;
 }
 
@@ -927,7 +927,7 @@ const dryLabel = computed(() => {
 
 .minutely__legend-label {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* ===========================================================================
@@ -944,13 +944,13 @@ const dryLabel = computed(() => {
 
 .minutely__total-label {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .minutely__total-value {
   margin-left: 10rpx;
   color: $fish-on-dark;
-  @include fish-type(subhead);
+  @include fish-type(body);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

@@ -259,7 +259,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
   min-width: 0;
   overflow: hidden;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -341,7 +341,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
 .weather-card__cell-label {
   display: block;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .weather-card__cell-value-row {
@@ -352,7 +352,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
 
 .weather-card__cell-value {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   /* 读数纵向对齐：数字多的那几行（气压、露点）不该因为位数不同而左右飘 */
@@ -387,7 +387,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
   margin-left: 12rpx;
   padding: 2rpx 14rpx;
   border-radius: $fish-radius-pill;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   font-weight: 600;
 }
@@ -445,11 +445,11 @@ const chevronIcon = icon('chevron-down', 'muted60');
 
 .weather-card__error {
   color: $fish-destructive-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .weather-card__empty {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 </style>

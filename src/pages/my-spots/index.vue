@@ -267,13 +267,13 @@ onPageShow(async () => {
 
 .my-spots__empty-title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .my-spots__empty-hint {
   margin-top: 12rpx;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 空态里的那个按钮 */
@@ -292,7 +292,7 @@ onPageShow(async () => {
 
 .my-spots__empty-action-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -347,7 +347,7 @@ onPageShow(async () => {
   min-width: 0;
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 
   white-space: nowrap;
   text-overflow: ellipsis;

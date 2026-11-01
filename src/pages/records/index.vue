@@ -332,7 +332,7 @@ async function onLogin(): Promise<void> {
 
 .records__notice-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /*
@@ -363,13 +363,13 @@ async function onLogin(): Promise<void> {
 
 .records__empty-title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .records__empty-hint {
   margin-top: 12rpx;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 空态里的那个按钮 */
@@ -388,7 +388,7 @@ async function onLogin(): Promise<void> {
 
 .records__empty-action-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -448,7 +448,7 @@ async function onLogin(): Promise<void> {
 
 .records__create-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -512,7 +512,7 @@ async function onLogin(): Promise<void> {
 
 .records__legend-text {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -541,7 +541,7 @@ async function onLogin(): Promise<void> {
 
 .records__sechead-title {
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .records__sechead-hint {

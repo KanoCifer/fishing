@@ -255,7 +255,7 @@ const emptyText = computed(() => {
   @include fish-card-head;
 }
 
-/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
+/* 分区标题统一走 fish-card-title（见 DayForecast 同名注释） */
 .astro__title {
   @include fish-card-title;
 }
@@ -288,14 +288,14 @@ const emptyText = computed(() => {
 .astro__slot-label {
   display: block;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .astro__slot-value {
   display: block;
   margin-top: 4rpx;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -383,7 +383,7 @@ const emptyText = computed(() => {
 
 .astro__phase-text {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }

@@ -162,7 +162,7 @@ const hours = computed(() =>
 
 .hourly__temp {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -213,7 +213,7 @@ const hours = computed(() =>
   display: block;
   padding: 64rpx 0;
   color: $fish-muted-60;
-  @include fish-type(subhead);
+  @include fish-type(body);
   text-align: center;
 }
 </style>

@@ -60,15 +60,15 @@ const info = APP_INFO;
 
 .about-header__name {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
-/* 版本号压到 caption2：它是给「确认自己装的是哪一版」用的，
+/* 版本号压到 caption：它是给「确认自己装的是哪一版」用的，
    不该和名称抢视线，更不该和下面的介绍平级 */
 .about-header__version {
   margin-top: 8rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -84,11 +84,11 @@ const info = APP_INFO;
   background-color: $fish-border;
 }
 
-/* 介绍是这一屏里唯一的解释性文字，用 subhead 而不是 caption：
+/* 介绍是这一屏里唯一的解释性文字，用 body 而不是 caption：
    它要被读，读的段落就该有正文的行距 */
 .about-header__tagline {
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   text-align: center;
 }

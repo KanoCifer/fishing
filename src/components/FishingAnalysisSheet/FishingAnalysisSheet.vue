@@ -354,7 +354,7 @@ watch(isStreaming, (streaming) => {
 
 .analysis__title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 /* 内容区 */
@@ -377,7 +377,7 @@ watch(isStreaming, (streaming) => {
 
 .analysis__empty-title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .analysis__empty-text {
@@ -413,7 +413,7 @@ watch(isStreaming, (streaming) => {
 
 .analysis__chip-text {
   color: $fish-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* 展开的思考过程。紧跟胶囊，不另起一块地方 */
@@ -496,7 +496,7 @@ watch(isStreaming, (streaming) => {
 
 .analysis__error-text {
   color: $fish-destructive-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /* 脚注。一行落款 */
@@ -504,7 +504,7 @@ watch(isStreaming, (streaming) => {
   display: block;
   margin-top: 24rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -572,7 +572,7 @@ watch(isStreaming, (streaming) => {
 
 .analysis__btn-text {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

@@ -155,12 +155,12 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
 /*
  * 等级词。
  *
- * title2（22pt）—— 与数据页首屏那一句同字号同颜色。
+ * title（20pt）—— 与数据页首屏那一句同字号同颜色。
  * 它是这一屏的判断，四格数字比它小一档是版式的意思，不是重要性。
  */
 .conditions__level {
   display: block;
-  @include fish-type(title2);
+  @include fish-type(title);
 }
 
 .conditions__level--success {
@@ -188,7 +188,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   display: block;
   margin-top: 8rpx;
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* ── 四格 ──────────────────────────────────────────────────────────────── */
@@ -242,7 +242,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   align-items: baseline;
   margin-top: 16rpx;
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .conditions__number {
@@ -283,14 +283,14 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
 
-/* 等级词那一行：与 title2 的行盒同高（22pt × 1.25） */
+/* 等级词那一行：与 title 的行盒同高（20pt × 1.3） */
 .conditions__skeleton-level {
   width: 132rpx;
-  height: 54rpx;
+  height: 52rpx;
   border-radius: $fish-radius-sm;
 }
 
-/* 结论那一行：与 callout 的行盒同高（16pt × 1.45） */
+/* 结论那一行：与 body 的行盒同高（16pt × 1.45） */
 .conditions__skeleton-say {
   width: 380rpx;
   height: 46rpx;
@@ -326,7 +326,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   border-radius: $fish-radius-sm;
 }
 
-/* 数值行：与 title3 的行盒同高（20pt × 1.3） */
+/* 数值行：与 title 的行盒同高（20pt × 1.3） */
 .conditions__skeleton-value {
   width: 108rpx;
   height: 52rpx;
@@ -359,14 +359,14 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
 
 .conditions__state-text {
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /* 重试。蓝色 —— 它是这一块里唯一可做的事 */
 .conditions__state-retry {
   margin-top: 20rpx;
   color: $fish-blue-600;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   @include fish-press-dim;

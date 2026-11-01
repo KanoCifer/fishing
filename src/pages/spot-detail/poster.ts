@@ -121,29 +121,30 @@ interface PosterType {
 /**
  * 海报这一屏用到的字阶。
  *
- * 与 `src/styles/tokens/_type.scss` 的角色一一对应 —— 角色名标在这儿，
- * 是为了改字阶时对得上号，而不是在海报上另编一套字号。
+ * 海报是**独立的像素排版**，不套 `tokens/_type.scss`：位图 750 宽（375pt @2x），
+ * 一像素就是一 rpx，但版面是海报自己的 —— 分数、等级词、纸面留白都按票根的
+ * 节奏排，字号不与页面一一对应。角色名只标在这儿，别拿去当页面的字阶用。
  *
  * ⚠️ 小程序 canvas **没有 `ctx.letterSpacing`**（浏览器 canvas 有，Chromium 99+）。
  * 所以字距只能自己算：逐字量、逐字推进（见 drawType）。
  * 好处是原型那边跑的是同一套算法 —— 量出来的宽度就是画出来的宽度。
  */
 const TYPE = {
-  /** large-title —— 名字。照片上最大的一行字 */
+  /** 名字。照片上最大的一行字 —— 与页面的 display 同一档 */
   name: { size: 68, weight: 700, tracking: -0.022 },
   /** caption —— 副信息（照片上那行） */
   meta: { size: 24, weight: 400, tracking: 0 },
-  /** caption2 —— 「今日鱼口概率」。小字放开一点才读得清 */
+  /** 「今日鱼口概率」。小字放开一点才读得清 */
   label: { size: 22, weight: 400, tracking: 0.006 },
   /**
    * display —— 分数。全篇最大的字。
    *
-   * 字距 -0.03 比 large-title 的 -0.022 更紧：字越大，字心距看着越松，
+   * 字距 -0.03 比名字那一级的 -0.022 更紧：字越大，字心距看着越松，
    * 所以越要往回收。
    *
    * 150 → 120：照片从 400 长到 500，「今日鱼口概率」那块纸面就矮 100 ——
    * 数字跟着缩，纸面才装得下（见 LAYOUT.scoreBaseline 那段节奏）。
-   * 它仍然是全篇最大的字（下一级 large-title 才 68），主次没变。
+   * 它仍然是全篇最大的字（下一级名字才 68），主次没变。
    */
   score: { size: 120, weight: 700, tracking: -0.03 },
   /**
@@ -154,19 +155,18 @@ const TYPE = {
    * 分数一小而注脚不动，注脚就成了主角 —— 蓝色本来就抓眼。
    */
   level: { size: 44, weight: 700, tracking: 0 },
-  /** footnote —— 简介 */
+  /** 简介 */
   desc: { size: 26, weight: 400, tracking: 0 },
   /**
-   * caption2 —— 地址。存根里最小的一级
+   * 地址。存根里最小的一级
    *
-   * 跟详情页同一个比例：那边地址是 footnote 26、描述是 subhead 30，
-   * 这边地址 caption2 22、简介 footnote 26 —— 差的都是 4px，
-   * 主次关系在两个界面上是同一套。
+   * 跟详情页同一个主次：那边地址与描述也差一档，这边地址 22、简介 26 ——
+   * 差的都是 4px。
    */
   address: { size: 22, weight: 400, tracking: 0.006 },
   /** 品牌落款 */
   brand: { size: 30, weight: 700, tracking: 0 },
-  /** caption2 —— 品牌副句 */
+  /** 品牌副句 */
   tagline: { size: 22, weight: 400, tracking: 0.006 },
 } as const;
 
@@ -318,7 +318,7 @@ const LAYOUT = {
    * 简介行与行之间 36（字号 26），简介与落款之间 54 —— 段与段拉开，行与行贴近。
    */
   descBaseline: 820,
-  /** 简介行高 —— footnote 的 leading 1.35 */
+  /** 简介行高 —— 与正文的 leading 一档 */
   descLineHeight: 36,
   /** 简介最多几行 */
   descLines: 3,

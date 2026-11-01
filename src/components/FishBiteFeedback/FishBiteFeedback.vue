@@ -65,7 +65,7 @@ function select(value: FishingFeedbackLevel): void {
   display: block;
   margin-bottom: 16rpx;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -98,7 +98,7 @@ function select(value: FishingFeedbackLevel): void {
 
 .bite__option-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .bite__option-text--active {

@@ -58,7 +58,7 @@
 .spot-form__draft-title {
   display: block;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -75,7 +75,7 @@
   flex-shrink: 0;
   padding: 8rpx 0 8rpx 16rpx;
   color: $fish-destructive-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
   @include fish-press-dim;
@@ -97,14 +97,14 @@
 .spot-form__title {
   display: block;
   color: $fish-ink;
-  @include fish-type(title1);
+  @include fish-type(display);
 }
 
 .spot-form__sub {
   display: block;
   margin-top: 12rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* ── 分组 ──────────────────────────────────────────────────────────────── */
@@ -135,7 +135,7 @@
 /* 状态。「还差 1 项」是待办不是出错，用橙不用红 */
 .sect__badge {
   color: $fish-warning-ink;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   font-weight: 600;
 }
@@ -147,7 +147,7 @@
 /* 「选填」那种不重要的状态，压到第三档 */
 .sect__meta {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -201,7 +201,7 @@
   flex-shrink: 0;
   margin-left: 12rpx;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /*
@@ -259,7 +259,7 @@
   flex: 1;
   min-width: 0;
   color: $fish-warning-ink;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 .spot-form__submit-note--ok {
@@ -284,7 +284,7 @@
 
 .spot-form__submit-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

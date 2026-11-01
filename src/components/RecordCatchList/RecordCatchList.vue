@@ -47,7 +47,7 @@ defineProps<{
 
 .catch-list__species {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .catch-list__quantity {

@@ -614,7 +614,7 @@ onPageShow(async () => {
 
 .spot-form__notice-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 重试。它是这一屏唯一还能做的事，所以给它一个明确的入口 */
@@ -622,7 +622,7 @@ onPageShow(async () => {
   display: inline-block;
   margin-top: 24rpx;
   color: $fish-blue-600;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
   @include fish-press-dim;

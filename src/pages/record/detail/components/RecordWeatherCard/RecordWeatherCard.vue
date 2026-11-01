@@ -235,7 +235,7 @@ function isNumber(value: number | undefined): boolean {
 
 .wx__title {
   color: $fish-on-dark;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 /*
@@ -282,7 +282,7 @@ function isNumber(value: number | undefined): boolean {
 
 .wx__gauge-value {
   color: $fish-on-dark;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   font-weight: 700;
 }
@@ -290,14 +290,14 @@ function isNumber(value: number | undefined): boolean {
 .wx__gauge-unit {
   margin-left: 4rpx;
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .wx__tide-range {
   display: block;
   margin-top: 8rpx;
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   text-align: center;
 }
@@ -324,14 +324,14 @@ function isNumber(value: number | undefined): boolean {
 
 .wx__reading-label {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .wx__reading-value {
   display: block;
   margin-top: 2rpx;
   color: $fish-on-dark;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   font-weight: 600;
 
@@ -358,7 +358,7 @@ function isNumber(value: number | undefined): boolean {
 
 .wx__index-label {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -423,6 +423,6 @@ function isNumber(value: number | undefined): boolean {
   flex-shrink: 0;
   margin-left: 16rpx;
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 </style>

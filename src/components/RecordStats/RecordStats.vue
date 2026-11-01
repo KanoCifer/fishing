@@ -80,12 +80,12 @@ const items = computed(() => [
 /*
  * 眉标。当前连续是这一块的结论，先给它名字，再给数。
  *
- * caption2 是全页最低的一档：它是数字的注脚，不是小标题。
+ * caption 是全页最低的一档：它是数字的注脚，不是小标题。
  */
 .stats__eyebrow {
   margin-bottom: 16rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* 环心的数字与单位并排 */
@@ -97,15 +97,15 @@ const items = computed(() => [
 /*
  * 主角的数字。
  *
- * title1（28pt / 700）—— 比三个配角大一号，这一块扫的是它。
- * 这一档比头图的地点名（title2）还大一档：主角方案就是让这一块
+ * display（32pt / 700）—— 比三个配角大一号，这一块扫的是它。
+ * 这一档比头图的地点名（title）还大一档：主角方案就是让这一块
  * 自己成为主角，头图那一行压在照片上，靠材质仍然更重。
  *
  * 等宽数字：位数变化时整块环心的宽度会跳。
  */
 .stats__num {
   color: $fish-ink;
-  @include fish-type(title1);
+  @include fish-type(display);
 
   font-variant-numeric: tabular-nums;
 }
@@ -114,7 +114,7 @@ const items = computed(() => [
 .stats__unit {
   margin-left: 6rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   line-height: 1;
 }
@@ -141,7 +141,7 @@ const items = computed(() => [
 
 .stats__value {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   font-variant-numeric: tabular-nums;
 }

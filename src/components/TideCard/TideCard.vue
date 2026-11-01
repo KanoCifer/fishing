@@ -249,7 +249,7 @@ onMounted(() => {
 
 .tide-card__segment-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .tide-card__segment-text--active {
@@ -352,11 +352,11 @@ onMounted(() => {
 
 .tide-card__peak-height {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .tide-card__empty {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 </style>

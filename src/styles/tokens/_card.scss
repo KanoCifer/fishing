@@ -58,26 +58,27 @@ $fish-card-head-gap: 20rpx;
 /**
  * 标题的字阶。
  *
- * 默认 headline 一级 —— 同一屏里的标题必须同字号，
- * 各组件各写各的就会出现「三个分区标题三个字号」，
- * 这是整套类型系统里最容易被忽略也最伤整体感的一处。
+ * 默认 body 尺寸 + 600 字重 —— 卡内标题要压得住内容，
+ * 又不该跟页面级标题抢层级。
  *
- * 需要别的级别时显式传（少数几处用 title3），
+ * 同一屏里的标题必须同字号，各组件各写各的就会出现
+ * 「三个分区标题三个字号」，这是整套类型系统里最容易被忽略、
+ * 也最伤整体感的一处。需要别的级别时显式传，
  * 但同一个屏里不要混着来。
  */
-@mixin fish-card-title($level: headline) {
+@mixin fish-card-title($level: body, $weight: 600) {
   color: $fish-ink;
-  @include fish-type($level);
+  @include fish-type($level, $weight);
 }
 
 /**
  * 元信息的字阶。
  *
  * 标题行右侧那一小段：单位、数值、补充说明。
- * 默认 tertiaryLabel + caption2 —— 全页最低的一档，
+ * 默认 tertiaryLabel + caption —— 全页最低的一档，
  * 它是标题的注脚，不该跟标题抢视线。
  */
-@mixin fish-card-meta($level: caption2, $color: $fish-muted-60) {
+@mixin fish-card-meta($level: caption, $color: $fish-muted-60) {
   color: $color;
   @include fish-type($level);
 }

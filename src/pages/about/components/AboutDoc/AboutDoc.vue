@@ -52,7 +52,7 @@ defineProps<{
 
 .about-doc__summary-text {
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -65,7 +65,7 @@ defineProps<{
   display: block;
   padding-bottom: 28rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -81,21 +81,21 @@ defineProps<{
 /*
  * 条款标题。
  *
- * 用 headline（17pt / 600）—— 字阶里唯一一档「正文尺寸但加粗」的级别，
- * 正是「分组标签」该用的那一档。下面的正文是 footnote（13pt），
+ * 用 body 尺寸 + 600 字重 —— 字阶里唯一一档「正文尺寸但加粗」的写法，
+ * 正是「分组标签」该用的那一档。下面的正文是 caption（12pt），
  * 标题比正文大 4pt 且加粗：读者扫一眼就能找到每一条的边界。
  */
 .about-doc__section-title {
   display: block;
   margin-bottom: 12rpx;
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 /*
  * 段间距 16rpx。
  *
- * 正文用 footnote 而不是 body：抽屉里这段文字是要被「读」的，
+ * 正文用 caption 而不是 body：抽屉里这段文字是要被「读」的，
  * 但它是说明性材料，不该占和首页结论一样的字号。
  *
  * 章内的段落比章与章之间紧一档（16rpx vs 32rpx），靠这一个差别把
@@ -107,7 +107,7 @@ defineProps<{
 
 .about-doc__paragraph-text {
   color: $fish-ink;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   /* 中文长段落两端对齐会让行末的字距忽宽忽窄，正文里读着更累 */
   text-align: left;

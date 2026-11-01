@@ -250,14 +250,14 @@ const emptyText = computed(() => {
 
 .days__empty {
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 .days__head {
   @include fish-card-head;
 }
 
-/* 标题。分区标题统一走 headline 一级（跟其余卡片同一档） */
+/* 标题。分区标题统一走 fish-card-title（跟其余卡片同一档） */
 .days__title {
   @include fish-card-title;
 }
@@ -306,7 +306,7 @@ const emptyText = computed(() => {
 /* 日期列 */
 .days__label {
   color: $fish-ink;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -366,7 +366,7 @@ const emptyText = computed(() => {
  */
 .days__prob {
   color: $fish-blue-600;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   font-variant-numeric: tabular-nums;
 }
@@ -458,7 +458,7 @@ const emptyText = computed(() => {
 /* 数字 */
 .days__max-num {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   font-variant-numeric: tabular-nums;

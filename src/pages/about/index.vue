@@ -227,7 +227,7 @@ onLoad((options) => {
 /* 免责文字压成辅助灰而不是主色：它是需要被同意的条款，不是页面要传达的主张 */
 .about__disclaimer-text {
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 落款 */
@@ -251,7 +251,7 @@ onLoad((options) => {
 .about__foot-line {
   display: block;
 
-  /* 行高单独给：caption2 的 1.3 落款挤在一起，两行会读成一段 */
+  /* 行高单独给：caption 的 1.35 落款挤在一起，两行会读成一段 */
   line-height: 1.7;
 }
 
@@ -263,7 +263,7 @@ onLoad((options) => {
 .doc__title {
   display: block;
   color: $fish-ink;
-  @include fish-type(title2);
+  @include fish-type(title);
 }
 
 .doc__subtitle {

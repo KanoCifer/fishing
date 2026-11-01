@@ -347,7 +347,7 @@ mine-row {
   margin-top: 36rpx;
   color: $fish-muted-60;
   text-align: center;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*

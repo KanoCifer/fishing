@@ -75,13 +75,13 @@ withDefaults(
 .form-field__req {
   margin-left: 8rpx;
   color: $fish-destructive-ink;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* 补充说明。跟在标签右边，不换行 */
 .form-field__hint {
   margin-left: 12rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 </style>

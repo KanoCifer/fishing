@@ -315,7 +315,7 @@ const plainText = computed(() =>
 
 .current-weather__plain-text {
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -381,7 +381,7 @@ const plainText = computed(() =>
 /*
  * 地点与现象那一行。
  *
- * baseline 对齐：两段字大小不同（地点 30rpx、现象 36rpx），
+ * baseline 对齐：两段字大小不同（地点 32rpx、现象 36rpx），
  * 对到同一条基线上才读成一句话，而不是两段各自为政的说明。
  */
 .current-weather__meta {
@@ -393,13 +393,13 @@ const plainText = computed(() =>
 /* 地点 */
 .current-weather__place {
   color: var(--weather-ink-2);
-  font-size: 30rpx;
+  font-size: 32rpx;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
 
 /*
- * 天气现象。它比地点重一档（36rpx 对 30rpx）：
+ * 天气现象。它比地点重一档（36rpx 对 32rpx）：
  * 地点是背景（「这是哪」），现象是这张卡要说的（「什么天」）。
  */
 .current-weather__cond {
@@ -412,7 +412,7 @@ const plainText = computed(() =>
 /*
  * 加载骨架。
  *
- * 每一块的尺寸照着上面真实元素的行盒摆：温度行 120rpx、地点行 36rpx、
+ * 每一块的尺寸照着上面真实元素的行盒摆：温度行 120rpx、地点行 38rpx、
  * 图标 80rpx、现象行 43rpx。
  * 占位比真实内容高一截的话，数据到了版式一换，下面会往上跳一下 ——
  * 那一跳读起来就是「页面散架了」。

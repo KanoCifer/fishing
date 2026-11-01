@@ -1255,14 +1255,14 @@ function onTouchEnd() {
 
 .tide-chart__head-number {
   color: $fish-ink;
-  @include fish-type(large-title);
+  @include fish-type(display);
 }
 
 /* 单位退到次级：同一个数字，单位是限定词 */
 .tide-chart__head-unit {
   margin-left: 8rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 .tide-chart__head-side {
@@ -1274,7 +1274,7 @@ function onTouchEnd() {
 .tide-chart__head-time {
   margin-bottom: 8rpx;
   color: $fish-muted-60;
-  @include fish-type(subhead);
+  @include fish-type(body);
   font-weight: 600;
 }
 

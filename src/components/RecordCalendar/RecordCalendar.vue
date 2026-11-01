@@ -178,7 +178,7 @@ function onTap(cell: CalendarCell): void {
 
 .cal__month {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   font-weight: 600;
 }
@@ -197,7 +197,8 @@ function onTap(cell: CalendarCell): void {
 
 .cal__nav-icon {
   color: $fish-blue-600;
-  @include fish-type(title2);
+  font-size: 40rpx;
+  line-height: 1;
 }
 
 /* 不能翻的时候不响应 —— 变淡就够了，不需要额外的说明文字 */
@@ -213,7 +214,7 @@ function onTap(cell: CalendarCell): void {
 .cal__week-label {
   flex: 1;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   text-align: center;
 }
@@ -265,7 +266,7 @@ function onTap(cell: CalendarCell): void {
 
 .cal__day {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 有渔获的那天，日期用品牌蓝 —— 底是蓝底，字得比底更深一档才读得清 */

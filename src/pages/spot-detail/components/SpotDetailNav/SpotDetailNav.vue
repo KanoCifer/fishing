@@ -222,7 +222,7 @@ const shareIcon = computed(() => icon('share-2', props.solid ? 'blue' : 'onAccen
   max-width: 420rpx;
   overflow: hidden;
   color: $fish-on-dark;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   white-space: nowrap;
   text-overflow: ellipsis;

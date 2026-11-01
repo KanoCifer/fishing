@@ -121,7 +121,7 @@ function toggle(value: string) {
 
 .choice-chips__text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .choice-chips__text--active {

@@ -21,7 +21,7 @@
 /**
  * 分区眉标。
  *
- * 12pt / 600 / 字距放开 / tertiaryLabel。
+ * 20pt / 600 / 字距放开 / tertiaryLabel。
  *
  * 底下一级是 caption，但字重与字距都要跟正文拉开：
  * caption 是 400 字重、字距为 0，那是给说明文字的；
@@ -30,7 +30,7 @@
  */
 @mixin fish-eyebrow {
   color: $fish-muted-60;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -83,7 +83,7 @@
   margin-top: 40rpx;
   padding-bottom: 64rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   text-align: center;
 }

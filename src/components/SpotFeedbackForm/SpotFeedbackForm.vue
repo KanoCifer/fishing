@@ -466,7 +466,7 @@ function submit() {
   display: block;
   margin-top: 12rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   text-align: right;
 }
@@ -481,7 +481,7 @@ function submit() {
   display: block;
   padding: 0 28rpx 24rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*

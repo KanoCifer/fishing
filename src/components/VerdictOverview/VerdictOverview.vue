@@ -2,8 +2,8 @@
   <view class="verdict">
     <view v-if="loading && !mapStore.indexData" class="verdict__skeleton">
       <!--
-        三个成因压成的一行。行盒 42rpx —— 撑住这一行的是值的行盒（subhead），
-        图标（28rpx）和元信息（caption2 22rpx）都比它矮。
+        三个成因压成的一行。行盒 46rpx —— 撑住这一行的是值的行盒（body），
+        图标（28rpx）和元信息（caption 24rpx）都比它矮。
       -->
       <view class="verdict__sk-row">
         <!-- 温度 -->
@@ -256,7 +256,7 @@ function onRefresh() {
 
 .verdict__factor-value {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -265,7 +265,7 @@ function onRefresh() {
 .verdict__factor-meta {
   margin-left: 6rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .verdict__factor-sep {
@@ -281,8 +281,8 @@ function onRefresh() {
 /*
  * 分两层：**行盒**管位置，**色块**管形状。
  *
- * 行盒的高度照着上面真实元素的行盒摆（因子行 42rpx），
- * 色块的高度照着字的墨迹摆（30rpx 的值 / 22rpx 的元信息）。
+ * 行盒的高度照着上面真实元素的行盒摆（因子行 46rpx），
+ * 色块的高度照着字的墨迹摆（32rpx 的值 / 24rpx 的元信息）。
  *
  * 底色是 $fish-surface，跟 SkeletonCard 同一档；
  * 呼吸幅度也是同一档（0.35 / 1.8s），否则同一个页面里两种加载态一深一浅，像两套组件。
@@ -303,7 +303,7 @@ function onRefresh() {
 .verdict__sk-row {
   display: flex;
   align-items: center;
-  height: 42rpx;
+  height: 46rpx;
 }
 
 .verdict__sk-factor {
@@ -319,15 +319,15 @@ function onRefresh() {
   border-radius: 50%;
 }
 
-/* 值：subhead 30rpx */
+/* 值：body 32rpx */
 .verdict__sk-bar--value {
-  height: 30rpx;
+  height: 32rpx;
   border-radius: $fish-radius-sm;
 }
 
-/* 元信息：caption2 22rpx */
+/* 元信息：caption 24rpx */
 .verdict__sk-bar--meta {
-  height: 22rpx;
+  height: 24rpx;
   margin-left: 6rpx;
   border-radius: $fish-radius-sm;
 }
@@ -440,7 +440,7 @@ function onRefresh() {
 
 .verdict__btn-text {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .verdict__btn-text--onaccent {
@@ -466,7 +466,7 @@ function onRefresh() {
 
 .verdict__link-text {
   color: $fish-blue-600;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -490,7 +490,7 @@ function onRefresh() {
 
 .verdict__hint-text {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* ── 空态 ──────────────────────────────────────────────────────────────── */
@@ -509,14 +509,14 @@ function onRefresh() {
 
 .verdict__empty-title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
   @include fish-enter;
 }
 
 .verdict__empty-text {
   margin-top: 12rpx;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
   @include fish-enter;
 }
 
@@ -549,7 +549,7 @@ function onRefresh() {
 
 .verdict__empty-action-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

@@ -190,7 +190,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 
 .metric__item-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .metric__item-text--active {
@@ -202,7 +202,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
   display: block;
   padding: 64rpx 0;
   color: $fish-muted-60;
-  @include fish-type(subhead);
+  @include fish-type(body);
   text-align: center;
 }
 </style>

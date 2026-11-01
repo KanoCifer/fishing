@@ -287,7 +287,7 @@ function goBack(): void {
 
 .spot-feedback__notice-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /*
@@ -306,13 +306,13 @@ function goBack(): void {
 
 .spot-feedback__empty-title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .spot-feedback__empty-hint {
   margin-top: 12rpx;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 空态里的那个按钮 */
@@ -331,7 +331,7 @@ function goBack(): void {
 
 .spot-feedback__empty-action-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -349,13 +349,13 @@ function goBack(): void {
 .spot-feedback__context-name {
   display: block;
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .spot-feedback__context-fee {
   display: block;
   margin-top: 8rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 </style>

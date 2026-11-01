@@ -376,7 +376,7 @@ onLoad((options) => {
 
 .detail__notice-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 取不到 */
@@ -387,7 +387,7 @@ onLoad((options) => {
 
 .detail__empty-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* ── 情境 ──────────────────────────────────────────────────────────────── */
@@ -416,14 +416,14 @@ onLoad((options) => {
 .scene__date {
   display: block;
   color: $fish-ink;
-  @include fish-type(large-title);
+  @include fish-type(display);
 }
 
 .scene__weekday {
   display: block;
   margin-top: 4rpx;
   color: $fish-muted-60;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .scene__place-row {
@@ -441,7 +441,7 @@ onLoad((options) => {
 
 .scene__place {
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .scene__meta {
@@ -454,7 +454,7 @@ onLoad((options) => {
 .scene__time {
   margin-right: 16rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 钓法胶囊 */
@@ -537,7 +537,7 @@ onLoad((options) => {
 .sect__empty {
   display: block;
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* ── 渔获账 ────────────────────────────────────────────────────────────── */
@@ -564,12 +564,12 @@ onLoad((options) => {
 
 .ledger__name {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .ledger__qty {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

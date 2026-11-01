@@ -1,78 +1,45 @@
 $fish-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
 
+// 字阶只有四级，字号全是 4 的倍数：64 / 40 / 32 / 24 rpx。
+//
+// 为什么只有四级：四级以上，每多一级的实际差别都落回字重和颜色上，
+// 剩下的都是新的微调决策，组件之间对不齐的概率反而上升。
+//
+//   display 这一屏最大的字：主角数字、页面主标题
+//   title   标题级：卡片标题、分区标题
+//   body    文本级：正文、说明、强调
+//   caption 辅助级：元信息、注脚、落款
 $fish-type: (
-  // 大标题。留白多、字号大，是整屏的锚点
-  large-title: (
-    size: 68rpx,
-    weight: 700,
-    tracking: -0.022em,
-    leading: 1.15,
-  ),
-  title1: (
-    size: 56rpx,
+  display: (
+    size: 64rpx,
     weight: 700,
     tracking: -0.02em,
     leading: 1.2,
   ),
-  title2: (
-    size: 44rpx,
-    weight: 700,
-    tracking: -0.018em,
-    leading: 1.25,
-  ),
-  title3: (
+  title: (
     size: 40rpx,
     weight: 600,
-    tracking: -0.016em,
+    tracking: -0.012em,
     leading: 1.3,
   ),
-  // 正文上方的标题：iOS 的 headline，分区标题基本都用它
-  headline: (
-    size: 34rpx,
-    weight: 600,
-    tracking: -0.012em,
-    leading: 1.35,
-  ),
   body: (
-    size: 34rpx,
-    weight: 400,
-    tracking: -0.012em,
-    leading: 1.45,
-  ),
-  callout: (
     size: 32rpx,
     weight: 400,
-    tracking: -0.01em,
-    leading: 1.45,
-  ),
-  subhead: (
-    size: 30rpx,
-    weight: 400,
     tracking: -0.008em,
-    leading: 1.4,
-  ),
-  footnote: (
-    size: 26rpx,
-    weight: 400,
-    tracking: 0,
-    leading: 1.35,
+    leading: 1.45,
   ),
   caption: (
     size: 24rpx,
     weight: 400,
     tracking: 0,
-    leading: 1.3,
-  ),
-  // 最小一级。这里字距转正 —— 这是整套字阶里唯一需要放开的地方
-  caption2: (
-    size: 22rpx,
-    weight: 400,
-    tracking: 0.006em,
-    leading: 1.3,
+    leading: 1.35,
   ),
 );
 
-@mixin fish-type($role) {
+// 字重是字阶之外唯一可调的一维。
+// 需要「正文尺寸但加粗」时（分组标签、导航标题）写 fish-type(body, 600)，
+// 不要为此另开一级字号 —— 那正是字阶失控的开始。
+@mixin fish-type($role, $weight: null) {
   $t: map-get($fish-type, $role);
 
   @if $t == null {
@@ -80,7 +47,7 @@ $fish-type: (
   }
 
   font-size: map-get($t, size);
-  font-weight: map-get($t, weight);
+  font-weight: if($weight == null, map-get($t, weight), $weight);
   letter-spacing: map-get($t, tracking);
   line-height: map-get($t, leading);
 }

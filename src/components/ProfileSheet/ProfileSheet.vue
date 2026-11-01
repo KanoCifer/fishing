@@ -214,7 +214,7 @@ const userGlyph = icon('user', 'muted60');
 .profile-sheet__title {
   display: block;
   color: $fish-ink;
-  @include fish-type(title2);
+  @include fish-type(title);
 }
 
 .profile-sheet__subtitle {
@@ -279,14 +279,14 @@ const userGlyph = icon('user', 'muted60');
   flex: 1;
   margin-left: 28rpx;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 .profile-sheet__label {
   display: block;
   margin-bottom: 16rpx;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -320,12 +320,12 @@ const userGlyph = icon('user', 'muted60');
   @include fish-type(body);
 }
 
-/* 说明。压到 caption2：它是附注，不是这一步的主体 */
+/* 说明。压到 caption：它是附注，不是这一步的主体 */
 .profile-sheet__note {
   display: block;
   margin-top: 16rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .profile-sheet__actions {
@@ -359,7 +359,7 @@ const userGlyph = icon('user', 'muted60');
 
 .profile-sheet__btn-text {
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .profile-sheet__btn--primary .profile-sheet__btn-text {

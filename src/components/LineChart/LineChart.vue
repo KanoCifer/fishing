@@ -1173,21 +1173,21 @@ function onTouchEnd() {
 
 .line-chart__stat-value {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
   font-weight: 600;
 }
 
 .line-chart__stat-unit {
   margin-left: 2rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 分档名（小雨 / 中雨 / 大雨）。它跟在单位后面，是读数的定性说明 */
 .line-chart__stat-band {
   margin-left: 8rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 不用 flex 的 gap：小程序的 flex gap 在低版本基础库上不生效，
@@ -1222,19 +1222,19 @@ function onTouchEnd() {
 
 .line-chart__number {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .line-chart__unit {
   margin-left: 6rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 分档名（小雨 / 中雨 / 大雨）。它跟在单位后面，是读数的定性说明 */
 .line-chart__band {
   margin-left: 8rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 </style>

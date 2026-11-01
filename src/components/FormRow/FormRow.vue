@@ -178,7 +178,7 @@ function onTap() {
 /* 标签比值弱一档：它是「这一栏叫什么」的引导，不是内容 */
 .form-row__label {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 必填的星。用文字专用的深红 —— 填充色的红在白底上读不出来 */

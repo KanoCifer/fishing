@@ -132,11 +132,11 @@ const chevronIcon = icon('chevron-right', 'muted60');
  * 徽标上的字。
  *
  * 加粗 + 墨色：它要在这块卡里一眼可辨，但不该抢走整页标题的分量
- * （标题是 title1，徽标是 subhead）。
+ * （标题是 display，徽标是 body）。
  */
 .publish-banner__badge {
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -146,7 +146,7 @@ const chevronIcon = icon('chevron-right', 'muted60');
   display: block;
   margin-top: 8rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* ── 末尾声明 ────────────────────────────────────────────────────────────── */
@@ -164,13 +164,13 @@ const chevronIcon = icon('chevron-right', 'muted60');
 /*
  * 声明正文。
  *
- * 用 footnote（13pt）而不是 body —— 它是需要被同意的条款说明，
+ * 用 caption（12pt）而不是 body —— 它是需要被同意的条款说明，
  * 不是这一页要传达的主张。压到辅助灰，让上面的表单仍然是主角。
  */
 .publish-notice__line {
   display: block;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   /* 行距给开：连续三行说明，挤在一起会读成一团 */
   line-height: 1.6;
@@ -197,7 +197,7 @@ const chevronIcon = icon('chevron-right', 'muted60');
  */
 .publish-notice__link-text {
   color: $fish-blue-600;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   font-weight: 600;
 }

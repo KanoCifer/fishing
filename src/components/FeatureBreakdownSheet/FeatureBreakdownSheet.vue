@@ -69,7 +69,7 @@ const tileCount = computed(() => toFeatureTiles(mapStore.indexData?.feature_brea
 
 .breakdown__title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .breakdown__meta {

@@ -33,10 +33,10 @@ const BODY = 'font-size: 28rpx; line-height: 1.6; color: #000000;';
 export const MARKDOWN_TAG_STYLE: Record<string, string> = {
   p: BODY,
 
-  // 标题：AI 输出里 h1/h2 用得多，h3 往下压到正文大小
-  h1: 'font-size: 36rpx; line-height: 1.35; font-weight: 700; color: #000000; margin: 24rpx 0 12rpx;',
-  h2: 'font-size: 32rpx; line-height: 1.4; font-weight: 600; color: #000000; margin: 20rpx 0 10rpx;',
-  h3: 'font-size: 30rpx; line-height: 1.4; font-weight: 600; color: #000000; margin: 16rpx 0 8rpx;',
+  // 标题：AI 输出里 h1/h2 用得多，h3 往下压到正文大小。字号同样守 4 的倍数
+  h1: 'font-size: 40rpx; line-height: 1.35; font-weight: 700; color: #000000; margin: 24rpx 0 12rpx;',
+  h2: 'font-size: 36rpx; line-height: 1.4; font-weight: 600; color: #000000; margin: 20rpx 0 10rpx;',
+  h3: 'font-size: 32rpx; line-height: 1.4; font-weight: 600; color: #000000; margin: 16rpx 0 8rpx;',
   h4: 'font-size: 28rpx; line-height: 1.4; font-weight: 600; color: #000000; margin: 16rpx 0 8rpx;',
 
   strong: 'font-weight: 600; color: #000000;',
@@ -44,7 +44,7 @@ export const MARKDOWN_TAG_STYLE: Record<string, string> = {
   del: 'text-decoration: line-through; color: rgba(60, 60, 67, 0.6);',
 
   // 行内码：底色用次级填充，和代码块区分开
-  code: `font-family: Menlo, Consolas, monospace; font-size: 26rpx; background-color: ${CODE_BG}; padding: 2rpx 8rpx; border-radius: 6rpx;`,
+  code: `font-family: Menlo, Consolas, monospace; font-size: 28rpx; background-color: ${CODE_BG}; padding: 2rpx 8rpx; border-radius: 6rpx;`,
 
   // 代码块：整块底色 + 左侧竖线，读起来是「一段引文」而不是正文
   pre: `font-family: Menlo, Consolas, monospace; font-size: 24rpx; line-height: 1.5; background-color: ${CODE_BG}; padding: 20rpx 24rpx; border-radius: 12rpx; margin: 16rpx 0; border-left: 4rpx solid ${BORDER};`,
@@ -60,7 +60,7 @@ export const MARKDOWN_TAG_STYLE: Record<string, string> = {
   hr: `border-top: 1rpx solid ${BORDER}; margin: 24rpx 0;`,
 
   // 表格：AI 基本不产出，但列出来免得真出现时挤成一团
-  table: 'width: 100%; border-collapse: collapse; margin: 16rpx 0; font-size: 26rpx;',
+  table: 'width: 100%; border-collapse: collapse; margin: 16rpx 0; font-size: 28rpx;',
   th: 'font-weight: 600; border: 1rpx solid rgba(60, 60, 67, 0.18); padding: 12rpx 16rpx;',
   td: 'border: 1rpx solid rgba(60, 60, 67, 0.18); padding: 12rpx 16rpx;',
 };

@@ -92,7 +92,7 @@ const refreshIcon = icon('refresh-cw', 'muted');
 
 .verdict-bar__score {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   /* 数字用 700：这一行里它是主角，字重要压过旁边的等级词 */
   font-weight: 700;
@@ -101,7 +101,7 @@ const refreshIcon = icon('refresh-cw', 'muted');
 
 .verdict-bar__level {
   margin-left: 16rpx;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }

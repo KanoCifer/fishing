@@ -70,7 +70,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成
   width: 72rpx;
   flex-shrink: 0;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /* 轨道用次级填充，卡片浮在上面 —— 12rpx ≈ 6pt 的条在这个信息密度下刚好 */
@@ -98,7 +98,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成
   width: 88rpx;
   flex-shrink: 0;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -108,7 +108,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成
   display: block;
   padding: 64rpx 0;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   text-align: center;
 }

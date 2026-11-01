@@ -262,7 +262,7 @@ watch(
   min-width: 0;
   margin-right: 24rpx;
   color: $fish-ink;
-  @include fish-type(title1);
+  @include fish-type(display);
 }
 
 /*
@@ -313,15 +313,15 @@ watch(
 .head__rating-star {
   margin-right: 10rpx;
   color: $fish-warning;
-  font-size: 30rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
 
-/* 分数。title3 —— 比名字小一档，但比标签重：它是这一行的主角 */
+/* 分数。title —— 比名字小一档，但比标签重：它是这一行的主角 */
 .head__rating-score {
   margin-right: 10rpx;
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 
   font-variant-numeric: tabular-nums;
 }
@@ -368,7 +368,7 @@ watch(
   align-items: center;
   margin-top: 24rpx;
   color: $fish-muted;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 .head__pin {
@@ -412,7 +412,7 @@ watch(
 .head__desc {
   display: block;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -430,7 +430,7 @@ watch(
 
 .head__more-text {
   color: $fish-blue-600;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   font-weight: 600;
 }

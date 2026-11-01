@@ -300,6 +300,6 @@ function remove(path: string) {
 
 .picker__mask-text {
   color: $fish-on-dark;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 </style>

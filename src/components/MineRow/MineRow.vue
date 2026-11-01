@@ -170,14 +170,14 @@ function onTap() {
 }
 
 /*
- * 行标题。title3 一级：白纸上的行是「去向」，不是说明文字，
+ * 行标题。title 一级：白纸上的行是「去向」，不是说明文字，
  * 字要比正文重一档 —— 它是这一页上唯一还能被当成入口的东西。
  */
 .mine-row__label {
   flex: 1;
   min-width: 0;
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 /* 箭头 15pt ≈ iOS 列表右侧的 disclosure indicator。

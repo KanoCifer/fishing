@@ -101,7 +101,7 @@ const emptyText = computed(() => {
   @include fish-card-head;
 }
 
-/* 分区标题统一走 headline 一级（见 DayForecast 同名注释） */
+/* 分区标题统一走 fish-card-title（见 DayForecast 同名注释） */
 .life__title {
   @include fish-card-title;
 }
@@ -132,7 +132,7 @@ const emptyText = computed(() => {
   display: block;
   margin-bottom: 10rpx;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
   font-weight: 600;
 }
 
@@ -152,7 +152,7 @@ const emptyText = computed(() => {
   flex-shrink: 0;
   padding: 6rpx 20rpx;
   border-radius: $fish-radius-pill;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -200,7 +200,7 @@ const emptyText = computed(() => {
   display: block;
   padding: 48rpx 0;
   color: $fish-muted-60;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   text-align: center;
 }

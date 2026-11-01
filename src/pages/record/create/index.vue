@@ -929,7 +929,7 @@ onLoad(async () => {
 
 .scene__time {
   color: $fish-ink;
-  @include fish-type(title1);
+  @include fish-type(display);
 }
 
 /* 时间那一行的小箭头。它是「这里能改」的唯一提示 */
@@ -957,7 +957,7 @@ onLoad(async () => {
   min-width: 0;
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -983,7 +983,7 @@ onLoad(async () => {
 
 .scene__meta-item {
   color: $fish-muted-60;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /*
@@ -998,7 +998,7 @@ onLoad(async () => {
 .scene__meta-sep {
   padding: 0 10rpx;
   color: $fish-muted-60;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 }
 
 /* 展开的钓法 */
@@ -1033,12 +1033,12 @@ onLoad(async () => {
 
 .create__lead-title {
   color: $fish-ink;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .create__lead-count {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* ── 备注 ──────────────────────────────────────────────────────────────── */
@@ -1057,7 +1057,7 @@ onLoad(async () => {
 
 .create__placeholder {
   color: $fish-muted-60;
-  font-size: 26rpx;
+  @include fish-type(caption);
 }
 
 /* 自定义钓法 */
@@ -1069,7 +1069,7 @@ onLoad(async () => {
   border-radius: $fish-radius-lg;
   background-color: $fish-fill;
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* ── 当时的天气（深色面）──────────────────────────────────────────────── */
@@ -1096,12 +1096,12 @@ onLoad(async () => {
 
 .create__weather-title {
   color: $fish-on-dark;
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .create__weather-action {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 
   font-weight: 600;
   @include fish-press-dim;
@@ -1125,19 +1125,19 @@ onLoad(async () => {
 
 .create__weather-label {
   color: $fish-deep-muted;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
  * 读数。
  *
  * 比统计卡那排数字小一档：这一行塞了五个带单位的读数，
- * 用 callout（16pt）的话「1018hPa」和「6.3km/h」会挤在一起。
+ * 用 body（16pt）的话「1018hPa」和「6.3km/h」会挤在一起。
  */
 .create__weather-value {
   margin-top: 4rpx;
   color: $fish-on-dark;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   font-weight: 600;
 
@@ -1175,7 +1175,7 @@ onLoad(async () => {
   border-radius: $fish-radius-lg;
   background-color: $fish-deep-hairline;
   color: $fish-on-dark;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 没取到天气 */
@@ -1218,7 +1218,7 @@ onLoad(async () => {
 
 .create__notice-text {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /*
@@ -1305,7 +1305,7 @@ onLoad(async () => {
 
 .create__btn-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

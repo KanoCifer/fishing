@@ -262,12 +262,12 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   height: 34rpx;
 }
 
-/* 名字。large-title —— 这一屏里它是最大的字 */
+/* 名字。display —— 这一屏里它是最大的字 */
 .anchor__name {
   display: block;
   margin-top: 40rpx;
   color: $fish-on-dark;
-  @include fish-type(large-title);
+  @include fish-type(display);
 }
 
 /* 还没有昵称时压成次级灰：那不是「名字」，是「这里缺一个名字」 */
@@ -299,7 +299,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 
 .anchor__asset-num {
   color: $fish-on-dark;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -318,7 +318,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 
 .anchor__asset-badge-text {
   color: $fish-warning-on-dark;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /*
@@ -341,7 +341,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 
 .anchor__cta-text {
   color: $fish-deep-base;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }

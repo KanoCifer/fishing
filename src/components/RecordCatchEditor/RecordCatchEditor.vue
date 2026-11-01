@@ -322,7 +322,7 @@ function onQuantityInput(index: number, event: { detail: { value: string } }): v
 
 .catches__placeholder {
   color: $fish-muted-60;
-  font-size: 26rpx;
+  @include fish-type(caption);
 }
 
 /* 删除。命中区 72rpx，比图标大 —— 图标只有 20rpx */
@@ -353,7 +353,7 @@ function onQuantityInput(index: number, event: { detail: { value: string } }): v
 .catches__empty-title {
   display: block;
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .catches__empty-hint {

@@ -148,12 +148,12 @@ function time(log: FishingLog): string {
 
 .day-sheet__title {
   color: $fish-ink;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 
 .day-sheet__count {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .day-sheet__body {
@@ -191,7 +191,7 @@ function time(log: FishingLog): string {
 /* 这天只有打卡，没有渔获 */
 .day-sheet__nocatch {
   color: $fish-muted;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 /* 时间 · 钓法 · 地点 */
@@ -204,19 +204,19 @@ function time(log: FishingLog): string {
 
 .day-sheet__time {
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .day-sheet__methods {
   margin-left: 16rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 .day-sheet__place {
   margin-left: 16rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* 这天什么也没有 */
@@ -227,7 +227,7 @@ function time(log: FishingLog): string {
 .day-sheet__empty-title {
   display: block;
   color: $fish-ink;
-  @include fish-type(callout);
+  @include fish-type(body);
 }
 
 .day-sheet__empty-hint {
@@ -255,7 +255,7 @@ function time(log: FishingLog): string {
 
 .day-sheet__action-text {
   color: $fish-on-accent;
-  @include fish-type(callout);
+  @include fish-type(body);
 
   font-weight: 600;
 }

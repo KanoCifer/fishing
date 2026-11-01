@@ -430,7 +430,7 @@ const closeIcon = icon('x', 'muted60');
 }
 
 .share__title {
-  @include fish-type(headline);
+  @include fish-type(body, 600);
 }
 
 .share__subtitle {

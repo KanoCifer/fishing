@@ -126,7 +126,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   display: block;
   margin-top: 14rpx;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 
 /*
@@ -166,7 +166,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   justify-content: center;
   background-color: $fish-avatar-tint;
   color: $fish-blue-600;
-  @include fish-type(footnote);
+  @include fish-type(caption);
 
   font-weight: 600;
 }
@@ -181,7 +181,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   flex: 1;
   min-width: 0;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   overflow-wrap: break-word;
 }
@@ -189,6 +189,6 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
 .info__view {
   flex-shrink: 0;
   color: $fish-muted;
-  @include fish-type(subhead);
+  @include fish-type(body);
 }
 </style>

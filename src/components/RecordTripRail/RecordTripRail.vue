@@ -154,7 +154,7 @@ function meta(log: FishingLog): string {
 .rail__catch {
   display: block;
   color: $fish-ink;
-  @include fish-type(subhead);
+  @include fish-type(body);
 
   font-weight: 600;
 }
@@ -164,6 +164,6 @@ function meta(log: FishingLog): string {
   display: block;
   margin-top: 8rpx;
   color: $fish-muted-60;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 </style>

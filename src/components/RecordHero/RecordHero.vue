@@ -207,7 +207,7 @@ function onTap(): void {
   display: block;
   margin-top: 6rpx;
   color: $fish-on-dark;
-  @include fish-type(title2);
+  @include fish-type(title);
 
   font-weight: 700;
 }
@@ -230,7 +230,7 @@ function onTap(): void {
   border-radius: $fish-radius-pill;
   background-color: rgba(255, 255, 255, 0.22);
   color: $fish-on-dark;
-  @include fish-type(caption2);
+  @include fish-type(caption);
 }
 
 /* 这个月没有记录时的兜底 */
@@ -245,6 +245,6 @@ function onTap(): void {
 
 .hero__empty-text {
   color: $fish-on-dark;
-  @include fish-type(title3);
+  @include fish-type(title);
 }
 </style>
