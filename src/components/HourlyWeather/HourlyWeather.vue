@@ -1,10 +1,5 @@
 <template>
   <view class="hourly">
-    <view class="hourly__header">
-      <text class="hourly__title">逐时预报</text>
-      <text class="hourly__meta">未来 24 小时</text>
-    </view>
-
     <scroll-view v-if="hours.length || loading" class="hourly__scroll" scroll-x :show-scrollbar="false">
       <view v-if="hours.length" class="hourly__track">
         <view
@@ -67,6 +62,10 @@
 /**
  * 逐时预报 —— iOS Weather 招牌的横向滚动条，对应源项目 HourlyWeather。
  *
+ * 现在是「未来 24 小时」卡的**逐时态**（见 Next24Hours）：卡壳与标题行
+ * 由外层那张卡给，这里只管逐时格子本身 —— 它和指标曲线说的是同一份
+ * 数据，拆成两张卡就是同一批温度说了两遍。
+ *
  * 小程序端必须用 `<scroll-view>` 而不是 CSS overflow-x：
  * 横向滚动的惯性、边界回弹都是原生组件给的，用 view + overflow 模拟不出来。
  */
@@ -102,25 +101,12 @@ const hours = computed(() =>
 
 <style lang="scss" scoped>
 /*
- * 卡片外壳。
+ * 这一块现在是「未来 24 小时」卡的一个态（见 Next24Hours）——
+ * 玻璃面、卡内留白、标题行都由外层那张卡给。
  *
- * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
+ * 所以这里没有 @include fish-card：卡里再套一层玻璃面，
+ * 里面就多了一张贴纸（见 _material 的 fish-glass）。
  */
-.hourly {
-  @include fish-card;
-}
-
-.hourly__header {
-  @include fish-card-head;
-}
-
-.hourly__title {
-  @include fish-card-title;
-}
-
-.hourly__meta {
-  @include fish-card-meta(caption, $fish-muted);
-}
 
 .hourly__scroll {
   width: 100%;

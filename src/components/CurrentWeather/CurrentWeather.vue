@@ -8,11 +8,10 @@
       <view class="current-weather__skeleton current-weather__skeleton--temp" />
     </view>
     <view class="current-weather__skeleton current-weather__skeleton--icon" />
-    <view class="current-weather__skeleton current-weather__skeleton--place" />
 
-    <view class="current-weather__bottom">
+    <view class="current-weather__meta current-weather__meta--skeleton">
+      <view class="current-weather__skeleton current-weather__skeleton--place" />
       <view class="current-weather__skeleton current-weather__skeleton--cond" />
-      <view class="current-weather__skeleton current-weather__skeleton--range" />
     </view>
   </view>
 
@@ -36,25 +35,20 @@
     <text v-if="qweatherFontReady" class="current-weather__icon" :class="iconClass" />
     <view v-else class="current-weather__icon current-weather__icon--pending" />
 
-    <text class="current-weather__place">{{ place }}</text>
+    <!--
+      地点与天气现象并成一行。
 
-    <view class="current-weather__bottom">
-      <!--
-        现象用上游给的原文。我们认不出的码，文字仍然是上游说的那句 ——
-        没有配色不等于没有信息。
+      这一张卡现在只说「现在」：当前温度、这是哪、什么天。
+      今日高低温归多日预报的「今天」行说 —— 同一屏上两处各说一遍
+      「今天 28° / 24°」，读的人得自己判断哪一处才是准的。
 
-        上游没给文字就不画这一行 —— 与温度、高低温同一个处置：
-        缺值就缺得干净，别拿一句「未知」顶上去假装知道。
-      -->
+      现象用上游给的原文。我们认不出的码，文字仍然是上游说的那句 ——
+      没有配色不等于没有信息。上游没给文字就不画 ——
+      缺值就缺得干净，别拿一句「未知」顶上去假装知道。
+    -->
+    <view class="current-weather__meta">
+      <text class="current-weather__place">{{ place }}</text>
       <text v-if="cond" class="current-weather__cond">{{ cond }}</text>
-      <view class="current-weather__range">
-        <!--
-          最高/最低缺一个就少一个，连箭头一起收掉 ——
-          箭头是个读数（「今天比昨天高」），没有数的时候它就是在骗人。
-        -->
-        <text v-if="max" class="current-weather__hi">↑ {{ max }}</text>
-        <text v-if="min" class="current-weather__lo">↓ {{ min }}</text>
-      </view>
     </view>
   </view>
 
@@ -72,8 +66,11 @@
  * CurrentWeather —— 数据页「天气」分区的第一张卡：当前天气的主视觉（A 原图方案）。
  *
  * 与 `WeatherCard` 的分工：那张是**逐项读数**（体感、湿度、气压……），
- * 这张是**一句话的天气**（现在多少度、什么天、今晚多少度）。
+ * 这张是**一句话的天气**（现在多少度、这是哪、什么天）。
  * 两者不是同一件事说了两遍 —— 一张是气氛，一张是清单。
+ *
+ * 今日高低温不在这张卡上：多日预报的「今天」行是它唯一的出处
+ * （同一份 forecastDays 数据，两处各说一遍就是同一个数说了两遍）。
  *
  * 取数在 store，换算在 utils，这里只管渲染。
  */
@@ -81,7 +78,7 @@ import { computed } from 'vue';
 
 import { qweatherFontReady } from '@/composables/useQweatherFont';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { forecastDays, num, weatherGroup, weatherIconClass } from '@/utils/weather';
+import { num, weatherGroup, weatherIconClass } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
@@ -123,20 +120,6 @@ const group = computed(() => weatherGroup(live.value?.icon));
 const iconClass = computed(() => weatherIconClass(live.value?.icon));
 
 /**
- * 今天的最高 / 最低。
- *
- * 「今天」取的是**有效预报日里的第一条**（见 utils/weather 的 forecastDays）——
- * 与 DayForecast 是同一份出处，两张卡不会对「今天」各说各话。
- *
- * 缺值就不画那一项 —— 见模板里的说明。
- */
-const today = computed(() => forecastDays(mapStore.forecasts)[0] ?? null);
-
-const max = computed(() => (today.value ? `${today.value.max}°` : null));
-
-const min = computed(() => (today.value ? `${today.value.min}°` : null));
-
-/**
  * 空态与出错时说同一句话的不同版本。
  *
  * 出错时不说「暂无」：取不到不是没有。
@@ -162,18 +145,12 @@ const plainText = computed(() =>
    * 定值配 overflow: hidden，超出的内容会被直接切掉 ——
    * 地点名多换一行、现象多两个字，那一行就被削掉半截，
    * 而页面上看不出是内容被切了，只觉得这张卡矮了一截。
-   * 给下限：内容装得下就是 345rpx，装不下就长一截。
-   */
-  min-height: 345rpx;
-
-  /*
-   * 100% 是「跟右边那张一样高」。
+   * 给下限：内容装得下就是 300rpx，装不下就长一截。
    *
-   * 并排的两张卡下沿要齐：外层那一行把两张卡拉一样高
-   * （见令牌层 _layout 的 .sect__row），卡自己填满拉出来的高度。
-   * 外层高度解不出来时它退回内容高度，min-height 兜着，两边都不会塌。
+   * 这张卡不再与谁并排（它整宽了），所以没有 height: 100% 那一层：
+   * 那个值说的是「跟旁边那张一样高」，旁边没有了，它就成了解不出来的数。
    */
-  height: 100%;
+  min-height: 300rpx;
   padding: 28rpx 28rpx 24rpx;
   overflow: hidden;
   border-radius: $fish-radius-mid;
@@ -356,15 +333,14 @@ const plainText = computed(() =>
  * 温度。120rpx = 60pt。
  *
  * 不套字阶，理由见模板顶部那段注释（这一张卡是参考图的复刻）。
- * 字重取 400：参考图那个数字是细体，700 会把它变成另一张卡。
  *
- * 尺寸跟着卡片走：这张卡与多日预报并排，各占一半宽（171pt），
- * 100pt 的数字在这个宽度里放不下 —— 数字必须仍然是这一张卡的主角，
- * 但它得在自己的卡里站得住。
+ * 尺寸跟着卡片走：这张卡整宽了 —— 原来与多日预报并排，各占一半宽（171pt），
+ * 120rpx 的数字在那个宽度里放不下，只好压到 96rpx。
+ * 现在它独占一整行宽，数字回到 120rpx：从「勉强站住」回到「这张卡的主角」。
  */
 .current-weather__temp {
   color: var(--weather-ink);
-  font-size: 96rpx;
+  font-size: 120rpx;
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -377,7 +353,7 @@ const plainText = computed(() =>
   top: -0.42em;
   margin-left: 4rpx;
   color: var(--weather-ink);
-  font-size: 52rpx;
+  font-size: 64rpx;
   line-height: 1;
 }
 
@@ -392,20 +368,30 @@ const plainText = computed(() =>
   top: 28rpx;
   right: 28rpx;
   color: var(--weather-icon);
-  font-size: 64rpx;
+  font-size: 80rpx;
   line-height: 1;
 }
 
 /* 字体没到位时的占位。尺寸对齐上面的字形盒 */
 .current-weather__icon--pending {
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+
+/*
+ * 地点与现象那一行。
+ *
+ * baseline 对齐：两段字大小不同（地点 30rpx、现象 36rpx），
+ * 对到同一条基线上才读成一句话，而不是两段各自为政的说明。
+ */
+.current-weather__meta {
+  display: flex;
+  align-items: baseline;
+  margin-top: 16rpx;
 }
 
 /* 地点 */
 .current-weather__place {
-  display: block;
-  margin-top: 16rpx;
   color: var(--weather-ink-2);
   font-size: 30rpx;
   line-height: 1.2;
@@ -413,40 +399,21 @@ const plainText = computed(() =>
 }
 
 /*
- * 底块：天气现象与最高/最低。
- *
- * margin-top: auto 把它压到卡底 —— 中间那一大片空白是这张卡的样子，
- * 不是没排满。
+ * 天气现象。它比地点重一档（36rpx 对 30rpx）：
+ * 地点是背景（「这是哪」），现象是这张卡要说的（「什么天」）。
  */
-.current-weather__bottom {
-  margin-top: auto;
-}
-
 .current-weather__cond {
-  display: block;
+  margin-left: 12rpx;
   color: var(--weather-ink);
   font-size: 36rpx;
   line-height: 1.2;
 }
 
-.current-weather__range {
-  display: flex;
-  margin-top: 8rpx;
-  color: var(--weather-ink-2);
-  font-size: 28rpx;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-}
-
-.current-weather__hi {
-  margin-right: 28rpx;
-}
-
 /*
  * 加载骨架。
  *
- * 每一块的尺寸照着上面真实元素的行盒摆：温度行 96rpx、地点行 36rpx、
- * 图标 64rpx、现象行 43rpx、高低温行 34rpx。
+ * 每一块的尺寸照着上面真实元素的行盒摆：温度行 120rpx、地点行 36rpx、
+ * 图标 80rpx、现象行 43rpx。
  * 占位比真实内容高一截的话，数据到了版式一换，下面会往上跳一下 ——
  * 那一跳读起来就是「页面散架了」。
  *
@@ -460,33 +427,35 @@ const plainText = computed(() =>
 }
 
 .current-weather__skeleton--temp {
-  width: 140rpx;
-  height: 96rpx;
+  width: 160rpx;
+  height: 120rpx;
 }
 
 .current-weather__skeleton--icon {
   position: absolute;
   top: 28rpx;
   right: 28rpx;
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
 }
 
+/*
+ * 骨架那一行用居中而不是基线：
+ * 占位块没有文字，没有基线可对齐 —— 两个方块底边齐了更像一行内容。
+ */
+.current-weather__meta--skeleton {
+  align-items: center;
+}
+
 .current-weather__skeleton--place {
-  width: 140rpx;
+  width: 100rpx;
   height: 36rpx;
-  margin-top: 16rpx;
 }
 
 .current-weather__skeleton--cond {
-  width: 100rpx;
+  width: 72rpx;
   height: 43rpx;
-}
-
-.current-weather__skeleton--range {
-  width: 120rpx;
-  height: 34rpx;
-  margin-top: 8rpx;
+  margin-left: 12rpx;
 }
 </style>

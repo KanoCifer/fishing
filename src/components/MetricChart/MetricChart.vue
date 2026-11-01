@@ -1,10 +1,5 @@
 <template>
   <view class="metric">
-    <view class="metric__head">
-      <text class="metric__title">{{ active.label }} · 未来 24 小时</text>
-      <text class="metric__hint">轻触曲线查看数值</text>
-    </view>
-
     <!-- 指标切换。三个固定项，不需要 scroll-view -->
     <view class="metric__segment">
       <view
@@ -33,6 +28,13 @@
         :height="300"
         :unit="active.unit"
       />
+
+      <!--
+        「轻触曲线查看数值」挪到图下面：
+        标题行归外层那张卡了（它写的是「未来 24 小时」），
+        这里再摆一个标题就跟外层重复，不如给一句操作提示。
+      -->
+      <text class="metric__hint">轻触曲线查看数值</text>
     </template>
 
     <text v-else class="metric__empty">{{ emptyText }}</text>
@@ -48,6 +50,12 @@
  * canvas 是实打实的资源，能省则省。
  *
  * 指标选择放在组件内部而不是页面：它只影响这一张图，外界没有读它的理由。
+ *
+ * 现在它是「未来 24 小时」卡的**曲线态**（见 Next24Hours）——
+ * 玻璃面、卡内留白、标题行都由外层那张卡给。
+ *
+ * 默认指标是风速：同一批逐时数据在逐时格子里已经给过一遍气温了，
+ * 默认再画一遍气温，同一个数在同一屏上说了两次。
  */
 import { computed, ref } from 'vue';
 
@@ -83,7 +91,7 @@ const METRICS: ReadonlyArray<Metric> = [
 
 const mapStore = useFishingMapStore();
 
-const metric = ref<Metric['key']>('temp');
+const metric = ref<Metric['key']>('windSpeed');
 
 const active = computed(() => METRICS.find((m) => m.key === metric.value) ?? METRICS[0]);
 
@@ -131,24 +139,22 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 
 <style lang="scss" scoped>
 /*
- * 卡片外壳。
+ * 这一块现在是「未来 24 小时」卡的**曲线态**（见 Next24Hours）——
+ * 玻璃面、卡内留白、标题行都由外层那张卡给。
  *
- * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）——
- * 那是页面的版式决定，不是各组件自己的事。
+ * 所以这里没有 @include fish-card：卡里再套一层玻璃面，
+ * 里面就多了一张贴纸（见 _material 的 fish-glass）。
  */
-.metric {
-  @include fish-card;
-}
 
-.metric__head {
-  @include fish-card-head;
-}
-
-.metric__title {
-  @include fish-card-title(title3);
-}
-
+/*
+ * 操作提示。压在图下面一行、右对齐 ——
+ * 它是给「这张图能点」加的一句说明，不是标题。
+ * 放在标题行里会跟外层那张卡的标题抢位置。
+ */
 .metric__hint {
+  display: block;
+  margin-top: 12rpx;
+  text-align: right;
   @include fish-card-meta;
 }
 

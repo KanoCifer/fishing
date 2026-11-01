@@ -157,7 +157,7 @@ uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面�
 
 这两个位置不是排版偏好，是约束：
 
-- 左上光晕要够亮 —— 上面压着 200rpx 的黑色温度数字；
+- 左上光晕要够亮 —— 上面压着 120rpx 的黑色温度数字；
 - 右上光晕上面压着图标字形 —— **图标色要跟这团光晕分得开**，
   否则字形埋进同一片色里，等于没画图标。
 
@@ -233,10 +233,10 @@ uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面�
 
 **图标字形**（上一节）与**超出字阶的大数字**是仅有的两处例外。
 
-- 首屏的鱼口概率 152rpx（76pt）、当前天气卡的大温度 200rpx（100pt）——
+- 首屏的鱼口概率 152rpx（76pt）、当前天气卡的大温度 120rpx（60pt）——
   都比 `large-title` 大。理由分别是「这一屏的主角」与「这张卡是参考图的复刻」，
   两处都在组件里直写并写明了理由，不靠这条文档兜着。
-- 当前天气卡更进一步：整张卡（温度 / 度数符号 / 地点 / 现象 / 高低温）
+- 当前天气卡更进一步：整张卡（温度 / 度数符号 / 地点 / 现象）
   都在参考图自己的那一套字号上，不套字阶 ——
   局部套、局部不套才是四不像。
 
@@ -631,11 +631,17 @@ WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 A
   <text class="sect__title" :style="{ animationDelay: enterDelay(0) }">天气</text>
 
   <!-- 动画挂在外层这个普通 view 上：组件标签（宿主节点）不吃动画 -->
-  <view class="sect__card" :style="{ animationDelay: enterDelay(0) }">
-    <HourlyWeather />
-  </view>
   <view class="sect__card" :style="{ animationDelay: enterDelay(1) }">
-    <MetricChart />
+    <MinutelyRain />
+  </view>
+  <view class="sect__card" :style="{ animationDelay: enterDelay(2) }">
+    <CurrentWeather />
+  </view>
+  <view class="sect__card" :style="{ animationDelay: enterDelay(3) }">
+    <DayForecast />
+  </view>
+  <view class="sect__card" :style="{ animationDelay: enterDelay(4) }">
+    <Next24Hours />
   </view>
 </view>
 ```
@@ -652,7 +658,7 @@ WXSS 没有开放 `prefers-reduced-motion`，逻辑层也没有对应的系统 A
 
 **分区间距由页面给，组件不再自带 margin-top。** 区块之间怎么分开是页面的版式决定，不是各组件自己的事。
 
-**眉标只在「组里有好几张卡，且组名不显然」时才出现。** 卡片自己带标题的时候，眉标只是把卡片标题又说一遍 —— 卡片不带标题的时候（天气详情那张读数表）眉标必须留着，否则那一段就没有名字。
+**眉标只在「组里有好几张卡，且组名不显然」时才出现。** 卡片自己带标题的时候，眉标只是把卡片标题又说一遍 —— 卡片不带标题的时候（实测读数那张读数表）眉标必须留着，否则那一段就没有名字。
 
 **同段内并排的两张半宽卡共用一个高度。** 左边那张的地点名多换一行，右边就矮一截，一对卡看着像两张各说各话的卡。所以那一行用 stretch 拉伸，两张卡自己 `height: 100%` 填满拉出来的高度（见令牌层 `_layout.scss` 的 `.sect__row`）。
 

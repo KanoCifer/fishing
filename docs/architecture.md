@@ -169,17 +169,21 @@ const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
 
 ⚠️ **「今天」只能有一个出处。**
 
-`CurrentWeather` 的高低温与 `DayForecast` 的「今天」指的是同一天，两边各判一次，
-早晚出现一张卡说今天、另一张卡说昨天（接口的第一条要是脏数据就会被丢掉）。
+`DayForecast` 的「今天」指的是当天那一条预报 —— 接口的第一条要是脏数据就会被丢掉，
+「今天」未必是接口的第一条。两边各判一次，早晚出现一张卡说今天、另一张卡说昨天。
 口径收在 `utils/weather.ts` 的 `forecastDays()`：只留高低温都有值的那几天，
-「今天」= 留下来的第一条。两张卡都从它取。
+「今天」= 留下来的第一条。
+
+今日高低温只由 `DayForecast` 那一处说。`CurrentWeather` 曾经也摆一遍高低温，
+两处并排时同一屏上「今天 28° / 24°」出现了两次 —— 同一个数说了两遍，
+读的人得自己判断哪一处才是准的。
 
 **两处出处分工**：
 
 | 出处                                               | 放什么                                                                                                                              |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `src/utils/weather.ts`                             | `weatherGroup()`：码区间 → 组名（与 `levelTone`、`weatherIconCode` 并排）                                                           |
-| `src/utils/weather.ts`                             | `forecastDays()`：有效预报日 —— 两张卡说「今天」的唯一出处                                                                          |
+| `src/utils/weather.ts`                             | `forecastDays()`：有效预报日 —— 说「今天」的唯一出处                                                                                |
 | `src/components/CurrentWeather/CurrentWeather.vue` | 每组外观的四个 CSS 变量：`--weather-grad`（面）、`--weather-ink`（主字色）、`--weather-ink-2`（次字色）、`--weather-icon`（图标色） |
 
 组名是两边唯一的接缝。组件拿组名拼 class 修饰符（`current-weather--rain`），

@@ -20,21 +20,7 @@
         @analysis="openAnalysis"
         @breakdown="openBreakdown"
       />
-      <!--
-        指数：官方对「今天能不能钓」的判断，紧跟结论放在一处。
 
-        本站鱼口概率的构成（九项子特征各占多少）不在这里 —— 它点首屏那个分数
-        才出（见 FeatureBreakdownSheet）。构成是一份「为什么」的说明，
-        摊在页面上会跟结论抢位置；而结论给的是分，构成回答的是
-        「为什么是这个分」，这两件事本来就隔着一屏远。
-
-        官方指数留在页面上：它跟结论是同一件事的两个来源，
-        不一致的时候用户一眼就看得出差别（两个信号打架恰恰是
-        用户最该知道的时刻）。
-
-        这一组不配眉标：这张卡的标题自己就说清了是什么，
-        眉标在这里只是把「指数」两个字再说一遍。
-      -->
       <view class="sect">
         <view class="sect__card" :style="enterStyle(0, showAnim)">
           <LifeIndexCard />
@@ -44,18 +30,19 @@
       <!--
         天气：现在什么样，接下来怎么走。
 
-        当前天气与多日预报并排，各占一半宽 —— 两张方卡，一屏里一眼看到
-        「现在」和「接下来三天」。
+        四张卡，从上到下各答一件事：
 
-        分钟降水放在这一组的**最上面**：它回答的是最要紧的那件事
-        （接下来两小时雨什么时候到、什么时候停），而当前天气与多日预报
-        给的是背景 —— 背景不该排在结论前面。
+        1. 分钟降水 —— 接下来两小时雨什么时候到、什么时候停。
+           它回答的是最要紧的那件事，其余给的是背景，
+           背景不该排在结论前面。
+        2. 当前天气 —— 「现在」。整宽，它是这一段的主视觉。
+        3. 未来 3 天 —— 「接下来三天」。今日高低温只有这一处说，
+           当前天气卡不再重复一遍。
+        4. 未来 24 小时 —— 逐时格子与指标曲线合成一张卡，右上角分段切换。
+           曲线默认看风速：气温在逐时格子里已经给过一遍。
 
-        动画挂在外面这个普通 view 上：自定义组件的**宿主节点**不吃动画
+        动画挂在外面这些普通 view 上：自定义组件的**宿主节点**不吃动画
         （见 docs/mp-weixin-platform.md）。
-
-        逐时预报在前、指标曲线在后：前者往右滑着扫一眼就够，
-        后者要挑指标、要点曲线 —— 这一组里唯一要动手的，动手的东西放最后。
       -->
       <view class="sect">
         <text class="sect__title" :style="enterStyle(0, showAnim)">天气</text>
@@ -63,15 +50,14 @@
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <MinutelyRain />
         </view>
-        <view class="sect__row" :style="enterStyle(2, showAnim)">
-          <CurrentWeather class="sect__half" />
-          <DayForecast class="sect__half" />
+        <view class="sect__card" :style="enterStyle(2, showAnim)">
+          <CurrentWeather />
         </view>
         <view class="sect__card" :style="enterStyle(3, showAnim)">
-          <HourlyWeather />
+          <DayForecast />
         </view>
         <view class="sect__card" :style="enterStyle(4, showAnim)">
-          <MetricChart />
+          <Next24Hours />
         </view>
       </view>
 
@@ -96,14 +82,8 @@
         </view>
       </view>
 
-      <!--
-        实测读数：实况的逐项读数。
-
-        这一组只有一张卡，而且卡片自己不带标题 —— 组名得留着，
-        否则这一段就成了没有名字的一段。
-      -->
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">实测读数</text>
+        <text class="sect__title" :style="enterStyle(0, showAnim)">其他数据</text>
 
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <WeatherCard />
@@ -142,10 +122,9 @@ import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
 import FeatureBreakdownSheet from '@/components/FeatureBreakdownSheet/FeatureBreakdownSheet.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
-import HourlyWeather from '@/components/HourlyWeather/HourlyWeather.vue';
 import LifeIndexCard from '@/components/LifeIndexCard/LifeIndexCard.vue';
-import MetricChart from '@/components/MetricChart/MetricChart.vue';
 import MinutelyRain from '@/components/MinutelyRain/MinutelyRain.vue';
+import Next24Hours from '@/components/Next24Hours/Next24Hours.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
@@ -311,34 +290,15 @@ function openBreakdown() {
 </script>
 
 <style lang="scss" scoped>
-/* 页面底色 = systemGroupedBackground。App.vue 里给 page 也上了同一个色，
-   这里再写一遍是为了让「内容区」和「切换瞬间露出的底色」保证同色。
-   真正的底色是下面那层固定的环境色渐层。
-
-   最小高度不写在这里，由模板绑 windowHeight（px）—— 100vh 会把 tabBar
-   的高度算进来，页面就多出一截能拖出去的范围，滚到底之后脚下只剩底色。
-   详见 useViewport。 */
 .data {
   background-color: $fish-grouped;
 }
 
-/*
- * 环境色底：固定在视口上，不随内容滚走。
- * 由 PageBackdrop 提供 —— 关于页用同一块底，两页切起来是连续的。
- */
-
-/* 内容层。定位 + z-index 是为了压在环境色底之上 */
 .data__content {
   position: relative;
   z-index: 1;
 }
 
-/*
- * 一个分区。
- *
- * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
- * 这一层的数是「页面怎么分块」的约定，不该各页各写一份。
- */
 .sect {
   @include fish-section;
 }

@@ -28,13 +28,6 @@
 
         <view class="days__spacer" />
 
-        <!--
-          高低温两列。
-
-          这里不画箭头：这张卡只有半宽（335rpx），一个「↑」加上数字就把
-          降水概率那一格挤掉了 —— 概率是数据，箭头是修饰，数据先留。
-          哪一列是高温靠排版说：大的重、小的弱（跟原横条同一手法）。
-        -->
         <view class="days__temps">
           <text class="days__max">{{ day.max }}°</text>
           <text class="days__min">{{ day.min }}°</text>
@@ -71,28 +64,6 @@
 </template>
 
 <script setup lang="ts">
-/**
- * DayForecast —— 数据页「天气」分区里的多日预报卡。
- *
- * 形态：一张方卡，三天各占一行 —— 像 iOS 天气 App 的逐日列表。
- *
- * 为什么从原来那条横列改成这样：
- * 横列是**表格**的读法（竖着三根柱子 + 两行数字），一屏里没有一张
- * 能一眼认出「今天」的图；而这一段的前一张 CurrentWeather 已经把
- * 这套页面的天气语言定成了「一张方方正正的大卡」。同一页里两种读法并排，
- * 「现在」和「未来三天」看着不像一件事。
- *
- * 为什么卡面是中性淡面、不跟任何一天绑定：
- * 那十组天气色（见 CurrentWeather）是「现在什么天」的信号 ——
- * 这张卡说的不是某一天，是「接下来三天」。拿一张带天气色的面装三天，
- * 读的人会以为这张卡讲的是其中某一天。
- *
- * 为什么行里不放大温度：上面那张卡已经有一个 100pt 的大温度了。
- * 这一段要回答的是「哪天更暖、哪天会下雨」，那是**比较**出来的，
- * 三行并排、两列对齐的数比一个主角数字更适合比。
- *
- * 取数在 store，换算在 utils，这里只管渲染。
- */
 import { computed } from 'vue';
 
 import { qweatherFontReady } from '@/composables/useQweatherFont';
@@ -164,18 +135,7 @@ const emptyText = computed(() => {
    */
   box-sizing: border-box;
 
-  /*
-   * 高度是下限，不是定值。
-   *
-   * 定值配 overflow: hidden：预报多出几天时（接口哪天回几天是它的事，
-   * 标题也跟着写「未来 N 天」），多出来的行会被裁掉半截 ——
-   * 页面上看不出是内容被切了，只觉得这张卡矮了一截。
-   *
-   * height: 100% 是「跟左边那张一样高」：并排的两张卡下沿要齐，
-   * 高度由外层那一行拉伸给出（见令牌层 _layout 的 .sect__row）。
-   */
-  min-height: 345rpx;
-  height: 100%;
+  min-height: 300rpx;
   padding: 28rpx 28rpx 24rpx;
   overflow: hidden;
   border-radius: $fish-radius-mid;
@@ -192,8 +152,8 @@ const emptyText = computed(() => {
  * 玻璃面而不是那张淡蓝渐变面 —— 这一档说的是「没有内容」，
  * 拿一张带渐变的卡装一句话，读起来像这张卡坏了。
  *
- * 高度不收：这张卡跟左边那张并排（见 _layout 的 .sect__row），
- * 只有一张塌下去，那一行就参差了。
+ * 高度不收：空态也要占住一张卡的高度，
+ * 不然数据一到，下面那一段就往上跳一下。
  */
 .days--empty {
   align-items: center;
@@ -249,7 +209,7 @@ const emptyText = computed(() => {
 
 /* 日期列 */
 .days__label {
-  width: 56rpx;
+  width: auto;
   flex-shrink: 0;
   color: $fish-ink;
   @include fish-type(caption2);

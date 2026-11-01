@@ -440,7 +440,7 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
 对应物是 `this.animate` + `ScrollTimeline`（基础库 2.9.0+，**仅 WebView 渲染引擎支持**），
 不是 `createAnimation`。
 
-## 动画性能：自查线与两条例外
+## 动画性能：自查线与三条例外
 
 小程序的动效分两条线走，各有各的瓶颈：
 
@@ -460,7 +460,7 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
 `will-change` 不加。WXSS 里它的收益不稳定，而长期挂着会占 GPU 内存；
 `translateZ(0)` 已经够把动画元素抬到合成层。
 
-### 两条例外
+### 三条例外
 
 **一、底部浮层的高度动画不能用 transform 代替。**
 
@@ -476,6 +476,20 @@ e = { causedBy, type, detail: { rotate, skew, scale, centerLocation, region } };
 低端机上 `both` 偶尔会跳帧，但这里必须用它：入场动画带序号延迟，
 延迟期间元素要停在 `opacity: 0`（不可见）。用 `none` 的话，延迟的那几百毫秒里
 元素是**完全可见的**，然后突然又从 0 开始淡入 —— 闪一下再重来，比跳帧更难看。
+
+**三、展开/收起可以用 grid 行高过渡，但要单独加一层内层容器。**
+
+`grid-template-rows: 0fr → 1fr` 让轨道高度跟着内容走：不用 JS 量高度，也不用
+`max-height` 猜上限（猜小了内容被切掉，猜大了动画末段是「卡住」的假动作）。
+
+- **内核支持**：grid-template-rows 的插值动画要 Chrome 107+ / Firefox 66+ / Safari 16+。
+  更老的内核不认这条 transition —— 展开收起照样能用，只是直接跳变没有动画。
+  iOS 16 以下的微信客户端落在这一档。
+- **结构**：`0fr` 只压得住**一行**。内容要单独放一层内层容器
+  （`overflow: hidden` + `min-height: 0`）；内容直接挂在 `0fr` 容器上会掉进自动行
+  （auto 高，压不动），收起时下半屏留在页面上。
+- **代价**：这条过渡动的是高度，每一帧都要重排。内容是小树才划算
+  （见 `WeatherCard` 的十项读数）；一屏大列表别这么干。
 
 ### WXS：目前用不上
 
