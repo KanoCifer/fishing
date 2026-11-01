@@ -35,6 +35,16 @@ $fish-sun-soft: #ffd60a;
  */
 $fish-warning: #ff9500;
 
+/**
+ * 深色面上的琥珀。
+ *
+ * 浅底的琥珀字（--fish-warning-ink）压深色面读不出来，反过来也一样：
+ * systemOrange 压深蓝底是够的，但不够醒目 —— 徽标那一档要的是「一眼看到」。
+ * 这一族只服务深色面上的徽标：淡琥珀底 + 浅琥珀字。
+ */
+$fish-warning-on-dark: #ffc266;
+$fish-warning-tint-on-dark: rgba(255, 149, 0, 0.22);
+
 /* ── 文字：iOS 的 label 三阶 ── */
 /**
  * 弱化的两档不再用 iOS 的半透明灰。

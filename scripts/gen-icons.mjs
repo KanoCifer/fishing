@@ -63,7 +63,8 @@ const ICONS = [
   { name: 'map-pin-off', color: 'muted', use: '定位键（定位失败或权限未开）' },
   // —— 我的页 ——
   { name: 'chevron-right', color: 'muted60', use: '条目右侧的展开箭头' },
-  { name: 'user', color: 'muted60', use: '未登录时的头像占位' },
+  { name: 'user', color: 'muted60', use: '资料编辑抽屉里的头像占位' },
+  { name: 'user', color: 'onAccent', use: '深色锚面上的头像占位' },
   { name: 'log-out', color: 'destructive', use: '退出登录' },
   // 「我的」页的行首图标。四个行首图标统一烤成蓝色 ——
   // 一行里图标与文字不同色，就有两个焦点了（与上面「更多」那两行同一条规则）。

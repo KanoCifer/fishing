@@ -15,6 +15,20 @@
   -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
 }
 
+@mixin fish-anchor-face {
+  background-color: $fish-deep-base;
+  background-image:
+    radial-gradient(circle at 50% -12%, $fish-deep-glow, transparent 62%),
+    radial-gradient(circle at 92% 108%, $fish-deep-glow-2, transparent 60%),
+    linear-gradient(180deg, $fish-deep-top 0%, $fish-deep-bottom 100%);
+}
+
+@mixin fish-sheet($radius: $fish-radius-mid) {
+  border-top-left-radius: $radius;
+  border-top-right-radius: $radius;
+  background-color: $fish-page;
+}
+
 @mixin fish-deep-face($radius: $fish-radius-mid) {
   border-radius: $radius;
   background-color: $fish-deep-base;

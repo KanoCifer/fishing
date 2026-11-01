@@ -47,7 +47,7 @@ export const CONTACT = {
  */
 export const SHARE_APP = {
   /** 行上的字。写清楚「分享给谁」—— 转发是一个动作，不是一句状态 */
-  label: '分享渔碌给朋友',
+  label: '分享渔碌',
   /**
    * 转发卡片的标题。
    *
