@@ -22,6 +22,16 @@ export const HERO_GAUGE_STROKE = 25;
 const HERO_IMAGE_DIR = `${ENV.cdnBaseUrl}/weather`;
 
 /**
+ * 头图版本号，落在文件名里。
+ *
+ * CDN 与客户端都按 URL 缓存 —— 换图不换名，旧图会一直发下去，
+ * 改文件内容对两边都没用。版本号是唯一可靠的破缓存手段。
+ *
+ * 换图时 +1，并同步改 scripts/optimize-assets.py 里那四张的文件名。
+ */
+const HERO_IMAGE_VERSION = 'v2';
+
+/**
  * 头图只有四种天色。
  *
  * 雪、雨夹雪、雾霾、扬沙、高温、严寒与未知都落回「多云」那张 ——
@@ -50,7 +60,7 @@ export function heroSky(group: WeatherGroup): HeroSky {
 
 /** 天气外观组 → 头图地址 */
 export function heroImageUrl(group: WeatherGroup): string {
-  return `${HERO_IMAGE_DIR}/hero-${heroSky(group)}.jpg`;
+  return `${HERO_IMAGE_DIR}/hero-${heroSky(group)}-${HERO_IMAGE_VERSION}.jpg`;
 }
 
 /**

@@ -145,8 +145,8 @@ JOBS = [
     # 漏色 —— 山的蓝边会渗进天上。所以 subsampling=0，宁可多几 KB。
     # 四张合计约 300KB：主包只剩 300KB 余量，放不下，走 CDN。
     {
-        "src": "weather/hero-sunny.jpg",
-        "out": "weather/hero-sunny.jpg",
+        "src": "weather/hero-sunny-v2.jpg",
+        "out": "weather/hero-sunny-v2.jpg",
         "format": "JPEG",
         "mode": "RGB",
         "options": {"quality": 82, "subsampling": 0, "optimize": True},
@@ -154,8 +154,8 @@ JOBS = [
         "note": "天气页头图 · 晴 —— 走 CDN，不进代码包",
     },
     {
-        "src": "weather/hero-cloudy.jpg",
-        "out": "weather/hero-cloudy.jpg",
+        "src": "weather/hero-cloudy-v2.jpg",
+        "out": "weather/hero-cloudy-v2.jpg",
         "format": "JPEG",
         "mode": "RGB",
         "options": {"quality": 82, "subsampling": 0, "optimize": True},
@@ -163,8 +163,8 @@ JOBS = [
         "note": "天气页头图 · 多云 —— 走 CDN，不进代码包",
     },
     {
-        "src": "weather/hero-rain.jpg",
-        "out": "weather/hero-rain.jpg",
+        "src": "weather/hero-rain-v2.jpg",
+        "out": "weather/hero-rain-v2.jpg",
         "format": "JPEG",
         "mode": "RGB",
         "options": {"quality": 82, "subsampling": 0, "optimize": True},
@@ -172,8 +172,8 @@ JOBS = [
         "note": "天气页头图 · 阵雨 —— 走 CDN，不进代码包",
     },
     {
-        "src": "weather/hero-night.jpg",
-        "out": "weather/hero-night.jpg",
+        "src": "weather/hero-night-v2.jpg",
+        "out": "weather/hero-night-v2.jpg",
         "format": "JPEG",
         "mode": "RGB",
         "options": {"quality": 82, "subsampling": 0, "optimize": True},
