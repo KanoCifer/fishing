@@ -59,11 +59,10 @@ pnpm lint
 
 所有变量只从 `import.meta.env.VITE_*` 读取。复制 [.env.example](.env.example) 为 `.env.local` 后按需填写：
 
-| 变量                     | 作用                                                         |
-| ------------------------ | ------------------------------------------------------------ |
-| `VITE_API_BASE_URL`      | 接口基址，默认走 `@/config/env` 的默认值                     |
-| `VITE_QWEATHER_FONT_URL` | 和风天气图标字体地址，需在微信后台配为 downloadFile 合法域名 |
-| `VITE_CDN_BASE_URL`      | 静态资源 CDN 基址，同样需配合法域名                          |
+| 变量                | 作用                                                      |
+| ------------------- | --------------------------------------------------------- |
+| `VITE_API_BASE_URL` | 接口基址，默认走 `@/config/env` 的默认值                  |
+| `VITE_CDN_BASE_URL` | 静态资源 CDN 基址，需在微信后台配为 downloadFile 合法域名 |
 
 新增 `VITE_*` 变量时，记得同步把它加进 `vite.config.ts` 的 `envPrefix` 白名单 ——
 那是白名单不是前缀，漏一个变量运行时就取到 `undefined` 且不报错。

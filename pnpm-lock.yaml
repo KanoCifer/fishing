@@ -60,6 +60,12 @@ importers:
       '@dcloudio/uni-quickapp-webview':
         specifier: 3.0.0-5030420261029001
         version: 3.0.0-5030420261029001(postcss@8.5.31)(rollup@4.14.3)(supports-color@5.5.0)(vue@3.5.44(typescript@4.9.5))
+      '@meteocons/svg':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@meteocons/svg-static':
+        specifier: ^0.1.0
+        version: 0.1.0
       marked:
         specifier: ^18.1.1
         version: 18.1.1(patch_hash=21c8f0c924e54bfb42cc8329690cbcade3c4197100ba28a0b81d1c5ef17fc4b8)
@@ -109,9 +115,6 @@ importers:
       oxlint:
         specifier: ^1.89.0
         version: 1.89.0
-      qweather-icons:
-        specifier: 1.8.0
-        version: 1.8.0
       rollup:
         specifier: 4.14.3
         version: 4.14.3
@@ -1299,6 +1302,12 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@meteocons/svg-static@0.1.0':
+    resolution: {integrity: sha512-dnuXOkt1W5q+XZbyj54dzjuBcKmsC0eLv51IVaW9kzzvzwnhwv9KgNXHKgpvmdN6cX2stMo+k95iMFbcyM4x5Q==}
+
+  '@meteocons/svg@0.1.0':
+    resolution: {integrity: sha512-Z/40RR6YzIjdN8qLUzRcZDaEYHfekU5rnHTH45EDVZQF1NyldIRpiFprcUKduIv4VK0kd6Uy+OOya4NWwuc2Bg==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3382,10 +3391,6 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
-
-  qweather-icons@1.8.0:
-    resolution: {integrity: sha512-Ti7KGrWXSV7e5HMpjPhDYua8hwC3t0nScNOSQ3kLPehsOja5cioZw8bcKi7jeAGBlVLrgAkLla5xVEYlH1s5Jw==}
-    engines: {node: '>=10'}
 
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
@@ -6066,6 +6071,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  '@meteocons/svg-static@0.1.0': {}
+
+  '@meteocons/svg@0.1.0': {}
+
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -8264,8 +8273,6 @@ snapshots:
   querystringify@2.2.0: {}
 
   queue-microtask@1.2.3: {}
-
-  qweather-icons@1.8.0: {}
 
   range-parser@1.2.1: {}
 

@@ -19,14 +19,10 @@
           -->
           <text class="hourly__time">{{ parseFxTime(hour.fxTime)?.time ?? '' }}</text>
           <!--
-            字体没到位时留一个同样大的空位。
-
-            私用区的码位在系统字体里没有对应字形，字体没到就画 = 画出一排空心方框。
-            而这里留空位是有讲究的：图标在竖排里独占一行，字形晚到时
-            整排的温度会整体往下跳一格 —— 排好的东西不该因为字体的网络往返而散架。
+            天气图标。Meteocons 的彩色 SVG，烤成 data URI 跟着代码包走 ——
+            图标在竖排里独占一行，这一行的位置从一开始就是稳的。
           -->
-          <text v-if="qweatherFontReady" :class="['hourly__icon', weatherIconClass(hour.icon)]" />
-          <view v-else class="hourly__icon hourly__icon--pending" />
+          <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFit" />
           <text class="hourly__temp">{{ hour.temp }}°</text>
 
           <!--
@@ -71,10 +67,9 @@
  */
 import { computed } from 'vue';
 
-import { qweatherFontReady } from '@/composables/useQweatherFont';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { parseFxTime } from '@/utils/date';
-import { num, weatherIconClass } from '@/utils/weather';
+import { num, weatherIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
@@ -140,24 +135,15 @@ const hours = computed(() =>
 }
 
 /*
- * 图标字形不走字阶。
+ * 图标是一张图，不是一行字。
  *
- * 和风图标是字体字形，没有「字重 / 字距 / 行高」的排版语义 ——
- * 套 fish-type 会把行高顶到 1.25，在字形下面多留一截空白，
- * 整排格子跟着往下坠。字形只认 font-size 和 line-height: 1。
+ * 所以它不吃字阶：尺寸用宽高给，位置靠外边距 ——
+ * 图标在竖排里独占一行，这一行的高度得跟同格的其他两行对得上。
  */
 .hourly__icon {
+  width: 64rpx;
+  height: 64rpx;
   margin: 12rpx 0;
-  font-size: 40rpx;
-  line-height: 1;
-  /* 单色字形吃 color（emoji 不吃），压成辅助灰让同格的温度数值保持主次 */
-  color: $fish-muted;
-}
-
-/* 字体没到位时的占位。尺寸对齐上面的字形盒，别让整排温度往下跳 */
-.hourly__icon--pending {
-  width: 40rpx;
-  height: 40rpx;
 }
 
 .hourly__temp {
@@ -199,8 +185,8 @@ const hours = computed(() =>
 }
 
 .hourly__skeleton--icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 64rpx;
+  height: 64rpx;
   margin: 12rpx 0;
   border-radius: 50%;
 }

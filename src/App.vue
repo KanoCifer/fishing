@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onShow, onHide } from '@dcloudio/uni-app';
-import '@/styles/generated/qweather-icons.css';
 
 onShow(() => {});
 onHide(() => {});

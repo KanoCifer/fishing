@@ -34,8 +34,7 @@
             这里只取白天时段：钓鱼是白天的活（数据层的湿度/降水也是以白天段为准），
             夜间天气另有一格会挤掉这一列的可比性。
           -->
-          <text v-if="qweatherFontReady" :class="['days__icon', weatherIconClass(day.icon)]" />
-          <view v-else class="days__icon days__icon--pending" />
+          <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
         </view>
 
         <view class="days__prob-row">
@@ -112,11 +111,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { qweatherFontReady } from '@/composables/useQweatherFont';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { shortDate } from '@/utils/date';
 import type { ForecastDay } from '@/utils/weather';
-import { forecastDays, weatherIconClass } from '@/utils/weather';
+import { forecastDays, weatherIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
@@ -124,7 +122,7 @@ const mapStore = useFishingMapStore();
  * 有效的预报日。
  *
  * 挑出高低温都有值的日，脏数据整条丢掉，不占一列 —— 口径在 utils/weather，
- * 与 CurrentWeather 取「今天」用的是同一份，两张卡不会对今天各说各话。
+ * 「今天」只有这一个出处。
  */
 const days = computed(() => forecastDays(mapStore.forecasts));
 
@@ -322,31 +320,20 @@ const emptyText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36rpx;
+  height: 60rpx;
   margin-top: 8rpx;
 }
 
 /*
  * 天气图标。
  *
- * 字形不走字阶：和风图标是字体字形，没有「字重 / 字距 / 行高」的排版语义
+ * 是一张图，不是一行字：不吃字阶，尺寸用宽高给
  * （理由见 HourlyWeather 的 .hourly__icon）。
- *
- * 压成辅助灰：卡面是中性玻璃面，图标没有自己的面撑着，
- * 深色字形会跟下面的温度抢 —— 温度才是这一列的读数。
  */
 .days__icon {
-  width: 36rpx;
+  width: 60rpx;
+  height: 60rpx;
   flex-shrink: 0;
-  color: $fish-muted;
-  font-size: 36rpx;
-  line-height: 1;
-}
-
-/* 字体没到位时的占位。尺寸对齐上面的字形盒 */
-.days__icon--pending {
-  width: 36rpx;
-  height: 36rpx;
 }
 
 /* 降水概率行。行盒定高：概率为 0 的是空行，尺子照样对齐 */
@@ -492,7 +479,7 @@ const emptyText = computed(() => {
  * 每一块的尺寸照着上面真实元素的行盒摆：
  * 日期 30rpx 行盒、图标 36rpx、概率 30rpx、尺身 120rpx 加上下各一段余量。
  * 底色用 $fish-surface，呼吸幅度用 0.35 —— 跟 SkeletonCard、HourlyWeather、
- * CurrentWeather、VerdictOverview 同一档，否则同一个页面里两种加载态一深一浅，
+ * VerdictOverview 同一档，否则同一个页面里两种加载态一深一浅，
  * 像两套组件。
  */
 .days__skeleton {
@@ -512,10 +499,10 @@ const emptyText = computed(() => {
   height: 28rpx;
 }
 
-/* 图标。圆形：和风图标是个圆盘形的字形 */
+/* 图标。圆形：图标是个圆盘形的字形 */
 .days__skeleton--icon {
-  width: 36rpx;
-  height: 36rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
 }
 

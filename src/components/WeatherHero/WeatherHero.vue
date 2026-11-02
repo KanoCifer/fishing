@@ -1,5 +1,10 @@
 <template>
-  <view class="hero" :class="skyClass">
+  <!--
+    墨色那一档跟着天色走：亮天深墨（压白面），暗天白字（压深面）。
+    这一对类一直写在下方的样式里，根节点却没挂过 —— 挂上之后
+    压面与墨色才真的生效（挂错组名的表现是「这一组没有专属颜色」，不会白屏）。
+  -->
+  <view class="hero" :class="[skyClass, darkSky ? 'hero--dark' : 'hero--light']" :data-weather="group">
     <view class="hero__bg" />
 
     <image class="hero__img" :src="imageUrl" mode="aspectFill" />
@@ -52,13 +57,38 @@
       </TideGauge>
     </view>
 
+    <!--
+      实时天气：压在头图右上角。
+
+      这一块原来是一张独立卡片（CurrentWeather），挪上来是因为它跟仪表
+      讲的是同一件事的两面 —— 「此刻」的读数分成上下两块，要滚一屏才看得到一起。
+      位置在右上：仪表在左，这块在右，中间留白是画面里的天。
+
+      取不到实况就不画：头图上摆一个空位，比没有这块更让人以为数据没到。
+    -->
+    <view v-if="hasLive" class="hero__now" :style="enterStyle(2, showAnim)">
+      <view class="hero__now-row">
+        <view class="hero__now-temp-row">
+          <text class="hero__now-temp">{{ temp }}</text>
+          <text v-if="temp" class="hero__now-deg">°</text>
+        </view>
+        <image class="hero__now-icon" :src="nowIcon" mode="aspectFit" />
+      </view>
+
+      <!-- 现象：上游原文。缺值就不画，别拿「未知」顶上去 -->
+      <text v-if="cond" class="hero__now-cond">{{ cond }}</text>
+
+      <!-- 体感：这一屏只此一处说它（WeatherCard 里那格已去掉） -->
+      <text v-if="feels" class="hero__now-feels">体感 {{ feels }}°</text>
+    </view>
+
     <!-- 等级：不是一行浮在画上的字，是一枚芯片 -->
-    <view v-if="level" class="hero__level" :style="enterStyle(2, showAnim)">
+    <view v-if="level" class="hero__level" :style="enterStyle(3, showAnim)">
       <text class="hero__chip" :class="`hero__chip--${tone}`">{{ level }}</text>
     </view>
 
     <!-- 一句话结论 -->
-    <text v-if="hasData" class="hero__lead" :style="enterStyle(3, showAnim)">{{ advice }}</text>
+    <text v-if="hasData" class="hero__lead" :style="enterStyle(4, showAnim)">{{ advice }}</text>
   </view>
 </template>
 
@@ -78,7 +108,7 @@ import {
 } from '@/constants/weatherHero';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
-import { levelTone, levelVerdict, weatherGroup } from '@/utils/weather';
+import { levelTone, levelVerdict, num, weatherGroup, weatherIconUri } from '@/utils/weather';
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
@@ -106,6 +136,32 @@ const darkSky = computed(() => heroDarkSky(group.value));
 const skyClass = computed(() => `hero--${sky.value}`);
 
 const imageUrl = computed(() => heroImageUrl(group.value));
+
+/* ── 实时天气 ──────────────────────────────────────────────────────────── */
+
+/** 实况。整块没有 → 右上角不画读数 */
+const live = computed(() => mapStore.liveWeather);
+
+/** 当前温度。有值才画 */
+const temp = computed(() => {
+  const raw = live.value?.temp ?? '';
+  return num(raw) === null ? null : raw;
+});
+
+/** 天气现象：上游给的原文 */
+const cond = computed(() => live.value?.text || '');
+
+/** 体感温度 */
+const feels = computed(() => {
+  const value = num(live.value?.feelsLike);
+  return value === null ? null : String(value);
+});
+
+/** 天气图标。认不出的码落兜底云（见 utils/weather 的 weatherIconSlug） */
+const nowIcon = computed(() => weatherIconUri(live.value?.icon));
+
+/** 有实况才画这一块 */
+const hasLive = computed(() => Boolean(live.value));
 
 /* ── 顶行 ──────────────────────────────────────────────────────────────── */
 
@@ -515,6 +571,102 @@ function onRefresh() {
 }
 
 .hero--dark .gauge__cap-text {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ── 实时天气 ──────────────────────────────────────────────────────────── */
+
+/*
+ * 右上角那一块：现在多少度、什么天、体感多少度。
+ *
+ * 位置：仪表在左上（180rpx 起），这块在右上（210rpx 起），
+ * 中间那条空档留给画面里的天 —— 两块读数各占一角，谁也不压着谁。
+ */
+.hero__now {
+  position: absolute;
+  top: 210rpx;
+  right: 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* 温度与图标并排 */
+.hero__now-row {
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * 温度与度数符号：baseline 对齐，符号再相对定位提上去 ——
+ * 跟参考图里那个「挂在数字右上角的小圈」是同一个位置关系。
+ */
+.hero__now-temp-row {
+  display: flex;
+  align-items: baseline;
+}
+
+/*
+ * 大温度。不套字阶：这一档比字阶里最大的一级（display 64rpx）还大，
+ * 理由与仪表上的分数同一个 —— 它是这一块的主角。
+ */
+.hero__now-temp {
+  font-size: 88rpx;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 度数符号：挂在数字上沿 */
+.hero__now-deg {
+  position: relative;
+  top: -0.5em;
+  margin-left: 2rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * 天气图标。Meteocons 的彩色 SVG，颜色烤死在图形里 —— 这里只管尺寸。
+ */
+.hero__now-icon {
+  width: 120rpx;
+  height: 120rpx;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+/* 天气现象 */
+.hero__now-cond {
+  margin-top: 10rpx;
+  @include fish-type(body, 600);
+}
+
+/* 体感：一行注脚 */
+.hero__now-feels {
+  margin-top: 4rpx;
+  @include fish-type(caption);
+}
+
+.hero--light .hero__now-temp,
+.hero--light .hero__now-deg,
+.hero--light .hero__now-cond {
+  color: $fish-hero-ink;
+}
+
+.hero--dark .hero__now-temp,
+.hero--dark .hero__now-deg,
+.hero--dark .hero__now-cond {
+  color: $fish-on-dark;
+}
+
+.hero--light .hero__now-feels {
+  color: rgba(15, 42, 61, 0.62);
+}
+
+.hero--dark .hero__now-feels {
   color: rgba(255, 255, 255, 0.72);
 }
 

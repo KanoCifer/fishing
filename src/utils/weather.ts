@@ -1,74 +1,95 @@
 /**
  * 天气图标映射。
  *
- * 用和风图标字体（qweather-icons 子集）而不是 emoji：
+ * 用 Meteocons 的彩色 SVG（烧成 data URI）而不是 emoji：
  * - emoji 由系统字形渲染，iOS 走 Apple Color Emoji、安卓走 Noto Color Emoji，
  *   同一段代码两端长相不同，且 `⛅` / `⛈️` 这类带变体选择符的字形在部分机型上
- *   会掉色或缺字；字体方案两端完全一致，还能跟着 `tone` 变色。
- * - 字体子集（68 字形 / base64 后 36 KB）内联在包里，零网络请求、零加载延迟，
- *   渲染由本地字形完成，不受弱网影响。
+ *   会掉色或缺字。
+ * - SVG 是矢量：逐时预报那 24 个格子、当前天气的大图标、月相是三种尺寸，
+ *   同一份数据缩放过去不糊；PNG 进去就把尺寸定死了。
+ * - 数据 URI 跟着代码包走：零网络请求、零加载延迟，野外弱网下也是立刻出图。
  *
  * 判据从「按 `text` 中文描述做子串匹配」换成「按 `icon` 字段的数字编码」：
- * 字体的 glyph 名与编码一一对应（`qi-104` → U+F105），多一层关键词表就多一处
- * 会错的地方，而且那种表看不出覆盖是否完整。这里用区间白名单，
- * 不在白名单内的码统一落到 999「未知」，从根上避免渲染出豆腐块。
+ * 多一层关键词表就多一处会错的地方，而且那种表看不出覆盖是否完整。
+ * 这里用区间表，不在表内的码统一落到兜底云。
  *
- * 白名单区间必须与 `src/styles/generated/qweather-icons.css` 的字体子集严格一致
- * —— 那边的区间由 `scripts/subset-qweather-icons.py` 生成，两边对不上就是豆腐块。
+ * 图标名取自 `@meteocons/svg-static` 的文件名，与
+ * `src/constants/weatherIcons.ts` 里生成的数据 URI 一一对应 ——
+ * 那边少一个名字，这里就引用不到，那一格会退化成兜底云。
  */
 
+import { WEATHER_ICON_FALLBACK, WEATHER_ICONS, type WeatherIconSlug } from '@/constants/weatherIcons';
 import type { WeatherDay } from '@/types/fishing';
 
-/** 兜底码：和风的「未知」字形，字体子集里保留着 */
-export const FALLBACK_ICON_CODE = '999';
-
 /**
- * 字体子集里存在的天气码区间。
+ * 和风天气码 → Meteocons 图标名。
  *
- * 只覆盖天气现象：不含预警(2xxx)、天文细节(1xxx)、彩色 fill 变体。
- * 月相(800-807)不在这里 —— 它走下面那张 MOON_PHASE_ICON_CODES 表。
+ * **按区间归组，不按码名归组。** 和风改过码名：400 这一段在不同版本里是
+ * 「雪 / 小雪 / 中雪」的不同排法。按名字建一张映射表，换个版本就对不上；
+ * 按区间走则与名字无关。
  *
- * 与 `scripts/subset-qweather-icons.py` 的 RANGES 必须严格一致
- * （本表的并集 MOON_PHASE_ICON_CODES 的值域 = RANGES），
- * 不一致就是「字体里没有的字形」，那边会渲染出豆腐块。
+ * 覆盖的码空间与下面的 `WEATHER_GROUP_RANGES` 是同一片：一张表管图形、
+ * 一张表管颜色。两张表认不出的码要是差一格，同一个天气就会出现
+ * 「有配色没图标」或者「有图标没配色」的半截状态。
  */
-const SUPPORTED_RANGES: ReadonlyArray<readonly [number, number]> = [
-  [100, 104], // 白天：晴 / 多云 / 少云 / 晴间多云 / 阴
-  [150, 153], // 夜间：晴夜 / 多云夜 / 少云夜 / 晴间多云夜（和风官方码表，文档 condition 表里没列）
-  [300, 318], // 阵雨 ~ 特大暴雨
-  [350, 351], // 小雨 / 中雨
-  [399, 410], // 雨 / 雪 / 雨夹雪 / 暴雪
-  [499, 504], // 雪 / 薄雾 / 雾 / 霾 / 扬沙 / 浮尘
-  [507, 515], // 沙尘暴 / 浓雾 / 中重度霾 / 大雾
-  [900, 901], // 热 / 冷
-  [999, 999], // 未知
+const ICON_RANGES: ReadonlyArray<readonly [number, number, WeatherIconSlug]> = [
+  [100, 100, 'clear-day'], // 晴（昼）
+  [101, 101, 'cloudy'], // 多云
+  [102, 103, 'partly-cloudy-day'], // 少云 / 晴间多云
+  [104, 104, 'overcast'], // 阴
+  [150, 150, 'clear-night'], // 晴（夜）
+  [151, 151, 'cloudy'], // 多云（夜）
+  [152, 153, 'partly-cloudy-night'], // 少云 / 晴间多云（夜）
+  [300, 300, 'rain'], // 阵雨
+  [301, 301, 'drizzle'], // 小雨
+  [302, 305, 'rain'], // 中雨 ~ 特大暴雨
+  [306, 306, 'hail'], // 阵雨伴有冰雹
+  [307, 312, 'rain'], // 小阵雨 ~ 特大暴雨
+  [313, 313, 'thunderstorms'], // 雷阵雨
+  [314, 314, 'thunderstorms-hail'], // 雷阵雨伴有冰雹
+  [315, 318, 'thunderstorms'], // 雷阵雨
+  [350, 351, 'rain'], // 阵雨 / 小到中雨
+  [399, 399, 'rain'], // 雨
+  [400, 403, 'snow'], // 小雪 ~ 暴雪
+  [404, 406, 'sleet'], // 雨夹雪 / 雨雪天气 / 阵雨夹雪
+  [407, 410, 'snow'], // 阵雪 ~ 大到暴雪
+  [499, 499, 'snow'], // 雪
+  [500, 500, 'mist'], // 薄雾
+  [501, 501, 'fog'], // 雾
+  [502, 502, 'haze'], // 霾
+  [503, 504, 'dust'], // 扬沙 / 浮尘
+  [507, 509, 'dust'], // 沙尘暴 ~ 特强沙尘暴
+  [510, 510, 'fog'], // 浓雾
+  [511, 511, 'haze'], // 中重度霾
+  [512, 512, 'fog'], // 大雾
+  [513, 513, 'haze'], // 霾
+  [514, 515, 'dust'], // 强浮尘 / 大浮尘
+  [900, 900, 'sun-hot'], // 热
+  [901, 901, 'snowflake'], // 冷
 ];
 
-/** 字体子集里是否存在该码 */
-function isSupportedCode(n: number): boolean {
-  return SUPPORTED_RANGES.some(([lo, hi]) => n >= lo && n <= hi);
-}
-
 /**
- * 和风 `icon` 字段 → 字体 class 后缀。
+ * 和风 `icon` 字段 → Meteocons 图标名。
  *
- * 返回的是**受支持的**编码，不是原样透传：接口字段是 `string`（"104"），
- * 缺字段、空串、非数字、以及字体里没有的新码都会落到 999。
- * 和风明确说过天气现象与图标会持续新增，所以在渲染前必须过这道白名单 ——
- * 未知 class 不会被静默忽略，而是照实画出一个豆腐块。
+ * 返回的是**认得出的**图标名，不是原样透传：接口字段是 `string`（"104"），
+ * 缺字段、空串、非数字、以及表里没有的新码都落到兜底云。
+ * 和风明确说过天气现象与图标会持续新增 —— 新码来得比图标快，
+ * 所以这一层必须自己兜住。
  */
-export function weatherIconCode(icon: string | undefined | null): string {
-  if (icon === undefined || icon === null || icon === '') return FALLBACK_ICON_CODE;
-
+export function weatherIconSlug(icon: string | undefined | null): WeatherIconSlug {
   const n = Number(icon);
-  if (!Number.isInteger(n) || !isSupportedCode(n)) return FALLBACK_ICON_CODE;
+  if (!Number.isInteger(n)) return WEATHER_ICON_FALLBACK;
 
-  return String(n);
+  for (const [lo, hi, slug] of ICON_RANGES) {
+    if (n >= lo && n <= hi) return slug;
+  }
+
+  return WEATHER_ICON_FALLBACK;
 }
 
-/** 天气码 → 图标 class，如 `qi qi-104` */
-export function weatherIconClass(icon: string | undefined | null): string {
-  return `qi qi-${weatherIconCode(icon)}`;
+/** 天气码 → 图标数据 URI，给 `<image>` 的 src 用 */
+export function weatherIconUri(icon: string | undefined | null): string {
+  return WEATHER_ICONS[weatherIconSlug(icon)];
 }
 
 // ---------------------------------------------------------------------------
@@ -78,14 +99,15 @@ export function weatherIconClass(icon: string | undefined | null): string {
 /**
  * 天气外观组。
  *
- * 六十多个码在界面上只表现十种「看天」的印象 —— 同一组共用一套渐变与字色。
+ * 六十多个码在界面上只表现十种「看天」的印象 —— 同一组共用一套天色。
  *
- * 组名同时是**样式的一部分**：`CurrentWeather` 组件把它拼成 class 修饰符
- * （`current-weather--rain`），组件样式里同名的那条规则给出那套配色。
- * 两边靠组名对上，所以组名改一处要改两处 —— 拼错组名的表现是「这一组没有专属颜色」
- * （落回通用样式），不会白屏。
+ * 组名同时是**样式的一部分**：头图组件（WeatherHero）拿它换算天色
+ * （`heroSky()`，见 `constants/weatherHero.ts`），再拼成 class 修饰符
+ * （`hero--rain`），组件样式里同名的那条规则给出那套画面。
+ * 两边靠组名对上，所以组名改一处要改两处 —— 拼错组名的表现是「这一组没有专属画面」
+ * （落回多云那张），不会白屏。
  *
- * 对应的配色见 `src/components/CurrentWeather/CurrentWeather.vue` 的 `--weather-*` 变量。
+ * 十组收成四种天色（晴 / 多云 / 雨 / 夜），收法见 `constants/weatherHero.ts`。
  */
 export type WeatherGroup =
   | 'sunny'
@@ -150,37 +172,34 @@ export function weatherGroup(icon: string | undefined | null): WeatherGroup {
 // ---------------------------------------------------------------------------
 
 /**
- * 月相代码 → 和风月相图标码。
+ * 月相代码 → Meteocons 月相图标名。
  *
- * 表来自和风官方《moon-phases.csv》：月相图标是 800-807 这一段，
- * API 的 `astro.moonPhase` 给的是英文代码（'waxing-gibbous'），
- * 两者要靠这张表对起来。官方表里还有南北半球两套（北半球亮面在右，
- * 南半球相反），这里取**北半球**那套 —— 本项目的用户都在北半球。
- *
- * 值域 800-807 必须在字体子集里，见 `scripts/subset-qweather-icons.py` 的 RANGES。
+ * 上游 `astro.moonPhase` 给的是英文代码（'waxing-gibbous'），
+ * Meteocons 的月相图标用文件名（'moon-waxing-gibbous'）—— 8 个码一一对上，
+ * 中间隔着一次查表。
  */
-const MOON_PHASE_ICON_CODES: Readonly<Record<string, string>> = {
-  'new-moon': '800',
-  'waxing-crescent': '801',
-  'first-quarter': '802',
-  'waxing-gibbous': '803',
-  'full-moon': '804',
-  'waning-gibbous': '805',
-  'last-quarter': '806',
-  'waning-crescent': '807',
+const MOON_PHASE_SLUGS: Readonly<Record<string, WeatherIconSlug>> = {
+  'new-moon': 'moon-new',
+  'waxing-crescent': 'moon-waxing-crescent',
+  'first-quarter': 'moon-first-quarter',
+  'waxing-gibbous': 'moon-waxing-gibbous',
+  'full-moon': 'moon-full',
+  'waning-gibbous': 'moon-waning-gibbous',
+  'last-quarter': 'moon-last-quarter',
+  'waning-crescent': 'moon-waning-crescent',
 };
 
 /**
- * 月相 → 字体 class，如 `qi qi-803`。
+ * 月相 → 图标数据 URI。
  *
- * 认不出的月相返回空串（不是 999）：999 是「天气未知」那个字形，
+ * 认不出的月相返回空串（不是兜底云）：兜底云是「天气未知」那个图形，
  * 拿来当「月相未知」会画出一朵云 —— 那一格本来就该空着。
  */
-export function moonPhaseIconClass(phase: string | undefined | null): string {
+export function moonPhaseIconUri(phase: string | undefined | null): string {
   const code = (phase ?? '').trim().toLowerCase();
-  const icon = MOON_PHASE_ICON_CODES[code];
-  if (!icon) return '';
-  return `qi qi-${icon}`;
+  const slug = MOON_PHASE_SLUGS[code];
+  if (!slug) return '';
+  return WEATHER_ICONS[slug];
 }
 
 // ---------------------------------------------------------------------------

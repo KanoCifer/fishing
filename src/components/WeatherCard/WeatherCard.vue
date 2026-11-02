@@ -173,7 +173,6 @@ const rows = computed<Row[]>(() => {
   const pressureInfo = pressure.value;
 
   return [
-    { label: '体感温度', value: withUnit(live.feelsLike, '°C') },
     { label: '相对湿度', value: withUnit(live.humidity, '%') },
     {
       label: '气压',
@@ -195,20 +194,20 @@ const rows = computed<Row[]>(() => {
 });
 
 /**
- * 折起来那一行给的摘要：体感、气压状态、风。
+ * 折起来那一行给的摘要：气压状态、风。
  *
- * 三项都是「出门前先问自己一遍」的：穿多少、能不能钓、风大不大能抛竿吗。
+ * 两项都是「出门前先问自己一遍」的：能不能钓、风大不大能抛竿吗。
  * 气压那一项给的是**档位**（正常 / 偏高），不是数值 ——
  * 数值在展开后的网格里，摘要只给读得懂的那一档。
+ *
+ * 体感温度不在这里：它归头图右上角那一块（见 WeatherHero），
+ * 同一个数在同一屏上摆两处，读的人得自己判断哪一处才是准的。
  */
 const summary = computed(() => {
   const live = mapStore.liveWeather;
   if (!live) return '';
 
   const parts: string[] = [];
-
-  const feels = num(live.feelsLike);
-  if (feels !== null) parts.push(`体感 ${feels}°`);
 
   const pressureInfo = pressure.value;
   if (pressureInfo) parts.push(`气压${pressureInfo.label}`);
@@ -422,7 +421,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
  * 摘要一行 + 一个小三角。数据到了不会换版。
  *
  * 底色用 $fish-surface，呼吸幅度用 0.35 —— 与 SkeletonCard、HourlyWeather、
- * CurrentWeather、VerdictOverview 同一档，否则同一个页面里两种加载态
+ * VerdictOverview 同一档，否则同一个页面里两种加载态
  * 一深一浅，像两套组件。
  */
 .weather-card__skeleton {

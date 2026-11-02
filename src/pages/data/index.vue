@@ -23,12 +23,9 @@
           <MinutelyRain />
         </view>
         <view class="sect__card" :style="enterStyle(2, showAnim)">
-          <CurrentWeather />
-        </view>
-        <view class="sect__card" :style="enterStyle(3, showAnim)">
           <DayForecast />
         </view>
-        <view class="sect__card" :style="enterStyle(4, showAnim)">
+        <view class="sect__card" :style="enterStyle(3, showAnim)">
           <Next24Hours />
         </view>
       </view>
@@ -90,7 +87,6 @@ import { computed, ref } from 'vue';
 import { onLoad, onPageScroll, onPageShow, onReady, onShareAppMessage } from '@dcloudio/uni-app';
 
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
-import CurrentWeather from '@/components/CurrentWeather/CurrentWeather.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
 import FeatureBreakdownSheet from '@/components/FeatureBreakdownSheet/FeatureBreakdownSheet.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
@@ -105,7 +101,6 @@ import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { SHARE_CARDS } from '@/constants/share';
 import { useNavMetrics } from '@/composables/useNavMetrics';
-import { loadQweatherIconFont } from '@/composables/useQweatherFont';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { useSessionStore } from '@/stores/session';
@@ -176,15 +171,6 @@ onReady(() => {
   ready = true;
 
   setTimeout(() => {
-    /*
-     * 图标字体也在这里拉，不在 App.onLaunch，也不在 onMounted。
-     *
-     * 字体本体 73 KB，走网络。放启动阶段就是一条冷启动长请求；
-     * 而消费它的三张卡都在这一页 —— 谁要用，谁负责把字体拉来。
-     * 组件侧有 `v-if="qweatherFontReady"` 兜底，字体晚到只是图标晚出现，不会出豆腐块。
-     */
-    void loadQweatherIconFont();
-
     void mapStore.ensureWeatherAndFishing();
     void mapStore.ensureMinutely();
 

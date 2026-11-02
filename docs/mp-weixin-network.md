@@ -298,9 +298,11 @@ refresh token 必须自己存 —— 小程序端 `wx.request` 不管理 cookie�
 
 ⚠️ 三份域名名单是**三份独立的表**，填一份不等于另外两份也生效。
 CDN 域名（`cdn.kanocifer.chat`）是后加的 —— 它承接着从代码包里搬走的
-静态图（见 `docs/mp-weixin-package.md`）**和图标字体**（`qweather-icons.woff`，
-`wx.loadFontFace` 走的就是它），漏配的话页面看着正常，只是缺图那一态
-永远是一块空白、天气图标全是豆腐块。
+静态图（见 `docs/mp-weixin-package.md`），漏配的话页面看着正常，只是缺图那一态
+永远是一块空白。
+
+天气图标不走 CDN：它是 data URI，跟着代码包一起下发（见
+`docs/mp-weixin-platform.md`「图标」一节），所以图标不占合法域名名额。
 
 所以整包只需要**两个域名**（API + CDN）。预解析同理，两个名额就够，
 上限 5 个不必占满。

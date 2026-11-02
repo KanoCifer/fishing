@@ -69,15 +69,15 @@
       <!-- 月：月相 + 月出 / 中天 / 月落 -->
       <view class="astro__phase">
         <!--
-          月相图标。和风的月相图标是 800-807 这一段（新月 → 残月），
-          码由 `astro.moonPhase` 的英文代码换算而来（见 utils/weather 的
-          MOON_PHASE_ICON_CODES）。认不出的月相不画图标 —— 那一格留空，
-          比画一个 999 的云形字形诚实。
+          月相图标。Meteocons 的月相是 8 张（新月 → 残月），
+          由 `astro.moonPhase` 的英文代码换算而来（见 utils/weather 的
+          MOON_PHASE_SLUGS）。认不出的月相不画图标 —— 那一格留空，
+          比画一朵兜底的云诚实。
 
-          字体没到位时同样不画：这一行的文字是「盈凸月」，图标只是它的图示，
+          这一行的文字是「盈凸月」，图标只是它的图示，
           少一个图示不影响读数（不像逐时预报那样是唯一的信息）。
         -->
-        <text v-if="qweatherFontReady && moonIconClass" :class="['astro__moon', moonIconClass]" />
+        <image v-if="moonIconSrc" class="astro__moon" :src="moonIconSrc" mode="aspectFit" />
         <text class="astro__phase-text">{{ day.moonPhase || '月相未知' }}</text>
       </view>
 
@@ -110,10 +110,9 @@
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-import { qweatherFontReady } from '@/composables/useQweatherFont';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { durationBetween, minutesOfDay, shortDate } from '@/utils/date';
-import { moonPhaseIconClass } from '@/utils/weather';
+import { moonPhaseIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
@@ -131,7 +130,7 @@ const dateLabel = computed(() => (day.value?.fxDate ? shortDate(day.value.fxDate
  * 空串表示这一天的月相不认识（上游新增了代码，或当天没给 astro），
  * 模板据此不画图标，只留中文名。
  */
-const moonIconClass = computed(() => moonPhaseIconClass(day.value?.moonPhaseCode ?? ''));
+const moonIconSrc = computed(() => moonPhaseIconUri(day.value?.moonPhaseCode ?? ''));
 
 /**
  * 现在的时刻（当天第几分钟）。
@@ -369,16 +368,12 @@ const emptyText = computed(() => {
 }
 
 /*
- * 月相图标字形不走字阶，理由见 HourlyWeather 的 .hourly__icon。
- *
- * 压成辅助灰：这一格里真正要读的是「盈凸月」三个字，图标是那三个字的
- * 图示说明，不该跟文字抢主次。
+ * 月相图标是一张图，不是一行字，理由见 HourlyWeather 的 .hourly__icon。
  */
 .astro__moon {
+  width: 56rpx;
+  height: 56rpx;
   margin-right: 14rpx;
-  font-size: 36rpx;
-  line-height: 1;
-  color: $fish-muted;
 }
 
 .astro__phase-text {

@@ -15,7 +15,7 @@
 | 定位         | `uni.getLocation`                                   |
 | 窗口尺寸     | `uni.getWindowInfo()`                               |
 | 胶囊按钮矩形 | `uni.getMenuButtonBoundingClientRect()`             |
-| 加载网络字体 | `uni.loadFontFace`                                  |
+| 显示图标     | `<image>` + data URI（见「图标」一节）              |
 | 选节点       | `@/utils/selectorQuery` 的 `createSelectorQuery`    |
 | 取帧         | canvas 节点自带的 `requestAnimationFrame`           |
 
@@ -83,18 +83,18 @@ pnpm 会在补丁打不上时直接报错，不会悄悄失效。
 所以「按数据切样式」只能走 class 选择器：
 
 ```html
-<view class="current-weather current-weather--rain" data-weather="rain"></view>
+<view class="hero hero--rain hero--dark" data-weather="rain"></view>
 ```
 
 ```scss
-.current-weather--rain {
-  --weather-grad: linear-gradient(…);
+.hero--rain .hero__bg {
+  background-image: linear-gradient(…);
 }
 ```
 
 组名是两份约定的接缝：JS 侧出组名（`src/utils/weather.ts` 的 `weatherGroup`），
-SCSS 侧按同名给那组外观（`src/components/CurrentWeather/CurrentWeather.vue` 的
-`--weather-*` 变量）。拼错组名的表现是「这一组没有专属颜色」（落回通用样式），不会白屏。
+SCSS 侧按同名给那组画面（`src/components/WeatherHero/WeatherHero.vue` 的
+`hero--*` 规则）。拼错组名的表现是「这一组没有专属画面」（落回多云那张），不会白屏。
 
 ⚠️ **scoped 样式能用，正是因为它不走属性选择器。** uni-app 把 `data-v-xxx`
 编译成**类**（`.weather-card.data-v-b9f26203`），WXML 里也是
@@ -222,21 +222,19 @@ const { navBarBottom, capsuleInsetRight, statusBarHeight } = useNavMetrics();
 - **`createImage()` 的 src 只认网络地址与 base64 Data URI**（基础库 2.11.0 起）。代码包里的本地文件不在承诺里，要先 `getFileSystemManager().readFile({ encoding: 'base64' })` 读出来再给画布（见 `src/utils/canvasImage.ts`）
 - **SVG data URI 在 `<image>` 里能显示，但 canvas 的 `createImage()` 吃它没保证** —— canvas 里要图标就用路径画（见 `src/utils/poster.ts` 的 `mapPin`）
 
-## 字体
+## 图标
 
-图标字体走 `wx.loadFontFace` 网络加载：
+天气图标是 Meteocons 的彩色 SVG，烧成 data URI 跟着代码包走：
 
-- 字体域名必须在微信后台配成 **downloadFile 合法域名**，否则加载失败，页面上所有天气图标变成豆腐块（私用区位码位在系统字体里没有对应字形）
-- 字体托管在**自建 CDN**（`cdn.kanocifer.chat/qweather-icons.woff`），和静态图同一域名 —— 合法域名与预解析名额都是共用的，少一个域名就少一份配置
-- **换字体文件必须连码位映射表一起重算**：`src/styles/generated/qweather-icons.css` 的「码 → 私用区位」是和风自己定的，不是顺序排的。换一份字体、只改 URL，图标就会变成豆腐块。重算走 `scripts/subset-qweather-icons.py`（断言会当场炸）
-- 主包里只留「码 → 字形」的映射规则（`src/styles/generated/qweather-icons.css`，4 KB）。字体本体不再 base64 内联（那版是 40 KB）
-- 字体族名必须与 css 里 `.qi` 的 `font-family` 完全一致：`qweather-icons`
-- `global: true` —— 图标散在好几个页面里，逐页注册会漏
-- `desc` 三项都要给，uni 的类型里 `variant` 是必填的（微信文档说它可选）
-- `success` 不代表字体真的加载上了，要看 `res.status === 'loaded'`
-- 加载失败不致命：读数全是文字，图标没了照样能读。所以只记状态，不弹 toast 打扰用户
-- 状态是模块级单例 ref —— 小程序所有页面共用一份逻辑层，组件 import 到的都是同一个 ref
-- **加载时机是数据页 `onMounted`，不是 `App.onLaunch`** —— 73 KB 走网络，挂在启动链路上就是一条冷启动长请求。三张消费它的卡（`HourlyWeather` / `DayForecast` / `AstroCard`）都有 `v-if="qweatherFontReady"` 兜底，字体晚到不会出豆腐块
+- **小程序端没有内联 SVG** —— WXML 不认 `<svg>` 标签。SVG 只有一种用法：转成 data URI 塞进 `<image>` 的 `src`
+- 同一份数据要在四种尺寸下用（逐时 64rpx、日预报 60rpx、月相 56rpx、头图 120rpx）。SVG 是矢量，缩放由渲染器做；PNG 进去就把尺寸定死了，缩到小尺寸上是糊的
+- data URI 跟着代码包走：**零网络请求、零加载延迟**，也不占 downloadFile 合法域名名额 —— 野外弱网下这是最省事的一条
+- 同一个仓库里 lucide 图标走的是同一条路（`scripts/gen-icons.mjs` → `src/constants/icons.ts`），不是新发明
+- 图标清单与码表是配套的：`scripts/gen-meteocons-icons.mjs` 的 `ICONS` 清单、`src/utils/weather.ts` 的 `ICON_RANGES` 与 `MOON_PHASE_SLUGS`。清单里没有的名字引用不到，那一格退化成兜底云
+- 换图标改清单重跑 `pnpm weather-icons`。脚本会先验一遍 XML 结构（标签配对）—— 生成物是一段 base64 字符串，没人会去读它，坏了要当场报出来
+- **Meteocons 原版的云是浅色**（`#E6EFFC`），压在白卡片上等于没画。生成脚本里有一层色板替换把「浅到看不见」的那几档换成中调（见脚本的 `COLOR_MAP`），太阳的黄、雨的蓝、闪电的橙原样保留
+- `<image>` 的 `mode` 用 `aspectFit`：图标是正方形（128 网格），缩到方盒里正好
+- **canvas 不吃这条**：SVG data URI 在 `<image>` 里能显示，但 `canvas.createImage()` 吃它没保证 —— 要在 canvas 里画天气图标得另想办法
 
 ## 原生 map
 
