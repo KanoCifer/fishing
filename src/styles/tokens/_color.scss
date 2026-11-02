@@ -103,7 +103,7 @@ $fish-on-accent: #ffffff;
 $fish-on-dark: #ffffff;
 
 /* ── 表面 ── */
-$fish-page: #ffffff; // 卡片 / 面板底，systemBackground
+$fish-page: rgba(245, 248, 253, 1); // 卡片 / 面板底，systemBackground
 $fish-grouped: rgba(230, 237, 254, 1); // 页面底，systemGroupedBackground
 $fish-surface: rgba(120, 120, 128, 0.16); // secondarySystemFill：骨架块、chip
 $fish-fill: rgba(120, 120, 128, 0.12); // tertiarySystemFill：segmented 轨道
