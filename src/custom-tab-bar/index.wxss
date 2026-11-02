@@ -1,18 +1,3 @@
-/*
- * 自定义 tabBar 的样式。
- *
- * ⚠️ 这个目录**不经过 uni-app 编译**：uni-app 把它原样拷到小程序代码根目录，
- * 所以这里不能写 SCSS、不能引令牌层，色值只能写死。
- * 下面的十六进制与 src/styles/tokens/_color.scss 一一对应（改色两处一起改）：
- *   #ffffff      底栏底色        = $fish-page
- *   #3c3c43      页签文字        = pages.json 的 color
- *   #007aff      选中文字        = pages.json 的 selectedColor
- *   #1a6ee0/#0f66d6/#1a4fa0  动作键渐变 = $fish-gradient
- *   rgba(60,60,67,0.29) 发丝线   = $fish-border
- *
- * 底栏高度 150rpx（=75px），格子里是 100rpx（=50px，与原生 tabBar 同一档）。
- */
-
 .tabbar {
   position: fixed;
   left: 0;
@@ -27,7 +12,12 @@
   padding-bottom: env(safe-area-inset-bottom);
 
   background-color: #ffffff;
-  border-top: 1rpx solid rgba(60, 60, 67, 0.29);
+  border-radius: 56rpx, 56rpx, 0, 0;
+  box-shadow:  0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04),
+  0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03),
+  0 5.25px 7px 0 rgba(0, 0, 0, 0.02),
+  0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01),
+  0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
 }
 
 /* 一格。flex:1 平分底栏 */

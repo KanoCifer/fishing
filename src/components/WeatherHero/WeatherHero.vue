@@ -18,7 +18,7 @@
       </view>
 
       <view class="hero__refresh" :class="{ 'hero__refresh--busy': busy }" @tap="onRefresh">
-        <image class="hero__icon" :src="refreshIcon" mode="widthFix" />
+        <image class="hero__icon__refresh" :src="refreshIcon" mode="widthFix" />
       </view>
     </view>
 
@@ -232,7 +232,7 @@ const pinIcon = icon('map-pin', 'ink');
 const chevronDownIcon = icon('chevron-down', 'muted60');
 
 /** 头图上的其余图标一律压白 —— 图标的颜色烤在 data URI 里，换色要回去跑 pnpm icons */
-const refreshIcon = icon('refresh-cw', 'onAccent');
+const refreshIcon = icon('refresh-cw', 'ink');
 const fishIcon = icon('fish', 'onAccent');
 const chevronIcon = icon('chevron-right', 'onAccent');
 
@@ -347,6 +347,14 @@ function onRefresh() {
   width: 32rpx;
   height: 32rpx;
   flex-shrink: 0;
+}
+
+.hero__icon__refresh {
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  padding: 16rpx;
+  @include fish-glass($fish-radius-pill);
 }
 
 /* 图钉：实心，个头与字高相当 */

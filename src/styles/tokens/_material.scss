@@ -6,8 +6,8 @@
   border-radius: $radius;
   background-color: $fish-glass;
 
-  box-shadow: $smooth-shadow-sm;
-  box-shadow: $smooth-shadow-sm, $fish-glass-edge;
+  box-shadow: $smooth-shadow-xs;
+  box-shadow: $smooth-shadow-xs, $fish-glass-edge;
 }
 
 @mixin fish-glass-blur {

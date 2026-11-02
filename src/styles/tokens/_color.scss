@@ -104,7 +104,7 @@ $fish-on-dark: #ffffff;
 
 /* ── 表面 ── */
 $fish-page: #ffffff; // 卡片 / 面板底，systemBackground
-$fish-grouped: #f2f2f7; // 页面底，systemGroupedBackground
+$fish-grouped: rgba(230, 237, 254, 1); // 页面底，systemGroupedBackground
 $fish-surface: rgba(120, 120, 128, 0.16); // secondarySystemFill：骨架块、chip
 $fish-fill: rgba(120, 120, 128, 0.12); // tertiarySystemFill：segmented 轨道
 
