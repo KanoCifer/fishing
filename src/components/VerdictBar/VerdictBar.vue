@@ -111,7 +111,7 @@ const refreshIcon = icon('refresh-cw', 'muted');
  *
  * 走文字专用的深档（-ink），不用填充档 —— 这一行是当文字读的，
  * 15pt 的小字撑不住填充档的对比度（见 _color.scss 的说明）。
- * 与首屏概览里的等级词用同一套，一眼能对上。
+ * 与钓点详情页那一句等级词用同一套（levelTone），一眼能对上。
  */
 .verdict-bar__level--success {
   color: $fish-success-ink;

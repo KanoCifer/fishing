@@ -421,7 +421,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
  * 摘要一行 + 一个小三角。数据到了不会换版。
  *
  * 底色用 $fish-surface，呼吸幅度用 0.35 —— 与 SkeletonCard、HourlyWeather、
- * VerdictOverview 同一档，否则同一个页面里两种加载态
+ * DayForecast 同一档，否则同一个页面里两种加载态
  * 一深一浅，像两套组件。
  */
 .weather-card__skeleton {

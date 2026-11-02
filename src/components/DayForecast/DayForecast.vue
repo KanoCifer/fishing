@@ -479,7 +479,7 @@ const emptyText = computed(() => {
  * 每一块的尺寸照着上面真实元素的行盒摆：
  * 日期 30rpx 行盒、图标 36rpx、概率 30rpx、尺身 120rpx 加上下各一段余量。
  * 底色用 $fish-surface，呼吸幅度用 0.35 —— 跟 SkeletonCard、HourlyWeather、
- * VerdictOverview 同一档，否则同一个页面里两种加载态一深一浅，
+ * WeatherCard 同一档，否则同一个页面里两种加载态一深一浅，
  * 像两套组件。
  */
 .days__skeleton {

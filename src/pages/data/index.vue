@@ -16,17 +16,19 @@
 
       <WeatherHero :show-anim="showAnim" @breakdown="openBreakdown" @pick-place="onPickPlace" />
 
-      <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
+      <view class="data__actions">
+        <VerdictActions :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
+      </view>
 
       <view class="sect">
         <view class="sect__card" :style="enterStyle(1, showAnim)">
-          <MinutelyRain />
+          <Next24Hours />
         </view>
         <view class="sect__card" :style="enterStyle(2, showAnim)">
-          <DayForecast />
+          <MinutelyRain />
         </view>
         <view class="sect__card" :style="enterStyle(3, showAnim)">
-          <Next24Hours />
+          <DayForecast />
         </view>
       </view>
 
@@ -90,13 +92,12 @@ import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
 import FeatureBreakdownSheet from '@/components/FeatureBreakdownSheet/FeatureBreakdownSheet.vue';
 import FishingAnalysisSheet from '@/components/FishingAnalysisSheet/FishingAnalysisSheet.vue';
-import LifeIndexCard from '@/components/LifeIndexCard/LifeIndexCard.vue';
 import MinutelyRain from '@/components/MinutelyRain/MinutelyRain.vue';
 import Next24Hours from '@/components/Next24Hours/Next24Hours.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
+import VerdictActions from '@/components/VerdictActions/VerdictActions.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
-import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { SHARE_CARDS } from '@/constants/share';
@@ -283,6 +284,13 @@ function openBreakdown() {
 
 .sect {
   @include fish-section;
+}
+
+/* 头图下面的动作行。左右留白跟分区对齐，它才落在同一套竖线上 */
+.data__actions {
+  padding-right: 32rpx;
+  padding-left: 32rpx;
+  margin-top: -20rpx;
 }
 
 /* 落款 */

@@ -245,8 +245,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const indexLoading = ref(false);
   const indexError = ref('');
 
-  const indexPending = ref(true);
-
   // 钓点标记
   const markers = shallowRef<MapMarker[]>([]);
   const spotsLoading = ref(false);
@@ -407,8 +405,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     indexLoading.value = true;
     weatherError.value = '';
     indexError.value = '';
-
-    indexPending.value = false;
 
     try {
       const data = await fishingApi.getFishingIndex(target, true);
@@ -879,7 +875,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     // 鱼口概率
     indexData,
     indexLoading,
-    indexPending,
     indexError,
     // 钓点标记
     markers,

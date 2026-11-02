@@ -38,13 +38,10 @@ const COLORS = {
  * 上的定位键）。其余地方不该加。
  */
 const ICONS = [
-  // —— 首屏概览 ——
+  // —— 首屏 ——
   { name: 'map-pin', color: 'muted', use: '实况地点' },
   { name: 'refresh-cw', color: 'muted', use: '刷新天气与指数' },
   { name: 'fish', color: 'success', use: '鱼口概率标记' },
-  { name: 'thermometer', color: 'destructive', use: '气温信号' },
-  { name: 'waves', color: 'blue', use: '潮汐信号' },
-  { name: 'wind', color: 'blue600', use: '风速信号' },
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 建议入口' },
