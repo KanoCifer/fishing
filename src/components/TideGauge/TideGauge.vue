@@ -14,10 +14,14 @@
  * 量程由 min / max 给，值由 value 给：弧长是值在量程里占的比例。
  * 组件本身不管这个数是什么意思（潮位、气压、别的什么）——
  * 语义在调用方。
+ *
+ * 颜色也是按量程位置给的：色阶的每一档落在量程的一个位置上，
+ * 弧尖那一段的颜色就是值落在哪一档。档位叫什么名字仍然归调用方。
  */
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 
 import { windowMetrics } from '@/composables/windowMetrics';
+import { rampColor } from '@/utils/canvas';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 /**
@@ -42,10 +46,15 @@ interface Props {
   stroke?: number;
   /** 轨道色 */
   trackColor?: string;
-  /** 值弧起始色 */
-  fromColor?: string;
-  /** 值弧结束色 */
-  toColor?: string;
+  /**
+   * 值弧的色阶。
+   *
+   * 每一档落在量程的一个位置上：值落在量程的哪一段，弧上那一段就是那个颜色。
+   * 所以颜色直接承载数值 —— 弧尖那一段的颜色就是当前值落在色阶的哪一档。
+   *
+   * 一档是实色，两档以上才有过渡。
+   */
+  stops?: readonly string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -56,8 +65,8 @@ const props = withDefaults(defineProps<Props>(), {
   // 默认值取深色面那一档：弧形表现在只用在深色面上，
   // 轨道与深色面上的发丝线同一档，弧线是深色面上唯一亮起来的东西。
   trackColor: 'rgba(255, 255, 255, 0.14)',
-  fromColor: '#4f8cff',
-  toColor: '#82d4ff',
+  // 蓝 → 浅蓝。潮位表走这一档：潮位是米数，不是好坏，不能拿红黄绿去上色。
+  stops: () => ['#4f8cff', '#82d4ff'],
 });
 
 const instance = getCurrentInstance()!;
@@ -92,9 +101,55 @@ function ratio(): number {
   return Math.min(1, Math.max(0, value));
 }
 
-/** 极坐标 → 画布坐标 */
-function polar(cx: number, cy: number, r: number, angle: number): { x: number; y: number } {
-  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+/**
+ * 值弧切段的段数上限。
+ *
+ * 一段就是一笔绘制命令，而这块画布在数字滚动时每帧都要重画 ——
+ * 段数给够就行，不做无意义的细分。
+ */
+const MAX_SEGMENTS = 96;
+
+/**
+ * 每段弧长不超过线宽的这个倍数。
+ *
+ * 圆头线帽伸出段端之外，段太长就接不上，弧上会露出一圈缺口。
+ */
+const SEGMENT_SPAN = 0.6;
+
+/**
+ * 值弧。
+ *
+ * 弧切成若干段，每段按它在**量程**上的位置取色 —— 弧尖那一段的颜色
+ * 就是当前值落在色阶的哪一档，颜色直接承载数值。
+ *
+ * 为什么不用 createLinearGradient：线性渐变沿一条直线铺，铺不出
+ * 「颜色跟着角度走」。沿弧两端连成的弦铺出来的是「颜色跟着 x 走」——
+ * 左下那一整段被压成同一个颜色，值落在 20 还是 40 看不出区别。
+ */
+function drawValueArc(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  stroke: number,
+  value: number,
+  stops: readonly string[],
+): void {
+  // 段长要短于线宽，圆头线帽才接得上
+  const byWidth = Math.ceil((SWEEP_ANGLE * r) / (stroke * SEGMENT_SPAN));
+  const segments = Math.min(MAX_SEGMENTS, Math.max(8, byWidth));
+
+  // 段按量程切：第 i 段覆盖量程的 [i / segments, (i + 1) / segments]
+  const count = Math.ceil(value * segments);
+  for (let i = 0; i < count; i += 1) {
+    const from = i / segments;
+    // 末段在值的位置截断 —— 弧长就是值
+    const to = Math.min((i + 1) / segments, value);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, START_ANGLE + SWEEP_ANGLE * from, START_ANGLE + SWEEP_ANGLE * to, false);
+    ctx.strokeStyle = rampColor(stops, (from + to) / 2);
+    ctx.stroke();
+  }
 }
 
 function draw(): void {
@@ -123,17 +178,7 @@ function draw(): void {
   const value = ratio();
   if (value <= 0) return;
 
-  // 值弧。渐变沿弧的两端连成的弦铺，颜色从起端走到末端。
-  const from = polar(cx, cy, r, START_ANGLE);
-  const to = polar(cx, cy, r, START_ANGLE + SWEEP_ANGLE);
-  const gradient = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
-  gradient.addColorStop(0, props.fromColor);
-  gradient.addColorStop(1, props.toColor);
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, START_ANGLE, START_ANGLE + SWEEP_ANGLE * value, false);
-  ctx.strokeStyle = gradient;
-  ctx.stroke();
+  drawValueArc(ctx, cx, cy, r, stroke, value, props.stops);
 }
 
 /**
@@ -226,7 +271,9 @@ onMounted(() => {
 });
 
 watch(
-  () => [props.value, props.min, props.max, props.fromColor, props.toColor, props.trackColor],
+  // 色阶拼成字符串再比：调用方传的是字面量数组时，每次渲染都是新引用，
+  // 按引用比会每渲染一次就重画一遍。
+  () => [props.value, props.min, props.max, props.stops.join(','), props.trackColor],
   () => {
     // 画布还没拿到就先补拿，等节点到了再画
     if (!initialized) {

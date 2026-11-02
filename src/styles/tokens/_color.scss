@@ -266,6 +266,20 @@ $fish-gauge-from: #4f8cff;
 $fish-gauge-to: #82d4ff;
 
 /**
+ * 鱼口概率色阶（弧形表的值弧）。
+ *
+ * 红 → 黄 → 绿，概率由低到高。色阶按**量程位置**取色：值落在量程的哪一段，
+ * 弧上那一段就是那个颜色 —— 弧尖的颜色直接说明概率在哪一档。
+ *
+ * canvas 2d 不解析 SCSS 变量，弧形表那侧只能硬编码 ——
+ * 这三个值是硬编码的**锚点**，改色时两处一起改
+ * （见 constants/weatherHero.ts 的 HERO_GAUGE_STOPS）。
+ */
+$fish-gauge-low: #ff3b30;
+$fish-gauge-mid: #ffd60a;
+$fish-gauge-high: #34c759;
+
+/**
  * 深色面上的雨强四档。
  *
  * 同一色相，四档明度 —— 与浅色那四档是同一个口径（档位仍由 utils/precip 判），

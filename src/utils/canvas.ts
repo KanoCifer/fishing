@@ -40,6 +40,17 @@ export function setCanvasFont(ctx: CanvasRenderingContext2D, weight: number, siz
  * 也不要悄悄算出一个错的颜色。
  */
 export function withAlpha(color: string, alpha: number): string {
+  const rgb = parseRgb(color);
+  if (!rgb) return color.trim();
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+/**
+ * 颜色 → 三通道。认不出来的返回 null。
+ *
+ * 只认 `#rgb` / `#rrggbb` / `rgb()` / `rgba()`：这四种是本项目会用到的写法。
+ */
+function parseRgb(color: string): [number, number, number] | null {
   const value = color.trim();
 
   if (value.startsWith('#')) {
@@ -51,18 +62,53 @@ export function withAlpha(color: string, alpha: number): string {
             .map((c) => c + c)
             .join('')
         : value.slice(1);
-    if (hex.length < 6) return value;
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    if (hex.length < 6) return null;
+    const channels = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+    if (channels.some((n) => !Number.isFinite(n))) return null;
+    return [channels[0], channels[1], channels[2]];
   }
 
   const match = value.match(/rgba?\(([^)]+)\)/);
   if (match) {
     const parts = match[1].split(',').map((s) => s.trim());
-    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    if (parts.length < 3) return null;
+    const channels = parts.slice(0, 3).map((s) => parseInt(s, 10));
+    if (channels.some((n) => !Number.isFinite(n))) return null;
+    return [channels[0], channels[1], channels[2]];
   }
 
-  return value;
+  return null;
+}
+
+/**
+ * 两色之间取中间色。t = 0 取 from，t = 1 取 to。
+ *
+ * 解析不出来的色值原样返回：宁可画错一次，也不要悄悄算出一个错的颜色。
+ */
+export function mixColor(from: string, to: string, t: number): string {
+  const a = parseRgb(from);
+  const b = parseRgb(to);
+  if (!a || !b) return t < 0.5 ? from : to;
+
+  const k = Math.min(1, Math.max(0, t));
+  const channel = (i: number) => Math.round(a[i] + (b[i] - a[i]) * k);
+  return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+}
+
+/**
+ * 在色阶上取色。
+ *
+ * 色阶的每一档落在量程的一个位置上，t 是量程上的比例（0–1）：
+ * t = 0 取第一档，t = 1 取最后一档，中间按档数均分。
+ *
+ * 两档之间按 RGB 线性插值 —— 红→黄→绿这条路在 RGB 里正好经过橙与黄绿，
+ * 不用绕 HSV 那一圈。
+ */
+export function rampColor(stops: readonly string[], t: number): string {
+  if (stops.length === 0) return 'transparent';
+  if (stops.length === 1) return stops[0];
+
+  const scaled = Math.min(1, Math.max(0, t)) * (stops.length - 1);
+  const index = Math.min(stops.length - 2, Math.floor(scaled));
+  return mixColor(stops[index], stops[index + 1], scaled - index);
 }

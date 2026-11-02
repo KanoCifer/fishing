@@ -30,13 +30,11 @@
         :size="gaugeSize"
         :stroke="gaugeStroke"
         :track-color="trackColor"
-        :from-color="arcColor"
-        :to-color="arcColor"
+        :stops="HERO_GAUGE_STOPS"
       >
         <view class="gauge">
           <view class="gauge__value">
-            <text class="gauge__num">{{ displayScore }}</text>
-            <text class="gauge__max">/100</text>
+            <text class="gauge__num">{{ displayScore }} <text class="gauge__unit">%</text> </text>
           </view>
           <view class="gauge__cap" @tap="emit('breakdown')">
             <image class="gauge__cap-icon" :src="fishIcon" mode="widthFix" />
@@ -47,22 +45,13 @@
       </TideGauge>
     </view>
 
-    <!--
-      实时天气：压在头图右上角。
-
-      这一块原来是一张独立卡片（CurrentWeather），挪上来是因为它跟仪表
-      讲的是同一件事的两面 —— 「此刻」的读数分成上下两块，要滚一屏才看得到一起。
-      位置在右上：仪表在左，这块在右，中间留白是画面里的天。
-
-      取不到实况就不画：头图上摆一个空位，比没有这块更让人以为数据没到。
-    -->
     <view v-if="hasLive" class="hero__now" :style="enterStyle(2, showAnim)">
       <view class="hero__now-row">
         <view class="hero__now-temp-row">
           <text class="hero__now-temp">{{ temp }}</text>
           <text v-if="temp" class="hero__now-deg">°</text>
         </view>
-        <image class="hero__now-icon" :src="nowIcon" mode="aspectFit" />
+        <image class="hero__now-icon" :src="nowIcon" mode="aspectFill" />
       </view>
 
       <!-- 现象：上游原文。缺值就不画，别拿「未知」顶上去 -->
@@ -88,7 +77,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import TideGauge from '@/components/TideGauge/TideGauge.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
-import { HERO_GAUGE_SIZE, HERO_GAUGE_STROKE, HERO_TONE_FILL, heroImageUrl, heroSky } from '@/constants/weatherHero';
+import { HERO_GAUGE_SIZE, HERO_GAUGE_STOPS, HERO_GAUGE_STROKE, heroImageUrl, heroSky } from '@/constants/weatherHero';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
 import { levelTone, levelVerdict, num, weatherGroup, weatherIconUri } from '@/utils/weather';
@@ -182,9 +171,6 @@ const score = computed(() => {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, value));
 });
-
-/** 弧色：等级色的填充档 */
-const arcColor = computed(() => HERO_TONE_FILL[tone.value]);
 
 /**
  * 轨道色。
@@ -483,19 +469,21 @@ function onRefresh() {
  * letter-spacing / line-height 覆盖掉。
  */
 .gauge__num {
+  position: relative;
   color: $fish-on-dark;
   font-size: 96rpx;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
-/* 「/100」是刻度的上限，不是第二个数字：压到最小一档 */
-.gauge__max {
-  margin-left: 6rpx;
+.gauge__unit {
+  position: absolute;
+  left: 105%;
+  bottom: 0;
   color: $fish-on-dark;
-  @include fish-type(caption);
+  @include fish-type(body);
 }
 
 /*
@@ -554,6 +542,7 @@ function onRefresh() {
 
 /* 温度与图标并排 */
 .hero__now-row {
+  margin-right: -24rpx;
   display: flex;
   align-items: center;
 }
@@ -572,7 +561,7 @@ function onRefresh() {
  * 理由与仪表上的分数同一个 —— 它是这一块的主角。
  */
 .hero__now-temp {
-  font-size: 88rpx;
+  font-size: 64rpx;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -584,7 +573,7 @@ function onRefresh() {
   position: relative;
   top: -0.5em;
   margin-left: 2rpx;
-  font-size: 44rpx;
+  font-size: 32rpx;
   font-weight: 700;
   line-height: 1;
 }
@@ -593,9 +582,9 @@ function onRefresh() {
  * 天气图标。Meteocons 的彩色 SVG，颜色烤死在图形里 —— 这里只管尺寸。
  */
 .hero__now-icon {
-  width: 120rpx;
-  height: 120rpx;
-  margin-left: 16rpx;
+  width: 160rpx;
+  height: 160rpx;
+  margin-right: -8rpx;
   flex-shrink: 0;
 }
 

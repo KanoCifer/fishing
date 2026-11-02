@@ -9,7 +9,7 @@
  */
 
 import { ENV } from '@/config/env';
-import type { Tone, WeatherGroup } from '@/utils/weather';
+import type { WeatherGroup } from '@/utils/weather';
 
 /** 地点标签选点失败时的说法 */
 export const HERO_PICK_FAILED = '选点失败，请重试';
@@ -54,18 +54,23 @@ export function heroImageUrl(group: WeatherGroup): string {
 }
 
 /**
- * 等级色（弧形表用）。
+ * 鱼口概率色阶（弧形表的值弧）。
+ *
+ * 红 → 黄 → 绿：概率由低到高。
+ *
+ * 色阶是**按量程位置**取的 —— 值落在量程的哪一段，弧上那一段就是那个颜色。
+ * 所以弧尖那一段的颜色直接说明概率落在哪一档：40 分是橙，70 分是黄绿，
+ * 90 分是绿。不用再回头去看数字。
+ *
+ * 原来这弧是按等级词涂一整条（绿/蓝/橙/红/灰），颜色跟着 level 走 ——
+ * 同一个词在两个页面上必须是同一个颜色，可这条弧画的是 0–100 的数，
+ * 跟着词走就丢了数：分数从 62 涨到 68，弧一点没变。
  *
  * ⚠️ 这些值必须与 src/styles/tokens/_color.scss 的同名档位一致 ——
  * canvas 2d 不解析 SCSS 变量，两边只能手工对齐（改色时一起改）。
- *
- * 用的是**填充档**（亮的那一档）：弧是图形信号，要从画面里跳出来；
- * 等级词的深档是给文字用的，两档不是一回事。
  */
-export const HERO_TONE_FILL: Readonly<Record<Tone, string>> = {
-  success: '#34c759', // $fish-success
-  blue: '#0f66d6', // $fish-blue
-  warning: '#ff9500', // $fish-warning
-  destructive: '#ff3b30', // $fish-destructive
-  muted: '#8e8e93', // $fish-muted-fill
-};
+export const HERO_GAUGE_STOPS: readonly string[] = [
+  '#ff3b30', // $fish-gauge-low
+  '#ffd60a', // $fish-gauge-mid
+  '#34c759', // $fish-gauge-high
+];
