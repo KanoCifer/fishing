@@ -1,16 +1,5 @@
 <template>
   <view v-if="rendered" :key="cycle" class="snap-sheet">
-    <!--
-      遮罩。
-
-      catchtap / catchtouchmove：遮罩是全屏的，落在它上面的手势只属于这个浮层。
-      用 catch 截住，背后的页面才收不到 —— 否则在遮罩上随手一划，背后的列表
-      会跟着滚，背后的地图会跟着平移。
-
-      这里挡的是 WebView 层的事件。地图是原生组件，同层渲染下它的原生手势
-      不受这层拦截影响，那一半靠地图自身的 interactive 关掉，
-      见 FullscreenMap 的 interactive。
-    -->
     <view
       v-if="mask"
       class="snap-sheet__mask"
@@ -560,19 +549,9 @@ function onMaskTap() {
   border-top-left-radius: $fish-radius-sheet;
   border-top-right-radius: $fish-radius-sheet;
   background-color: $fish-page;
-  /*
-   * 投影让面板从地图上"浮起"。
-   * 背后是原生 map，投影是唯一能表达高度的手段（没有 backdrop-filter 兜底），
-   * 所以这一层要比普通卡片重：向上扩散的范围更大、衰减更慢。
-   */
+
   box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.16);
-  /*
-   * transform-origin 钉在底边。
-   *
-   * 入场末尾要越过落点一点再落定（弹簧感），缩放过冲时底边必须留在屏幕上：
-   * 以中心为原点的话，面板会离地，屏幕底下露出一条缝。
-   * 钉在底边之后，越过的是上沿 —— 读作「它被顶过头了一点」，不是「它飘了一下」。
-   */
+
   transform-origin: bottom center;
   /*
    * 入场：从底部下方滑上来，越过一点，落定。

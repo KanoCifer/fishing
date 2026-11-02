@@ -7,17 +7,12 @@
 
   display: flex;
   box-sizing: border-box;
-  height: 180rpx;
+  height: 160rpx;
   padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 
   background-color: #ffffff;
   border-radius: 56rpx, 56rpx, 0, 0;
-  box-shadow:  0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04),
-  0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03),
-  0 5.25px 7px 0 rgba(0, 0, 0, 0.02),
-  0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01),
-  0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
 }
 
 /* 一格。flex:1 平分底栏 */
@@ -75,7 +70,7 @@
   margin-left: -58rpx;
   border: 4rpx solid #ffffff;
   border-radius: 50%;
-  background-image: linear-gradient(135deg, #1a6ee0 0%, #0f66d6 55%, #1a4fa0 100%);
+  background-image: linear-gradient(135deg, rgb(56,130,252) 0%, #0f66d6 55%, rgb(56,130,252) 100%);
   box-shadow: 0 6rpx 16rpx rgba(9, 24, 40, 0.24);
 }
 
