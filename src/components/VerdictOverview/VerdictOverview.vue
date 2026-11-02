@@ -253,7 +253,7 @@ function onRefresh() {
 <style lang="scss" scoped>
 .verdict {
   position: relative;
-  margin-top: -48rpx;
+  margin-top: -96rpx;
   margin-right: 32rpx;
   margin-left: 32rpx;
   padding: 28rpx;

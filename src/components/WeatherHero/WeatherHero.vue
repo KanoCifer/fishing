@@ -60,14 +60,6 @@
       <!-- 体感：这一屏只此一处说它（WeatherCard 里那格已去掉） -->
       <text v-if="feels" class="hero__now-feels">体感 {{ feels }}°</text>
     </view>
-
-    <!-- 等级：不是一行浮在画上的字，是一枚芯片 -->
-    <view v-if="level" class="hero__level" :style="enterStyle(3, showAnim)">
-      <text class="hero__chip" :class="`hero__chip--${tone}`">{{ level }}</text>
-    </view>
-
-    <!-- 一句话结论 -->
-    <text v-if="hasData" class="hero__lead" :style="enterStyle(4, showAnim)">{{ advice }}</text>
   </view>
 </template>
 
@@ -80,7 +72,7 @@ import { icon } from '@/constants/icons';
 import { HERO_GAUGE_SIZE, HERO_GAUGE_STOPS, HERO_GAUGE_STROKE, heroImageUrl, heroSky } from '@/constants/weatherHero';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
-import { levelTone, levelVerdict, num, weatherGroup, weatherIconUri } from '@/utils/weather';
+import { num, weatherGroup, weatherIconUri } from '@/utils/weather';
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
@@ -151,20 +143,7 @@ const topRowStyle = computed(() => ({
   paddingRight: `${capsuleInsetRight}px`,
 }));
 
-/* ── 等级与分数 ────────────────────────────────────────────────────────── */
-
-const tone = computed(() => levelTone(mapStore.indexData?.level));
-
-/** 等级词。接口没给等级时先空着，别拿 undefined 去渲染 */
-const level = computed(() => mapStore.indexData?.level ?? '');
-
-/**
- * 有没有取到鱼口概率。
- *
- * 没取到时一句话结论不出现 —— levelVerdict 的兜底是「鱼口概率计算中」，
- * 取数失败时那句会跟下面卡片里的「暂时取不到」打架。
- */
-const hasData = computed(() => Boolean(mapStore.indexData));
+/* ── 分数 ──────────────────────────────────────────────────────────────── */
 
 const score = computed(() => {
   const value = mapStore.indexData?.fishing_index ?? 0;
@@ -239,17 +218,6 @@ onBeforeUnmount(() => {
   countUp.cancel();
 });
 
-/* ── 一句话结论 ────────────────────────────────────────────────────────── */
-
-/**
- * 优先用和风官方那条「钓鱼」建议 —— 它是接口给的原文，比我们自己拼一句更有分量；
- * 官方指数还没到时退回等级映射（见 utils/weather 的 levelVerdict）。
- */
-const advice = computed(() => {
-  const fishing = mapStore.weatherIndices.find((item) => item.name.includes('钓鱼') && item.text);
-  return fishing?.text ?? levelVerdict(mapStore.indexData?.level);
-});
-
 /* ── 图标 ──────────────────────────────────────────────────────────────── */
 
 /**
@@ -290,7 +258,7 @@ function onRefresh() {
 <style lang="scss" scoped>
 .hero {
   position: relative;
-  height: 800rpx;
+  height: 600rpx;
   overflow: hidden;
 }
 
@@ -608,70 +576,5 @@ function onRefresh() {
 
 .hero__now-feels {
   color: $fish-on-dark;
-}
-
-/* ── 等级芯片 ──────────────────────────────────────────────────────────── */
-
-/*
- * 等级词不是一行浮在画上的字，而是一枚芯片。
- *
- * 底色用等级色的**深档** + 白字：填充分档（亮绿、亮橙）压白字只有 2.2:1，
- * 读不出来；深档压白字都在 4.5:1 以上。
- */
-.hero__level {
-  position: absolute;
-  top: 500rpx;
-  left: 48rpx;
-  display: flex;
-  align-items: center;
-}
-
-/*
- * 不套字阶：字阶里最小的一级（caption 24rpx）撑不起一枚芯片，
- * 往上一档（title 40rpx）又太大。36rpx 是这两者之间的一档，
- * 字重与字距跟 title 那一族走 —— 与分数那一行同一个理由。
- */
-.hero__chip {
-  padding: 8rpx 24rpx 10rpx;
-  border-radius: $fish-radius-pill;
-  color: $fish-on-accent;
-  font-size: 36rpx;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.016em;
-}
-
-.hero__chip--success {
-  background-color: $fish-success-ink;
-}
-
-.hero__chip--blue {
-  background-color: $fish-blue-600;
-}
-
-.hero__chip--warning {
-  background-color: $fish-warning-ink;
-}
-
-.hero__chip--destructive {
-  background-color: $fish-destructive-ink;
-}
-
-.hero__chip--muted {
-  background-color: $fish-muted-60;
-}
-
-/* ── 一句话 ────────────────────────────────────────────────────────────── */
-
-/*
- * 宽度收到 420rpx：再宽就压到插画右边那个人身上了。
- */
-.hero__lead {
-  position: absolute;
-  top: 580rpx;
-  left: 48rpx;
-  max-width: 420rpx;
-  color: $fish-on-dark;
-  @include fish-type(caption);
 }
 </style>
