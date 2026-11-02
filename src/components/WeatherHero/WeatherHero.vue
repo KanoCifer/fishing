@@ -1,30 +1,20 @@
 <template>
-  <!--
-    墨色那一档跟着天色走：亮天深墨（压白面），暗天白字（压深面）。
-    这一对类一直写在下方的样式里，根节点却没挂过 —— 挂上之后
-    压面与墨色才真的生效（挂错组名的表现是「这一组没有专属颜色」，不会白屏）。
-  -->
-  <view class="hero" :class="[skyClass, darkSky ? 'hero--dark' : 'hero--light']" :data-weather="group">
+  <view class="hero" :class="skyClass" :data-weather="group">
     <view class="hero__bg" />
 
     <image class="hero__img" :src="imageUrl" mode="aspectFill" />
 
     <view class="hero__scrim" />
 
-    <!--
-      底部过渡。
-
-      头图是个满幅矩形：底边直接切在页面底色上，会在页面上划出一条硬线。
-      这一层把画面底边化进页面底色 —— 硬线没了，头图读成「这张画铺到那儿就淡了」。
-    -->
     <view class="hero__fade" />
 
-    <!-- 顶行：地点 / 更新时间 / 刷新 -->
+    <!-- 顶行：地点标签 / 刷新 -->
     <view class="hero__top" :style="topRowStyle">
-      <view class="hero__place">
+      <!-- 地点标签：玻璃胶囊 + 实心图钉 + 地点名 + 展开箭头 -->
+      <view class="hero__position" @tap="onPickPlace">
         <image class="hero__icon hero__icon--pin" :src="pinIcon" mode="widthFix" />
         <text class="hero__place-name">{{ placeName }}</text>
-        <text v-if="updatedAt" class="hero__updated">{{ updatedAt }} 更新</text>
+        <image class="hero__icon hero__icon--chevron" :src="chevronDownIcon" mode="widthFix" />
       </view>
 
       <view class="hero__refresh" :class="{ 'hero__refresh--busy': busy }" @tap="onRefresh">
@@ -97,15 +87,8 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import TideGauge from '@/components/TideGauge/TideGauge.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
-import { icon, type IconColor } from '@/constants/icons';
-import {
-  HERO_GAUGE_SIZE,
-  HERO_GAUGE_STROKE,
-  HERO_TONE_FILL,
-  heroDarkSky,
-  heroImageUrl,
-  heroSky,
-} from '@/constants/weatherHero';
+import { icon } from '@/constants/icons';
+import { HERO_GAUGE_SIZE, HERO_GAUGE_STROKE, HERO_TONE_FILL, heroImageUrl, heroSky } from '@/constants/weatherHero';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
 import { levelTone, levelVerdict, num, weatherGroup, weatherIconUri } from '@/utils/weather';
@@ -115,6 +98,8 @@ const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: tr
 const emit = defineEmits<{
   /** 点开鱼口概率的构成 */
   breakdown: [];
+  /** 点地点标签上的箭头：换一个地方看 */
+  pickPlace: [];
 }>();
 
 const mapStore = useFishingMapStore();
@@ -129,9 +114,6 @@ const group = computed(() => weatherGroup(mapStore.liveWeather?.icon));
 
 /** 头图只有四种天色 */
 const sky = computed(() => heroSky(group.value));
-
-/** 暗天（夜、雨）：白字 + 压深面；亮天：深墨 + 压白面 */
-const darkSky = computed(() => heroDarkSky(group.value));
 
 const skyClass = computed(() => `hero--${sky.value}`);
 
@@ -166,9 +148,6 @@ const hasLive = computed(() => Boolean(live.value));
 /* ── 顶行 ──────────────────────────────────────────────────────────────── */
 
 const placeName = computed(() => mapStore.locationName || '钓鱼地点');
-
-/** 实况观测时刻，只取时分 */
-const updatedAt = computed(() => mapStore.liveWeather?.obsTime);
 
 const busy = computed(() => mapStore.indexLoading || mapStore.locating);
 
@@ -211,9 +190,9 @@ const arcColor = computed(() => HERO_TONE_FILL[tone.value]);
  * 轨道色。
  *
  * 轨道是「量程」那一段，不是内容 —— 它得比弧淡一档。
- * 亮天的底是浅蓝白，轨道压深；暗天压白。
+ * 头图整体压深面，轨道压白。
  */
-const trackColor = computed(() => (darkSky.value ? 'rgba(255, 255, 255, 0.28)' : 'rgba(15, 42, 61, 0.16)'));
+const trackColor = 'rgba(255, 255, 255, 0.28)';
 
 const gaugeSize = HERO_GAUGE_SIZE;
 const gaugeStroke = HERO_GAUGE_STROKE;
@@ -287,15 +266,33 @@ const advice = computed(() => {
 
 /* ── 图标 ──────────────────────────────────────────────────────────────── */
 
-/** 顶行图标跟着天色换：亮天深墨，暗天白 */
-const inkColor = computed<IconColor>(() => (darkSky.value ? 'onAccent' : 'heroInk'));
+/**
+ * 地点标签里的图钉是**深色实心**的。
+ *
+ * 它压在玻璃胶囊上：白色的描边图钉在浅底上读不出来，实心的才立得住。
+ * 实心版是生成脚本里的 filled 变体（中间那个圆被挖空成洞）。
+ */
+const pinIcon = icon('map-pin', 'ink');
 
-const pinIcon = computed(() => icon('map-pin', inkColor.value));
-const refreshIcon = computed(() => icon('refresh-cw', inkColor.value));
-const fishIcon = computed(() => icon('fish', inkColor.value));
-const chevronIcon = computed(() => icon('chevron-right', inkColor.value));
+/** 展开箭头：灰。深墨压在玻璃上太重 */
+const chevronDownIcon = icon('chevron-down', 'muted60');
+
+/** 头图上的其余图标一律压白 —— 图标的颜色烤在 data URI 里，换色要回去跑 pnpm icons */
+const refreshIcon = icon('refresh-cw', 'onAccent');
+const fishIcon = icon('fish', 'onAccent');
+const chevronIcon = icon('chevron-right', 'onAccent');
 
 /* ── 动作 ──────────────────────────────────────────────────────────────── */
+
+/**
+ * 地点标签上的箭头 = 换一个地方看。
+ *
+ * 这里只发事件：选点要弹微信自带的地图，组件不该知道那件事，
+ * 更不该知道选完之后要重新取哪一份数。
+ */
+function onPickPlace() {
+  emit('pickPlace');
+}
 
 function onRefresh() {
   // 定位那一段也算「正在忙」：图标已经在转了，这时候再按就是并发第二轮取数
@@ -344,39 +341,23 @@ function onRefresh() {
   height: 800rpx;
 }
 
-/* 天色压面。亮天压白，暗天压深 */
 .hero__scrim {
   position: absolute;
   top: 0;
   right: 0;
+  bottom: 0;
   left: 0;
-  height: 280rpx;
-}
-
-.hero--light .hero__scrim {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0) 100%);
-}
-
-.hero--dark .hero__scrim {
-  background-image: linear-gradient(180deg, rgba(6, 20, 34, 0.45) 0%, rgba(6, 20, 34, 0) 100%);
+  background-image: linear-gradient(180deg, rgba(6, 20, 34, 0.3) 0%, rgba(6, 20, 34, 0) 100%);
 }
 
 /* ── 顶行 ──────────────────────────────────────────────────────────────── */
 
-/*
- * 底部过渡。
- *
- * 渐变方向 0deg 是**从下往上**：底下是页面底色，往上淡出到透明。
- *
- * 高度只留 90rpx：再高就压到等级芯片与一句话上去了（那两块是字，不是画）。
- * 字压在这层之上，不受它影响。
- */
 .hero__fade {
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
-  height: 120rpx;
+  height: 90rpx;
   background-image: linear-gradient(0deg, $fish-page-base 0%, rgba($fish-page-base, 0) 100%);
 }
 
@@ -386,14 +367,26 @@ function onRefresh() {
   right: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 64rpx;
 }
 
-.hero__place {
+/*
+ * 地点标签：一枚玻璃胶囊。
+ *
+ * 半透明白 + 顶边高光 + 柔影 —— 与项目里其他玻璃面同一套材质，
+ * 压在头图上是「一层浮起来的材质」，不是「画上去的一个框」。
+ *
+ * 胶囊底是浅的，里面的东西一律深墨：白图标压在白底上读不出来。
+ */
+.hero__position {
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 0;
+  height: 64rpx;
+  max-width: 460rpx;
+  padding: 0 24rpx;
+  @include fish-glass($fish-radius-pill);
+  @include fish-press;
 }
 
 .hero__icon {
@@ -402,41 +395,30 @@ function onRefresh() {
   flex-shrink: 0;
 }
 
+/* 图钉：实心，个头与字高相当 */
 .hero__icon--pin {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 14rpx;
+}
+
+/* 展开箭头：它说的是「这里能点开，换个地方看」 */
+.hero__icon--chevron {
   width: 28rpx;
   height: 28rpx;
-  margin-right: 10rpx;
+  margin-left: 10rpx;
 }
 
 .hero__place-name {
   max-width: 300rpx;
+  min-width: 0;
   overflow: hidden;
+  color: $fish-ink;
   @include fish-type(body);
 
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.hero--light .hero__place-name {
-  color: $fish-hero-ink;
-}
-
-.hero--dark .hero__place-name {
-  color: $fish-on-dark;
-}
-
-.hero__updated {
-  margin-left: 12rpx;
-  @include fish-type(caption);
-}
-
-.hero--light .hero__updated {
-  color: rgba(15, 42, 61, 0.62);
-}
-
-.hero--dark .hero__updated {
-  color: rgba(255, 255, 255, 0.72);
 }
 
 /*
@@ -466,7 +448,7 @@ function onRefresh() {
 
 .hero__gauge {
   position: absolute;
-  top: 180rpx;
+  top: 200rpx;
   left: 40rpx;
 }
 
@@ -501,6 +483,7 @@ function onRefresh() {
  * letter-spacing / line-height 覆盖掉。
  */
 .gauge__num {
+  color: $fish-on-dark;
   font-size: 96rpx;
   font-weight: 700;
   line-height: 1;
@@ -508,26 +491,11 @@ function onRefresh() {
   font-variant-numeric: tabular-nums;
 }
 
-.hero--light .gauge__num {
-  color: $fish-hero-ink;
-}
-
-.hero--dark .gauge__num {
-  color: $fish-on-dark;
-}
-
 /* 「/100」是刻度的上限，不是第二个数字：压到最小一档 */
 .gauge__max {
   margin-left: 6rpx;
+  color: $fish-on-dark;
   @include fish-type(caption);
-}
-
-.hero--light .gauge__max {
-  color: rgba(15, 42, 61, 0.62);
-}
-
-.hero--dark .gauge__max {
-  color: rgba(255, 255, 255, 0.72);
 }
 
 /*
@@ -554,7 +522,9 @@ function onRefresh() {
   flex-shrink: 0;
 }
 
+/* 图标的颜色是烤进 data URI 的，CSS 改不动 —— 只有文字这一档能调 */
 .gauge__cap-text {
+  color: $fish-on-dark;
   @include fish-type(caption);
 }
 
@@ -563,15 +533,6 @@ function onRefresh() {
   height: 22rpx;
   margin-left: 2rpx;
   flex-shrink: 0;
-}
-
-/* 图标的颜色是烤进 data URI 的，CSS 改不动 —— 只有文字这一档能调 */
-.hero--light .gauge__cap-text {
-  color: rgba(15, 42, 61, 0.62);
-}
-
-.hero--dark .gauge__cap-text {
-  color: rgba(255, 255, 255, 0.72);
 }
 
 /* ── 实时天气 ──────────────────────────────────────────────────────────── */
@@ -650,24 +611,14 @@ function onRefresh() {
   @include fish-type(caption);
 }
 
-.hero--light .hero__now-temp,
-.hero--light .hero__now-deg,
-.hero--light .hero__now-cond {
-  color: $fish-hero-ink;
-}
-
-.hero--dark .hero__now-temp,
-.hero--dark .hero__now-deg,
-.hero--dark .hero__now-cond {
+.hero__now-temp,
+.hero__now-deg,
+.hero__now-cond {
   color: $fish-on-dark;
 }
 
-.hero--light .hero__now-feels {
-  color: rgba(15, 42, 61, 0.62);
-}
-
-.hero--dark .hero__now-feels {
-  color: rgba(255, 255, 255, 0.72);
+.hero__now-feels {
+  color: $fish-on-dark;
 }
 
 /* ── 等级芯片 ──────────────────────────────────────────────────────────── */
@@ -680,7 +631,7 @@ function onRefresh() {
  */
 .hero__level {
   position: absolute;
-  top: 580rpx;
+  top: 500rpx;
   left: 48rpx;
   display: flex;
   align-items: center;
@@ -728,17 +679,10 @@ function onRefresh() {
  */
 .hero__lead {
   position: absolute;
-  top: 660rpx;
+  top: 580rpx;
   left: 48rpx;
   max-width: 420rpx;
-  @include fish-type(caption);
-}
-
-.hero--light .hero__lead {
-  color: $fish-hero-ink;
-}
-
-.hero--dark .hero__lead {
   color: $fish-on-dark;
+  @include fish-type(caption);
 }
 </style>

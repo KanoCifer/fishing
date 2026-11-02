@@ -83,7 +83,7 @@ pnpm 会在补丁打不上时直接报错，不会悄悄失效。
 所以「按数据切样式」只能走 class 选择器：
 
 ```html
-<view class="hero hero--rain hero--dark" data-weather="rain"></view>
+<view class="hero hero--rain" data-weather="rain"></view>
 ```
 
 ```scss

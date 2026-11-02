@@ -11,9 +11,12 @@
 import { ENV } from '@/config/env';
 import type { Tone, WeatherGroup } from '@/utils/weather';
 
+/** 地点标签选点失败时的说法 */
+export const HERO_PICK_FAILED = '选点失败，请重试';
+
 /** 弧形表的边长与线宽（rpx） */
-export const HERO_GAUGE_SIZE = 360;
-export const HERO_GAUGE_STROKE = 22;
+export const HERO_GAUGE_SIZE = 300;
+export const HERO_GAUGE_STROKE = 25;
 
 /** 头图在 CDN 上的目录 */
 const HERO_IMAGE_DIR = `${ENV.cdnBaseUrl}/weather`;
@@ -48,17 +51,6 @@ export function heroSky(group: WeatherGroup): HeroSky {
 /** 天气外观组 → 头图地址 */
 export function heroImageUrl(group: WeatherGroup): string {
   return `${HERO_IMAGE_DIR}/hero-${heroSky(group)}.jpg`;
-}
-
-/**
- * 暗天：夜与雨。
- *
- * 暗天上压白字、压深面；亮天（晴、多云及落回多云的那几组）压深墨、压白面。
- * 同一页两套，不给每种天气各写一份规则。
- */
-export function heroDarkSky(group: WeatherGroup): boolean {
-  const sky = heroSky(group);
-  return sky === 'night' || sky === 'rain';
 }
 
 /**

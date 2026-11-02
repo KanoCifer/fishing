@@ -161,8 +161,8 @@ uni-app 会把 `src/uni.scss` 的**原文**拼到每个 scss 编译单元前面�
 带颜色的面只剩一种：**深色面**（`fish-deep-face`）：底是不透明的深蓝，
 上面的东西浮在它上面。
 
-天气颜色不再落在一张卡上，而是落在头图里：头图右上角那块实时天气跟着天色走 ——
-亮天压深墨、暗天压白字（见 `src/components/WeatherHero/WeatherHero.vue`）。
+天气颜色不再落在一张卡上，而是落在头图里：头图右上角那块实时天气压在头图上，
+字一律压白，头图按天色压深面（见 `src/components/WeatherHero/WeatherHero.vue`）。
 天色只有四种（晴 / 多云 / 雨 / 夜），映射见 `src/constants/weatherHero.ts`。
 
 深色面现在有两处用：

@@ -14,7 +14,7 @@
         @refresh="onRefresh"
       />
 
-      <WeatherHero :show-anim="showAnim" @breakdown="openBreakdown" />
+      <WeatherHero :show-anim="showAnim" @breakdown="openBreakdown" @pick-place="onPickPlace" />
 
       <VerdictOverview :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
 
@@ -100,6 +100,7 @@ import VerdictOverview from '@/components/VerdictOverview/VerdictOverview.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { SHARE_CARDS } from '@/constants/share';
+import { HERO_PICK_FAILED } from '@/constants/weatherHero';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { useFishingMapStore } from '@/stores/fishingMap';
@@ -136,6 +137,28 @@ const placeName = computed(() => mapStore.locationName || '钓鱼地点');
 function onRefresh() {
   if (mapStore.indexLoading) return;
   void mapStore.refreshIndexData();
+}
+
+/**
+ * 地点标签上的箭头：换一个地方看。
+ *
+ * 调微信自带的选点地图 —— 用户在自己认得的地方点一下，
+ * 比我们再画一张地图选得准。
+ */
+function onPickPlace() {
+  uni.chooseLocation({
+    success: (res) => {
+      // 经度在前：location 要的是 [lng, lat]，写反了不会报错，
+      // 只会落到地球另一侧
+      void mapStore.pickManualLocation([res.longitude, res.latitude]);
+    },
+    fail: (err) => {
+      // 用户主动取消是正常操作，不该弹一个「失败」把气氛搞砸
+      const message = String(err?.errMsg ?? '');
+      if (message.includes('cancel')) return;
+      uni.showToast({ title: HERO_PICK_FAILED, icon: 'none' });
+    },
+  });
 }
 
 /**

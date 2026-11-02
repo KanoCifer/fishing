@@ -27,8 +27,6 @@ const COLORS = {
   success: '#34c759', // $fish-success
   destructive: '#ff3b30', // $fish-destructive
   onAccent: '#ffffff', // 主色按钮上的前景色
-  // 天气页头图上的深墨。亮天的头图顶部是一片浅蓝白，纯黑压上去太硬
-  heroInk: '#0f2a3d', // $fish-hero-ink
 };
 
 /**
@@ -50,18 +48,16 @@ const ICONS = [
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 建议入口' },
-  { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头' },
+  { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头 / 头图地点标签的展开箭头' },
   // —— 天气页头图 ——
-  // 头图上的图标跟着天色换：亮天压深墨，暗天压白。
-  // 同一枚图形两个色值，说的就是「它在两种底色上各有一份」。
-  { name: 'map-pin', color: 'heroInk', use: '头图 · 亮天的地点标记' },
-  { name: 'map-pin', color: 'onAccent', use: '头图 · 暗天的地点标记' },
-  { name: 'refresh-cw', color: 'heroInk', use: '头图 · 亮天的刷新键' },
-  { name: 'refresh-cw', color: 'onAccent', use: '头图 · 暗天的刷新键' },
-  { name: 'fish', color: 'heroInk', use: '头图 · 亮天的鱼口概率标记' },
-  { name: 'fish', color: 'onAccent', use: '头图 · 暗天的鱼口概率标记' },
-  { name: 'chevron-right', color: 'heroInk', use: '头图 · 亮天的「看构成」箭头' },
-  { name: 'chevron-right', color: 'onAccent', use: '头图 · 暗天的「看构成」箭头' },
+  // 头图上的图标一律压白：头图整体压深面，深墨图标压在上面读不出来。
+  { name: 'map-pin', color: 'onAccent', use: '头图 · 地点标记' },
+  // 地点标签这一枚要**实心**：它压在玻璃胶囊上，描边图钉在小尺寸下会读成一团糊。
+  // 实心版把中间那个圆挖空成洞，洞里透出胶囊底色（见 punchHoles）。
+  { name: 'map-pin', color: 'ink', filled: true, use: '头图 · 地点标签的图钉（实心）' },
+  { name: 'refresh-cw', color: 'onAccent', use: '头图 · 刷新键' },
+  { name: 'fish', color: 'onAccent', use: '头图 · 鱼口概率标记' },
+  { name: 'chevron-right', color: 'onAccent', use: '头图 · 「看构成」箭头' },
   // —— 地图 toolbar ——
   // 卫星与路况是**两个独立开关**，各自要「开」与「关」两个色值：
   // 图标是颜色烤死的 data URI，状态只能靠换一份色值来表达。
@@ -124,21 +120,56 @@ const ICONS = [
 /**
  * 把 lucide 的 SVG 改成能进 <image> 的形态。
  *
- * 三件事：
+ * 四件事：
  * 1. 删掉 width/height —— 尺寸交给 CSS 的 .icon-* 规则，这样同一个图标
  *    在 24rpx 和 40rpx 下都是同一份数据，不会存两份尺寸。
  * 2. currentColor 换成具体色值，理由见文件头。
  * 3. 去掉 class —— class 在 <image> 里不起作用，留着只是误导。
+ * 4. filled 的那一档换填充（见 punchHoles）。
  */
-function toInlineSvg(raw, color) {
+function toInlineSvg(raw, color, filled = false) {
   let svg = raw
     // lucide 每份文件头部都带一条 license 注释，ISC 要求署名，保留
     .replace(/<svg\s+class="[^"]*"\s+/, '<svg ')
     .replace(/\s*width="24"/, '')
     .replace(/\s*height="24"/, '');
 
+  if (filled) {
+    // 实心版：整张图填色，描边取消。
+    svg = svg.replace('fill="none"', `fill="${color}"`).replace('stroke="currentColor"', 'stroke="none"');
+    return punchHoles(svg).trim();
+  }
+
   svg = svg.replace('stroke="currentColor"', `stroke="${color}"`);
   return svg.trim();
+}
+
+/**
+ * 把 <circle> 挖成洞。
+ *
+ * lucide 的图形全是描边的；实心图形里那个圆要读成「中间透出底色的一圈」，
+ * 不是实心的点。做法：圆转成同一段 path 里的子路径，再用 evenodd 填 ——
+ * 外圈实心，圈里透空。
+ *
+ * 只处理「一条 path + 若干圆」的图形（lucide 的 map-pin 正是这种）：
+ * 圆并进第一条 path，其余 path 原样保留。
+ */
+function punchHoles(svg) {
+  const holes = [...svg.matchAll(/<circle\s+([^>]*?)\/>/g)]
+    .map(([, attrs]) => {
+      const num = (name) => Number(new RegExp(`${name}="(-?[\\d.]+)"`).exec(attrs)?.[1]);
+      const [cx, cy, r] = [num('cx'), num('cy'), num('r')];
+      if (![cx, cy, r].every(Number.isFinite)) return '';
+      // 从最左点起，两段半圆合成一个整圆
+      return `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+    })
+    .join('');
+
+  if (!holes) return svg;
+
+  return svg
+    .replace(/<circle\s+[^>]*?\/>/g, '')
+    .replace(/<path\s+d="([^"]+)"/, `<path fill-rule="evenodd" d="$1${holes}"`);
 }
 
 /** 压成一行，base64 之前的部分别留换行 —— 生成物要人肉也能读得下去 */
@@ -148,9 +179,9 @@ function toDataUri(svg) {
 
 function main() {
   const colorNames = Object.keys(COLORS);
-  const entries = ICONS.map(({ name, color, use }) => {
+  const entries = ICONS.map(({ name, color, use, filled }) => {
     const raw = readFileSync(resolve(ICON_DIR, `${name}.svg`), 'utf8');
-    const svg = toInlineSvg(raw, COLORS[color]);
+    const svg = toInlineSvg(raw, COLORS[color], filled);
     return { key: `${name}__${color}`, name, color, use, uri: toDataUri(svg) };
   });
 

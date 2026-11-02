@@ -118,6 +118,10 @@ constants/     文案与生成物
 - 写反经纬度会定位到地球另一侧，但不报错
 - 两位小数是**后端的缓存与降级粒度** —— 不要为了「更精确」改成 `toFixed(6)`，位数变了后端缓存全部 miss
 - store 用 `locationKey()`（两位小数）比对，同一个坐标就是同一份数据。原地挪几十米不该发请求，换了城市才该重取
+- **数据页看哪儿，三样里挑一样**：手动挑的点 > 定位 > 默认中心。手动挑的点存在 store 的
+  `manualLocation` 里，不并进 `userLocation` —— 那是 GPS 的位置，地图页的定位键与它是一份。
+  强制重新定位（定位键、刷新键）会把手动挑的点作废：定位回来的是真实现位，留着用户挑的
+  地方等于拿那个地方的数据冒充当前位置报账
 
 ## 归一
 
@@ -181,11 +185,11 @@ const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
 
 **两处出处分工**：
 
-| 出处                           | 放什么                                                                             |
-| ------------------------------ | ---------------------------------------------------------------------------------- |
-| `src/utils/weather.ts`         | `weatherGroup()`：码区间 → 组名（与 `levelTone`、`weatherIconSlug` 并排）          |
-| `src/utils/weather.ts`         | `forecastDays()`：有效预报日 —— 说「今天」的唯一出处                               |
-| `src/constants/weatherHero.ts` | `heroSky()` / `heroDarkSky()`：组名 → 四种天色 + 墨色那一档（亮天深墨 / 暗天白字） |
+| 出处                           | 放什么                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| `src/utils/weather.ts`         | `weatherGroup()`：码区间 → 组名（与 `levelTone`、`weatherIconSlug` 并排） |
+| `src/utils/weather.ts`         | `forecastDays()`：有效预报日 —— 说「今天」的唯一出处                      |
+| `src/constants/weatherHero.ts` | `heroSky()`：组名 → 四种天色（压面深浅按天色给，字一律压白）              |
 
 组名是两边唯一的接缝。头图组件拿组名换算出天色，再拼成 class 修饰符（`hero--rain`），
 同名的那条规则给出那套画面 —— 拼错组名的表现是

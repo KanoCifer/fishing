@@ -128,6 +128,15 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * null = 还没定位到（未授权 / 定位失败 / 还没定位完）。
    */
   const userLocation = ref<LngLat | null>(null);
+
+  /**
+   * 用户自己挑的地点。null = 没挑过，看的是定位。
+   *
+   * 不并进 userLocation：那是 GPS 的位置，地图页的定位键与它是一份。
+   * 自己挑的地方只管数据页这一屏，但它得留住 —— 切 tab 回来又跳回定位，
+   * 用户会以为地点标签在乱跳。
+   */
+  const manualLocation = ref<LngLat | null>(null);
   /**
    * 用户明确拒绝过定位授权。
    *
@@ -282,6 +291,15 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
       if (userLocation.value) return Promise.resolve(userLocation.value);
       if (locationDenied.value) return Promise.resolve(null);
     }
+
+    /*
+     * 强制重新定位 = 回到「我这儿」。
+     *
+     * 用户自己挑的地点在这刻作废：定位键与刷新键都是「重新定位」的意思，
+     * 定位回来的是真实现位 —— 留着用户挑的地方，等于拿那个地方的数据
+     * 冒充当前位置报账。
+     */
+    if (force) manualLocation.value = null;
     // 已有请求在飞就等它，不并发第二个
     if (locatePending) return locatePending;
 
@@ -395,6 +413,14 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     try {
       const data = await fishingApi.getFishingIndex(target, true);
 
+      /*
+       * 期间又发了一轮（用户换了地点、或点了刷新）：这份是旧地点的，丢掉。
+       *
+       * 两个响应互相覆盖的话，地点名会闪一下 —— 用户刚挑完地方，
+       * 标签又跳回上一个地名，等于没挑成。
+       */
+      if (inflightKey !== key) return;
+
       const { now, hourly, daily } = normalizeWeatherPayload({
         current: data.current_weather,
         hourly: data.hourly_weather,
@@ -422,6 +448,9 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
         void fetchPanelTide();
       }
     } catch (err) {
+      /* 期间又有新一轮在跑：这份失败不算数 —— 新一轮自己会说话 */
+      if (inflightKey !== key) return;
+
       /* 两处错误各带各的兜底：天气卡说的是天气，结论头说的是鱼口概率 */
       const networkMessage = describeFetchError(err);
       const message = networkMessage || '服务暂时不可用，请稍后重试';
@@ -439,9 +468,17 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
         void fetchPanelTide();
       }
     } finally {
-      inflightKey = null;
-      weatherLoading.value = false;
-      indexLoading.value = false;
+      /*
+       * 只清自己那一份。
+       *
+       * 期间又有新一轮在跑的话，inflightKey 已经是新一轮的键，
+       * 这时候清掉它就把「同一坐标不并发」那道锁拆了，加载态也会提前熄掉。
+       */
+      if (inflightKey === key) {
+        inflightKey = null;
+        weatherLoading.value = false;
+        indexLoading.value = false;
+      }
     }
   }
 
@@ -455,8 +492,11 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 全应用只有这一条取数入口：地图页不碰它（那边根本不显示这些数据）。
    */
   async function ensureWeatherAndFishing(): Promise<void> {
-    const located = await locateUser();
-    const target = located ?? userLocation.value ?? MAP_CENTER;
+    /*
+     * 用户挑过地点就看那个地方 —— 切 tab 回来不能又跳回定位。
+     * 没挑过才去定位（定位要弹权限窗，不该白弹一次）。
+     */
+    const target = manualLocation.value ?? (await locateUser()) ?? userLocation.value ?? MAP_CENTER;
 
     if (indexData.value && indexLocation.value === locationKey(target)) return;
 
@@ -478,6 +518,17 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     const target = located ?? userLocation.value ?? MAP_CENTER;
 
     await Promise.all([fetchWeatherAndFishing(target), fetchMinutely(target)]);
+  }
+
+  /**
+   * 换一个地方看：用户自己挑了一个点。
+   *
+   * 指数与分钟降水一起换 —— 这一屏讲的是同一个地方，
+   * 只换一半的话，地点标签写着深圳、降水卡还画着广州。
+   */
+  async function pickManualLocation(location: LngLat): Promise<void> {
+    manualLocation.value = location;
+    await Promise.all([fetchWeatherAndFishing(location), fetchMinutely(location)]);
   }
 
   /*
@@ -523,8 +574,13 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     try {
       const data = await fishingApi.getMinutely(target);
 
+      // 期间又发了一轮：这份是旧地点的，丢掉（理由同 fetchWeatherAndFishing）
+      if (minutelyInflightKey !== key) return;
+
       minutelyForecast.value = normalizeMinutely(data);
     } catch (err) {
+      if (minutelyInflightKey !== key) return;
+
       const message = err instanceof Error ? err.message : '获取分钟降水失败';
       minutelyError.value = message;
       // 取不到就把旧数据清掉：留着一份几小时前的降水当「接下来的降水」是骗人
@@ -536,8 +592,10 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
        * 报错只是打扰，卡片里给出空态就够了。
        */
     } finally {
-      if (minutelyInflightKey === key) minutelyInflightKey = null;
-      minutelyLoading.value = false;
+      if (minutelyInflightKey === key) {
+        minutelyInflightKey = null;
+        minutelyLoading.value = false;
+      }
     }
   }
 
@@ -549,8 +607,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 所以不能像天气那样一直复用。
    */
   async function ensureMinutely(): Promise<void> {
-    const located = await locateUser();
-    const target = located ?? userLocation.value ?? MAP_CENTER;
+    // 与指数那一路同一口径：用户挑过地点就按那个地点取
+    const target = manualLocation.value ?? (await locateUser()) ?? userLocation.value ?? MAP_CENTER;
     const key = locationKey(target);
 
     const fresh = Date.now() - minutelyFetchedAt.value <= MINUTELY_TTL;
@@ -789,6 +847,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   return {
     // 定位
     userLocation,
+    manualLocation,
     locationDenied,
     locationError,
     locating,
@@ -837,6 +896,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     locateUser,
     markLocationDenied,
     fetchWeatherAndFishing,
+    pickManualLocation,
     ensureWeatherAndFishing,
     refreshIndexData,
     fetchMinutely,
