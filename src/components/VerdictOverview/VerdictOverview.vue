@@ -251,20 +251,9 @@ function onRefresh() {
 </script>
 
 <style lang="scss" scoped>
-/*
- * 这张卡。
- *
- * 上外边距 -36rpx：压住头图的下沿 —— 两块咬在一起，
- * 不然头图与卡片是两张互不相干的贴片。
- *
- * 玻璃面 + 阴影：层次靠**面**不靠描边（见 docs/design-system.md）。
- *
- * 圆角用 fish-glass 的默认档（radius-mid）：数据页上其余几张方卡
- * （当前天气 / 多日预报）是同一档，这一张单挂 radius-card 会读成另一套组件。
- */
 .verdict {
   position: relative;
-  margin-top: -36rpx;
+  margin-top: -48rpx;
   margin-right: 32rpx;
   margin-left: 32rpx;
   padding: 28rpx;

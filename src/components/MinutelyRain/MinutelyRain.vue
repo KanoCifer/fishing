@@ -1,48 +1,17 @@
 <template>
   <view class="minutely">
     <view class="minutely__head">
-      <text class="minutely__title">分钟降水</text>
-      <text class="minutely__meta">{{ windowLabel }}</text>
+      <text class="minutely__title">分钟级降水</text>
     </view>
 
-    <!--
-      上游给的一句话。
-
-      这是这张卡最该先被看到的东西：「95分钟后雨就停了」比一排柱子更快地
-      回答「还能不能钓」。所以它排在图上面，而不是塞进标题行的注脚里。
-    -->
     <text v-if="summary" class="minutely__summary">{{ summary }}</text>
 
-    <!--
-      骨架照着最终形状摆，不用 SkeletonCard —— 那张是列表卡的形状
-      （标题行 + 数值块 + 三列），摆在这里跟最终的样子对不上
-      （理由见 VerdictOverview 的加载态注释）。
-    -->
     <view v-if="loading && !hasData" class="minutely__skeleton">
       <view class="minutely__skeleton-summary" />
       <view class="minutely__skeleton-plot" />
     </view>
 
     <view v-else-if="hasData" class="minutely__body">
-      <!--
-        雨幕。
-
-        一格一根柱子：横排是时间，柱高是这 5 分钟下了多少，柱色是雨强档位。
-
-        为什么不用曲线：上游给的是一格一格的累计量，连成曲线等于替这串
-        离散数据编了一段并不存在的连续性 —— 雨是断续的，曲线会把两场雨
-        之间的空当描成一条缓缓下滑的线，看着像雨没停。柱子只声称它知道的
-        那一格。
-
-        深色面上这排柱子是**浮在面上**的釉柱，不是贴在面上的色块：
-        顶端一道亮边（inset shadow）让它读成一根立起来的柱，
-        暴雨那档再自带一圈辉光，一眼就看到雨最猛的那一格在哪。
-
-        手指划过图，读数跟着走：一格一格地扫过去，浮标实时报出那一格
-        下了多少、什么时候、什么档位。事件挂在绘图区而不是某一根柱子上 ——
-        手指压住的是柱顶还是柱子之间的空当，读的人不关心，他要的是
-        「我现在指着第几格」。
-      -->
       <view
         class="minutely__plot"
         @touchstart="onTouchStart"
@@ -56,18 +25,6 @@
           </view>
         </view>
 
-        <!--
-          读数浮标。
-
-          它长在被读的那根柱子头上：数值 + 档位 + 什么时候。
-          跟底部轨道那套「点了柱子再往下找」的读法相反 —— 眼睛不用离开柱子。
-
-          常态浮在峰值那一格上（峰值是这张卡最该被读到的一格）；
-          点别的格就跟着换过去。选中的格其余柱子压暗一档（dim to focus）。
-
-          等柱阵量过宽度才出现：浮标收边要靠那个宽度算（见 CHIP_MAX_WIDTH），
-          没有它就先摆位置、量回来再滑过去 —— 边缘那几格会先探出卡外一下。
-        -->
         <view v-if="readout && bandBox.width > 0" class="minutely__chip-anchor" :style="chipStyle">
           <view class="minutely__chip">
             <text class="minutely__chip-main">{{ readout.main }}</text>
@@ -75,12 +32,6 @@
           </view>
         </view>
 
-        <!--
-          整段没有降水时的说明。
-
-          没有雨的时候，图上只剩一排 0 高度的短柱 —— 看着像图没加载出来。
-          所以在这里把结论写出来：这一格不是空的，是「测过了，是 0」。
-        -->
         <view v-if="isDry" class="minutely__dry">
           <text class="minutely__dry-label">{{ dryLabel }}</text>
         </view>
@@ -98,18 +49,7 @@
         </text>
       </view>
 
-      <!--
-        色卡。
-
-        颜色在这张图里只承载**档位**，不承载大小（大小是柱高），
-        所以色卡要写清楚每档叫什么 —— 否则四根深浅不一的蓝柱
-        对读者来说只是四根不一样的蓝柱。
-      -->
       <view class="minutely__legend">
-        <!--
-          整段没有降水：四档色卡用不上，只留一枚「无降水」色块 ——
-          四档都摆着、图上一根柱子都没有，图例反而会让人以为图漏了。
-        -->
         <view v-if="isDry" class="minutely__legend-chip minutely__legend-chip--last">
           <view class="minutely__swatch minutely__swatch--none" />
           <text class="minutely__legend-label">0 毫米</text>
@@ -125,18 +65,6 @@
             <text class="minutely__legend-label">{{ level.label }}</text>
           </view>
         </template>
-      </view>
-
-      <!--
-        窗口合计。
-
-        浮标读的是「某一格」，这里读的是「整段」—— 两件事，不重复。
-        合计只有一行，不做成轨道：轨道是给两套读数交叉淡入用的，
-        这里只有一套。
-      -->
-      <view class="minutely__total">
-        <text class="minutely__total-label">累计降水</text>
-        <text class="minutely__total-value">{{ curtain.total.toFixed(1) }} 毫米</text>
       </view>
     </view>
 
