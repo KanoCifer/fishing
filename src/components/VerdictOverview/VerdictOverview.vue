@@ -284,7 +284,7 @@ function onRefresh() {
   display: flex;
   align-items: stretch;
   padding: 24rpx 8rpx;
-  border-radius: $fish-radius-lg;
+  border-radius: 28rpx;
   background-color: $fish-fill;
   @include fish-enter;
 }

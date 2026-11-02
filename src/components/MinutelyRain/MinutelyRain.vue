@@ -621,7 +621,7 @@ const dryLabel = computed(() => {
  */
 .minutely__plot {
   position: relative;
-  height: 280rpx;
+  height: 200rpx;
 }
 
 .minutely__band {
