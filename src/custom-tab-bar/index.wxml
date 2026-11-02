@@ -1,0 +1,19 @@
+<view class="tabbar">
+  <view
+    wx:for="{{list}}"
+    wx:key="key"
+    class="tabbar__item {{item.type === 'action' ? 'tabbar__item--action' : ''}}"
+    data-key="{{item.key}}"
+    bindtap="onTap"
+  >
+    <view class="tabbar__iconbox {{item.type === 'action' ? 'tabbar__iconbox--action' : ''}}">
+      <image
+        class="tabbar__icon"
+        src="{{item.key === selectedKey ? item.activeIcon : item.icon}}"
+        mode="aspectFit"
+      />
+    </view>
+
+    <text class="tabbar__label {{item.key === selectedKey ? 'tabbar__label--on' : ''}}">{{item.text}}</text>
+  </view>
+</view>

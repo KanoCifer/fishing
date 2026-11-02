@@ -56,6 +56,7 @@ const ICONS = [
   // 实心版把中间那个圆挖空成洞，洞里透出胶囊底色（见 punchHoles）。
   { name: 'map-pin', color: 'ink', filled: true, use: '头图 · 地点标签的图钉（实心）' },
   { name: 'refresh-cw', color: 'onAccent', use: '头图 · 刷新键' },
+  { name: 'sparkles', color: 'onAccent', use: '头图 · 渔碌建议入口' },
   { name: 'fish', color: 'onAccent', use: '头图 · 鱼口概率标记' },
   { name: 'chevron-right', color: 'onAccent', use: '头图 · 「看构成」箭头' },
   // —— 地图 toolbar ——
