@@ -645,7 +645,7 @@ export interface MinutelyBucket {
   value: number | null;
   /** 雨强档位。null = 这一格没有数据 */
   level: PrecipLevel | null;
-  /** 相对窗口峰值的高度百分比（0~100）。没有数据时为 null */
+  /** 相对雨强量程的高度百分比（0~100）。没有数据时为 null */
   heightPct: number | null;
 }
 

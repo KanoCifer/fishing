@@ -34,6 +34,35 @@ const LEVELS: ReadonlyArray<{ key: PrecipLevel; label: string; from: number }> =
 const NONE_LABEL = '无降水';
 
 /**
+ * 柱高量程的上沿：暴雨的下限（1 小时 16 毫米 → 5 分钟 1.333 毫米）。
+ *
+ * 为什么是**绝对**量程，不能按窗口峰值归一：按峰值归一时，
+ * 一整段小雨的窗口里最强的那一格也顶到 100% —— 柱子高度就不再说「雨有多大」，
+ * 只说「这一格是这段里最强的」。小雨铺满整张图，看着像大雨。
+ *
+ * 上沿取暴雨下限而不是大雨下限：这样每一档雨强在图上占一段互不重叠的高度区间
+ * （小雨 ≤16%、中雨 ≤50%、大雨 ≤100%），高度和颜色说的是同一件事，
+ * 不会出现一根中雨柱顶到顶。
+ *
+ * 和上面那张档位表是同一套口径（表里 storm.from = 16/12），
+ * 改档位阈值时这里要一起改。
+ */
+const SCALE_MAX_5MIN = 16 / 12;
+
+/**
+ * 有雨时的最低柱高（占绘图区的百分比）。
+ *
+ * 绝对量程下很小的一格降水算出来可能只有 1% —— 画出来是一根发丝，
+ * 看不见就等于这一格没有数据。只要测到有雨，图上就得看得见它。
+ *
+ * 5% 在 224rpx 的绘图区里是 11rpx，够粗；也明显高于「测到 0」那根 6rpx 的短柱。
+ *
+ * 为什么不再高一点：下限是给「测到但很小」的雨兜底的，兜得太高，
+ * 一整段小雨的窗口会被压成一行等高的短柱 —— 坡度没了，只剩一排一样的柱子。
+ */
+const MIN_HEIGHT_PCT = 5;
+
+/**
  * 色卡上要列的档位。
  *
  * 不列「无降水」：没下雨的那一格画出来是一根极淡的短柱，
@@ -99,10 +128,22 @@ export function buildMinutelyCurtain(points: MinutelyPoint[]): MinutelyCurtain {
     if (!peak || bucket.value > (peak.value ?? 0)) peak = bucket;
   }
 
-  // 柱高按窗口峰值归一：最高的柱子顶到绘图区上沿
-  const max = peak?.value ?? 0;
+  // 柱高按绝对量程算（见 SCALE_MAX_5MIN），不按窗口峰值归一
   for (const bucket of buckets) {
-    bucket.heightPct = bucket.value === null || max <= 0 ? null : (bucket.value / max) * 100;
+    if (bucket.value === null) {
+      bucket.heightPct = null;
+      continue;
+    }
+
+    if (bucket.value <= 0) {
+      // 测到 0：不是雨。组件画一根极短的淡柱（0 高度与「没测到」必须长得不一样）
+      bucket.heightPct = 0;
+      continue;
+    }
+
+    const pct = (bucket.value / SCALE_MAX_5MIN) * 100;
+    // 封顶在量程上沿，下限是「看得见」的那一档
+    bucket.heightPct = Math.min(100, Math.max(MIN_HEIGHT_PCT, pct));
   }
 
   const total = buckets.reduce((sum, bucket) => sum + (bucket.value ?? 0), 0);
