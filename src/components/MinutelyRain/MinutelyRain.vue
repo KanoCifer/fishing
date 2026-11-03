@@ -2,34 +2,33 @@
   <view class="minutely">
     <view class="minutely__head">
       <text class="minutely__title">分钟级降水</text>
-      <text class="minutely__meta">{{ windowLabel }}</text>
     </view>
 
     <text v-if="summary" class="minutely__summary">{{ summary }}</text>
 
     <view v-if="loading && !hasData" class="minutely__skeleton">
       <view class="minutely__skeleton-summary" />
+      <view class="minutely__skeleton-strip" />
       <view class="minutely__skeleton-plot" />
     </view>
 
     <view v-else-if="hasData" class="minutely__body">
       <!--
-        读数条。
+        读数条：图上读到哪一格，这里就说哪一格。
 
-        读数钉在图上（浮在柱顶的那块白牌）这件事已经去掉了：一块牌压在图上，
-        眼睛先落在牌上，得再往下找才落到它说的那一格；牌大了还会盖住旁边的柱。
-        读数挪到图**上面**这条固定的位置上，图里就只剩数据。
-
-        这条是「在看哪一格」，不是「结论」：常态读峰值，点过之后读被点的那格。
+        常态读峰值 —— 峰值是这张卡最该被读到的一格，不该要用户点一下才看得到。
+        常态与点选态的差别只在右边那句话：常态说「峰值 · 20 分钟后」，
+        点过之后说「35 分钟后」。读数的位置是固定的，两态的差别用文字说。
       -->
       <view class="minutely__readout">
         <view class="minutely__readout-figure">
           <text class="minutely__readout-value">{{ readout.amount }}</text>
-          <text class="minutely__readout-unit">毫米</text>
+          <text class="minutely__readout-unit">{{ readout.unit }}</text>
         </view>
-        <view class="minutely__readout-body">
-          <text class="minutely__readout-level">{{ readout.level }}</text>
-          <text class="minutely__readout-when">{{ readout.when }}</text>
+        <view class="minutely__readout-meta">
+          <text v-if="readout.level" class="minutely__readout-level">{{ readout.level }}</text>
+          <text v-if="readout.level && readout.when" class="minutely__readout-sep">·</text>
+          <text v-if="readout.when" class="minutely__readout-when">{{ readout.when }}</text>
         </view>
       </view>
 
@@ -40,14 +39,19 @@
         @touchend="onTouchEnd"
         @touchcancel="onTouchCancel"
       >
+        <!--
+          游标：竖着的一根细线，落在被读到的那一格上。
+
+          它不是压在图上的牌 —— 牌会盖住旁边的柱，眼睛先落在牌上，
+          得再往下找才落到它说的那一格。这根线不挡任何东西，
+          只是把「上面那个数说的是哪一格」画出来。
+        -->
+        <view v-if="cursorPct !== null" class="minutely__cursor" :style="{ left: cursorPct + '%' }" />
+
         <view :id="bandId" class="minutely__band">
           <view v-for="bucket in curtain.buckets" :key="bucket.index" class="minutely__col">
             <view class="minutely__bar" :class="barClass(bucket)" :style="barStyle(bucket)" />
           </view>
-        </view>
-
-        <view v-if="isDry" class="minutely__dry">
-          <text class="minutely__dry-label">{{ dryLabel }}</text>
         </view>
       </view>
 
@@ -56,7 +60,7 @@
           v-for="tick in curtain.ticks"
           :key="tick.offset"
           class="minutely__tick"
-          :class="'minutely__tick--' + tick.anchor"
+          :class="['minutely__tick--' + tick.anchor, { 'minutely__tick--now': tick.offset === 0 }]"
           :style="{ left: tick.leftPct + '%' }"
         >
           {{ tick.label }}
@@ -64,13 +68,8 @@
       </view>
 
       <view class="minutely__foot">
-        <view v-if="isDry" class="minutely__legend">
-          <view class="minutely__legend-chip">
-            <view class="minutely__swatch minutely__swatch--none" />
-            <text class="minutely__legend-label">0 毫米</text>
-          </view>
-        </view>
-        <view v-else class="minutely__legend">
+        <!-- 干态没有彩色的柱子要解释，图例那一行就空出来 -->
+        <view v-if="!isDry" class="minutely__legend">
           <view
             v-for="(level, index) in legendLevels"
             :key="level.key"
@@ -81,7 +80,7 @@
             <text class="minutely__legend-label">{{ level.label }}</text>
           </view>
         </view>
-        <text class="minutely__total">{{ spanLabel }}合计 <text class="minutely__total-value">{{ totalText }}</text> 毫米</text>
+        <text class="minutely__total">合计 <text class="minutely__total-value">{{ totalText }}</text> 毫米</text>
       </view>
     </view>
 
@@ -115,7 +114,7 @@ import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'v
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import type { MinutelyBucket } from '@/types/fishing';
-import { buildMinutelyCurtain, formatSpan, offsetLabel, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
+import { buildMinutelyCurtain, offsetLabel, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 
 const mapStore = useFishingMapStore();
@@ -143,12 +142,6 @@ const legendLevels = PRECIP_LEGEND_LEVELS;
 const hasData = computed(() => curtain.value.buckets.some((bucket) => bucket.value !== null));
 
 const loading = computed(() => mapStore.minutelyLoading);
-
-/** 标题行右侧的窗口说明 */
-const windowLabel = computed(() => `未来 ${formatSpan(curtain.value.spanMinutes)} · 每 5 分钟`);
-
-/** 窗口跨度的说法（"2 小时" / "45 分钟"），合计那一行用它 */
-const spanLabel = computed(() => formatSpan(curtain.value.spanMinutes));
 
 /** 窗口内累计降水。格式化在脚本里做，模板里只写数 */
 const totalText = computed(() => curtain.value.total.toFixed(2));
@@ -240,6 +233,19 @@ function pickIndex(clientX: number): number | null {
   if (x >= width) return count - 1;
   return Math.min(count - 1, Math.floor((x / width) * count));
 }
+
+/**
+ * 游标的横坐标（百分比）。
+ *
+ * 落在被选中那一格的**中心**：线压在格子的正中，跟手指落点对得上；
+ * 压在格子边上会让人以为读的是隔壁那格。
+ */
+const cursorPct = computed(() => {
+  if (selected.value === null) return null;
+  const count = curtain.value.buckets.length;
+  if (count === 0) return null;
+  return ((selected.value + 0.5) / count) * 100;
+});
 
 /**
  * 手势状态。
@@ -353,7 +359,7 @@ function onTouchCancel() {
  * 峰值格。
  *
  * 峰值是 0 时不算峰值 —— 整段都是 0 的话「峰值」是句废话，
- * 读者要的「无降水」由干态那段话给。
+ * 读者要的「无雨」由那一格读数自己说。
  */
 const peak = computed(() => {
   const bucket = curtain.value.peak;
@@ -373,13 +379,17 @@ const readoutBucket = computed(() => {
 });
 
 /**
- * 读数条上的三段字。
+ * 读数条上的几段字。
  *
- * 上面一行是「多大」：数值 + 雨强档。
- * 下面一行是「什么时候」：常态说峰值落在哪一刻，点过之后说那一格是第几分钟。
+ * 左边是「多大」：数值 + 单位。
+ * 右边是「是什么、在什么时候」：雨强档 + 时机。
  *
- * 常态与点选态的差别只在下面那行 —— 读数的位置是固定的，
- * 两态的差别用文字说，不用「这一格被选中」的视觉状态说。
+ * 常态与点选态的差别只在「什么时候」那一段：常态说「峰值 · 20 分钟后」，
+ * 点过之后说「35 分钟后」。
+ *
+ * 整段都是 0 的时候读数是「0.00 毫米 · 整个窗口」——
+ * 这里不说「无降水」：上游那句话通常已经说了，而读数条要说的是**读数**，
+ * 一个数配一个时刻就够了。
  */
 const readout = computed(() => {
   const bucket = readoutBucket.value;
@@ -387,16 +397,16 @@ const readout = computed(() => {
   // 读不到峰值只有一种情形：整段都是 0（0 不算峰值）。
   // 那不是「没数据」—— 是「测到了，测出来是 0」。
   // 这里说错一句，整段无雨就会被读成数据缺失。
-  if (!bucket) return { amount: '0.00', level: '无降水', when: '整个窗口' };
+  if (!bucket) return { amount: '0.00', unit: '毫米', level: '', when: '整个窗口' };
 
   if (bucket.value === null) {
-    return { amount: '—', level: '无数据', when: offsetLabel(bucket.offset) };
+    return { amount: '—', unit: '毫米', level: '无数据', when: offsetLabel(bucket.offset) };
   }
 
   const level = precipLevelLabel(bucket.level ?? 'none');
   const when = selected.value === null ? `峰值 · ${offsetLabel(bucket.offset)}` : offsetLabel(bucket.offset);
 
-  return { amount: bucket.value.toFixed(2), level, when };
+  return { amount: bucket.value.toFixed(2), unit: '毫米', level, when };
 });
 
 /** 柱子属于哪一档 —— 决定它的颜色 */
@@ -435,25 +445,12 @@ function barStyle(bucket: MinutelyBucket): string {
 /**
  * 整段没有降水。
  *
- * 这种窗口下每一格都是 0，图上只剩一排 0 高度的短柱 —— 看着像图没加载出来。
- * 所以要单独认出来：柱子照画（0 高度也是「测过了，是 0」），
- * 另在图上写一句结论、色卡换成一枚「无降水」。
+ * 这种窗口下每一格都是 0，图上只剩一排 0 高度的短柱。
+ * 这时候图上**不再写一句话**：结论上游已经给过，
+ * 读数条上的「0.00 毫米 · 整个窗口」也把这件事说清楚了，
+ * 三处各说一句就是同一句话说三遍。图只管画。
  */
 const isDry = computed(() => hasData.value && curtain.value.total === 0);
-
-/**
- * 干态下那句话。
- *
- * 写状态，不写结论 —— 上游那句话（通常是「未来两小时无降水」）已经在卡片
- * 上面了，图上再写一遍同样的句子就是同一句话说两遍。
- *
- * 有格子缺测的时候不能一口咬定整段无雨 —— 缺的那几格是「不知道」，
- * 不是「没下」。所以分开说。
- */
-const dryLabel = computed(() => {
-  const gap = curtain.value.buckets.some((bucket) => bucket.value === null);
-  return gap ? '无降水（部分时段缺测）' : '无降水';
-});
 </script>
 
 <style lang="scss" scoped>
@@ -467,10 +464,6 @@ const dryLabel = computed(() => {
 
 .minutely__title {
   @include fish-card-title;
-}
-
-.minutely__meta {
-  @include fish-card-meta;
 }
 
 /*
@@ -492,6 +485,15 @@ const dryLabel = computed(() => {
   height: 28rpx;
   margin-bottom: 20rpx;
   border-radius: $fish-radius-sm;
+  background-color: $fish-surface;
+  animation: fish-pulse 1.8s ease-in-out infinite;
+}
+
+/* 读数条那一块 */
+.minutely__skeleton-strip {
+  height: 84rpx;
+  margin-bottom: 24rpx;
+  border-radius: $fish-radius-xl;
   background-color: $fish-surface;
   animation: fish-pulse 1.8s ease-in-out infinite;
 }
@@ -522,12 +524,17 @@ const dryLabel = computed(() => {
  *
  * 底用 $fish-accent-tint 而不是描边：这一层是「一个值」，
  * 描边会把它读成输入框或标签。
+ *
+ * 一行放完：左边是数，右边是「是什么 · 什么时候」。
+ * 竖着排两行会把整张卡拉长 —— 图才是这张卡的主角，
+ * 读数条只要把「数」和「时刻」摆到同一基线上就够了。
  */
 .minutely__readout {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   margin-bottom: 24rpx;
-  padding: 16rpx 20rpx;
+  padding: 18rpx 20rpx;
   border-radius: $fish-radius-xl;
   background-color: $fish-accent-tint;
 }
@@ -535,6 +542,7 @@ const dryLabel = computed(() => {
 .minutely__readout-figure {
   display: flex;
   align-items: baseline;
+  flex-shrink: 0;
   margin-right: 20rpx;
 }
 
@@ -550,20 +558,29 @@ const dryLabel = computed(() => {
   @include fish-type(caption);
 }
 
-.minutely__readout-body {
+/* 右半边：雨强档 + 时机。挤不下时换行，不截断 */
+.minutely__readout-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
   flex: 1;
   min-width: 0;
+  text-align: right;
 }
 
 .minutely__readout-level {
-  display: block;
   color: $fish-ink;
   @include fish-type(body, 600);
 }
 
+.minutely__readout-sep {
+  margin: 0 8rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+}
+
 .minutely__readout-when {
-  display: block;
-  margin-top: 4rpx;
   color: $fish-muted-60;
   @include fish-type(caption);
 }
@@ -580,6 +597,22 @@ const dryLabel = computed(() => {
 .minutely__plot {
   position: relative;
   height: 224rpx;
+}
+
+/*
+ * 游标：被读到的那一格上的竖线。
+ *
+ * 细、深浅介于底色与柱子之间：够看清是哪一格，又不至于比柱子还抢眼。
+ * 柱子压在它上面 —— 线在柱子后面走，所以它不挡数据。
+ */
+.minutely__cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2rpx;
+  margin-left: -1rpx;
+  border-radius: 1rpx;
+  background-color: $fish-guide;
 }
 
 .minutely__band {
@@ -648,9 +681,10 @@ const dryLabel = computed(() => {
  * 选中别格时，这一格不是主角，压暗一档。
  *
  * 只压柱身不动高度：高度是数据，压高度等于改数据。
+ * 压得比游标更深：被读到的那一格要一眼就认出来。
  */
 .minutely__bar--dim {
-  opacity: 0.5;
+  opacity: 0.4;
 
   @if $fish-motion {
     transition: opacity $fish-dur-cross $fish-ease-out;
@@ -673,35 +707,6 @@ const dryLabel = computed(() => {
 }
 
 /*
- * 干态说明。
- *
- * 绝对定位在绘图区正中：柱子全在底边（0 高度），中间是空的，
- * 结论写在那里，图就不像没加载出来。
- */
-.minutely__dry {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /*
-   * 这一层铺满整个绘图区，会盖在柱子上；不让它接事件，
-   * 点击才能落到下面的柱子上（这层是纯文字，本来也不需要交互）。
-   * 与 PageNav / PageBackdrop 同一套做法。
-   */
-  pointer-events: none;
-}
-
-.minutely__dry-label {
-  color: $fish-muted-60;
-  @include fish-type(body);
-}
-
-/*
  * 横轴刻度。
  *
  * 刻度按各自那一格的位置摆（不等距），所以用绝对定位落在百分比上。
@@ -718,6 +723,15 @@ const dryLabel = computed(() => {
   color: $fish-muted-60;
   @include fish-type(caption);
   white-space: nowrap;
+}
+
+/*
+ * 「现在」是这条轴的原点，其余刻度都是从它往后数的。
+ * 给它一档字重，读者才知道图是从哪儿开始读的。
+ */
+.minutely__tick--now {
+  color: $fish-ink;
+  font-weight: 600;
 }
 
 .minutely__tick--mid {
@@ -741,9 +755,18 @@ const dryLabel = computed(() => {
   border-top: 1rpx solid $fish-border-40;
 }
 
+/*
+ * 色卡。
+ *
+ * 四枚色块挤一行放得下（窄机型上差一点），所以允许换行 ——
+ * 挤成一排把字压小，不如换行。
+ */
 .minutely__legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .minutely__legend-chip {
@@ -763,7 +786,6 @@ const dryLabel = computed(() => {
   border-radius: 4rpx;
 }
 
-/* 「无降水」色块：跟「测到 0」的短柱同一个色 */
 .minutely__swatch--none {
   background-color: $fish-rain-none;
 }
@@ -789,7 +811,19 @@ const dryLabel = computed(() => {
   @include fish-type(caption);
 }
 
+/*
+ * 合计。
+ *
+ * 窗口跨度在标题行已经说过一次，这里只报数 ——
+ * 两处各写一遍「2 小时」，读者要自己判断两处是不是同一件事。
+ *
+ * 没有色卡时（干态）靠 margin-left:auto 把它推到右边，
+ * 跟有色卡时的那一行对齐。
+ */
 .minutely__total {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
   color: $fish-muted-60;
   @include fish-type(caption);
 }

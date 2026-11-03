@@ -47,6 +47,14 @@ const NONE_LABEL = '无降水';
  * 和上面那张档位表是同一套口径（表里 storm.from = 16/12），
  * 改档位阈值时这里要一起改。
  */
+/**
+ * 每格覆盖的分钟数。
+ *
+ * 上游的分钟降水就是 5 分钟一格，窗口跨度按这个算，
+ * 免得格数与跨度各写一个 5。
+ */
+const BUCKET_MINUTES = 5;
+
 const SCALE_MAX_5MIN = 16 / 12;
 
 /**
@@ -166,23 +174,11 @@ export function buildMinutelyCurtain(points: MinutelyPoint[]): MinutelyCurtain {
   return {
     buckets,
     ticks,
-    // 每格覆盖 5 分钟，窗口跨度就是格数 × 5
-    spanMinutes: buckets.length * 5,
+    // 每格覆盖 BUCKET_MINUTES 分钟，窗口跨度就是格数 × 每格长度
+    spanMinutes: buckets.length * BUCKET_MINUTES,
     total,
     peak,
   };
-}
-
-/**
- * 窗口跨度 → 人话。
- *
- * 120 分钟说「2 小时」，45 分钟还是说「45 分钟」——
- * 一律换成小时会把「一小时的窗口」说成「0 小时」。
- */
-export function formatSpan(spanMinutes: number): string {
-  if (spanMinutes <= 0) return '';
-  if (spanMinutes % 60 === 0) return `${spanMinutes / 60} 小时`;
-  return `${spanMinutes} 分钟`;
 }
 
 /**
