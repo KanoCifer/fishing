@@ -1,32 +1,66 @@
 <template>
-  <view class="mine" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
+  <view class="mine" :style="{ minHeight: windowHeight + 'px', paddingBottom: '220rpx' }">
     <PageBackdrop />
 
-    <view class="mine__body">
-      <view class="mine__anchor mine__enter" :style="{ animationDelay: enterDelay(0) }">
-        <UserCard
-          :user="session.user"
-          :busy="session.loggingIn || session.uploading"
-          :top-inset="anchorTop"
-          @login="onLogin"
-          @edit="openProfile"
-          @choose-avatar="onChooseAvatar"
-        />
-      </view>
+    <!--
+      头图。照片一路顶进状态栏底下：这一页配了 navigationStyle: "custom"，
+      导航栏是浮在内容之上的透明层，所以照片从屏幕最顶端开始。
+      状态栏那行字压在照片上 —— 顶部压了一道暗渐变（见 .mine__hero-scrim），
+      白字读得清。
+    -->
+    <view class="mine__hero" :style="{ height: heroHeight + 'px' }">
+      <image class="mine__hero-img" :src="MINE_HERO.image" mode="aspectFill" />
+      <view class="mine__hero-scrim" />
+      <view class="mine__fade" />
 
-      <view class="mine__sheet mine__enter" :style="{ animationDelay: enterDelay(1) }">
-        <MineRow :icon-src="spotsIcon" :label="spotsEntry.label" chevron @tap="openMySpots" />
-
-        <MineRow divider :icon-src="aboutIcon" :label="aboutEntry.label" chevron @tap="openAbout" />
-
-        <MineActions />
-
-        <text v-if="session.loggedIn" class="mine__logout" @tap="onLogout">退出登录</text>
-
-        <!-- 落款 -->
-        <text class="mine__foot">渔碌 v{{ version }}</text>
+      <view class="mine__identity" :style="{ animationDelay: enterDelay(0) }">
+        <UserCard :user="session.user" @choose-avatar="onChooseAvatar" />
       </view>
     </view>
+
+    <!--
+      胶囊按钮。骑在头图的下沿上：一半在照片里，一半在页面上 ——
+      它是「从看这一页」到「做一件事」的那一步，骑在两者的交界上才说得通。
+    -->
+    <view class="mine__cta-wrap" :style="{ animationDelay: enterDelay(1) }">
+      <view class="mine__cta" @tap="onCta">
+        <image v-if="ctaIcon" class="mine__cta-icon" :src="ctaIcon" mode="aspectFit" />
+        <text class="mine__cta-text">{{ ctaLabel }}</text>
+      </view>
+    </view>
+
+    <view class="mine__cards">
+      <view class="mine__card" :style="{ animationDelay: enterDelay(2) }">
+        <MineRow :icon-src="spotsIcon" :label="spotsEntry.label" chevron @tap="openMySpots" />
+
+        <MineRow inset divider :icon-src="aboutIcon" :label="aboutEntry.label" chevron @tap="openAbout" />
+
+        <MineRow inset divider :icon-src="shareIcon" :label="share.label" chevron open-type="share" />
+      </view>
+
+      <view class="mine__card" :style="{ animationDelay: enterDelay(3) }">
+        <MineRow
+          :icon-src="contactIcon"
+          :label="contact.label"
+          chevron
+          open-type="contact"
+          :session-from="contact.sessionFrom"
+          :send-message-title="contact.messageTitle"
+          :send-message-path="contact.messagePath"
+          :show-message-card="true"
+        />
+      </view>
+    </view>
+
+    <view v-if="session.loggedIn" class="mine__logout-wrap" :style="{ animationDelay: enterDelay(4) }">
+      <view class="mine__logout" @tap="onLogout">
+        <image class="mine__logout-icon" :src="logoutIcon" mode="aspectFit" />
+        <text class="mine__logout-text">{{ logout.label }}</text>
+      </view>
+    </view>
+
+    <!-- 落款 -->
+    <text class="mine__foot">渔碌 v{{ version }}</text>
 
     <ProfileSheet
       :open="profileOpen"
@@ -41,17 +75,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+/**
+ * 我的页 —— tabBar 的第四个页签，也是这一页唯一的主语：**你是谁**。
+ *
+ * 版式：满幅头图压顶 → 身份块（头像 + 昵称 + 账号名）→ 骑在头图下沿的胶囊
+ * → 两组白卡（去哪 / 找谁）→ 退出登录 → 落款。
+ *
+ * 为什么头图是照片而不是深色面：深色面是「应用在说话」，照片是「此刻」——
+ * 这一页讲的是用户自己，底就该是渔碌的那片湖，而不是一块品牌色。
+ */
+import { computed, ref } from 'vue';
 import { onLoad, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
 
-import MineActions from './components/MineActions/MineActions.vue';
 import MineRow from '@/components/MineRow/MineRow.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import ProfileSheet from '@/components/ProfileSheet/ProfileSheet.vue';
 import UserCard from '@/components/UserCard/UserCard.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { APP_INFO, ABOUT_ENTRY } from '@/constants/about';
+import { APP_INFO, ABOUT_ENTRY, CONTACT, SHARE_APP } from '@/constants/about';
+import { MINE_CTA, MINE_HERO, MINE_LOGOUT } from '@/constants/mine';
 import { SHARE_CARDS } from '@/constants/share';
 import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
 import { icon } from '@/constants/icons';
@@ -66,11 +109,12 @@ import { enableShareMenu } from '@/utils/share';
 const { statusBarHeight } = useNavMetrics();
 
 /**
- * 身份锚面的上内边距（px）。
+ * 头图的高度（px）。
  *
- * 状态栏的高度 + 一段留白。状态栏在深色面上是白字，压在深底上才读得清。
+ * 照片从屏幕最顶端铺下来，包含状态栏那一段 —— 状态栏是半透明压在照片上的，
+ * 所以它要算进照片区里，不能在照片外面留一条。
  */
-const anchorTop = statusBarHeight + 16;
+const heroHeight = statusBarHeight + uni.upx2px(520);
 
 /** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
 const { windowHeight } = useViewport();
@@ -79,6 +123,9 @@ const session = useSessionStore();
 const mapStore = useFishingMapStore();
 
 const aboutEntry = ABOUT_ENTRY;
+const contact = CONTACT;
+const share = SHARE_APP;
+const logout = MINE_LOGOUT;
 
 /** 通往「我的钓点」的那一行 */
 const spotsEntry = MY_SPOTS_ENTRY;
@@ -88,15 +135,63 @@ const version = APP_INFO.version;
 
 const spotsLoaded = ref(false);
 
-/** 行首图标。统一蓝色 —— 一行里图标与文字不同色，就有了两个焦点 */
+/**
+ * 行首图标。
+ *
+ * 一行一个色：蓝色是「去哪儿」，绿色是「这是什么」，两行之间才分得开。
+ * 图标本身统一 20pt —— 再大就跟行字抢注意力了。
+ */
 const spotsIcon = icon('map-pin', 'blue');
-const aboutIcon = icon('info', 'blue');
+const aboutIcon = icon('fish', 'success');
+const shareIcon = icon('share-2', 'blue');
+const contactIcon = icon('message-square', 'blue');
+
+/** 退出登录那一枚 */
+const logoutIcon = icon('log-out', 'destructive');
+
+/**
+ * 胶囊按钮上的字。
+ *
+ * 未登录是「微信登录」；登录了看资料齐不齐 —— 齐了说「编辑资料」，
+ * 还缺就直说「完善资料」，别让用户以为已经改完了。
+ */
+const ctaLabel = computed(() => {
+  if (!session.loggedIn) {
+    return session.loggingIn ? MINE_CTA.loggingIn : MINE_CTA.login;
+  }
+  const photo = session.user?.photo;
+  const hasAvatar = !!photo && photo !== 'default.png';
+  const hasName = !!session.user?.name?.trim();
+  return hasAvatar && hasName ? MINE_CTA.edit : MINE_CTA.complete;
+});
+
+/**
+ * 胶囊上的图标。
+ *
+ * 只有「改资料」这一件事配了图标（铅笔）；登录是页面上唯一的入口，
+ * 不配图标 —— 配了反而像另一个可以点的功能。
+ */
+const ctaIcon = computed(() => (session.loggedIn ? icon('pencil', 'blue') : ''));
 
 /** 资料编辑抽屉是否打开 */
 const profileOpen = ref(false);
 
 /** 正在写昵称。用来锁住保存按钮 */
 const savingNickname = ref(false);
+
+/**
+ * 胶囊按钮。未登录去登录，已登录去改资料。
+ *
+ * 这一层只发意图，不自己干活：登录要走接口，头像要上传，
+ * 那些是页面与接口层的事。
+ */
+function onCta() {
+  if (session.loggedIn) {
+    openProfile();
+    return;
+  }
+  onLogin();
+}
 
 function openProfile() {
   profileOpen.value = true;
@@ -143,7 +238,7 @@ async function loadMySpots(): Promise<void> {
  * 标题、路径、封面凑成微信聊天里那张卡片。
  *
  * 封面**显式指定**应用图标：不指定的话，微信会拿当前页面的截图当封面，
- * 而这一页的顶部是用户自己的身份锚面 —— 一张写着「渔碌｜查潮汐、找钓点、看天气。」
+ * 而这一页的顶部是用户自己的身份面 —— 一张写着「渔碌｜查潮汐、找钓点、看天气。」
  * 的卡片上摆着分享者的头像，说不对（理由见 SHARE_APP.cover）。
  *
  * 文案在 @/constants/share（唯一出处）。
@@ -273,22 +368,135 @@ function onLogout() {
   background-color: $fish-grouped;
 }
 
-/* 内容层。定位 + z-index 是为了压在环境色底之上 */
-.mine__body {
+/*
+ * 头图区。
+ *
+ * 照片一路顶到屏幕最上沿：这一页的导航栏是 custom 的透明层，
+ * 上面那条状态栏也是半透明压在照片上的，所以照片从 0 开始，不让位。
+ */
+.mine__hero {
   position: relative;
-  min-height: 100vh;
-  z-index: 1;
+  width: 100%;
+  overflow: hidden;
 }
 
-.mine__anchor {
-  display: block;
+/*
+ * 照片。铺满头图区，裁切由 aspectFill 负责。
+ *
+ * 入场动的是 scale 不是淡入：淡入一张照片读作「图片加载出来了」，
+ * 而这里要做的是「照片落到位」（见 fish-enter-media）。
+ */
+.mine__hero-img {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  @include fish-enter-media;
 }
 
-.mine__sheet {
-  margin-top: -60rpx;
-  padding-bottom: 48rpx;
-  min-height: 60vh;
-  @include fish-sheet;
+/*
+ * 头图上的两道压暗。
+ *
+ * 上面一道给状态栏：白字压在湖面的高光上读不出来。
+ * 下面一道给身份块与胶囊：名字是白字，压在亮水面上是读不出来的。
+ * 不是给照片加滤镜，是给这两段文字保证一个下限对比度。
+ */
+.mine__hero-scrim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image:
+    linear-gradient(180deg, rgba(9, 24, 40, 0.5) 0%, rgba(9, 24, 40, 0) 26%),
+    linear-gradient(0deg, rgba(9, 24, 40, 0.58) 0%, rgba(9, 24, 40, 0) 46%);
+}
+
+.mine__fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 90rpx;
+  background-image: linear-gradient(0deg, $fish-page-base 0%, rgba($fish-page-base, 0) 100%);
+}
+/*
+ * 身份块。贴在头图区左下，避开右侧的钓鱼人。
+ *
+ * 下边距 120rpx 是给胶囊让出来的位置 —— 胶囊骑在头图的下沿，
+ * 身份块不能跟它撞在一起。
+ */
+.mine__identity {
+  position: absolute;
+  right: 40rpx;
+  bottom: 120rpx;
+  left: 40rpx;
+  @include fish-enter;
+}
+
+/*
+ * 胶囊的容器。
+ *
+ * 上边距 -44rpx 是胶囊高度的一半：胶囊正好骑在头图的下沿上，
+ * 一半在照片里，一半在页面上。
+ */
+.mine__cta-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: -44rpx;
+  @include fish-enter;
+}
+
+/*
+ * 胶囊本体。实心白块。
+ *
+ * 头图上唯一的高对比实心面 —— 照片那一头全是中间调，
+ * 白块在这儿是唯一能一眼看清的东西，所以它不能是半透明的。
+ */
+.mine__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  padding: 0 56rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-card-face;
+  box-shadow: $smooth-shadow-md;
+  @include fish-press(0.97);
+}
+
+.mine__cta-icon {
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 14rpx;
+}
+
+.mine__cta-text {
+  color: $fish-deep-base;
+  @include fish-type(body);
+
+  font-weight: 600;
+}
+
+/* 两组白卡。上下留白 40rpx —— 卡与卡之间 24rpx，段与段之间才分得出段 */
+.mine__cards {
+  margin-top: 40rpx;
+}
+
+.mine__card {
+  margin: 0 32rpx;
+  border-radius: $fish-radius-card;
+  background-color: $fish-card-face;
+  overflow: hidden;
+  box-shadow: $smooth-shadow-sm;
+  @include fish-enter;
+}
+
+.mine__card + .mine__card {
+  margin-top: 24rpx;
 }
 
 /*
@@ -305,35 +513,42 @@ mine-row {
 /*
  * 退出登录。
  *
- * 居中：破坏性操作是这一页最后一句，读到它的时候不需要再找左边。
+ * 一颗淡红底的胶囊：破坏性操作是这一页最后一句，
+ * 读到它的时候不需要再找左边。
  */
+.mine__logout-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 56rpx;
+  @include fish-enter;
+}
+
 .mine__logout {
-  display: block;
-  margin-top: 52rpx;
-  color: $fish-destructive;
-  text-align: center;
-  @include fish-type(body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96rpx;
+  padding: 0 56rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-destructive-tint;
   @include fish-press-dim;
+}
+
+.mine__logout-icon {
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 14rpx;
+}
+
+.mine__logout-text {
+  color: $fish-destructive;
+  @include fish-type(body);
+
+  font-weight: 600;
 }
 
 /* 落款 */
 .mine__foot {
-  display: block;
-  display: fixed;
-  bottom: 0rpx;
-  width: 100%;
-  left: 0;
-  color: $fish-muted-60;
-  text-align: center;
-  @include fish-type(caption);
-}
-
-/*
- * 落位。
- *
- * 延迟按**阅读顺序**给：先是身份面，再是白纸 —— 眼睛跟着往下走一遍。
- */
-.mine__enter {
-  @include fish-enter;
+  @include fish-foot;
 }
 </style>

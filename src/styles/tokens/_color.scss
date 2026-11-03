@@ -105,6 +105,18 @@ $fish-on-dark: #ffffff;
 /* ── 表面 ── */
 $fish-page: rgba(245, 248, 253, 1); // 卡片 / 面板底，systemBackground
 $fish-grouped: rgba(230, 237, 254, 1); // 页面底，systemGroupedBackground
+
+/**
+ * 白卡的面色。
+ *
+ * $fish-page 是「面板底」，偏蓝的米白 —— 它压在**深色面**上是对的，
+ * 压在浅蓝的页面底（$fish-page-bg 底下那层 #f3f4f9）上只差两三个色阶，
+ * 卡片就分不出层。
+ *
+ * iOS 的分组列表是纯白卡压 #F2F2F7 的底，靠的就是那十几级的亮度差。
+ * 「我的」页的白卡照这个来，所以另立这一档。
+ */
+$fish-card-face: #ffffff;
 $fish-surface: rgba(120, 120, 128, 0.16); // secondarySystemFill：骨架块、chip
 $fish-fill: rgba(120, 120, 128, 0.12); // tertiarySystemFill：segmented 轨道
 

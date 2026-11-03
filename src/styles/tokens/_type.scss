@@ -52,7 +52,7 @@ $fish-type: (
   line-height: map-get($t, leading);
 }
 
-@mixin numeric($font-weight: 500) {
+@mixin numeric($font-weight: 700) {
   font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   font-weight: $font-weight;

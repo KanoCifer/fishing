@@ -318,8 +318,8 @@ const emptyText = computed(() => {
  * （理由见 HourlyWeather 的 .hourly__icon）。
  */
 .days__icon {
-  width: 48rpx;
-  height: 48rpx;
+  width: 56rpx;
+  height: 56rpx;
   flex-shrink: 0;
   margin-right: 8rpx;
 }
@@ -328,30 +328,29 @@ const emptyText = computed(() => {
  * 温度数字。最低温与最高温各占一格，宽度固定，两列才对得齐。
  *
  * 宽度是按**最宽的那个值**定的，不是按当前显示的值。
- * 实测（body 档 32rpx，同一字体栈）：
- * 「22.6°」墨迹宽 81rpx、「29.6°」加粗后 85rpx，
- * 负温「-12.6°」加粗后到 95rpx —— 原来的 72rpx 一律装不下。
+ * 显示的是整数（口径在 utils/weather 的 forecastDays），所以最宽的是负温：
+ * 实测（body 档 32rpx，同一字体栈）加粗的「-12°」墨迹宽约 62rpx。
  * 固定宽度装不下就往左溢出，粗体最高温压到最低温上，两串数字糊成一团。
- * 这里留到 104rpx：宁可空着，也不让两列打架。
+ * 这里留到 76rpx。
  */
 .days__temp {
-  width: 104rpx;
+  width: 76rpx;
   flex-shrink: 0;
   text-align: right;
   white-space: nowrap;
   @include fish-type(body);
-  @include numeric;
 }
 
 /* 最低温：灰一档，它是背景 */
 .days__temp--min {
   color: $fish-muted;
+  @include numeric(500);
 }
 
 /* 最高温：重一档，它才是要读的那个数 */
 .days__temp--max {
   color: $fish-ink;
-  font-weight: 600;
+  @include numeric;
 }
 
 /*
@@ -458,11 +457,10 @@ const emptyText = computed(() => {
   border-radius: 50%;
 }
 
-/* 温度数字 */
+/* 温度数字。宽度跟上面真实的一列一致 */
 .days__skeleton--temp {
-  width: 72rpx;
+  width: 76rpx;
   height: 32rpx;
-  margin-right: 16rpx;
 }
 
 /* 温度条 */

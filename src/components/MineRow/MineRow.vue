@@ -9,7 +9,7 @@
     :show-message-card="showMessageCard"
     @tap="onTap"
   >
-    <view v-if="divider" class="mine-row__divider" />
+    <view v-if="divider" class="mine-row__divider" :class="{ 'mine-row__divider--inset': inset }" />
 
     <image class="mine-row__icon" :src="iconSrc" mode="aspectFit" />
 
@@ -32,6 +32,13 @@ withDefaults(
     chevron?: boolean;
     /** 这一行上方有没有分隔线 */
     divider?: boolean;
+    /**
+     * 分隔线是否内缩到文字起点。
+     *
+     * 行在卡里时用内缩：线是纸上的一道折痕，从文字起点起画，
+     * 齐头才看得出这些行是**一组**；齐着卡边画就成了一张表格。
+     */
+    inset?: boolean;
     /** 微信入口类型。空 = 普通行；share / contact = 微信自己开的面板 */
     openType?: 'share' | 'contact';
     /** 客服会话的来源标记（open-type=contact 时有效） */
@@ -46,6 +53,7 @@ withDefaults(
   {
     chevron: false,
     divider: false,
+    inset: false,
     openType: undefined,
     sessionFrom: '',
     sendMessageTitle: '',
@@ -107,6 +115,13 @@ function onTap() {
   left: 0;
   height: 1rpx;
   background-color: $fish-border-40;
+}
+
+/*
+ * 内缩的那一道：从文字起点起画（行内边距 40 + 图标 40 + 图标右距 28）。
+ */
+.mine-row__divider--inset {
+  left: 108rpx;
 }
 
 /*

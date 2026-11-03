@@ -22,7 +22,8 @@
     {
       "path": "pages/mine/index",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "white"
       }
     }
   ],

@@ -486,6 +486,10 @@ export function indexCategoryTone(category: string | undefined | null): Tone {
  *
  * 高低温是数字而不是字符串：两张卡都要拿它拼「°」和比大小，
  * 换算留在这一层，换完就是能直接显示的数。
+ *
+ * 取整也在这一层：预报给的是「22.6°」这样的读数，界面上要的是「23°」。
+ * 小数对钓鱼的人没有意义（钓鱼的人看的是「今天冷不冷」，不是 0.4 度的差别），
+ * 而多一位小数只会把两列数字挤在一起。取整在这里做，模型拿到的就是显示值。
  */
 export interface ForecastDay {
   fxDate: string;
@@ -519,11 +523,13 @@ interface ForecastDayRaw {
 export function forecastDays(days: WeatherDay[]): ForecastDay[] {
   const rows: ForecastDayRaw[] = days.map((day) => {
     const prob = num(day.precipProbability);
+    const max = num(day.tempMax);
+    const min = num(day.tempMin);
 
     return {
       fxDate: day.fxDate,
-      max: num(day.tempMax),
-      min: num(day.tempMin),
+      max: max === null ? null : Math.round(max),
+      min: min === null ? null : Math.round(min),
       icon: day.iconDay,
       prob: prob !== null && prob > 0 ? prob : 0,
     };

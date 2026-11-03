@@ -211,6 +211,27 @@ JOBS = [
         "dest": "cdn",
         "note": "降水面板底纹 · 雨 —— 走 CDN，不进代码包",
     },
+    # —— 「我的」页头图 ——
+    # 源是宣传图那套 AI 底图（posters/bg-brand-dawn.jpg）：同一片湖面，
+    # 宣传图与头图共用，画面上就认得出是同一个产品。
+    #
+    # 为什么进代码包而不是 CDN：这一页每个用户每次进来都要看它，
+    # 而一张 WebP 只有 40 多 KB —— 比 CDN 多一次请求划算。
+    #
+    # 为什么裁框不居中：主体（钓鱼人）偏右，居中裁会把他切掉。
+    # 为什么水平翻转：翻过来他在右边，左边空出来给身份块（头像 + 昵称）——
+    # 源图里他在左边，跟头像会叠在一起。
+    {
+        "src": "../../posters/bg-brand-dawn.jpg",
+        "out": "mine-hero-v1.webp",
+        "format": "WEBP",
+        "mode": "RGB",
+        "options": {"quality": 74, "method": 6},
+        "flip": "horizontal",
+        "crop_box": (0, 900, 1536, 2129),
+        "max_width": 1080,
+        "note": "「我的」页头图 —— 满幅照片压顶，进代码包",
+    },
 ]
 
 
@@ -298,6 +319,30 @@ def crop_to_ratio(im: Image.Image, ratio: float | None) -> Image.Image:
     return im.crop((left, 0, left + new_w, h))
 
 
+def apply_box(im: Image.Image, box: tuple[int, int, int, int] | None) -> Image.Image:
+    """按给定矩形裁一块出来（左、上、右、下）。
+
+    为什么需要它：crop_to_ratio 只能**居中**裁，而有些画面的主体不在中间。
+    「我的」页的头图要的是湖面、雾与右侧的钓鱼人 —— 主体偏右，
+    居中裁会把钓鱼人切掉，构图就散了。给一个矩形就说得清要哪一块。
+    """
+    if not box:
+        return im
+    return im.crop(box)
+
+
+def flip(im: Image.Image, direction: str | None) -> Image.Image:
+    """水平翻转。
+
+    为什么翻：源图里钓鱼人在**左**侧，而这一页的身份块（头像 + 昵称）也在左侧 ——
+    两者压在一起，头像底下是一张脸。翻过来，钓鱼人到右边，左边空出来给身份。
+    这张图里没有文字，翻转不会读出「反了」。
+    """
+    if direction != "horizontal":
+        return im
+    return im.transpose(Image.FLIP_LEFT_RIGHT)
+
+
 def resize_width(im: Image.Image, max_width: int | None) -> Image.Image:
     """按宽度缩放（高度按比例）。"""
     if not max_width or im.width <= max_width:
@@ -324,6 +369,8 @@ def run(job: dict) -> None:
         # 而那些像素永远是 alpha=255，透明通道一点用没有。
         if job.get("mode"):
             im = im.convert(job["mode"])
+        im = flip(im, job.get("flip"))
+        im = apply_box(im, job.get("crop_box"))
         im = crop_to_ratio(im, job.get("crop_ratio"))
         im = resize_width(im, job.get("max_width"))
         im.save(out_path, job["format"], **job["options"])
