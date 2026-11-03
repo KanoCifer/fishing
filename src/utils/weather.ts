@@ -375,8 +375,8 @@ export interface ForecastDay {
   min: number;
   /** 白天时段的天气码 */
   icon: string;
-  /** 降水概率文案。概率为 0 时是空串 —— 整排都不下雨却每行都写「0%」是噪音 */
-  probText: string;
+  /** 白天时段的降水概率，0–100。0 是有效值，不是缺失 */
+  prob: number;
 }
 
 /** 取数阶段的形状：高低温还没排除空值 */
@@ -385,7 +385,7 @@ interface ForecastDayRaw {
   max: number | null;
   min: number | null;
   icon: string;
-  probText: string;
+  prob: number;
 }
 
 /**
@@ -407,7 +407,7 @@ export function forecastDays(days: WeatherDay[]): ForecastDay[] {
       max: num(day.tempMax),
       min: num(day.tempMin),
       icon: day.iconDay,
-      probText: prob !== null && prob > 0 ? `${prob}%` : '',
+      prob: prob !== null && prob > 0 ? prob : 0,
     };
   });
 

@@ -6,101 +6,75 @@
       <!--
         加载中：标题的位置先占住。
 
-        数据到了标题才冒出来。位置一占住，下面那三列就不会整体往下跳 ——
-        骨架摆得再准，标题晚来一步，这一行照样会散架。
+        数据到了标题才冒出来。位置一占住，下面那几行就不会整体往下跳 ——
+        骨架摆得再准，标题晚来一步，这一列照样会散架。
       -->
       <view v-else-if="loading" class="days__skeleton days__skeleton--title" />
     </view>
 
-    <!--
-      三天横排。
+    <view v-if="days.length" class="days__list">
+      <view v-for="(day, i) in days" :key="day.fxDate" class="days__row">
+        <!-- 行首的星期 -->
+        <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
 
-      每一列是**一整天**：日期、天气、降水概率、温度区间。
-      横排的理由不是「省地方」，是**要横着比** ——
-      挑日子比的是「哪天更暖、哪天更稳」，把三天摆成三列，
-      视线横着扫一遍就能比出来；竖着排成三行时，每次都得跨过别的行去对照。
-    -->
-    <view v-if="days.length" class="days__cols">
-      <view v-for="(day, i) in days" :key="day.fxDate" class="days__col">
-        <view class="days__label-row">
-          <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
-        </view>
+        <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
 
-        <view class="days__weather">
-          <!--
-            白天天气。图标是这一列除了温度之外的第二个信息：
-            「33° / 25°」说的是热不热，图标说的是出不出门 ——
-            决定要不要出钓的往往是后者，不是前者。
-            这里只取白天时段：钓鱼是白天的活（数据层的湿度/降水也是以白天段为准），
-            夜间天气另有一格会挤掉这一列的可比性。
-          -->
-          <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
-        </view>
+        <!-- 最低温 -->
+        <text class="days__temp days__temp--min">{{ day.min }}°</text>
 
-        <view class="days__prob-row">
-          <!--
-            降水概率。贴着图标放：它说的是这张图标有多大概率成真，
-            跟温度不在一件事上，挤到温度那两行里会被读成第三个温度。
+        <!-- 最高温。它比最低温重一档：最低温是背景，最高温才是「哪天更暖」要读的那个数 -->
+        <text class="days__temp days__temp--max">{{ day.max }}°</text>
 
-            整行保留高度（概率为 0 时是空行）：三列的尺子要上下对齐，
-            少一行文字三把尺子就错开了，那把尺子就白画了。
-          -->
-          <text v-if="day.probText" class="days__prob">{{ day.probText }}</text>
+        <!--
+          温度条。**所有行共用一把尺子**（量程见 script 里的 scale）。
+
+          轨道画的是这一段预报的全局最低到全局最高 —— 每行的那一截是当天
+          min→max 在这把尺子上的位置。所以每根条的长短与左右偏移，
+          直接就是「哪天更暖、暖多少」，不用去比数字。
+
+          轨道（浅色）不撤：没有它，剩下的每截就成了漂浮的短棒，
+          「哪截更长」没有共同的参照可看。
+
+          截出来的颜色按**绝对温度**给（冷蓝 → 暖橙），不是按这一截的相对位置 ——
+          相对位置会给一个 3°–9° 的冷天也画成蓝到橙，跟真实的冷暖对不上。
+        -->
+        <view class="days__bar">
+          <view class="days__track" />
+          <view class="days__segment" :style="segmentStyle(day)">
+            <view class="days__segment-fill" :style="segmentFillStyle(day)" />
+          </view>
         </view>
 
         <!--
-          温度区间条。**三列共用一把尺子**（尺子本体见 .days__scale）。
+          降水概率。
 
-          每列的深色段画的是那天 min→max 在这把尺子上的位置：
-          段的上沿是当天的最高温，下沿是最低温。
-          三列用的是同一套换算（全局最低到全局最高），
-          所以段的高下直接就是「哪天更暖」—— 不用去比数字，
-          尺子本身就是答案。
+          它说的是「这一天下不下雨」，跟温度不在一件事上，所以单占一列，
+          不塞进温度那两行里 —— 挤进去会被读成第三个温度。
 
-          最高温贴在段的上沿、最低温贴在段的下沿：
-          数字和它标的那个端点挨在一起，中间不隔东西。
+          颜色统一用文字档的蓝（$fish-blue-600）而不是填充档的 $fish-tide：
+          $fish-tide 是给填充用的，当文字读只有 4.0:1，压不住。
         -->
-        <view class="days__plot">
-          <view class="days__scale">
-            <view class="days__rail" />
-            <view class="days__band" :style="bandStyle(day)" />
-            <view class="days__max" :style="maxStyle(day)">
-              <text class="days__max-num">{{ day.max }}°</text>
-            </view>
-            <view class="days__min" :style="minStyle(day)">
-              <text class="days__min-num">{{ day.min }}°</text>
-            </view>
-          </view>
-        </view>
+        <text class="days__prob">{{ probText(day) }}</text>
       </view>
     </view>
 
     <!--
-      加载中：三列骨架。
+      加载中：行骨架。
 
-      骨架照着最终形状摆，行盒高度与真实内容一致（.days__label-row /
-      .days__weather / .days__prob-row / .days__plot 都是同一套类），
+      骨架照着最终形状摆（每一行的行盒高度与真实行一致），
       所以数据到了版式不换，下面那一段不会跳。
 
-      列数按三天摆：接口就回三天，脏行被丢掉是少见的例外。
+      行数跟着已知数据走：预报列表有几天就摆几行，
+      免得真实数据到了之后整块高度缩一下。
     -->
-    <view v-else-if="loading" class="days__cols">
-      <view v-for="i in 3" :key="i" class="days__col">
-        <view class="days__label-row">
-          <view class="days__skeleton days__skeleton--label" />
-        </view>
-        <view class="days__weather">
-          <view class="days__skeleton days__skeleton--icon" />
-        </view>
-        <view class="days__prob-row">
-          <view class="days__skeleton days__skeleton--prob" />
-        </view>
-        <view class="days__plot">
-          <view class="days__skeleton days__skeleton--rail" />
-          <view class="days__skeleton days__skeleton--band" />
-          <view class="days__skeleton days__skeleton--max" />
-          <view class="days__skeleton days__skeleton--min" />
-        </view>
+    <view v-else-if="loading" class="days__list">
+      <view v-for="i in skeletonRows" :key="i" class="days__row">
+        <view class="days__skeleton days__skeleton--label" />
+        <view class="days__skeleton days__skeleton--icon" />
+        <view class="days__skeleton days__skeleton--temp" />
+        <view class="days__skeleton days__skeleton--temp" />
+        <view class="days__skeleton days__skeleton--bar" />
+        <view class="days__skeleton days__skeleton--prob" />
       </view>
     </view>
 
@@ -111,8 +85,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import { tempGradient } from '@/constants/weatherTemp';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { shortDate } from '@/utils/date';
+import { weekdayCn } from '@/utils/date';
 import type { ForecastDay } from '@/utils/weather';
 import { forecastDays, weatherIconUri } from '@/utils/weather';
 
@@ -121,19 +96,19 @@ const mapStore = useFishingMapStore();
 /**
  * 有效的预报日。
  *
- * 挑出高低温都有值的日，脏数据整条丢掉，不占一列 —— 口径在 utils/weather，
+ * 挑出高低温都有值的日，脏数据整条丢掉，不占一行 —— 口径在 utils/weather，
  * 「今天」只有这一个出处。
  */
 const days = computed(() => forecastDays(mapStore.forecasts));
 
 /**
- * 三天共用的温度刻度。
+ * 全部行共用的温度量程。
  *
- * 全局最低到全局最高，三列用同一套换算 —— 这正是「可比较」的前提：
- * 每列各画各的尺子的话，三段深色的高下就只是三段各说各话。
+ * 全局最低到全局最高，所有行用同一套换算 —— 这正是「可比较」的前提：
+ * 每行各画各的尺子的话，那几截的高下就只是各说各话。
  *
- * 跨度为 0（三天温度一模一样）时按 1 算：分母不能是 0，
- * 而这种情况下三段本来就在同一个位置，比不比都一样。
+ * 跨度为 0（所有天温度一模一样）时按 1 算：分母不能是 0，
+ * 而这种情况下每截本来就在同一个位置，比不比都一样。
  */
 const scale = computed(() => {
   if (!days.value.length) return null;
@@ -150,51 +125,91 @@ const scale = computed(() => {
 });
 
 /**
- * 某个温度在这把尺子上的位置：0 是全局最高，1 是全局最低。
+ * 温度条上那一截的位置与宽度（占轨道宽的百分比）。
  *
- * 刻度是倒的 —— 上暖下凉，跟天气卡的直觉一致。
+ * 左端 = 当天最低温在量程里的位置，右端 = 最高温的位置。
+ * 尺子是倒的与否无所谓 —— 这里只关心截的长度与偏移，不关心上下。
+ *
+ * 下限 2%：一天里高低温差极小时，那一截会缩成一个点，看不见。
+ * 给它留一点长度，「那天基本不变温」这件事至少还看得见。
  */
-function position(temp: number): number {
+function segmentGeometry(day: ForecastDay): { left: number; width: number } {
   const s = scale.value;
-  if (!s) return 0;
+  if (!s) return { left: 0, width: 0 };
 
-  return (s.hi - temp) / s.span;
+  const left = ((day.min - s.lo) / s.span) * 100;
+  const width = ((day.max - day.min) / s.span) * 100;
+
+  return { left, width: Math.max(width, 2) };
 }
 
-/** 深色段：上沿在最高温，下沿在最低温。 */
-function bandStyle(day: ForecastDay): string {
-  const top = position(day.max);
-  const bottom = position(day.min);
+/** 截本身的位置与宽度 */
+function segmentStyle(day: ForecastDay): string {
+  const { left, width } = segmentGeometry(day);
 
-  return `top:${(top * 100).toFixed(2)}%;height:${((bottom - top) * 100).toFixed(2)}%`;
-}
-
-/** 最高温数字：底边对齐段的上沿。 */
-function maxStyle(day: ForecastDay): string {
-  return `bottom:${((1 - position(day.max)) * 100).toFixed(2)}%`;
-}
-
-/** 最低温数字：顶边对齐段的下沿。 */
-function minStyle(day: ForecastDay): string {
-  return `top:${(position(day.min) * 100).toFixed(2)}%`;
+  return [`left:${left.toFixed(2)}%`, `width:${width.toFixed(2)}%`].join(';');
 }
 
 /**
- * 行首的日期。
+ * 截里的渐变。
  *
- * 「今天」认的是**留下来的第一行**，不是接口的第一条 ——
- * 头一天要是脏数据（缺高低温）整条被丢掉，剩下的第一行才是今天。
+ * 渐变按**全局量程**铺，不是按这一截自己的区间铺 ——
+ * 否则每一截都从「冷」开始到「热」结束，24°–28° 的暖天和 4°–8° 的冷天
+ * 画出来是同一条蓝到橙，真实的冷暖就丢了。
+ *
+ * 铺法：截里放一个与轨道等宽的内层（宽度按百分比换算），
+ * 内层往左挪一个偏移量，于是它露出来的那一段正好落在这一截的位置上。
+ * 露出的部分就是全局渐变在当天温度区间里的那一段 —— 同一温度恒定同色。
+ *
+ * 那个偏移量要一起交给渐变：内层比轨道宽、又被左移，
+ * 它的坐标原点不在轨道原点上。不把偏移告诉渐变，
+ * 露出来的颜色会比真实温度偏冷一整截。
+ */
+function segmentFillStyle(day: ForecastDay): string {
+  const s = scale.value;
+  if (!s) return '';
+
+  const { left, width } = segmentGeometry(day);
+  if (!width) return '';
+
+  return [
+    `left:${(-(left / width) * 100).toFixed(2)}%`,
+    `width:${((100 / width) * 100).toFixed(2)}%`,
+    `background-image:${tempGradient(s.lo, s.hi, left / 100)}`,
+  ].join(';');
+}
+
+/**
+ * 行首的标签。
+ *
+ * 「今天」认的是**留下来的第一行**，不是接口的第一条 —— 头一天要是脏数据
+ * （缺高低温）整条被丢掉，剩下的第一行才是今天。
  * 所以这个判断按行在列表里的位置算，不按它在接口里的位置。
+ *
+ * 其余各行说星期而不是日期：钓鱼的人想的是「这周末去不去」，
+ * 星期不用自己换算，日期要。
  */
 function dayLabel(fxDate: string, index: number): string {
-  return index === 0 ? '今天' : shortDate(fxDate);
+  if (index === 0) return '今天';
+
+  return weekdayCn(fxDate) || fxDate.slice(5);
+}
+
+/**
+ * 降水概率文案。
+ *
+ * 概率为 0 时是空串 —— 一整周都不下雨却每行都写「0%」是噪音，
+ * 而右对齐的列本来就不怕留空。
+ */
+function probText(day: ForecastDay): string {
+  return day.prob > 0 ? `${day.prob}%` : '';
 }
 
 /**
  * 标题跟着实际天数走。
  *
  * 原来这里写死「7 天」，而接口只回三天 —— 标题说的和下面列的不是一回事，
- * 读的人会以为数据缺了四天。
+ * 读的人会以为数据缺了四天。接口给几天就写几天。
  */
 const title = computed(() => `未来 ${days.value.length} 天`);
 
@@ -207,6 +222,14 @@ const title = computed(() => `未来 ${days.value.length} 天`);
  * 有数据时刷新不算加载 —— 已有读数换成骨架，读的人会以为数据没了。
  */
 const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
+
+/**
+ * 骨架摆几行。
+ *
+ * 有一份旧预报就按那份的行数摆（刷新时正是这种情况），数据到了行数不变；
+ * 什么都没有时按一周 7 行摆 —— 冷启动那一次无从得知行数。
+ */
+const skeletonRows = computed(() => mapStore.forecasts.length || 7);
 
 /**
  * 空态与出错时说同一句话的不同版本。
@@ -227,7 +250,9 @@ const emptyText = computed(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  min-height: 464rpx;
+
+  /* 空态时给一块高度，别让「取不到」那一句话孤零零贴在顶上 */
+  min-height: 320rpx;
 
   @include fish-card;
 
@@ -260,68 +285,40 @@ const emptyText = computed(() => {
   @include fish-card-title;
 }
 
-/* 三列 */
-.days__cols {
-  display: flex;
-}
-
-/*
- * 一列。
- *
- * 每一列内部从上到下：日期、天气图标、降水概率、温度尺。
- * 这几行的高度写死（行盒），三列才对得齐 ——
- * 尺子错开一列，「共用一把尺」这件事就没了。
- */
-.days__col {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+/* 列表 */
+.days__list {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 /*
- * 列间的发丝线。
+ * 一行。
  *
- * 层次靠面不靠描边，但列与列之间那一道例外 —— 它是分隔，不是边框。
- *
- * 用背景渐变而不是 border-left：border 会把这一列的内容框挤窄 1rpx，
- * 居中的尺子跟着偏半格，三列就不在同一个中心线上了。
+ * 每一行的高度写死（行盒）：温度条与数字都在同一条基线上，
+ * 逐行扫下来才平。行高给的是「内容 + 上下留白」，
+ * 不是内容本身 —— 图标 48rpx 高，行盒 76rpx，图标上下各留 14rpx。
  */
-.days__col + .days__col {
-  background-image: linear-gradient(90deg, $fish-border-40 0, $fish-border-40 1rpx, transparent 1rpx);
-}
-
-/* 日期行。行盒定高，三列的图标与尺子才对得齐 */
-.days__label-row {
+.days__row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 30rpx;
+  height: 76rpx;
 }
 
-/* 日期列 */
+/*
+ * 行首的星期。
+ *
+ * 「今天」靠字重站出来，不靠颜色 —— 加了颜色就变成在提示，
+ * 而它其实是状态，不是提醒（跟 HourlyWeather 的首格同一手法）。
+ */
 .days__label {
+  width: 64rpx;
+  flex-shrink: 0;
   color: $fish-ink;
   @include fish-type(caption);
 }
 
-/*
- * 「今天」靠字重站出来，不靠颜色 —— 加了颜色就变成在提示，
- * 而它其实是状态，不是提醒（跟 HourlyWeather 的首格同一手法）。
- */
 .days__label--today {
   font-weight: 600;
-}
-
-/* 天气图标行。行盒定高 = 图标字形的高度 */
-.days__weather {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 60rpx;
-  margin-top: 8rpx;
 }
 
 /*
@@ -331,153 +328,117 @@ const emptyText = computed(() => {
  * （理由见 HourlyWeather 的 .hourly__icon）。
  */
 .days__icon {
-  width: 60rpx;
-  height: 60rpx;
+  width: 48rpx;
+  height: 48rpx;
   flex-shrink: 0;
-}
-
-/* 降水概率行。行盒定高：概率为 0 的是空行，尺子照样对齐 */
-.days__prob-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 30rpx;
-  margin-top: 6rpx;
+  margin-right: 8rpx;
 }
 
 /*
- * 降水概率。
+ * 温度数字。最低温与最高温各占一格，宽度固定，两列才对得齐。
  *
- * 用文字档的蓝（$fish-blue-600）而不是填充档的 $fish-tide：
- * $fish-tide 是给填充用的（逐时那根概率条），当文字读只有 4.0:1，压不住。
+ * 宽度是按**最宽的那个值**定的，不是按当前显示的值。
+ * 实测（body 档 32rpx，同一字体栈）：
+ * 「22.6°」墨迹宽 81rpx、「29.6°」加粗后 85rpx，
+ * 负温「-12.6°」加粗后到 95rpx —— 原来的 72rpx 一律装不下。
+ * 固定宽度装不下就往左溢出，粗体最高温压到最低温上，两串数字糊成一团。
+ * 这里留到 104rpx：宁可空着，也不让两列打架。
  */
-.days__prob {
-  color: $fish-blue-600;
-  @include fish-type(caption);
+.days__temp {
+  width: 104rpx;
+  flex-shrink: 0;
+  text-align: right;
+  white-space: nowrap;
+  @include fish-type(body);
 
   font-variant-numeric: tabular-nums;
 }
 
+/* 最低温：灰一档，它是背景 */
+.days__temp--min {
+  color: $fish-muted;
+}
+
+/* 最高温：重一档，它才是要读的那个数 */
+.days__temp--max {
+  color: $fish-ink;
+  font-weight: 600;
+}
+
 /*
- * 温度尺区。
+ * 温度条。
  *
- * 高度是三列共用的：尺子本体 + 上下两段余量。
- * 上下的余量是给数字留的（最高温 / 最低温各自贴着一个端点）——
- * 不给数字留地方，端点贴近尺子边缘那天就会被裁掉半个数字。
+ * 轨道与截都在这一格里，格宽是弹性的（flex: 1）——
+ * 前面几列宽度写死，条自然吃掉剩下的宽度，行末那一列宽度也就固定了。
  */
-.days__plot {
+.days__bar {
   position: relative;
-  width: 100%;
-  height: 216rpx;
-  margin-top: 16rpx;
+  flex: 1;
+  min-width: 0;
+  height: 8rpx;
+  margin: 0 20rpx;
 }
 
 /*
- * 尺子本体。
+ * 轨道：这一段预报的全局量程。
  *
- * 三列的尺子一样长、一样高、上下端点一样平：
- * 尺子一样，段的高下才是在比温度，而不是在比画法。
+ * 浅填充压在玻璃面上，8rpx 这么细的浅色几乎看不见 ——
+ * 所以轨道给足存在感（比截稍粗一点），否则「哪截更长」没有参照。
  */
-.days__scale {
-  position: absolute;
-  top: 52rpx;
-  right: 0;
-  left: 0;
-  height: 120rpx;
-}
-
-/*
- * 尺身。
- *
- * 一根浅色的管子，从全局最高画到全局最低 ——
- * 三列各有自己的一根，但它们是同一把尺子上的同一段：
- * 没有这根管子，深色段读作三根漂浮的短棒，
- * 「哪段更高」就没有共同的参照可看。
- *
- * 粗细跟深色段一样宽（同 AstroCard 的轨道/段关系）：
- * 管子和段一样宽时，深段正好盖住管子，
- * 露出来的那两截浅色就是尺子上「不属于这一天的部分」——
- * 一眼能看出三段有多高差。管子画细了则完全露不出来
- * （浅填充压在玻璃面上，6rpx 的细线等于没有）。
- */
-.days__rail {
+.days__track {
   position: absolute;
   top: 0;
-  left: 50%;
-  width: 12rpx;
+  right: 0;
+  left: 0;
   height: 100%;
-  margin-left: -6rpx;
   border-radius: $fish-radius-pill;
   background-color: $fish-surface;
 }
 
 /*
- * 深色段：那天 min→max 在尺子上的位置。
+ * 截：当天 min→max 在量程上的位置。
  *
- * 底色用中性填充 $fish-surface，深色段压在上面 ——
- * 这张卡上「深的那段就是当天」已经够读，
- * 再给温度加一层颜色，就是让颜色讲第二件事。
+ * 底色用渐变（按绝对温度给色），颜色讲的是冷暖，
+ * 长度与偏移讲的是哪天更暖 —— 一个形状说一件事，不叠加。
  */
-.days__band {
+.days__segment {
   position: absolute;
-  left: 50%;
-  width: 12rpx;
-  min-height: 6rpx;
-  margin-left: -6rpx;
+  top: 0;
+  height: 100%;
+  overflow: hidden;
   border-radius: $fish-radius-pill;
-  background-color: $fish-ink;
 }
 
 /*
- * 最高温。
+ * 截里的渐变层。
  *
- * 底边对齐段的上沿（margin-bottom 把它从端点抬开一点），
- * 所以这个数字标的就是段的上端，不是「附近」。
+ * 它与轨道等宽（用百分比换算），再往左挪一个偏移量 ——
+ * 于是它露在截里的那一段，正好是全局渐变在当天温度区间里的那一段。
+ * 同一温度在任何一天都是同一个颜色。
  */
-.days__max {
+.days__segment-fill {
   position: absolute;
-  right: 0;
-  left: 0;
-  margin-bottom: 6rpx;
-  text-align: center;
-}
-
-/* 数字 */
-.days__max-num {
-  color: $fish-ink;
-  @include fish-type(body);
-
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  top: 0;
+  height: 100%;
 }
 
 /*
- * 最低温。
- *
- * 顶边对齐段的下沿。它比最高温小一档、灰一档：
- * 最高温才是「哪天更暖」要读的那个数，最低温是背景。
+ * 降水概率。右对齐：它是一列数字，右对齐才能竖着比大小。
  */
-.days__min {
-  position: absolute;
-  right: 0;
-  left: 0;
-  margin-top: 6rpx;
-  text-align: center;
-}
-
-/* 数字 */
-.days__min-num {
-  color: $fish-muted;
+.days__prob {
+  width: 64rpx;
+  flex-shrink: 0;
+  color: $fish-blue-600;
   @include fish-type(caption);
 
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 /*
  * 加载骨架。
  *
- * 每一块的尺寸照着上面真实元素的行盒摆：
- * 日期 30rpx 行盒、图标 36rpx、概率 30rpx、尺身 120rpx 加上下各一段余量。
+ * 每一块的尺寸照着上面真实元素的行盒摆。
  * 底色用 $fish-surface，呼吸幅度用 0.35 —— 跟 SkeletonCard、HourlyWeather、
  * WeatherCard 同一档，否则同一个页面里两种加载态一深一浅，
  * 像两套组件。
@@ -493,76 +454,39 @@ const emptyText = computed(() => {
   height: 46rpx;
 }
 
-/* 日期 */
+/* 星期 */
 .days__skeleton--label {
-  width: 56rpx;
+  width: 48rpx;
   height: 28rpx;
+  margin-right: 16rpx;
 }
 
 /* 图标。圆形：图标是个圆盘形的字形 */
 .days__skeleton--icon {
-  width: 60rpx;
-  height: 60rpx;
+  width: 48rpx;
+  height: 48rpx;
+  margin-right: 12rpx;
   border-radius: 50%;
+}
+
+/* 温度数字 */
+.days__skeleton--temp {
+  width: 72rpx;
+  height: 32rpx;
+  margin-right: 16rpx;
+}
+
+/* 温度条 */
+.days__skeleton--bar {
+  flex: 1;
+  height: 8rpx;
+  margin: 0 20rpx;
+  border-radius: $fish-radius-pill;
 }
 
 /* 概率 */
 .days__skeleton--prob {
-  width: 44rpx;
-  height: 28rpx;
-}
-
-/* 尺身。跟真实的 .days__rail 一样粗、一样长 */
-.days__skeleton--rail {
-  position: absolute;
-  top: 52rpx;
-  left: 50%;
-  width: 12rpx;
-  height: 120rpx;
-  margin-left: -6rpx;
-  border-radius: $fish-radius-pill;
-}
-
-/* 深色段。摆在尺子中段：真实位置要等数据 */
-.days__skeleton--band {
-  position: absolute;
-  top: 100rpx;
-  left: 50%;
-  width: 12rpx;
-  height: 48rpx;
-  margin-left: -6rpx;
-  border-radius: $fish-radius-pill;
-}
-
-/*
- * 最高温。
- *
- * 摆的是数字盒子的位置，不是它底边的位置：
- * 真实数字的**底边**贴住尺子上沿（52rpx），
- * 盒子本身有 42rpx 高，所以顶边在 10rpx。
- * 骨架贴错边，数据到了数字就会往下掉一截。
- */
-.days__skeleton--max {
-  position: absolute;
-  top: 10rpx;
-  left: 50%;
-  width: 56rpx;
-  height: 42rpx;
-  margin-left: -28rpx;
-}
-
-/*
- * 最低温。
- *
- * 顶边贴在尺子下沿之下 6rpx（最低温那天的位置是尺底）：
- * 尺底在 172rpx，加 6rpx 的让位 = 178rpx。
- */
-.days__skeleton--min {
-  position: absolute;
-  top: 178rpx;
-  left: 50%;
   width: 48rpx;
-  height: 31rpx;
-  margin-left: -24rpx;
+  height: 28rpx;
 }
 </style>

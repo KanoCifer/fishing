@@ -124,6 +124,31 @@ export function localMinuteKey(date: Date = new Date()): string {
 }
 
 /**
+ * 中文星期名。
+ *
+ * 按 UTC 从 `YYYY-MM-DD` 算星期，不走本地时区 —— 日期没有时刻，
+ * 本地时区转换会把它挪到前一天，星期就整体错一格。
+ */
+const WEEKDAY_CN: ReadonlyArray<string> = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+/**
+ * `YYYY-MM-DD` → 星期几（'周三'）。
+ *
+ * 预报行用它当行首标签：'10-21' 只说日期，'周三' 说的是「哪天」——
+ * 钓鱼的人想的是「这周末去不去」，日期要自己换算，星期不用。
+ */
+export function weekdayCn(fxDate: string): string {
+  const matched = /^(\d{4})-(\d{2})-(\d{2})/.exec(fxDate ?? '');
+  if (!matched) return '';
+
+  const [, year, month, day] = matched;
+  const stamp = Date.UTC(Number(year), Number(month) - 1, Number(day));
+
+  if (!Number.isFinite(stamp)) return '';
+
+  return WEEKDAY_CN[new Date(stamp).getUTCDay()] ?? '';
+}
+/**
  * 把 `YYYY-MM-DD` 形式的日期切出 `MM-DD`，图表轴和预报行用。
  *
  * 后端 fxDate 形如 `2026-10-17`，不带时区，这里同样只切字符串。
