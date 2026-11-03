@@ -367,3 +367,66 @@ $fish-enter-sheet-y: 16rpx;
     animation: fish-enter-media $fish-dur-slow $fish-ease-out both;
   }
 }
+
+// ===========================================================================
+// 交叉淡入
+//
+// 同一位置换内容：两态叠在同一个格子里，旧态淡出、新态淡入。
+//
+// 与 fish-enter 的分工：
+// - fish-enter 是「内容落位」—— 一块内容从下方 40rpx 升上来。
+// - 交叉淡入是「换了一组内容」—— 位置不动，两组内容互相让位。
+//
+// 位移只有 4rpx。再大就从「换了一组值」读作「飞进来了」，
+// 而且这段时间一直有东西在动，反而看不清当前读数。
+//
+// 时长用 $fish-dur-cross（160ms）：读数轨道那一处也是「同一位置换内容」，
+// 这里沿用同一个约定，不另立一档。
+// ===========================================================================
+
+$fish-cross-y: 4rpx;
+
+/**
+ * 新态进场。
+ *
+ * 挂载即播，所以用 animation 而不是 transition：transition 需要
+ * 「先在隐藏态，再切到显示态」，而内容是随数据一到就挂上来的，
+ * 中间没有那个隐藏态。
+ */
+@mixin fish-cross-in {
+  @if $fish-motion {
+    animation: fish-cross-in $fish-dur-cross $fish-ease-out both;
+  }
+}
+
+/**
+ * 旧态淡出。
+ *
+ * 旧态不能立刻摘：摘的那一刻新态还在淡入，中间会露出底色。
+ * 所以旧态留在 DOM 里，类一切就淡，淡完再摘 —— 摘的时机在
+ * composables/useCrossFade 里（JS 读不到 Sass 变量，时长两处一起改）。
+ */
+@mixin fish-cross-out {
+  @if $fish-motion {
+    transition: opacity $fish-dur-cross $fish-ease-out;
+  }
+}
+
+/**
+ * 交叉淡入的帧内容。
+ *
+ * 与 fish-enter-frames 同一个道理：@keyframes 只能写在全局样式里，
+ * 帧里的值要从令牌层拿。
+ */
+@mixin fish-cross-in-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-cross-y);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

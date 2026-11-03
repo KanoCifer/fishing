@@ -97,6 +97,16 @@ export function startAnimation(callback: (progress: number) => void, duration: n
 export const COUNT_UP_DURATION = 800;
 
 /**
+ * 交叉淡入的时长（毫秒）。
+ *
+ * 与 $fish-dur-cross（160ms）同一档：两处都是「同一位置换内容」。
+ *
+ * ⚠️ 这里手写 160 而不是引用 SCSS 的变量：JS 读不到 Sass 变量。
+ * 改的时候两处一起改（_motion.scss 里那条也有同样的提醒）。
+ */
+export const CROSS_FADE_DURATION = 160;
+
+/**
  * 数字滚动的缓动。
  *
  * CSS 那条 cubic-bezier(0.32, 0.72, 0, 1)（$fish-ease-out）在 JS 里复刻不了：

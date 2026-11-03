@@ -189,6 +189,7 @@ onReady(() => {
 
 onPullDownRefresh(() => {
   onRefresh();
+  setTimeout(() => uni.stopPullDownRefresh(), 1000);
 });
 
 /**

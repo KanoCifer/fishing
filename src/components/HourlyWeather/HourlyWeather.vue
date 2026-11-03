@@ -1,30 +1,51 @@
 <template>
   <view class="hourly">
     <scroll-view class="hourly__scroll" scroll-x :show-scrollbar="false">
-      <view v-if="hours.length" class="hourly__track">
+      <!--
+        骨架与实数据交叉淡入（见 composables/useCrossFade）。
+
+        这一处不用 grid 叠放：格子在横向 scroll-view 里，
+        叠进 grid 会被 grid 的宽度卡住，横向就滚不动了。
+        骨架改成绝对定位浮在数据上面。
+
+        内容没到时骨架要占位（position: static）——
+        绝对定位的层不占高度，卡片会塌掉。
+      -->
+      <view class="hourly__stack" :class="{ 'hourly__stack--skeleton': !hours.length }">
+        <view v-if="hours.length" class="hourly__content">
+          <view class="hourly__track">
+            <view
+              v-for="(hour, i) in hours"
+              :key="hour.fxTime"
+              class="hourly__cell"
+              :class="{ 'hourly__cell--first': i === 0 }"
+            >
+              <text class="hourly__time">{{ parseFxTime(hour.fxTime)?.time ?? '' }}</text>
+              <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFit" />
+              <text class="hourly__temp">{{ hour.temp }}°</text>
+              <view class="hourly__prob">
+                <view v-if="hour.prob > 0" class="hourly__prob-fill" :style="`width:${hour.prob}%`" />
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 加载中：骨架照着真实格子的行盒摆 -->
         <view
-          v-for="(hour, i) in hours"
-          :key="hour.fxTime"
-          class="hourly__cell"
-          :class="{ 'hourly__cell--first': i === 0 }"
+          v-if="skeletonVisible"
+          class="hourly__skeleton-layer"
+          :class="{ 'hourly__skeleton-layer--out': hours.length > 0 }"
         >
-          <text class="hourly__time">{{ parseFxTime(hour.fxTime)?.time ?? '' }}</text>
-          <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFit" />
-          <text class="hourly__temp">{{ hour.temp }}°</text>
-          <view class="hourly__prob">
-            <view v-if="hour.prob > 0" class="hourly__prob-fill" :style="`width:${hour.prob}%`" />
+          <view class="hourly__track">
+            <view v-for="i in 8" :key="i" class="hourly__cell">
+              <view class="hourly__skeleton hourly__skeleton--time" />
+              <view class="hourly__skeleton hourly__skeleton--icon" />
+              <view class="hourly__skeleton hourly__skeleton--temp" />
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 加载中：骨架照着真实格子的行盒摆 -->
-      <view v-else-if="!settled" class="hourly__track">
-        <view v-for="i in 8" :key="i" class="hourly__cell">
-          <view class="hourly__skeleton hourly__skeleton--time" />
-          <view class="hourly__skeleton hourly__skeleton--icon" />
-          <view class="hourly__skeleton hourly__skeleton--temp" />
-        </view>
-      </view>
     </scroll-view>
     <!--
       空态不是加载态。取不到逐时数据的时候，这张卡要是继续摆骨架，
@@ -47,6 +68,7 @@
  */
 import { computed } from 'vue';
 
+import { useCrossFade } from '@/composables/useCrossFade';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { parseFxTime } from '@/utils/date';
 import { num, weatherIconUri } from '@/utils/weather';
@@ -74,6 +96,17 @@ const hours = computed(() =>
     };
   }),
 );
+
+/**
+ * 骨架与实数据交叉淡入。
+ *
+ * 数据一到，骨架淡出、格子淡入，同一时刻发生 ——
+ * 骨架立刻摘掉的话，中间会露出卡片底色，读起来像闪了一下。
+ */
+const { skeletonVisible } = useCrossFade({
+  hasContent: () => hours.value.length > 0,
+  loading: () => !settled.value,
+});
 </script>
 
 <style lang="scss" scoped>
@@ -93,6 +126,48 @@ const hours = computed(() =>
 .hourly__track {
   display: flex;
   padding: 0 4rpx;
+}
+
+/*
+ * 骨架与实数据。
+ *
+ * 这一处不用 grid 叠放：格子在横向 scroll-view 里，
+ * 叠进 grid 会被 grid 的宽度卡住，横向就滚不动了。
+ * 骨架改成绝对定位浮在数据上面。
+ */
+.hourly__stack {
+  position: relative;
+}
+
+/* 实数据：数据一到就淡入落位 */
+.hourly__content {
+  @include fish-cross-in;
+}
+
+/*
+ * 骨架。
+ *
+ * 内容没到时它回到文档流里占位：绝对定位的层不占高度，
+ * 卡片会塌成一条。
+ *
+ * 内容到位后淡出，淡完再从 DOM 里摘 ——
+ * 立刻摘的话，中间会露出卡片底色（见 composables/useCrossFade）。
+ */
+.hourly__skeleton-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  @include fish-cross-out;
+
+  &--out {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.hourly__stack--skeleton .hourly__skeleton-layer {
+  position: static;
 }
 
 .hourly__cell {

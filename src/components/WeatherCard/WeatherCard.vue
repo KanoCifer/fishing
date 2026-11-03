@@ -1,57 +1,71 @@
 <template>
   <view class="weather">
     <!--
-      加载中：骨架照着磁贴排。
+      骨架与实读数叠在同一个格子里交叉淡入：
+      读数到了，内容淡入落位、同一时刻骨架淡出（见 composables/useCrossFade）。
 
       有数据时刷新不算加载 —— 把已有读数换成骨架，读的人会以为数据没了。
     -->
-    <view v-if="mapStore.weatherLoading && !tiles.length" class="weather__grid">
-      <view v-for="i in 9" :key="i" class="weather__tile weather__tile--skeleton">
-        <view class="weather__sk weather__sk--title" />
-        <view class="weather__sk weather__sk--value" />
-        <view class="weather__sk weather__sk--level" />
-      </view>
-    </view>
-
-    <text v-else-if="mapStore.weatherError" class="weather__error">
-      {{ mapStore.weatherError }}
-    </text>
-
-    <text v-else-if="!tiles.length" class="weather__empty">暂无天气数据，刷新可重试</text>
-
-    <view v-else class="weather__body">
-      <view class="weather__head">
-        <text class="weather__title">实况读数</text>
-        <text v-if="updatedAt" class="weather__meta">{{ updatedAt }} 更新</text>
-      </view>
-
-      <view class="weather__grid">
-        <view v-for="tile in tiles" :key="tile.key" class="weather__tile">
-          <view class="weather__tile-head">
-            <text class="weather__tile-title">{{ tile.title }}</text>
-            <image class="weather__tile-icon" :src="tile.icon" mode="aspectFit" />
+    <view class="weather__stack">
+      <view v-if="showTiles" class="weather__content">
+        <view class="weather__body">
+          <view class="weather__head">
+            <text class="weather__title">实况读数</text>
+            <text v-if="updatedAt" class="weather__meta">{{ updatedAt }} 更新</text>
           </view>
 
-          <view class="weather__tile-value">
-            <text class="weather__tile-num">{{ tile.value }}</text>
-            <text v-if="tile.unit" class="weather__tile-unit">{{ tile.unit }}</text>
-          </view>
+          <view class="weather__grid">
+            <view v-for="tile in tiles" :key="tile.key" class="weather__tile">
+              <view class="weather__tile-head">
+                <text class="weather__tile-title">{{ tile.title }}</text>
+                <image class="weather__tile-icon" :src="tile.icon" mode="aspectFit" />
+              </view>
 
-          <view class="weather__tile-foot">
-            <text class="weather__tile-level" :class="`weather__tile-level--${tile.tone}`">
-              {{ tile.level }}
-            </text>
-            <text v-if="tile.note" class="weather__tile-note">{{ tile.note }}</text>
+              <view class="weather__tile-value">
+                <text class="weather__tile-num">{{ tile.value }}</text>
+                <text v-if="tile.unit" class="weather__tile-unit">{{ tile.unit }}</text>
+              </view>
+
+              <view class="weather__tile-foot">
+                <text class="weather__tile-level" :class="`weather__tile-level--${tile.tone}`">
+                  {{ tile.level }}
+                </text>
+                <text v-if="tile.note" class="weather__tile-note">{{ tile.note }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 加载中：骨架照着磁贴排 -->
+      <view
+        v-if="skeletonVisible"
+        class="weather__skeleton-layer"
+        :class="{ 'weather__skeleton-layer--out': showTiles }"
+      >
+        <view class="weather__grid">
+          <view v-for="i in 9" :key="i" class="weather__tile weather__tile--skeleton">
+            <view class="weather__sk weather__sk--title" />
+            <view class="weather__sk weather__sk--value" />
+            <view class="weather__sk weather__sk--level" />
           </view>
         </view>
       </view>
     </view>
+
+    <text v-if="mapStore.weatherError && !skeletonVisible" class="weather__error">
+      {{ mapStore.weatherError }}
+    </text>
+
+    <text v-else-if="!tiles.length && !skeletonVisible" class="weather__empty">暂无天气数据，刷新可重试</text>
+
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import { useCrossFade } from '@/composables/useCrossFade';
 import { icon, type IconName } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { formatTimeOfDay } from '@/utils/date';
@@ -257,6 +271,27 @@ const tiles = computed<Tile[]>(() => {
   return out;
 });
 
+/**
+ * 实读数这一屏。
+ *
+ * 出错时不画读数：拿旧读数顶一条报错，读的人不知道该信哪个。
+ */
+const showTiles = computed(() => tiles.value.length > 0 && !mapStore.weatherError);
+
+/** 还在取数没有 */
+const loading = computed(() => mapStore.weatherLoading);
+
+/**
+ * 骨架与实读数交叉淡入。
+ *
+ * 读数一到，骨架淡出、磁贴淡入，同一时刻发生 ——
+ * 骨架立刻摘掉的话，中间会露出卡片底色，读起来像闪了一下。
+ */
+const { skeletonVisible } = useCrossFade({
+  hasContent: () => tiles.value.length > 0,
+  loading: () => loading.value,
+});
+
 /** 落款：这批读数是什么时候的 */
 const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime));
 </script>
@@ -272,6 +307,39 @@ const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime))
 .weather__body {
   display: flex;
   flex-direction: column;
+}
+
+/*
+ * 骨架与实读数叠在同一个格子里。
+ *
+ * grid 叠同一个单元：两态不占两份高度，也不退出文档流。
+ * 读数轨道那一处也是这么做的（见 LineChart 的 line-chart__slot）。
+ */
+.weather__stack {
+  display: grid;
+}
+
+/* 实读数：读到就淡入落位 */
+.weather__content {
+  grid-area: 1 / 1;
+  @include fish-cross-in;
+}
+
+/*
+ * 骨架。
+ *
+ * 读数到位后淡出，淡完再从 DOM 里摘 ——
+ * 立刻摘的话，中间会露出卡片底色（见 composables/useCrossFade）。
+ */
+.weather__skeleton-layer {
+  grid-area: 1 / 1;
+  opacity: 1;
+  @include fish-cross-out;
+
+  &--out {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .weather__head {

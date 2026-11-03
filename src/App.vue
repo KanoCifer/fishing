@@ -56,6 +56,10 @@ page {
       transform: scale(1);
     }
   }
+
+  @keyframes fish-cross-in {
+    @include fish-cross-in-frames;
+  }
 }
 
 /*

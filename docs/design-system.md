@@ -30,6 +30,7 @@
 ## 动效
 
 - **曲线即弹簧**：没有弹簧引擎，只能近似成 cubic-bezier；`$fish-spring` 临界阻尼，末端减速不回头。**落位只动 `transform`+`opacity`**，`enterDelay(index)` 步长 60ms、**第 9 项封顶**。
+- **交叉淡入**（同一位置换内容）：两态叠在同一个格子里，旧态淡出、新态淡入，160ms `$fish-dur-cross`、位移 4rpx。mixin `fish-cross-in`（新态，挂载即播）与 `fish-cross-out`（旧态，类一切就淡）；骨架摘除时机在 `composables/useCrossFade`。
 
 ### 动画定义放哪
 

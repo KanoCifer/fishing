@@ -29,7 +29,11 @@
       </view>
     </view>
 
-    <view class="hero__gauge" :style="enterStyle(1, showAnim)">
+    <!--
+    仪表不挂入场动画：弧线自己会画，数字自己会滚（见下面的 countUp）。
+    再套一层落位就是两段位移叠在一起，读作抖。
+    -->
+    <view class="hero__gauge">
       <TideGauge
         :value="displayScore"
         :min="0"
@@ -265,6 +269,14 @@ function onRefresh() {
   if (mapStore.indexLoading || mapStore.locating) return;
   void mapStore.refreshIndexData();
 }
+
+watch(
+  () => mapStore.indexData?.fishing_index,
+  (next) => {
+    if (next == null) return;
+    countUp.to(next); // 800ms easeOutCubic，utils/motion.ts:97
+  },
+);
 </script>
 
 <style lang="scss" scoped>
@@ -305,6 +317,8 @@ function onRefresh() {
   left: -1133rpx;
   width: 1888rpx;
   height: 800rpx;
+
+  @include fish-enter-media;
 }
 
 .hero__scrim {
@@ -446,7 +460,7 @@ function onRefresh() {
 }
 
 /* 刷新中。转起来只是加强信号，静态的那一份是变暗 */
-.hero__refresh--busy .hero__icon {
+.hero__refresh--busy .hero__icon__refresh {
   opacity: 0.4;
   animation: fish-spin 1s linear infinite;
 }
@@ -560,6 +574,18 @@ function onRefresh() {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+
+  /*
+   * 实况这一块随数据落位。
+   *
+   * 它跟卡片入场是同一套：升 40rpx、缩到 0.95、淡入，800ms。
+   * 之前这里只挂了 enterStyle（给的是 animation-name 与 delay），
+   * 元素身上却没有 animation 简写 —— 时长缺省 0s，动画根本没播。
+   *
+   * mixin 要挂在普通 <view> 上：组件宿主节点不吃动画，
+   * 挂上去内容会永远停在 opacity: 0。
+   */
+  @include fish-enter;
 }
 
 /* 温度与图标并排 */

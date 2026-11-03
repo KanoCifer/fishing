@@ -9,57 +9,75 @@
       <view v-else-if="loading" class="days__skeleton days__skeleton--title" />
     </view>
 
-    <view v-if="days.length" class="days__list">
-      <view v-for="(day, i) in days" :key="day.fxDate" class="days__row">
-        <!-- 行首的星期 -->
-        <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
+    <!--
+      骨架与实数据叠在同一个格子里交叉淡入：
+      数据到了，内容淡入落位、同一时刻骨架淡出（见 composables/useCrossFade）。
 
-        <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
+      叠在同一个格子而不是上下排：两态不占两份高度，
+      也不必为「骨架该多高」再写一套尺寸。
+    -->
+    <view class="days__stack">
+      <view v-if="days.length" class="days__content">
+        <view class="days__list">
+          <view v-for="(day, i) in days" :key="day.fxDate" class="days__row">
+            <!-- 行首的星期 -->
+            <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
 
-        <!-- 最低温 -->
-        <text class="days__temp days__temp--min">{{ day.min }}°</text>
+            <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
 
-        <!-- 最高温。它比最低温重一档：最低温是背景，最高温才是「哪天更暖」要读的那个数 -->
-        <text class="days__temp days__temp--max">{{ day.max }}°</text>
+            <!-- 最低温 -->
+            <text class="days__temp days__temp--min">{{ day.min }}°</text>
 
-        <view class="days__bar">
-          <view class="days__track" />
-          <view class="days__segment" :style="segmentStyle(day)">
-            <view class="days__segment-fill" :style="segmentFillStyle(day)" />
+            <!-- 最高温。它比最低温重一档：最低温是背景，最高温才是「哪天更暖」要读的那个数 -->
+            <text class="days__temp days__temp--max">{{ day.max }}°</text>
+
+            <view class="days__bar">
+              <view class="days__track" />
+              <view class="days__segment" :style="segmentStyle(day, i)">
+                <view class="days__segment-fill" :style="segmentFillStyle(day)" />
+              </view>
+            </view>
+
+            <text class="days__prob">{{ probText(day) }}</text>
           </view>
         </view>
+      </view>
 
-        <text class="days__prob">{{ probText(day) }}</text>
+      <!--
+        加载中：行骨架。
+
+        骨架照着最终形状摆（每一行的行盒高度与真实行一致），
+        所以数据到了版式不换，下面那一段不会跳。
+
+        行数跟着已知数据走：预报列表有几天就摆几行，
+        免得真实数据到了之后整块高度缩一下。
+      -->
+      <view
+        v-if="skeletonVisible"
+        class="days__skeleton-layer"
+        :class="{ 'days__skeleton-layer--out': days.length > 0 }"
+      >
+        <view class="days__list">
+          <view v-for="i in skeletonRows" :key="i" class="days__row">
+            <view class="days__skeleton days__skeleton--label" />
+            <view class="days__skeleton days__skeleton--icon" />
+            <view class="days__skeleton days__skeleton--temp" />
+            <view class="days__skeleton days__skeleton--temp" />
+            <view class="days__skeleton days__skeleton--bar" />
+            <view class="days__skeleton days__skeleton--prob" />
+          </view>
+        </view>
       </view>
     </view>
 
-    <!--
-      加载中：行骨架。
-
-      骨架照着最终形状摆（每一行的行盒高度与真实行一致），
-      所以数据到了版式不换，下面那一段不会跳。
-
-      行数跟着已知数据走：预报列表有几天就摆几行，
-      免得真实数据到了之后整块高度缩一下。
-    -->
-    <view v-else-if="loading" class="days__list">
-      <view v-for="i in skeletonRows" :key="i" class="days__row">
-        <view class="days__skeleton days__skeleton--label" />
-        <view class="days__skeleton days__skeleton--icon" />
-        <view class="days__skeleton days__skeleton--temp" />
-        <view class="days__skeleton days__skeleton--temp" />
-        <view class="days__skeleton days__skeleton--bar" />
-        <view class="days__skeleton days__skeleton--prob" />
-      </view>
-    </view>
-
-    <text v-else class="days__empty">{{ emptyText }}</text>
+    <text v-if="!days.length && !loading" class="days__empty">{{ emptyText }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import { useCrossFade } from '@/composables/useCrossFade';
 import { icon } from '@/constants/icons';
 import { tempGradient } from '@/constants/weatherTemp';
 import { useFishingMapStore } from '@/stores/fishingMap';
@@ -121,11 +139,20 @@ function segmentGeometry(day: ForecastDay): { left: number; width: number } {
   return { left, width: Math.max(width, 2) };
 }
 
-/** 截本身的位置与宽度 */
-function segmentStyle(day: ForecastDay): string {
+/**
+ * 截本身的位置与宽度。
+ *
+ * 顺带给出逐行延迟：温度条从上往下依次展开，
+ * 步长 12ms —— 与分钟降水的雨幕同一档。
+ */
+function segmentStyle(day: ForecastDay, index: number): string {
   const { left, width } = segmentGeometry(day);
 
-  return [`left:${left.toFixed(2)}%`, `width:${width.toFixed(2)}%`].join(';');
+  return [
+    `left:${left.toFixed(2)}%`,
+    `width:${width.toFixed(2)}%`,
+    `animation-delay:${index * 12}ms`,
+  ].join(';');
 }
 
 /**
@@ -200,6 +227,17 @@ const title = computed(() => `未来 ${days.value.length} 天`);
  * 有数据时刷新不算加载 —— 已有读数换成骨架，读的人会以为数据没了。
  */
 const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
+
+/**
+ * 骨架与实数据交叉淡入。
+ *
+ * 预报一到，骨架淡出、列表淡入，同一时刻发生 ——
+ * 骨架立刻摘掉的话，中间会露出卡片底色，读起来像闪了一下。
+ */
+const { skeletonVisible } = useCrossFade({
+  hasContent: () => days.value.length > 0,
+  loading: () => loading.value,
+});
 
 /**
  * 骨架摆几行。
@@ -279,6 +317,39 @@ const emptyText = computed(() => {
 .days__list {
   display: flex;
   flex-direction: column;
+}
+
+/*
+ * 骨架与实数据叠在同一个格子里。
+ *
+ * grid 叠同一个单元：两态不占两份高度，也不退出文档流。
+ * 读数轨道那一处也是这么做的（见 LineChart 的 line-chart__slot）。
+ */
+.days__stack {
+  display: grid;
+}
+
+/* 实数据：数据一到就淡入落位 */
+.days__content {
+  grid-area: 1 / 1;
+  @include fish-cross-in;
+}
+
+/*
+ * 骨架。
+ *
+ * 内容到位后淡出，淡完再从 DOM 里摘 ——
+ * 立刻摘的话，中间会露出卡片底色（见 composables/useCrossFade）。
+ */
+.days__skeleton-layer {
+  grid-area: 1 / 1;
+  opacity: 1;
+  @include fish-cross-out;
+
+  &--out {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /*
@@ -395,6 +466,37 @@ const emptyText = computed(() => {
   height: 100%;
   overflow: hidden;
   border-radius: $fish-radius-pill;
+
+  /*
+   * 温度条从左端展开。
+   *
+   * 只动 transform：条是绝对定位，改 width 也能做，
+   * 但那是布局属性，七行一起动会带着兄弟节点重排。
+   *
+   * 逐行延迟走行内 animation-delay（见 segmentStyle），
+   * 步长 12ms —— 与分钟降水的雨幕同一档。
+   */
+  transform-origin: left center;
+
+  @if $fish-motion {
+    animation: bar-grow $fish-dur-base $fish-ease-out both;
+  }
+}
+
+/*
+ * 温度条展开。
+ *
+ * 关键帧写在本组件里（分钟降水的雨幕也是这么做的），不进 App.vue ——
+ * 全局那份只放跨组件复用的动画。
+ */
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /*
