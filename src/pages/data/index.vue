@@ -61,15 +61,8 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 数据页 —— tabBar 的第一个页签，也是冷启动落点。
- *
- * 页面滚动直接用页面级滚动（内容超过窗口自动滚），不套 scroll-view：
- * scroll-view 必须给确定高度，而这里内容高度随接口返回的条数变化，
- * 给死高度要么留白要么裁切。
- */
 import { computed, ref } from 'vue';
-import { onLoad, onPageScroll, onPageShow, onReady, onShareAppMessage } from '@dcloudio/uni-app';
+import { onLoad, onPageScroll, onShow, onReady, onShareAppMessage, onPullDownRefresh } from '@dcloudio/uni-app';
 
 import AstroCard from '@/components/AstroCard/AstroCard.vue';
 import DayForecast from '@/components/DayForecast/DayForecast.vue';
@@ -158,9 +151,9 @@ function onPickPlace() {
  */
 
 /**
- * 首屏这一轮取数交给 onReady（见下），切回本页交给 onPageShow。
+ * 首屏这一轮取数交给 onReady（见下），切回本页交给 onShow。
  *
- * 两个钩子都挂着：onPageShow 在冷启动时也会触发一次，而那一次落在启动阶段内，
+ * 两个钩子都挂着：onShow 在冷启动时也会触发一次，而那一次落在启动阶段内，
  * 不能在那里发请求（见下）。onShow 在 onReady 之前，所以首屏那一次 ready 是 false。
  */
 let ready = false;
@@ -194,12 +187,16 @@ onReady(() => {
   }, 0);
 });
 
+onPullDownRefresh(() => {
+  onRefresh();
+});
+
 /**
  * 切回本页时取数。
  *
  * 首屏那一次不在这里取 —— 见上面的 ready 说明。
  */
-onPageShow(() => {
+onShow(() => {
   showAnim.value = false;
   setTimeout(() => {
     showAnim.value = true;
