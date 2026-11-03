@@ -232,7 +232,7 @@ const pinIcon = icon('map-pin', 'ink');
 const chevronDownIcon = icon('chevron-down', 'muted60');
 
 /** 头图上的其余图标一律压白 —— 图标的颜色烤在 data URI 里，换色要回去跑 pnpm icons */
-const refreshIcon = icon('refresh-cw', 'ink');
+const refreshIcon = icon('rotate-cw', 'ink');
 const fishIcon = icon('fish', 'onAccent');
 const chevronIcon = icon('chevron-right', 'onAccent');
 

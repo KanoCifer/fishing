@@ -40,7 +40,7 @@ const COLORS = {
 const ICONS = [
   // —— 首屏 ——
   { name: 'map-pin', color: 'muted', use: '实况地点' },
-  { name: 'refresh-cw', color: 'muted', use: '刷新天气与指数' },
+  { name: 'rotate-cw', color: 'muted', use: '刷新天气与指数' },
   { name: 'fish', color: 'success', use: '鱼口概率标记' },
   { name: 'message-square', color: 'onAccent', use: '反馈按钮' },
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
@@ -59,7 +59,7 @@ const ICONS = [
   // 地点标签这一枚要**实心**：它压在玻璃胶囊上，描边图钉在小尺寸下会读成一团糊。
   // 实心版把中间那个圆挖空成洞，洞里透出胶囊底色（见 punchHoles）。
   { name: 'map-pin', color: 'ink', filled: true, use: '头图 · 地点标签的图钉（实心）' },
-  { name: 'refresh-cw', color: 'onAccent', use: '头图 · 刷新键' },
+  { name: 'rotate-cw', color: 'onAccent', use: '头图 · 刷新键' },
   { name: 'sparkles', color: 'onAccent', use: '头图 · 渔碌建议入口' },
   { name: 'fish', color: 'onAccent', use: '头图 · 鱼口概率标记' },
   { name: 'chevron-right', color: 'onAccent', use: '头图 · 「看构成」箭头' },

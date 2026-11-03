@@ -53,7 +53,7 @@ const emit = defineEmits<{
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { statusBarHeight, navBarHeight, capsuleInsetRight } = useNavMetrics();
 
-const refreshIcon = icon('refresh-cw', 'muted');
+const refreshIcon = icon('rotate-cw', 'muted');
 </script>
 
 <style lang="scss" scoped>
