@@ -13,6 +13,7 @@
  * 这里改成直接切字符串求分钟差，不做任何时区换算。
  */
 
+import { minuteStamp } from '@/utils/date';
 import type { FishingFeedbackLevel, FishingFeedbackPayload, TideData, WeatherIndex } from '@/types/fishing';
 import type { FishingLogWeather } from '@/types/record';
 
@@ -59,24 +60,6 @@ const TIDE_FALLBACK: TideMeta = {
 };
 
 /**
- * 把 `2026-10-17T14:00+08:00` 换成「距 1970-01-01 的分钟数」。
- *
- * 用 Date.UTC 累加日历天数再减掉闰日修正 —— 不能用 `年*360 + 月*30` 这种
- * 粗略折算：相邻两条潮汐记录可能跨月甚至跨年（寒潮期间低潮间隔可达 400+ 小时），
- * 粗算出来的分钟差是错的，"距下一潮小时数"会离谱。
- *
- * Date.UTC 当纯日历运算用，不涉及时区：喂进去的全是数字，不含任何本地时间语义。
- */
-function minutesSinceEpoch(fxTime: string): number | null {
-  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(fxTime);
-  if (!matched) return null;
-
-  const [, year, month, day, hour, minute] = matched.map(Number);
-  const days = Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24);
-  return days * 24 * 60 + hour * 60 + minute;
-}
-
-/**
  * 从潮汐表推算当前潮位 / 涨退 / 潮差 / 距下一潮小时数。
  *
  * 取表头两条：tideTable 是后端按时间排好的潮汐序列，
@@ -105,8 +88,8 @@ export function deriveTideMeta(tideData: TideData | null): TideMeta {
   }
 
   const nextLevel = Number(next.height);
-  const currentTime = minutesSinceEpoch(current.fxTime);
-  const nextTime = minutesSinceEpoch(next.fxTime);
+  const currentTime = minuteStamp(current.fxTime);
+  const nextTime = minuteStamp(next.fxTime);
 
   const hoursToNext =
     currentTime !== null && nextTime !== null ? (nextTime - currentTime) / 60 : TIDE_FALLBACK.hoursToNext;

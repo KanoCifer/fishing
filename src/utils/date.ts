@@ -191,6 +191,30 @@ export function formatShortMoment(timestamp: number): string {
 }
 
 /**
+ * 把「墙上时间」换成「距 1970-01-01 的分钟数」，取不到给 null。
+ *
+ * 输入是 `2026-10-17T14:00` 或 `2026-10-17T14:00+08:00` 这种形式 ——
+ * 后端潮汐时刻（fxTime）与本地当前时刻（localMinuteKey）都用它，
+ * 两边换成同一个连续量才能算间隔。
+ *
+ * 用 Date.UTC 累加日历天数再减去闰日修正 —— 不能用「年×360 + 月×30」
+ * 这种粗略折算：相邻两条潮汐记录可能跨月甚至跨年（寒潮期间低潮间隔
+ * 可达 400+ 小时），粗算出来的分钟差是错的。
+ *
+ * Date.UTC 在这里只当纯日历运算用，不涉及时区：喂进去的全是数字，
+ * 不含任何本地时间语义 —— 换算出来的就是「墙上时间」自己的连续值。
+ */
+export function minuteStamp(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const matched = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!matched) return null;
+
+  const [, year, month, day, hour, minute] = matched.map(Number);
+  const days = Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24);
+  return days * 24 * 60 + hour * 60 + minute;
+}
+
+/**
  * 「HH:MM」→ 当天第几分钟（0–1439）。取不到给 null。
  *
  * 日出日落、月出月落这些时刻都是「墙上时间」，日照时间轴要拿它在一天里的

@@ -109,6 +109,17 @@
           }
         }
       ]
+    },
+    {
+      "root": "pages/tide",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        }
+      ]
     }
   ],
   "globalStyle": {

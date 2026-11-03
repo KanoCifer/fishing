@@ -231,6 +231,22 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    */
   const selectedHarbor = ref<string>('');
   const selectedDate = ref(formatCompactDate());
+
+  /*
+   * 首页潮汐卡的数据：当前地点潮汐站的**今日**潮汐。
+   *
+   * 与面板潮汐（panelTideData）分两份，是因为两者答的不是同一个问题：
+   * 面板答「这个港口这一天怎么样」（港口与日期由用户挑），
+   * 首页答「我现在这片水的潮汐怎么样」（跟着用户所在地的站，只看今天）。
+   * 合成一份就会出现「首页显示的是三天后某个港口的潮汐」。
+   */
+  const homeTideData = shallowRef<TideData | null>(null);
+  /** 首页那张潮汐卡显示的站名 */
+  const homeTideSpotName = ref('');
+  /** 首页潮汐在取数中 */
+  const homeTideLoading = ref(false);
+  /** 首页潮汐的 in-flight 守卫，跟面板那份一个道理 */
+  let homeTideInflightKey: string | null = null;
   /**
    * 近站点到齐没有 —— 潮汐来源站是 enriched 响应里带的，
    * 响应回来之前不知道该按哪个站取潮汐。
@@ -735,6 +751,47 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     void fetchPanelTide(activeHarbor.value, date);
   }
 
+  /**
+   * 首页潮汐卡取数。
+   *
+   * 近站点 + 今天这一档：enriched 带回的 tide_data 就是这一份，直接用 ——
+   * 这张卡在数据页首屏，再打一次接口是白花一个往返。
+   *
+   * 没有近站点时退到固定港口的今日潮汐：宁可给一个别处的潮汐，
+   * 也别让首页空着一张卡。取不到数不弹 toast —— 首页这块只是内容，
+   * 潮汐详情页里还有一次真正的取数，弹两次是吵。
+   */
+  async function ensureHomeTide(): Promise<void> {
+    const today = formatCompactDate();
+    const nearest = tideStation.value;
+
+    if (nearest && tideDateKey(tideData.value) === today) {
+      homeTideData.value = tideData.value;
+      homeTideSpotName.value = nearest.name;
+      return;
+    }
+
+    // 近站点还没到齐：等它。先按固定港口取一份再换过来，卡片会闪一下
+    if (!nearestStationResolved.value) return;
+
+    const harbor = nearest?.id ?? HARBOR_OPTIONS[0].code;
+    const key = `${harbor}@${today}`;
+    if (key === homeTideInflightKey) return;
+    homeTideInflightKey = key;
+    homeTideLoading.value = true;
+
+    try {
+      const data = await fishingApi.getTideData({ harbor, date: today });
+      homeTideData.value = data;
+      homeTideSpotName.value = tideStations.value.find((o) => o.code === harbor)?.name ?? harbor;
+    } catch {
+      // 空态由界面处理
+    } finally {
+      if (homeTideInflightKey === key) homeTideInflightKey = null;
+      homeTideLoading.value = false;
+    }
+  }
+
   /** 拉钓点列表并转成地图标记 */
   async function fetchSpots(): Promise<void> {
     spotsLoading.value = true;
@@ -872,6 +929,10 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     tideLoading,
     selectedHarbor,
     selectedDate,
+    homeTideData,
+    homeTideSpotName,
+    homeTideLoading,
+    nearestStationResolved,
     // 鱼口概率
     indexData,
     indexLoading,
@@ -899,6 +960,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     fetchPanelTide,
     setSelectedHarbor,
     setSelectedDate,
+    ensureHomeTide,
     fetchSpots,
     createSpot,
     updateSpot,

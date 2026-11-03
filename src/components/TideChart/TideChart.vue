@@ -11,7 +11,7 @@
       涨落状态是本地算出来的，不是后端给的字段：后端只给逐时潮高和潮汐表，
       「比上一小时高了还是低了」在本地比一下就有了。
     -->
-    <view v-if="hasNow" class="tide-chart__head">
+    <view v-if="hasNow && showHead" class="tide-chart__head">
       <view class="tide-chart__head-main">
         <text class="tide-chart__head-label">当前潮高</text>
         <view class="tide-chart__head-value">
@@ -150,6 +150,13 @@ interface Props {
    * 潮高越出上下界会画到坐标轴外面去。
    */
   smooth?: boolean;
+  /**
+   * 要不要画顶部那块读数（当前潮高 + 时刻 + 涨落状态）。
+   *
+   * 潮汐详情页把读数单独做了一块更大的：那里的读数是主角，
+   * 由组件再画一份就成了同一件事说两遍。
+   */
+  showHead?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -164,6 +171,7 @@ const props = withDefaults(defineProps<Props>(), {
   animate: true,
   duration: 700,
   smooth: true,
+  showHead: true,
 });
 
 const instance = getCurrentInstance()!;
