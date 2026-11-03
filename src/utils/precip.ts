@@ -10,6 +10,7 @@
  */
 
 import type { MinutelyBucket, MinutelyCurtain, MinutelyPoint, MinutelyTick, PrecipLevel } from '@/types/fishing';
+import { WEATHER_ICONS, type WeatherIconSlug } from '@/constants/weatherIcons';
 
 import { num } from './weather';
 
@@ -30,8 +31,19 @@ const LEVELS: ReadonlyArray<{ key: PrecipLevel; label: string; from: number }> =
   { key: 'storm', label: '暴雨', from: 16 / 12 },
 ];
 
+/** 大雨的下限（毫米/5 分钟）。图上 50% 那条档位线就是它 */
+const heavyFrom = LEVELS.find((level) => level.key === 'heavy')?.from ?? 0;
+
 /** 'none'（无降水）单独处理：它不是一个阈值，是「这一格测到 0」 */
 const NONE_LABEL = '无降水';
+
+/**
+ * 每格覆盖的分钟数。
+ *
+ * 上游的分钟降水就是 5 分钟一格，窗口跨度按这个算，
+ * 免得格数与跨度各写一个 5。
+ */
+const BUCKET_MINUTES = 5;
 
 /**
  * 柱高量程的上沿：暴雨的下限（1 小时 16 毫米 → 5 分钟 1.333 毫米）。
@@ -47,34 +59,39 @@ const NONE_LABEL = '无降水';
  * 和上面那张档位表是同一套口径（表里 storm.from = 16/12），
  * 改档位阈值时这里要一起改。
  */
-/**
- * 每格覆盖的分钟数。
- *
- * 上游的分钟降水就是 5 分钟一格，窗口跨度按这个算，
- * 免得格数与跨度各写一个 5。
- */
-const BUCKET_MINUTES = 5;
-
 const SCALE_MAX_5MIN = 16 / 12;
 
 /**
- * 柱高量程的上沿（毫米/5 分钟）。
+ * 图上那几条横向档位线（占绘图区高度的百分比）。
  *
- * 导出给组件用：绘图区的高度换算成毫米，就靠这一个数。
- * 组件自己另写一份的话，两边迟早对不上 —— 图上标 2.0 毫米，
- * 柱子却按 1.33 毫米画，读数就成了假话。
+ * 图上不标毫米数 —— 柱子本身已经说清雨有多大，左边再挂一列数字
+ * 就是把同一件事说两遍。但虚线还得留着：它是**相对**参照，
+ * 读者一眼能看出「这根柱到顶了」「才到一半」。
+ *
+ * 为什么是这两条：50% 是中雨的上限（再高就是大雨），100% 是大雨的上限
+ * （再高就是暴雨），与柱子用的是同一把绝对量程（见 SCALE_MAX_5MIN）。
+ * 阈值改了这里跟着改 —— 档位线和色卡必须说同一件事。
  */
-export const PRECIP_SCALE_MAX = SCALE_MAX_5MIN;
+export const PRECIP_GRID_PCTS: ReadonlyArray<number> = [100, (heavyFrom / SCALE_MAX_5MIN) * 100];
 
 /**
- * 纵轴刻度（毫米/5 分钟）。
+ * 雨强档 → 图标数据 URI。
  *
- * 为什么是这三个数而不是「等分三份」：刻度要落在
- * 读者能对上的整数上。0 / 0.7 / 1.3 是量程 1.33 的自然档，
- * 而 1.33 这个数本身是暴雨下限（16 毫米/小时 ÷ 12），
- * 读者在色卡那一档见过它。
+ * 用 Meteocons 的彩色图标（见 @/constants/weatherIcons）：这一族图形本来就是
+ * 「雨有多强」的语义，描边图标画不出档位之间的差别。
  */
-export const PRECIP_AXIS_TICKS: ReadonlyArray<number> = [0, 0.7, 1.3];
+const LEVEL_ICONS: Record<PrecipLevel, WeatherIconSlug> = {
+  none: 'clear-day',
+  light: 'drizzle',
+  medium: 'rain',
+  heavy: 'rain',
+  storm: 'thunderstorms',
+};
+
+/** 雨强档 → 图标，给 `<image>` 的 src 用 */
+export function precipLevelIcon(level: PrecipLevel): string {
+  return WEATHER_ICONS[LEVEL_ICONS[level]];
+}
 
 /**
  * 有雨时的最低柱高（占绘图区的百分比）。
@@ -119,15 +136,16 @@ export function precipLevelLabel(level: PrecipLevel): string {
 }
 
 /**
- * 横轴上出刻度的那几个时刻。
+ * 横轴刻度的步长（分钟）。
  *
- * 写「现在 / 20 分钟 / 60 分钟 / 100 分钟」而不是钟点 ——
- * 用户问的是「雨什么时候到」，不是「几点到」。
+ * 写「现在 / 30 分钟 / 60 分钟…」而不是钟点 —— 用户问的是
+ * 「雨什么时候到」，不是「几点到」。
  *
- * 这几个位置**不等距**（间隔 20、40、40 分钟），所以刻度按格子的位置摆，
- * 不是按等距步长切的。窗口不够长时，落在窗口外的刻度自然不出现。
+ * 为什么是 30 而不是 20：刻度是标尺，标尺上的格子得放得下。
+ * 「20分钟」这个标签在 caption 一档下宽约 90rpx，六七枚刻度就是 540~630rpx ——
+ * 已经是卡片内容宽度，一枚压一枚。30 分钟一档只剩四枚，标签之间留得开。
  */
-const TICK_OFFSETS = [0, 20, 60, 100];
+const TICK_STEP = 30;
 
 /**
  * 把上游的点序列换算成「雨幕」这张图的窗口模型。
@@ -175,18 +193,25 @@ export function buildMinutelyCurtain(points: MinutelyPoint[]): MinutelyCurtain {
 
   const total = buckets.reduce((sum, bucket) => sum + (bucket.value ?? 0), 0);
 
+  //
+  // 横轴刻度：每 30 分钟一枚（步长见 TICK_STEP）。
+  //
+  // 刻度落在它所指的**那一格的中心**，不是那一格的起点：格子的位置
+  // 按下标等分，刻度不跟着等分，读者按刻度找那一格就会找偏。
+  //
+  // 为什么末尾不补一枚「120分钟」：窗口末尾这件事读数面上已经说了
+  // （「未来2小时预计降水量」），这里再说一遍就是同一句话说两遍。
   const ticks: MinutelyTick[] = [];
   buckets.forEach((bucket, index) => {
-    if (!TICK_OFFSETS.includes(bucket.offset)) return;
+    if (bucket.offset % TICK_STEP !== 0) return;
 
-    // 刻度落在它所指的**那一格的中心**，不是那一格的起点
     const center = ((index + 0.5) / buckets.length) * 100;
     const isFirst = index === 0;
     ticks.push({
       offset: bucket.offset,
       label: bucket.offset === 0 ? '现在' : `${bucket.offset}分钟`,
       leftPct: isFirst ? 0 : center,
-      anchor: isFirst ? 'start' : center > 88 ? 'end' : 'mid',
+      anchor: isFirst ? 'start' : center > 84 ? 'end' : 'mid',
     });
   });
 

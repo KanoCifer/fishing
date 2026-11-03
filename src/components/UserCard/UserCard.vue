@@ -24,13 +24,6 @@
     <text class="anchor__name" :class="{ 'anchor__name--empty': !hasName }">{{ displayName }}</text>
     <text class="anchor__handle">{{ handleText }}</text>
 
-    <view v-if="assetText" class="anchor__assets">
-      <text class="anchor__asset-num">{{ assetText }}</text>
-      <view v-if="pendingText" class="anchor__asset-badge">
-        <text class="anchor__asset-badge-text">{{ pendingText }}</text>
-      </view>
-    </view>
-
     <view class="anchor__cta" @tap="onCta">
       <text class="anchor__cta-text">{{ ctaLabel }}</text>
     </view>
@@ -50,10 +43,6 @@ const props = withDefaults(
     user: AuthUser | null;
     /** 登录 / 上传进行中。用来锁住按钮，避免连点 */
     busy?: boolean;
-    /** 我提交的钓点数量（「3 条」）。空串 = 没取到，不显示 */
-    spotsCount?: string;
-    /** 待审核条数（「1 条待审核」）。空串 = 没有待审 */
-    spotsPending?: string;
     /**
      * 上内边距（px）。铺在屏幕顶上时要把状态栏让开，
      * 而状态栏的高度是运行时值，写不进 rpx —— 由页面给。
@@ -62,8 +51,6 @@ const props = withDefaults(
   }>(),
   {
     busy: false,
-    spotsCount: '',
-    spotsPending: '',
     topInset: 0,
   },
 );
@@ -108,15 +95,6 @@ const handleText = computed(() => {
   if (!props.user) return '登录后同步你的钓点与反馈';
   return props.user?.username ?? '';
 });
-
-/**
- * 资产行。数量与单位是一句话：「3 条钓点」。
- * 数量是页面给的（MY_SPOTS_COUNT 的格式），这里只补上单位。
- */
-const assetText = computed(() => (props.spotsCount ? `${props.spotsCount}钓点` : ''));
-
-/** 待审核。空串 = 没有待审的，不出这一枚 */
-const pendingText = computed(() => props.spotsPending);
 
 /** 资料没填全时说「完善资料」，填全了说「编辑资料」 */
 const editLabel = computed(() => {

@@ -1,5 +1,5 @@
 <template>
-  <view class="mine" :style="{ minHeight: windowHeight + 'px' }">
+  <view class="mine" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
     <PageBackdrop />
 
     <view class="mine__body">
@@ -7,8 +7,6 @@
         <UserCard
           :user="session.user"
           :busy="session.loggingIn || session.uploading"
-          :spots-count="spotsCount"
-          :spots-pending="spotsPending"
           :top-inset="anchorTop"
           @login="onLogin"
           @edit="openProfile"
@@ -43,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { onLoad, onPageShow, onShareAppMessage } from '@dcloudio/uni-app';
 
 import MineActions from './components/MineActions/MineActions.vue';
@@ -55,7 +53,7 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { APP_INFO, ABOUT_ENTRY } from '@/constants/about';
 import { SHARE_CARDS } from '@/constants/share';
-import { MY_SPOTS_COUNT, MY_SPOTS_ENTRY, MY_SPOTS_PENDING } from '@/constants/my-spots';
+import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
 import { icon } from '@/constants/icons';
 import { loginErrorMessage } from '@/api/auth';
 import { useFishingMapStore } from '@/stores/fishingMap';
@@ -89,29 +87,6 @@ const spotsEntry = MY_SPOTS_ENTRY;
 const version = APP_INFO.version;
 
 const spotsLoaded = ref(false);
-
-/**
- * 我提交的钓点总数。
- *
- * 数的是我提交过的，含还在审核与被驳回的 —— 这一页要回答的是
- * 「我手上有几条」，不是「地图上公开着几条」。
- */
-const spotsCount = computed(() => {
-  if (!spotsLoaded.value || mapStore.mySpotsError) return '';
-  return MY_SPOTS_COUNT(mapStore.mySpots.length);
-});
-
-/**
- * 还在等审核的条数。
- *
- * 只数 pending：被驳回的那些要改完再交，那是另一件事。
- * 没有待审的就不出徽标 —— 一枚永远为空的徽标只是噪声。
- */
-const spotsPending = computed(() => {
-  if (!spotsLoaded.value || mapStore.mySpotsError) return '';
-  const pending = mapStore.mySpots.filter((spot) => spot.status === 'pending').length;
-  return pending > 0 ? MY_SPOTS_PENDING(pending) : '';
-});
 
 /** 行首图标。统一蓝色 —— 一行里图标与文字不同色，就有了两个焦点 */
 const spotsIcon = icon('map-pin', 'blue');
@@ -344,7 +319,10 @@ mine-row {
 /* 落款 */
 .mine__foot {
   display: block;
-  margin-top: 36rpx;
+  display: fixed;
+  bottom: 0rpx;
+  width: 100%;
+  left: 0;
   color: $fish-muted-60;
   text-align: center;
   @include fish-type(caption);

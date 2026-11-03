@@ -334,6 +334,78 @@ export function precipTypeCn(type: string | undefined | null): string {
 }
 
 // ---------------------------------------------------------------------------
+// 实况读数的档位词
+//
+// 这些词回答的是同一个问题：这一格读数**怎么样**。
+// 数值给的是「是多少」，档位词给的是「该不该在意」——
+// 两个都摆，读者才不用自己拿量程去换算。
+// ---------------------------------------------------------------------------
+
+/**
+ * 相对湿度 → 干爽程度。
+ *
+ * 40 与 70 两道线：40 以下空气干（皮肤、嘴唇难受），
+ * 70 以上闷（汗不容易蒸发，体感温度高于实测）。
+ */
+export function humidityLevel(humidity: number): string {
+  if (humidity < 40) return '干燥';
+  if (humidity <= 70) return '舒适';
+  return '潮湿';
+}
+
+/**
+ * 能见度 → 优 / 良 / 差。
+ *
+ * 10km 以上是晴天该有的样子；4km 以下是雾、雨雪或夜色里的水面 ——
+ * 钓鱼的人在这种能见度下看不见浮漂，也看不见对面的人。
+ */
+export function visibilityLevel(vis: number): string {
+  if (vis >= 10) return '优';
+  if (vis >= 4) return '良';
+  return '差';
+}
+
+/**
+ * 云量 → 晴 / 少云 / 多云 / 阴。
+ *
+ * 20 / 50 / 80 三道线，与气象上的云量分级一致：
+ * 晴（≤20）少云（≤50）多云（≤80）阴。
+ */
+export function cloudLevel(cloud: number): string {
+  if (cloud <= 20) return '晴';
+  if (cloud <= 50) return '少云';
+  if (cloud <= 80) return '多云';
+  return '阴';
+}
+
+/**
+ * 阵风 → 微风 / 和风 / 强风 / 大风。
+ *
+ * 按 m/s 分档，界线取蒲福风级的整数级。
+ * 阵风单列一档是因为它跟持续风不是一件事：
+ * 持续风 2 m/s 而阵风 12 m/s 的日子，竿子会被吹弯。
+ */
+export function gustLevel(speed: number): string {
+  if (speed < 3.4) return '微风';
+  if (speed < 8) return '和风';
+  if (speed < 13.9) return '强风';
+  return '大风';
+}
+
+/**
+ * 露点 → 凉爽 / 舒适 / 偏闷 / 闷热。
+ *
+ * 露点是「汗会不会停下来」的读数：
+ * 同样 30°，露点 12° 是能扛住的下午，露点 26° 是坐着都黏。
+ */
+export function dewLevel(dew: number): string {
+  if (dew < 10) return '凉爽';
+  if (dew < 16) return '舒适';
+  if (dew < 21) return '偏闷';
+  return '闷热';
+}
+
+// ---------------------------------------------------------------------------
 // 官方生活指数
 // ---------------------------------------------------------------------------
 

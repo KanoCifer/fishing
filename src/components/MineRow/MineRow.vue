@@ -1,26 +1,4 @@
 <template>
-  <!--
-    入口行 —— 「我的」页白纸面上的一行。
-
-    这一页的四行（我的钓点 / 关于渔碌 / 分享渔碌给朋友 / 联系客服）
-    共用这一个组件：行高、字阶、图标尺寸、折痕位置全在这里定一次。
-
-    为什么整页都用原生 <button>：微信的转发面板与客服会话只认带 open-type
-    的原生按钮，页面没有任何 API 能打开它们（onShareAppMessage 只是**提供
-    内容**，不是入口）。既然有两行必须是 button，剩下两行就用同一种元素 ——
-    一页两套行，读起来像两页拼起来的。
-
-    代价是微信 button 自带的一套默认样式（外边距、内边距、背景、边框、
-    字号、行高，以及 ::after 伪元素带来的描边），得一项项清干净。
-
-    hover-class="none"：关掉微信自带的按压态。它那一套是
-    `{background-color: rgba(0,0,0,0.1); opacity: 0.7}` —— 压在一行**透明底**
-    的条目上会刷出一条灰带，读着不像「这一行被按住了」，
-    按下反馈由 :active 自己给（fish-press-dim）。
-
-    ⚠️ 分隔线画成真实的元素而不是 ::after：伪元素挂在自定义组件的宿主节点上
-    在小程序端不保险，而这一行的分隔线要跨组件边界（行是组件，纸在页面里）。
-  -->
   <button
     class="mine-row"
     :open-type="openType"
@@ -37,25 +15,11 @@
 
     <text class="mine-row__label">{{ label }}</text>
 
-    <!--
-      箭头用 <image> 而不是文字符号 ›：
-      › 在不同字体下粗细和形状差别很大，而箭头是「这一行可以点开」的结构性提示，
-      形状稳定比省一张图标重要。图标由 scripts/gen-icons.mjs 生成，颜色烤死。
-    -->
     <image v-if="chevron" class="mine-row__chevron" :src="chevronIcon" mode="aspectFit" />
   </button>
 </template>
 
 <script setup lang="ts">
-/**
- * MineRow —— 「我的」页白纸面上的行。
- *
- * 只管排版：这一行摆什么、点开了什么，由调用方决定。
- *
- * open-type 为空时是普通行，点它由调用方接；
- * open-type 为 share / contact 时，这一行是微信的入口 ——
- * 转发面板与客服会话都只能由按钮唤起（见 docs/mp-weixin-network.md）。
- */
 import { icon } from '@/constants/icons';
 
 withDefaults(
@@ -107,17 +71,6 @@ function onTap() {
 </script>
 
 <style lang="scss" scoped>
-/*
- * 一行。
- *
- * 命中区 120rpx = 60pt，过 iOS 的 44pt 最小尺寸。
- *
- * 按下反馈用变暗不是缩小：整行做 scale 会让下面几行跟着往旁边挪一点，
- * 一排条目同时出现时读起来像「整组跳了一下」。iOS 的列表行按压也是变暗。
- *
- * 微信 button 的默认样式在这一层一项项清干净（外边距、内边距、背景、
- * 边框、字号、行高、对齐），清完它就是一行。
- */
 .mine-row {
   position: relative;
   display: flex;
@@ -177,7 +130,7 @@ function onTap() {
   flex: 1;
   min-width: 0;
   color: $fish-ink;
-  @include fish-type(title);
+  @include fish-type(body);
 }
 
 /* 箭头 15pt ≈ iOS 列表右侧的 disclosure indicator。

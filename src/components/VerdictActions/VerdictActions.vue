@@ -60,10 +60,6 @@ const chevronIcon = icon('chevron-right', 'muted60');
   padding: 0 24rpx;
   @include fish-glass($fish-radius-pill);
   @include fish-glass-blur;
-
-  /* 描边：一圈白色发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
-  border: 1rpx solid rgba(255, 255, 255, 0.92);
-
   box-shadow:
     0 10rpx 30rpx rgba(12, 40, 90, 0.1),
     inset 0 1rpx 0 rgba(255, 255, 255, 1),

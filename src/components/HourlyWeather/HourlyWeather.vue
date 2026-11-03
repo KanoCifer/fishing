@@ -8,29 +8,9 @@
           class="hourly__cell"
           :class="{ 'hourly__cell--first': i === 0 }"
         >
-          <!--
-            时刻就是时刻，不写「现在」。
-
-            这份逐时序列的第一条是上游的**下一个整点**（13:15 取数时首条是 14:00），
-            它覆盖的是「接下来那一小时」，不是「此刻」。
-            把它标成「现在」，等于把一小时后的天气说成现在的天气 ——
-            钓鱼的人据此决定几点收竿的话，这个标签是会害人的。
-            当前的实况由结论头那一块负责（它读的是 current 块，不是逐时）。
-          -->
           <text class="hourly__time">{{ parseFxTime(hour.fxTime)?.time ?? '' }}</text>
-          <!--
-            天气图标。Meteocons 的彩色 SVG，烤成 data URI 跟着代码包走 ——
-            图标在竖排里独占一行，这一行的位置从一开始就是稳的。
-          -->
           <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFit" />
           <text class="hourly__temp">{{ hour.temp }}°</text>
-
-          <!--
-            降水概率：一根水色的短条，长度就是概率。
-
-            轨道恒在、只有填充在变 —— 容器不设底色，所以概率为 0 时看不见东西，
-            但那一格的高度不会塌，整排的温度仍在同一条基线上。
-          -->
           <view class="hourly__prob">
             <view v-if="hour.prob > 0" class="hourly__prob-fill" :style="`width:${hour.prob}%`" />
           </view>

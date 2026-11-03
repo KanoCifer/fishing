@@ -82,20 +82,7 @@
     </view>
 
     <template #footer>
-      <!--
-        动作区：固定在面板底部，不跟着正文滚。
-
-        原来按钮在正文最上面，AI 写完一屏长建议之后，
-        「重新生成」就被推出视野了 —— 而那恰恰是最想按的时候。
-      -->
       <view class="analysis__actions">
-        <!--
-          流光按钮拆两层：外壳管光，内层管面。
-
-          单层做不了 —— transform 会创建层叠上下文，把外壳里
-          z-index: -1 的光晕从「垫在按钮底下」翻成「画在按钮底色之上」，
-          按下时白色面就整块消失。理由写在 _motion.scss 的 fish-flow-face 里。
-        -->
         <view class="analysis__btn" :class="{ 'analysis__btn--disabled': !hasData }" @tap="onAction">
           <view class="analysis__btn-face">
             <text class="analysis__btn-text">{{ actionLabel }}</text>
@@ -515,7 +502,6 @@ watch(isStreaming, (streaming) => {
  */
 .analysis__actions {
   padding: 12rpx 40rpx calc(32rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid $fish-border-40;
 
   /*
    * 自己成为层叠上下文。

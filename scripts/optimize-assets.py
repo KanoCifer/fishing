@@ -180,6 +180,37 @@ JOBS = [
         "dest": "cdn",
         "note": "天气页头图 · 晴夜 —— 走 CDN，不进代码包",
     },
+    # —— 分钟级降水面板的底纹（两张）——
+    # 为什么不直接用上面那四张头图：头图原图 2~2.8MB，当底纹拉一次就是
+    # 一次几 MB 的下载 —— 面板只有 170rpx 高，图里能看清的东西就那么一点，
+    # 那个体积换不来任何东西。所以单独裁一条窄条、压到几十 KB。
+    #
+    # 为什么裁成 4:1：面板是 686rpx × 170rpx，正好这个比例，铺满不留黑边。
+    #
+    # 为什么质量只到 72：这张图要以 20% 的透明度垫在数字底下，
+    # 读者看到的是色块不是细节，细节压掉一点看不出来。
+    {
+        "src": "weather/hero-sunny-v2.jpg",
+        "out": "weather/panel-sunny-v1.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 72, "subsampling": 0, "optimize": True},
+        "crop_ratio": 4.0,
+        "max_width": 1080,
+        "dest": "cdn",
+        "note": "降水面板底纹 · 晴 —— 走 CDN，不进代码包",
+    },
+    {
+        "src": "weather/hero-rain-v2.jpg",
+        "out": "weather/panel-rain-v1.jpg",
+        "format": "JPEG",
+        "mode": "RGB",
+        "options": {"quality": 72, "subsampling": 0, "optimize": True},
+        "crop_ratio": 4.0,
+        "max_width": 1080,
+        "dest": "cdn",
+        "note": "降水面板底纹 · 雨 —— 走 CDN，不进代码包",
+    },
 ]
 
 
@@ -245,6 +276,35 @@ def run_medals() -> None:
     print()
 
 
+def crop_to_ratio(im: Image.Image, ratio: float | None) -> Image.Image:
+    """垂直居中裁成目标宽高比。
+
+    为什么居中：这两张头图的主体（钓鱼人）在右侧，但面板只当底纹用，
+    主体不重要；重要的是山脊线与湖面那条交界横穿画面中部，裁中间才留得住它。
+    """
+    if not ratio:
+        return im
+
+    w, h = im.size
+    if w / h > ratio:
+        # 源图相对目标更宽 → 裁上下
+        new_h = int(w / ratio)
+        top = (h - new_h) // 2
+        return im.crop((0, top, w, top + new_h))
+
+    # 源图相对目标更窄 → 裁左右
+    new_w = int(h * ratio)
+    left = (w - new_w) // 2
+    return im.crop((left, 0, left + new_w, h))
+
+
+def resize_width(im: Image.Image, max_width: int | None) -> Image.Image:
+    """按宽度缩放（高度按比例）。"""
+    if not max_width or im.width <= max_width:
+        return im
+    return im.resize((max_width, round(im.height * max_width / im.width)), Image.LANCZOS)
+
+
 def run(job: dict) -> None:
     src_path = SRC_DIR / job["src"]
     out_dir = CDN_DIR if job.get("dest") == "cdn" else job.get("dir", OUT_DIR)
@@ -264,6 +324,8 @@ def run(job: dict) -> None:
         # 而那些像素永远是 alpha=255，透明通道一点用没有。
         if job.get("mode"):
             im = im.convert(job["mode"])
+        im = crop_to_ratio(im, job.get("crop_ratio"))
+        im = resize_width(im, job.get("max_width"))
         im.save(out_path, job["format"], **job["options"])
 
     after = out_path.stat().st_size
