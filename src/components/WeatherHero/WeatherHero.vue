@@ -452,6 +452,7 @@ function onRefresh() {
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 .gauge__unit {
@@ -542,6 +543,7 @@ function onRefresh() {
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 /* 度数符号：挂在数字上沿 */

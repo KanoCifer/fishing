@@ -340,8 +340,7 @@ const emptyText = computed(() => {
   text-align: right;
   white-space: nowrap;
   @include fish-type(body);
-
-  font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 /* 最低温：灰一档，它是背景 */

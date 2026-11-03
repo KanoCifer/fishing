@@ -646,7 +646,7 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
 .minutely__value {
   color: $fish-ink;
   @include fish-type(display, 700);
-  font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 /* 单位跟在数字后面，基线对齐。字阶比数字小两档 —— 它是注解不是主角 */

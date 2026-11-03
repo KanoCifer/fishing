@@ -104,6 +104,7 @@ const clockIcon = icon('clock', 'ink');
 .next24__item-text {
   color: $fish-muted;
   @include fish-type(caption);
+  @include numeric;
 }
 
 .next24__item-text--active {

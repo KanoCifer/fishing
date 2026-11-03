@@ -223,6 +223,17 @@ export function moonPhaseIconUri(phase: string | undefined | null): string {
  */
 export type Tone = 'success' | 'blue' | 'warning' | 'destructive' | 'muted';
 
+/**
+ * 一档读数：档位词 + 色调。
+ *
+ * 数值给的是「是多少」，档位词给的是「这一档怎么样」——
+ * 两个都摆，读者才不用自己拿量程去换算。
+ */
+export interface Level {
+  label: string;
+  tone: Tone;
+}
+
 const TONE_BY_LEVEL: Readonly<Record<string, Tone>> = {
   极好: 'success',
   爆护: 'success',
@@ -347,10 +358,10 @@ export function precipTypeCn(type: string | undefined | null): string {
  * 40 与 70 两道线：40 以下空气干（皮肤、嘴唇难受），
  * 70 以上闷（汗不容易蒸发，体感温度高于实测）。
  */
-export function humidityLevel(humidity: number): string {
-  if (humidity < 40) return '干燥';
-  if (humidity <= 70) return '舒适';
-  return '潮湿';
+export function humidityLevel(humidity: number): Level {
+  if (humidity < 40) return { label: '干燥', tone: 'muted' };
+  if (humidity <= 70) return { label: '舒适', tone: 'success' };
+  return { label: '潮湿', tone: 'muted' };
 }
 
 /**
@@ -359,10 +370,10 @@ export function humidityLevel(humidity: number): string {
  * 10km 以上是晴天该有的样子；4km 以下是雾、雨雪或夜色里的水面 ——
  * 钓鱼的人在这种能见度下看不见浮漂，也看不见对面的人。
  */
-export function visibilityLevel(vis: number): string {
-  if (vis >= 10) return '优';
-  if (vis >= 4) return '良';
-  return '差';
+export function visibilityLevel(vis: number): Level {
+  if (vis >= 10) return { label: '优', tone: 'success' };
+  if (vis >= 4) return { label: '良', tone: 'muted' };
+  return { label: '差', tone: 'warning' };
 }
 
 /**
@@ -371,25 +382,28 @@ export function visibilityLevel(vis: number): string {
  * 20 / 50 / 80 三道线，与气象上的云量分级一致：
  * 晴（≤20）少云（≤50）多云（≤80）阴。
  */
-export function cloudLevel(cloud: number): string {
-  if (cloud <= 20) return '晴';
-  if (cloud <= 50) return '少云';
-  if (cloud <= 80) return '多云';
-  return '阴';
+export function cloudLevel(cloud: number): Level {
+  // 全部给 muted：云量不是好坏，是天色。
+  // 阴天未必比晴天差 —— 对钓鱼来说阴天常常更好口，
+  // 给它一个色阶等于替用户下了一个不该下的判断。
+  if (cloud <= 20) return { label: '晴', tone: 'muted' };
+  if (cloud <= 50) return { label: '少云', tone: 'muted' };
+  if (cloud <= 80) return { label: '多云', tone: 'muted' };
+  return { label: '阴', tone: 'muted' };
 }
 
 /**
- * 阵风 → 微风 / 和风 / 强风 / 大风。
+ * 风速（持续风与阵风共用）→ 微风 / 和风 / 强风 / 大风。
  *
  * 按 m/s 分档，界线取蒲福风级的整数级。
  * 阵风单列一档是因为它跟持续风不是一件事：
  * 持续风 2 m/s 而阵风 12 m/s 的日子，竿子会被吹弯。
  */
-export function gustLevel(speed: number): string {
-  if (speed < 3.4) return '微风';
-  if (speed < 8) return '和风';
-  if (speed < 13.9) return '强风';
-  return '大风';
+export function windLevel(speed: number): Level {
+  if (speed < 3.4) return { label: '微风', tone: 'muted' };
+  if (speed < 8) return { label: '和风', tone: 'muted' };
+  if (speed < 13.9) return { label: '强风', tone: 'warning' };
+  return { label: '大风', tone: 'destructive' };
 }
 
 /**
@@ -398,11 +412,43 @@ export function gustLevel(speed: number): string {
  * 露点是「汗会不会停下来」的读数：
  * 同样 30°，露点 12° 是能扛住的下午，露点 26° 是坐着都黏。
  */
-export function dewLevel(dew: number): string {
-  if (dew < 10) return '凉爽';
-  if (dew < 16) return '舒适';
-  if (dew < 21) return '偏闷';
-  return '闷热';
+export function dewLevel(dew: number): Level {
+  if (dew < 10) return { label: '凉爽', tone: 'muted' };
+  if (dew < 16) return { label: '舒适', tone: 'success' };
+  if (dew < 21) return { label: '偏闷', tone: 'muted' };
+  return { label: '闷热', tone: 'warning' };
+}
+
+/**
+ * 降水 → 档位词。
+ *
+ * 按雨强（mm/h）分档，界线取气象上的日降水量分级：
+ * 小雨 <2.5、中雨 <8、大雨 <16、暴雨 ≥16。
+ *
+ * 雪与雨夹雪另给词 —— 它们的量级与雨不可比，
+ * 拿雨强的线去判雪的大小会判出一个没意义的档。
+ *
+ * 色调说的是「还能不能钓」：中雨以上雨大到人待不住，
+ * 对钓鱼的人是最该知道的一档。
+ */
+export function precipLevel(intensity: number | null, type: string | undefined): Level {
+  const cn = precipTypeCn(type);
+
+  if (cn === '毛毛雨') return { label: '毛毛雨', tone: 'muted' };
+  if (cn === '雨夹雪') return { label: '雨夹雪', tone: 'muted' };
+
+  if (cn === '雪') {
+    if (intensity === null) return { label: '雪', tone: 'muted' };
+    if (intensity < 1.5) return { label: '小雪', tone: 'muted' };
+    if (intensity < 4) return { label: '中雪', tone: 'muted' };
+    return { label: '大雪', tone: 'warning' };
+  }
+
+  if (intensity === null || intensity <= 0) return { label: '无降水', tone: 'muted' };
+  if (intensity < 2.5) return { label: '小雨', tone: 'muted' };
+  if (intensity < 8) return { label: '中雨', tone: 'warning' };
+  if (intensity < 16) return { label: '大雨', tone: 'warning' };
+  return { label: '暴雨', tone: 'destructive' };
 }
 
 // ---------------------------------------------------------------------------

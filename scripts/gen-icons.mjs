@@ -116,6 +116,19 @@ const ICONS = [
   // 一个是收的动作一个是给的动作，不该同色。
   { name: 'minus', color: 'muted', use: '渔获数量的减号' },
   { name: 'plus', color: 'blue', use: '渔获数量的加号' },
+  // —— 实况读数磁贴 ——
+  // 一屏里九格读数并排，只有数字和标签时眼睛得逐格去认「这是哪一项」。
+  // 图形锚点解决这件事：一个图标点一下就认出来了。
+  // 烤成 ink：磁贴的图标是这格的标识，不是状态，不该带语义色。
+  { name: 'gauge', color: 'ink', use: '实况读数 · 气压' },
+  { name: 'droplet', color: 'ink', use: '实况读数 · 相对湿度' },
+  { name: 'eye', color: 'ink', use: '实况读数 · 能见度' },
+  { name: 'compass', color: 'ink', use: '实况读数 · 风' },
+  { name: 'wind', color: 'ink', use: '实况读数 · 阵风' },
+  { name: 'umbrella', color: 'ink', use: '实况读数 · 降水' },
+  { name: 'cloud', color: 'ink', use: '实况读数 · 云量' },
+  { name: 'sun', color: 'ink', use: '实况读数 · 紫外线' },
+  { name: 'thermometer', color: 'ink', use: '实况读数 · 露点' },
   // —— 记录页 ——
   // 底部「记一笔」是实心主色按钮，加号压在它上面，得是白的。
   // 不烤这一档的话 icon() 会退回 muted，灰加号压在蓝底上像画错了。

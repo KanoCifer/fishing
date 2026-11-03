@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { onShow, onHide } from '@dcloudio/uni-app';
+import { onShow, onHide, onReady } from '@dcloudio/uni-app';
+
+onReady(() =>
+  uni.loadFontFace({
+    family: 'Nunito',
+    source: 'url("https://cdn.kanocifer.chat/Nunito-VariableFont_wght.ttf")',
+  }),
+);
 
 onShow(() => {});
 onHide(() => {});
