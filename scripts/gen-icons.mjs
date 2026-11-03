@@ -46,6 +46,13 @@ const ICONS = [
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 建议入口' },
   { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头 / 头图地点标签的展开箭头' },
+  // —— 数据页卡标题 ——
+  // 标题行上的图标跟标题文字同色（ink）：一行里图标与文字分两个颜色，
+  // 视线上就有两个焦点，标题反而被图标压过去。
+  { name: 'clock', color: 'ink', use: '「未来 24 小时」卡标题' },
+  { name: 'calendar-days', color: 'ink', use: '「天气预报」卡标题' },
+  { name: 'sun-moon', color: 'ink', use: '「日照与月相」卡标题' },
+  { name: 'waves', color: 'ink', use: '「潮汐预报」卡标题' },
   // —— 天气页头图 ——
   // 头图上的图标一律压白：头图整体压深面，深墨图标压在上面读不出来。
   { name: 'map-pin', color: 'onAccent', use: '头图 · 地点标记' },

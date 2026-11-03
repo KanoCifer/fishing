@@ -7,10 +7,12 @@
 
 /** 图标名与颜色档位。取值与令牌层 _color.scss 的同名变量一致 */
 export type IconName =
+  | 'calendar-days'
   | 'camera'
   | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
+  | 'clock'
   | 'earth'
   | 'fish'
   | 'info'
@@ -26,7 +28,9 @@ export type IconName =
   | 'road'
   | 'share-2'
   | 'sparkles'
+  | 'sun-moon'
   | 'user'
+  | 'waves'
   | 'x';
 export type IconColor = 'ink' | 'muted' | 'muted60' | 'blue' | 'blue600' | 'success' | 'destructive' | 'onAccent';
 
@@ -53,6 +57,18 @@ export const ICONS = {
   /** 首屏「往下看」的提示箭头 / 头图地点标签的展开箭头 */
   'chevron-down__muted60':
     'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzViNWI2MCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJtNiA5IDYgNiA2LTYiIC8+Cjwvc3ZnPg==',
+  /** 「未来 24 小时」卡标题 */
+  clock__ink:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMDAwMCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgLz4KICA8cGF0aCBkPSJNMTIgNnY2bDQgMiIgLz4KPC9zdmc+',
+  /** 「天气预报」卡标题 */
+  'calendar-days__ink':
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMDAwMCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNOCAydjMiIC8+CiAgPHBhdGggZD0iTTE2IDJ2MyIgLz4KICA8cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiAvPgogIDxwYXRoIGQ9Ik0zIDloMTgiIC8+CiAgPHBhdGggZD0iTTggMTNoLjAxIiAvPgogIDxwYXRoIGQ9Ik0xMiAxM2guMDEiIC8+CiAgPHBhdGggZD0iTTE2IDEzaC4wMSIgLz4KICA8cGF0aCBkPSJNOCAxN2guMDEiIC8+CiAgPHBhdGggZD0iTTEyIDE3aC4wMSIgLz4KICA8cGF0aCBkPSJNMTYgMTdoLjAxIiAvPgo8L3N2Zz4=',
+  /** 「日照与月相」卡标题 */
+  'sun-moon__ink':
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMDAwMCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgMnYyIiAvPgogIDxwYXRoIGQ9Ik0xNC44MzcgMTYuMzg1YTYgNiAwIDEgMS03LjIyMy03LjIyMmMuNjI0LS4xNDcuOTcuNjYuNzE1IDEuMjQ4YTQgNCAwIDAgMCA1LjI2IDUuMjU5Yy41ODktLjI1NSAxLjM5Ni4wOSAxLjI0OC43MTUiIC8+CiAgPHBhdGggZD0iTTE2IDEyYTQgNCAwIDAgMC00LTQiIC8+CiAgPHBhdGggZD0ibTE5IDUtMS4yNTYgMS4yNTYiIC8+CiAgPHBhdGggZD0iTTIwIDEyaDIiIC8+Cjwvc3ZnPg==',
+  /** 「潮汐预报」卡标题 */
+  waves__ink:
+    'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMDAwMCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMiAxMnEyLjUgMiA1IDB0NSAwIDUgMCA1IDAiIC8+CiAgPHBhdGggZD0iTTIgMTlxMi41IDIgNSAwdDUgMCA1IDAgNSAwIiAvPgogIDxwYXRoIGQ9Ik0yIDVxMi41IDIgNSAwdDUgMCA1IDAgNSAwIiAvPgo8L3N2Zz4=',
   /** 头图 · 地点标记 */
   'map-pin__onAccent':
     'data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjYxLjAgLSBJU0MgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iI2ZmZmZmZiIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMjAgMTBjMCA0Ljk5My01LjUzOSAxMC4xOTMtNy4zOTkgMTEuNzk5YTEgMSAwIDAgMS0xLjIwMiAwQzkuNTM5IDIwLjE5MyA0IDE0Ljk5MyA0IDEwYTggOCAwIDAgMSAxNiAwIiAvPgogIDxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjMiIC8+Cjwvc3ZnPg==',

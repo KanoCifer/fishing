@@ -12,7 +12,10 @@
   -->
   <view class="astro">
     <view class="astro__head">
-      <text class="astro__title">日照与月相</text>
+      <view class="astro__head-left">
+        <image class="astro__title-icon" :src="sunMoonIcon" mode="aspectFit" />
+        <text class="astro__title">日照与月相</text>
+      </view>
       <text class="astro__meta">{{ dateLabel }}</text>
     </view>
 
@@ -110,11 +113,14 @@
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { durationBetween, minutesOfDay, shortDate } from '@/utils/date';
 import { moonPhaseIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
+
+const sunMoonIcon = icon('sun-moon', 'ink');
 
 /** 一天 1440 分钟。时间轴的比例尺 */
 const DAY_MINUTES = 24 * 60;
@@ -261,6 +267,18 @@ const emptyText = computed(() => {
 
 .astro__meta {
   @include fish-card-meta;
+}
+
+/* 标题左侧的图标。底边贴着文字基线，像个字那样站着 */
+.astro__head-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.astro__title-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .astro__body {

@@ -8,7 +8,10 @@
       整卡可点会把「看某个时刻的潮高」和「进详情页」搅成同一个手势。
     -->
     <view class="tide-card__head">
-      <text class="tide-card__title">潮汐预报</text>
+      <view class="tide-card__head-left">
+        <image class="tide-card__title-icon" :src="wavesIcon" mode="aspectFit" />
+        <text class="tide-card__title">潮汐预报</text>
+      </view>
 
       <view class="tide-card__entry" @tap="openDetail">
         <text class="tide-card__entry-text">{{ entryText }}</text>
@@ -66,6 +69,7 @@ const mapStore = useFishingMapStore();
 const DETAIL_URL = '/pages/tide/index';
 
 const chevronIcon = icon('chevron-right', 'muted60');
+const wavesIcon = icon('waves', 'ink');
 
 const hourly = computed(() => mapStore.homeTideData?.tideHourly ?? []);
 
@@ -146,6 +150,18 @@ watch(() => [mapStore.tideData, mapStore.tideStation, mapStore.nearestStationRes
 
 .tide-card__title {
   @include fish-card-title;
+}
+
+/* 标题左侧的图标。底边贴着文字基线，像个字那样站着 */
+.tide-card__head-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.tide-card__title-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .tide-card__entry {

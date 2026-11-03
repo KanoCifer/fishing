@@ -1,14 +1,11 @@
 <template>
   <view class="days" :class="{ 'days--empty': !days.length && !loading }">
     <view class="days__head">
-      <text v-if="days.length" class="days__title">{{ title }}</text>
+      <view v-if="days.length" class="days__head-left">
+        <image class="days__title-icon" :src="calendarIcon" mode="aspectFit" />
+        <text class="days__title">{{ title }}</text>
+      </view>
 
-      <!--
-        加载中：标题的位置先占住。
-
-        数据到了标题才冒出来。位置一占住，下面那几行就不会整体往下跳 ——
-        骨架摆得再准，标题晚来一步，这一列照样会散架。
-      -->
       <view v-else-if="loading" class="days__skeleton days__skeleton--title" />
     </view>
 
@@ -25,19 +22,6 @@
         <!-- 最高温。它比最低温重一档：最低温是背景，最高温才是「哪天更暖」要读的那个数 -->
         <text class="days__temp days__temp--max">{{ day.max }}°</text>
 
-        <!--
-          温度条。**所有行共用一把尺子**（量程见 script 里的 scale）。
-
-          轨道画的是这一段预报的全局最低到全局最高 —— 每行的那一截是当天
-          min→max 在这把尺子上的位置。所以每根条的长短与左右偏移，
-          直接就是「哪天更暖、暖多少」，不用去比数字。
-
-          轨道（浅色）不撤：没有它，剩下的每截就成了漂浮的短棒，
-          「哪截更长」没有共同的参照可看。
-
-          截出来的颜色按**绝对温度**给（冷蓝 → 暖橙），不是按这一截的相对位置 ——
-          相对位置会给一个 3°–9° 的冷天也画成蓝到橙，跟真实的冷暖对不上。
-        -->
         <view class="days__bar">
           <view class="days__track" />
           <view class="days__segment" :style="segmentStyle(day)">
@@ -45,15 +29,6 @@
           </view>
         </view>
 
-        <!--
-          降水概率。
-
-          它说的是「这一天下不下雨」，跟温度不在一件事上，所以单占一列，
-          不塞进温度那两行里 —— 挤进去会被读成第三个温度。
-
-          颜色统一用文字档的蓝（$fish-blue-600）而不是填充档的 $fish-tide：
-          $fish-tide 是给填充用的，当文字读只有 4.0:1，压不住。
-        -->
         <text class="days__prob">{{ probText(day) }}</text>
       </view>
     </view>
@@ -85,6 +60,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import { icon } from '@/constants/icons';
 import { tempGradient } from '@/constants/weatherTemp';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { weekdayCn } from '@/utils/date';
@@ -92,6 +68,8 @@ import type { ForecastDay } from '@/utils/weather';
 import { forecastDays, weatherIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
+
+const calendarIcon = icon('calendar-days', 'ink');
 
 /**
  * 有效的预报日。
@@ -202,7 +180,7 @@ function dayLabel(fxDate: string, index: number): string {
  * 而右对齐的列本来就不怕留空。
  */
 function probText(day: ForecastDay): string {
-  return day.prob > 0 ? `${day.prob}%` : '';
+  return day.prob > 0 ? `${day.prob}%` : '0%';
 }
 
 /**
@@ -283,6 +261,18 @@ const emptyText = computed(() => {
 /* 标题。分区标题统一走 fish-card-title（跟其余卡片同一档） */
 .days__title {
   @include fish-card-title;
+}
+
+/* 标题左侧的图标。底边贴着文字基线，像一个字那样站着 */
+.days__head-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.days__title-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 /* 列表 */

@@ -1,13 +1,11 @@
 <template>
   <view class="next24">
     <view class="next24__head">
-      <text class="next24__title">未来 24 小时</text>
+      <view class="next24__head-left">
+        <image class="next24__title-icon" :src="clockIcon" mode="aspectFit" />
+        <text class="next24__title">未来 24 小时</text>
+      </view>
 
-      <!--
-        逐时 / 曲线：同一份数据的两种读法。
-
-        分段控件放在标题行右侧 —— 它是这张卡的视图开关，不是内容。
-      -->
       <view class="next24__segment">
         <view class="next24__item" :class="{ 'next24__item--active': mode === 'hours' }" @tap="mode = 'hours'">
           <text class="next24__item-text" :class="{ 'next24__item-text--active': mode === 'hours' }">逐时</text>
@@ -18,30 +16,15 @@
       </view>
     </view>
 
-    <!--
-      两种态各是一个组件。挂 v-if 而不是 v-show：
-      曲线那张图是 canvas 节点，v-show 只是把它藏起来 ——
-      canvas 还在、也还在画，切到逐时态时它白占一份内存。
-    -->
     <HourlyWeather v-if="mode === 'hours'" />
     <MetricChart v-else />
   </view>
 </template>
 
 <script setup lang="ts">
-/**
- * Next24Hours —— 未来 24 小时：逐时格子与指标曲线合成一张卡。
- *
- * 为什么合成一张：这两块说的是同一份数据（mapStore.weatherHourly 的前 24 条）。
- * 分成两张卡时，一屏里能同时读到「24 个温度」和「一条气温曲线」——
- * 同一批数字被说了两遍，而且两遍都是温度。
- *
- * 合成之后省下一张卡，也省下一遍温度。代价是曲线从「滑过就看见」
- * 变成「点一下才看见」—— 这是拿可见性换版面，不是白拿的。
- *
- * 曲线默认指标改成风速：气温在逐时格子里已经给过一遍。
- */
 import { ref } from 'vue';
+
+import { icon } from '@/constants/icons';
 
 import HourlyWeather from '../HourlyWeather/HourlyWeather.vue';
 import MetricChart from '../MetricChart/MetricChart.vue';
@@ -50,6 +33,8 @@ import MetricChart from '../MetricChart/MetricChart.vue';
 type Mode = 'hours' | 'chart';
 
 const mode = ref<Mode>('hours');
+
+const clockIcon = icon('clock', 'ink');
 </script>
 
 <style lang="scss" scoped>
@@ -71,6 +56,18 @@ const mode = ref<Mode>('hours');
   @include fish-card-head;
 
   align-items: center;
+}
+
+.next24__head-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+/* 图标跟标题文字同色（ink），底边贴着文字基线 */
+.next24__title-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .next24__title {

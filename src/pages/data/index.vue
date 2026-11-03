@@ -1,5 +1,5 @@
 <template>
-  <view class="data" :style="{ minHeight: windowHeight + 'px' }">
+  <view class="data" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
     <PageBackdrop />
 
     <view class="data__content">
@@ -33,8 +33,6 @@
       </view>
 
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">出钓时机</text>
-
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <AstroCard />
         </view>
@@ -44,19 +42,12 @@
       </view>
 
       <view class="sect">
-        <text class="sect__title" :style="enterStyle(0, showAnim)">其他数据</text>
-
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <WeatherCard />
         </view>
       </view>
 
       <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
-
-      <!--
-        以下浮层不占页面流。SnapSheet 是 fixed 全屏遮罩，
-        在可滚动页面上同样成立（浮层固定在视口，不随内容滚走）。
-      -->
 
       <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />

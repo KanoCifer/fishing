@@ -120,7 +120,7 @@ $fish-border-40: rgba(60, 60, 67, 0.18); // 分组内部的浅一档线
 $fish-material-dark: rgba(28, 28, 30, 0.82); // 深色导航栏
 $fish-scrim: rgba(0, 0, 0, 0.4); // 模态遮罩
 
-$fish-glass: rgba(247, 250, 252, 0.6);
+$fish-glass: rgba(255, 255, 255, 0.8);
 $fish-glass-strong: rgba(255, 255, 255, 0.86); // 分段控件的选中块
 $fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.85); // 顶边高光
 $fish-blur: 20px;
@@ -237,6 +237,14 @@ $fish-rain-light: rgba($fish-tide, 0.42);
 $fish-rain-medium: rgba($fish-tide, 0.58);
 $fish-rain-heavy: rgba($fish-tide, 0.82);
 $fish-rain-storm: $fish-tide;
+
+/* ── 分钟级降水的读数面 ──
+   一块淡蓝的渐变面，托住这张卡最大的那个数（窗口累计降水量）。
+
+   为什么是渐变而不是一块实色：这块面托的是主角数字，它得比周围
+   的卡片面亮一档才立得住；实色在玻璃卡上读成「贴纸」，渐变读成
+   「窗外的天光透进来」，跟这张卡讲的是天气这件事也对得上。 */
+$fish-rain-panel: linear-gradient(135deg, #e9f2fe 0%, #d4e4fb 100%);
 
 /* ── 图上的游标 ──
    图表里「现在读到哪一格」的那根竖线。

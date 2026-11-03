@@ -1,7 +1,10 @@
 <template>
   <view class="minutely">
     <view class="minutely__head">
-      <text class="minutely__title">分钟级降水</text>
+      <view class="minutely__left">
+        <image class="minutely__icon" :src="rainBowDataUrl" />
+        <text class="minutely__title">分钟级降水</text>
+      </view>
     </view>
 
     <text v-if="summary" class="minutely__summary">{{ summary }}</text>
@@ -80,7 +83,9 @@
             <text class="minutely__legend-label">{{ level.label }}</text>
           </view>
         </view>
-        <text class="minutely__total">合计 <text class="minutely__total-value">{{ totalText }}</text> 毫米</text>
+        <text class="minutely__total"
+          >合计 <text class="minutely__total-value">{{ totalText }}</text> 毫米</text
+        >
       </view>
     </view>
 
@@ -89,33 +94,16 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 分钟降水 —— 未来 2 小时、每 5 分钟一格的降水预报。
- *
- * 为什么值得单独一张卡：钓鱼最怕的是「雨下起来了才知道」。逐时预报给的是小时粒度，
- * 正在下雨的那一小时里它只能给一个平均值；分钟降水给的是接下来两小时的
- * 逐 5 分钟累计量 —— 雨什么时候到、什么时候停，一眼看得出来。
- *
- * 这张卡是**玻璃面**，跟同页其它卡同一套材质。
- *
- * 之前它是全项目第二块「有颜色的面」（深色面）：深底上柱子自己发光，
- * 雨强四档才拉得开。代价是它跟同页的玻璃卡不是一套材质语言 ——
- * 一屏里两种卡面，读起来像两个应用拼在一起。
- *
- * 回到玻璃面之后，四档明度分不开这件事改用**抬 alpha** 解决
- * （$fish-rain-light/medium/heavy/storm），不再靠换材质。
- *
- * 图用「雨幕」：一格一根柱子，不画曲线。理由写在 utils/precip.ts 里那段注释中。
- *
- * 上游只覆盖中国区域，所以这张卡取不到数是常态而不是异常：
- * 失败时给一句空态，不弹 toast、不拖垮同一分区的其它卡。
- */
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import type { MinutelyBucket } from '@/types/fishing';
 import { buildMinutelyCurtain, offsetLabel, precipLevelLabel, PRECIP_LEGEND_LEVELS } from '@/utils/precip';
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { rainBowSvg } from '@/constants/otherIcon';
+import { svgToDataUrl } from '@/utils/svg';
+
+const rainBowDataUrl = computed(() => svgToDataUrl(rainBowSvg));
 
 const mapStore = useFishingMapStore();
 
@@ -460,6 +448,16 @@ const isDry = computed(() => hasData.value && curtain.value.total === 0);
 
 .minutely__head {
   @include fish-card-head;
+}
+
+.minutely__left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.minutely__icon {
+  width: 58rpx;
+  height: 58rpx;
 }
 
 .minutely__title {
