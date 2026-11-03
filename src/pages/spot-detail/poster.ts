@@ -763,19 +763,26 @@ function drawFooter(ctx: CanvasRenderingContext2D, data: PosterSpot, codeImage: 
 }
 
 /**
- * 卡片封面的裁切区。
+ * 转发卡片封面的裁切带。
  *
- * 微信的转发卡片按 5:4 取图，从海报居中裁。
+ * 微信的转发卡片按 5:4 取图，从海报上裁一条带子下来。
  * 裁切框跟绘制共用 POSTER.cardTop / cardHeight ——
  * 版面一改，裁切跟着走，不会出现「卡片上只剩半张脸」。
+ *
+ * 这条带子是**画**在单独一块画布上的（见 SpotShareSheet）：
+ * 那块画布只有带子那么高，导出时整张画布就是封面，不再二次裁切。
+ * 同一块画布导出两次会互相覆盖（写的是同一个临时文件），
+ * 所以整张海报与转发封面各用一块画布。
  */
 export const CARD_CROP = {
   /** 5:4（转发好友） */
   friend: {
-    x: 0,
+    /** 带子在海报里的上沿（设计坐标） */
     y: POSTER.cardTop,
+    /** 带子的宽高（设计坐标） */
     width: POSTER.width,
     height: POSTER.cardHeight,
+    /** 导出尺寸（5:4） */
     destWidth: 500,
     destHeight: 400,
   },

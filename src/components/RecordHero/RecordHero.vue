@@ -1,10 +1,14 @@
 <template>
   <!--
-    头图 —— 最近一次出行。
+    头图 —— 最近一次出行的照片。
 
     为什么是照片当主角：一次出行最值得回看的往往就是那张照片，
     而它在原来的版式里只能当一个 54pt 的小方块。把它放大到满幅，
     这一页第一眼给的是「上次钓到了什么」，而不是一屏要人先去选日期的格子。
+
+    这一版头图上**不再摆字**：标题与总览条由 RecordHeroBand 压在上面，
+    出行本身的日期、地点、渔获交给下面的行程卡 —— 同一件事说两遍，
+    等于一次都没说。
 
     没有照片时摆空态插画（`spots.jpg`），不摆一张别处的照片 ——
     拿旧照片冒充这次出行是撒谎，而插画说的是「这次没留照片」。
@@ -16,25 +20,15 @@
     逆光的水面能把白字吃掉，这层渐变是给底下那块面保证一个下限对比度。
     插画那一档也压 —— 它上半截是白天空，不压的话白字浮在上面找不着。
   -->
-  <view class="hero" :class="{ 'hero--placeholder': !photo }" @tap="onTap">
+  <view class="hero" :class="{ 'hero--placeholder': !photo }">
     <image v-if="photo" class="hero__img" :src="photo" mode="aspectFill" />
     <image v-else class="hero__img" :src="emptyImage" mode="aspectFill" />
 
     <!-- 压暗。只压照片那半边，渐变下面是页面底色 -->
     <view class="hero__scrim" />
 
-    <view v-if="log" class="hero__body">
-      <text class="hero__date">{{ dateText }}</text>
-      <text class="hero__place">{{ place }}</text>
-
-      <!-- 渔获与钓法。一行放不下就截断 -->
-      <view v-if="chips.length" class="hero__chips">
-        <text v-for="(chip, index) in chips" :key="index" class="hero__chip">{{ chip }}</text>
-      </view>
-    </view>
-
     <!-- 这个月一条记录都没有 -->
-    <view v-else class="hero__empty">
+    <view v-if="!log" class="hero__empty">
       <text class="hero__empty-text">{{ emptyText }}</text>
     </view>
   </view>
@@ -44,26 +38,17 @@
 /**
  * 头图组件。
  *
- * 只管摆：哪一条记录、哪一张照片、几个字。
- * 挑哪一条是页面的事 —— 组件拿到什么就摆什么。
+ * 只管摆：哪一张照片。挑哪一条记录是页面的事 —— 组件拿到什么就摆什么。
  */
 import { computed } from 'vue';
 
 import { mediaUrl } from '@/api/upload';
-import { RECORD_EMPTY_IMAGE, RECORD_HERO, RECORD_NO_PLACE } from '@/constants/record';
+import { RECORD_EMPTY_IMAGE, RECORD_HERO } from '@/constants/record';
 import type { FishingLog } from '@/types/record';
-import { formatLocalTimeOfDay } from '@/utils/date';
 
 const props = defineProps<{
   /** 头图那条记录。null 表示这个月还没有记录 */
   log: FishingLog | null;
-  /** 今天 `YYYY-MM-DD` */
-  today: string;
-}>();
-
-const emit = defineEmits<{
-  /** 点头图看这条记录的详情 */
-  select: [id: string];
 }>();
 
 const emptyText = RECORD_HERO.emptyMonth;
@@ -76,50 +61,6 @@ const photo = computed(() => {
   const images = props.log?.images;
   return images && images.length ? mediaUrl(images[0]) : '';
 });
-
-/**
- * 日期行：「10月30日 · 今天 · 05:30」。
- *
- * 三段各回答一件事：哪一天、是不是今天、几点下的竿。
- * 「今天」只在真是今天时出现 —— 平时那两个字是废话，
- * 而今天是唯一值得单独标出来的那天（今天还能补记）。
- */
-const dateText = computed(() => {
-  const log = props.log;
-  if (!log) return '';
-
-  const [, month, day] = log.log_date.split('-');
-  const parts = [`${Number(month)}月${Number(day)}日`];
-
-  if (log.log_date === props.today) parts.push('今天');
-
-  const time = formatLocalTimeOfDay(log.started_at);
-  if (time) parts.push(time);
-
-  return parts.join(' · ');
-});
-
-/** 地点。没记地点就说没记，不拿钓点名凑数 */
-const place = computed(() => props.log?.location_name || RECORD_NO_PLACE);
-
-/**
- * 渔获与钓法做成一枚枚胶囊。
- *
- * 渔获在前：钓到了什么比用什么钓重要。
- * 只留前四个 —— 头图上摊开一串胶囊会盖住照片，而照片才是这一块的主体。
- */
-const chips = computed(() => {
-  const log = props.log;
-  if (!log) return [];
-
-  const catches = log.catches.map((item) => `${item.species} ×${item.quantity}`);
-  return [...catches, ...log.methods].slice(0, 4);
-});
-
-function onTap(): void {
-  if (!props.log) return;
-  emit('select', props.log.log_id);
-}
 </script>
 
 <style lang="scss" scoped>
@@ -131,12 +72,12 @@ function onTap(): void {
 /*
  * 满幅头图。
  *
- * 472rpx = 236pt。高于这个数，日历卡就被推到首屏之外了；
- * 低于这个数，照片不够撑起「主角」这件事。
+ * 560rpx = 280pt。上面要放标题与总览条，下面留给照片本身 ——
+ * 472rpx 那版放不下标题，副标只能压在日期那一行上，挤成一团。
  */
 .hero {
   position: relative;
-  height: 472rpx;
+  height: 560rpx;
   overflow: hidden;
 }
 
@@ -179,65 +120,22 @@ function onTap(): void {
   left: 0;
   background-image: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.42) 0%,
-    rgba(0, 0, 0, 0) 38%,
-    rgba(0, 0, 0, 0.62) 78%,
-    rgba(0, 0, 0, 0.72) 100%
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.12) 30%,
+    rgba(0, 0, 0, 0.34) 62%,
+    rgba(0, 0, 0, 0.66) 100%
   );
 }
 
-/* 文字块。贴着底边 */
-.hero__body {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  padding: 0 36rpx 32rpx;
-}
-
-/* 日期行。照片上最弱的一档 */
-.hero__date {
-  display: block;
-  color: $fish-on-dark;
-  @include fish-type(caption);
-}
-
-/* 地点。头图上最大的字 */
-.hero__place {
-  display: block;
-  margin-top: 6rpx;
-  color: $fish-on-dark;
-  @include fish-type(title);
-
-  font-weight: 700;
-}
-
-.hero__chips {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 18rpx;
-}
-
 /*
- * 胶囊。
+ * 这个月没有记录时的兜底。
  *
- * 半透明白底：压在照片上要能读清，又不能盖成一块实色。
+ * 往上让开总览条 —— 总览条压在头图下缘，两者不能叠在一起。
  */
-.hero__chip {
-  margin-right: 12rpx;
-  margin-bottom: 6rpx;
-  padding: 6rpx 18rpx;
-  border-radius: $fish-radius-pill;
-  background-color: rgba(255, 255, 255, 0.22);
-  color: $fish-on-dark;
-  @include fish-type(caption);
-}
-
-/* 这个月没有记录时的兜底 */
 .hero__empty {
   position: absolute;
   right: 0;
-  bottom: 32rpx;
+  bottom: 230rpx;
   left: 0;
   display: flex;
   justify-content: center;

@@ -228,6 +228,7 @@ function onTap(cell: CalendarCell): void {
 .cal__grid {
   display: flex;
   flex-wrap: wrap;
+  gap: 8rpx;
 }
 
 .cal__cell {
@@ -235,9 +236,9 @@ function onTap(cell: CalendarCell): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% / 7);
+  flex: 0 0 calc((100% - 48rpx) / 7);
+  width: calc((100% - 48rpx) / 7);
   height: 88rpx;
-  margin-bottom: 8rpx;
   border-radius: $fish-radius-lg;
   @include fish-press-dim;
 }

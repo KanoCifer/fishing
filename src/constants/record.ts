@@ -36,26 +36,53 @@ export const RECORD_METHOD_CUSTOM = '自定义钓法';
  */
 export const RECORD_SPECIES_SUGGESTIONS: readonly string[] = Object.values(FISH_IMAGES).map((item) => item.name);
 
-/* ── 统计面板 ───────────────────────────────────────────────────────────── */
+/** 天数的单位。数字与单位分开拼，是为了让数字大一号 */
+export const RECORD_DAY_UNIT = '天';
 
-export const RECORD_STATS = {
-  /**
-   * 打过卡的天数。
-   *
-   * 标签只留词，不留「天数」：主角那一行（当前连续）已经带着单位，
-   * 这里再写一遍只会把这一行挤窄。
-   */
-  checkin: '打卡',
+/* ── 头图上的总览条 ─────────────────────────────────────────────────────── */
+
+/**
+ * 头图下缘的总览条。
+ *
+ * 三个数都是**全历史**的量，服务端算好（见 api/record.ts 的 stats）。
+ * 与下面的本月卡不重叠：这一条说「一直到现在」，那一张说「这个月」。
+ */
+export const RECORD_OVERVIEW = {
+  /** 打过卡的天数 */
+  trips: '累计出钓',
   /** 钓到鱼的天数 */
-  catch: '渔获',
-  /** 当前连续。全称保留 —— 它是这一块的主角，标签要说清是什么 */
-  currentStreak: '当前连续',
-  /** 最长连续 */
-  longest: '最长',
+  catch: '渔获天数',
+  /** 当前连续 */
+  streak: '当前连续',
+  /** 天。三个数共用一个单位 */
+  unit: '天',
 } as const;
 
-/** 连续天数的单位。数字与单位分开拼，是为了让数字大一号 */
-export const RECORD_DAY_UNIT = '天';
+/**
+ * 头图上的标题与副标。
+ *
+ * 副标是一句自述，不是一个数据 —— 它不给别的东西下判断，
+ * 所以放在标题下面当气氛，不占一格。
+ */
+export const RECORD_SUBTITLE = '每一次出钓，都是与自然的相遇';
+
+/* ── 本月概览卡 ─────────────────────────────────────────────────────────── */
+
+export const RECORD_MONTH = {
+  /** 环的主角：本月出钓了多少天 */
+  trips: '本月出钓',
+  /** 本月钓到的鱼（条） */
+  catches: '本月渔获',
+  /** 条 */
+  catchUnit: '条',
+  /** 趋势条：每天钓到多少 */
+  trend: '每日渔获',
+  /** 趋势的注脚 */
+  trendHint: '本月',
+} as const;
+
+/** 日历卡里那颗「回到今天」的键 */
+export const RECORD_TODAY = '今日';
 
 /* ── 日历页 ─────────────────────────────────────────────────────────────── */
 
@@ -114,7 +141,7 @@ export const RECORD_NO_PLACE = '没记地点';
 
 export const RECORD_TRIPS = {
   /** 分区标题 */
-  title: '往期行程',
+  title: '近期行程',
   /** 分区副标 */
   hint: '横滑看更多',
   /** 只打了卡，没钓到鱼 */

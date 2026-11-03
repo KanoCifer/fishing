@@ -30,8 +30,14 @@
     </template>
 
     <view class="share">
-      <view class="share__preview">
-        <canvas :id="canvasId" type="2d" class="share__canvas" :style="canvasStyle" />
+      <view class="share__preview" :style="previewStyle">
+        <!--
+          预览画的就是导出的那张文件本身。
+
+          以前预览用的是画布，海画完就显示；导出的文件什么样，预览看不出来。
+          现在预览直接挂导出的临时文件：所见即所得 —— 存进相册的就是这张。
+        -->
+        <image v-if="posterPath" class="share__poster" :src="posterPath" mode="aspectFit" />
 
         <!--
           生成中。
@@ -48,6 +54,23 @@
           <text class="share__overlay-text">{{ sheet.failed }}</text>
         </view>
       </view>
+    </view>
+
+    <!--
+      两块离屏画布：整张海报一块，转发封面一块。
+
+      为什么必须是两块：同一个画布导出两次，两次写的是**同一个临时文件**，
+      后一次把前一次盖掉 —— 存进相册的于是变成了 5:4 的转发封面（扁的）。
+      两块画布各导各的，文件才不会互相踩。
+
+      为什么离屏：canvasToTempFilePath 的 x/y/width/height 取的是
+      **画布元素的 CSS 坐标**。画布的 style 尺寸跟位图一致（750×1000 / 750×600），
+      裁切框才既等于设计坐标、也等于位图像素，不用猜是哪一套。
+      离屏只是不给人看，尺寸不打折。
+    -->
+    <view class="share__offscreen">
+      <canvas :id="posterCanvasId" type="2d" class="share__export-canvas" :style="posterCanvasStyle" />
+      <canvas :id="cardCanvasId" type="2d" class="share__export-canvas" :style="cardCanvasStyle" />
     </view>
 
     <template #footer>
@@ -80,7 +103,7 @@
  * 画完导两次文件：
  * - 整张（3:4）存相册
  * - 卡片封面（5:4）转发给好友时当缩略图
- * 两次导出都是同一张海报的裁切，裁切框与绘制共用 ../../share 的 POSTER。
+ * 两次导出用两块画布，裁切框与绘制共用 ../../share 的 POSTER。
  */
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -115,7 +138,8 @@ const sheet = SHARE_SHEET;
 
 const instance = getCurrentInstance()!;
 const uid = Math.random().toString(36).slice(2, 8);
-const canvasId = `spot-poster-${uid}`;
+const posterCanvasId = `spot-poster-${uid}`;
+const cardCanvasId = `spot-card-${uid}`;
 
 /* ── 状态 ────────────────────────────────────────────────────────────── */
 
@@ -141,7 +165,8 @@ interface CanvasNode2D {
   createImage(): PosterImage;
 }
 
-let canvasNode: CanvasNode2D | null = null;
+let posterNode: CanvasNode2D | null = null;
+let cardNode: CanvasNode2D | null = null;
 
 /**
  * 预览宽度（rpx）。
@@ -154,11 +179,23 @@ const PREVIEW_WIDTH_RPX = 480;
 const previewWidthPx = computed(() => uni.upx2px(PREVIEW_WIDTH_RPX));
 const previewHeightPx = computed(() => Math.round((previewWidthPx.value * POSTER.height) / POSTER.width));
 
-/** 画布的 CSS 尺寸。canvas 2d 的位图尺寸另算，两者不是一回事 */
-const canvasStyle = computed(() => ({
+/** 预览框的尺寸。固定住，海报还没出来时框也不塌 */
+const previewStyle = computed(() => ({
   width: `${previewWidthPx.value}px`,
   height: `${previewHeightPx.value}px`,
 }));
+
+/**
+ * 两块离屏画布的 CSS 尺寸。
+ *
+ * 跟各自的位图一模一样（750×1000 / 750×600）——
+ * 导出时裁切框按 CSS 坐标算，这套尺寸下 CSS 坐标就是设计坐标。
+ */
+const posterCanvasStyle = { width: `${POSTER.width}px`, height: `${POSTER.height}px` } as const;
+const cardCanvasStyle = {
+  width: `${CARD_CROP.friend.width}px`,
+  height: `${CARD_CROP.friend.height}px`,
+} as const;
 
 /* ── 绘制 ────────────────────────────────────────────────────────────── */
 
@@ -189,7 +226,7 @@ function scheduleRetry(): void {
   }, delay);
 }
 
-function queryCanvas(): Promise<CanvasNode2D | null> {
+function queryCanvas(canvasId: string): Promise<CanvasNode2D | null> {
   return new Promise((resolve) => {
     createSelectorQuery(instance)
       .select(`#${canvasId}`)
@@ -231,6 +268,25 @@ async function loadImage(node: CanvasNode2D, src: string): Promise<PosterImage |
   });
 }
 
+/**
+ * 一张海报要用的两张图：封面照片 + 小程序码。
+ *
+ * 图像对象是**跟着画布节点**建的（node.createImage），
+ * 两块画布各建各的 —— 不能把一块画布的图像对象拿到另一块去画。
+ * 网络图有微信的缓存，第二次取不重新走网络。
+ */
+async function loadPosterImages(node: CanvasNode2D): Promise<{
+  cover: PosterImage | null;
+  code: PosterImage | null;
+}> {
+  const [cover, code] = await Promise.all([
+    loadImage(node, props.data.cover).then((img) => img ?? loadImage(node, SPOT_PLACEHOLDER_IMAGE)),
+    props.data.codeUrl ? loadImage(node, props.data.codeUrl) : Promise.resolve(null),
+  ]);
+
+  return { cover, code };
+}
+
 async function initCanvas(): Promise<void> {
   if (initializing) return;
   initializing = true;
@@ -238,8 +294,8 @@ async function initCanvas(): Promise<void> {
   try {
     await nextTick();
 
-    const node = await queryCanvas();
-    if (!node) {
+    const [poster, card] = await Promise.all([queryCanvas(posterCanvasId), queryCanvas(cardCanvasId)]);
+    if (!poster || !card) {
       scheduleRetry();
       return;
     }
@@ -249,13 +305,15 @@ async function initCanvas(): Promise<void> {
      *
      * 原来按「CSS 尺寸 × dpr」铺：2x 机上位图只有 480 宽，
      * 导出时再拉回 750 —— 存进相册的那张是放大出来的，字是糊的、码也糊。
-     * 现在位图就是设计分辨率，显示时由渲染器缩到预览尺寸（始终是缩小），
-     * 导出时一比一，不放大也不缩小。
+     * 现在位图就是设计分辨率，导出时一比一，不放大也不缩小。
      */
-    node.width = POSTER.width;
-    node.height = POSTER.height;
+    poster.width = POSTER.width;
+    poster.height = POSTER.height;
+    card.width = CARD_CROP.friend.width;
+    card.height = CARD_CROP.friend.height;
 
-    canvasNode = node;
+    posterNode = poster;
+    cardNode = card;
     clearRetryTimer();
 
     await draw();
@@ -266,13 +324,11 @@ async function initCanvas(): Promise<void> {
 
 /** 画海报 + 导两次文件 */
 async function draw(): Promise<void> {
-  const node = canvasNode;
-  if (!node) return;
+  const poster = posterNode;
+  const card = cardNode;
+  if (!poster || !card) return;
 
   status.value = 'generating';
-
-  const ctx = node.getContext('2d');
-  // 位图就是设计分辨率，绘制坐标直接用设计坐标，不需要任何缩放
 
   /*
    * 封面。
@@ -285,37 +341,55 @@ async function draw(): Promise<void> {
    * constants/spot-detail）—— 同一个域名、同一条 downloadFile 合法域名。
    * 域名没配的时候不是「这里坏了」，是**整块封面都画不出来**。
    */
-  const [cover, code] = await Promise.all([
-    loadImage(node, props.data.cover).then((img) => img ?? loadImage(node, SPOT_PLACEHOLDER_IMAGE)),
-    props.data.codeUrl ? loadImage(node, props.data.codeUrl) : Promise.resolve(null),
-  ]);
-
-  drawPoster(ctx, props.data, cover, code);
+  const posterImages = await loadPosterImages(poster);
+  drawPoster(poster.getContext('2d'), props.data, posterImages.cover, posterImages.code);
 
   posterPath.value = await exportPoster(
-    node,
+    poster,
     { x: 0, y: 0, width: POSTER.width, height: POSTER.height },
     POSTER.width,
     POSTER.height,
   );
-  const card = await exportPoster(node, CARD_CROP.friend, CARD_CROP.friend.destWidth, CARD_CROP.friend.destHeight);
+
+  /*
+   * 转发封面。
+   *
+   * 微信的转发卡片按 5:4 取图，海报是 3:4 —— 得裁一刀。
+   * 裁切带的位置跟绘制共用 POSTER.cardTop（见 ../../poster 的 CARD_CROP）。
+   *
+   * 这块画布只有带子那么高（750×600），画的时候把整张海报往上挪一条带子的高度，
+   * 于是画布上留下的正好是那一条 —— 导出时整张画布就是封面，不用再裁。
+   */
+  const cardImages = await loadPosterImages(card);
+  const cardCtx = card.getContext('2d');
+  cardCtx.save();
+  cardCtx.translate(0, -CARD_CROP.friend.y);
+  drawPoster(cardCtx, props.data, cardImages.cover, cardImages.code);
+  cardCtx.restore();
+
+  cardPath.value = await exportPoster(
+    card,
+    { x: 0, y: 0, width: CARD_CROP.friend.width, height: CARD_CROP.friend.height },
+    CARD_CROP.friend.destWidth,
+    CARD_CROP.friend.destHeight,
+  );
 
   if (!posterPath.value) {
     status.value = 'failed';
     return;
   }
 
-  cardPath.value = card;
   status.value = 'ready';
 
   // 封面给页面 —— 页面的转发钩子要拿它当缩略图
-  emit('ready', { card });
+  emit('ready', { card: cardPath.value });
 }
 
 /**
  * 导出一块区域。
  *
- * 裁切框是**设计坐标**，位图也是设计分辨率 —— 两套坐标是同一套，直接用。
+ * 裁切框是**画布元素的 CSS 坐标**（微信的 canvasToTempFilePath 就是这么算的）。
+ * 两块离屏画布的 CSS 尺寸跟位图一致，所以这里写设计坐标就等于写 CSS 坐标。
  */
 function exportPoster(
   node: CanvasNode2D,
@@ -382,7 +456,8 @@ watch(
     status.value = 'generating';
     posterPath.value = '';
     cardPath.value = '';
-    canvasNode = null;
+    posterNode = null;
+    cardNode = null;
     retryIndex = 0;
     void nextTick().then(() => void initCanvas());
   },
@@ -397,7 +472,7 @@ watch(
 watch(
   () => props.data,
   () => {
-    if (!canvasNode) return;
+    if (!posterNode || !cardNode) return;
     void draw();
   },
   { deep: true },
@@ -405,7 +480,8 @@ watch(
 
 onBeforeUnmount(() => {
   clearRetryTimer();
-  canvasNode = null;
+  posterNode = null;
+  cardNode = null;
 });
 
 /* ── 图标 ────────────────────────────────────────────────────────────── */
@@ -487,17 +563,28 @@ const closeIcon = icon('x', 'muted60');
  */
 .share__preview {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: $fish-radius-xl;
   overflow: hidden;
+  border-radius: $fish-radius-xl;
   background-color: $fish-page;
   box-shadow: inset 0 0 0 1rpx $fish-border-40;
 }
 
-.share__canvas {
+.share__poster {
   display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * 离屏画布。
+ *
+ * 摆在屏幕外，不是给人看的 —— 只是给 canvasToTempFilePath 一个能取到节点的地方。
+ * fixed + 负偏移，不占布局、不撑出滚动条。
+ */
+.share__export-canvas {
+  position: fixed;
+  top: 0;
+  left: -9999px;
 }
 
 /* 生成中 / 失败的遮罩 */

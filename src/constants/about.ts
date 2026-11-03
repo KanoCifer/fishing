@@ -13,6 +13,18 @@ export const APP_INFO = {
 export const APP_LOGO = `${ENV.cdnBaseUrl}/logo.webp`;
 export const APP_COVER = `${ENV.cdnBaseUrl}/yulu-cover.png`;
 
+/**
+ * 转发卡片的封面图，5:4。
+ *
+ * 为什么单独出一张：微信聊天里的转发卡片封面就是 5:4。
+ * 竖版海报（APP_COVER，9:16）按 5:4 裁会切掉上下两头，
+ * 1:1 图标（APP_LOGO）裁完只剩一角 —— 两种都不如专门出一张 5:4。
+ *
+ * 图源：posters/build_share_cover.py，改文案重跑即可。
+ * ⚠️ 上传到 CDN 时文件名要与这里一致，否则线上是 404。
+ */
+export const SHARE_COVER = `${ENV.cdnBaseUrl}/yulu-share-cover-5x4.png`;
+
 export const ABOUT_ENTRY = {
   /** 行标题 */
   label: '关于渔碌',
@@ -70,10 +82,10 @@ export const SHARE_APP = {
    * 这一版分享的宿主是「我的」页 —— 截出来的是用户的头像与昵称，
    * 一张写着「渔碌｜查潮汐、找钓点、看天气。」的卡片上摆着别人的头像，说不对。
    *
-   * 代价：应用图标是 1:1 满幅的，按 5:4 裁会切掉右上角的太阳和底下的浪。
-   * 这刀切得值 —— 少两笔图案，换封面跟标题说的是同一件事。
+   * 用专门出的 5:4 封面（SHARE_COVER），不用应用图标：
+   * 图标是 1:1 满幅的，按 5:4 裁会切掉右上角的太阳和底下的浪。
    */
-  cover: APP_LOGO,
+  cover: SHARE_COVER,
 } as const;
 
 /**

@@ -2,14 +2,6 @@
   <view class="records" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
     <PageBackdrop />
 
-    <!--
-      正文从屏幕最顶端开始排：头图一路顶进状态栏和导航栏底下。
-
-      页面配了 navigationStyle: "custom"，导航栏是浮在内容之上的透明层 ——
-      头图从顶端起，状态栏那行字就压在照片上（照片顶部压了一道 42% 的暗渐变，
-      白字读得清）。这是这一页唯一的主视觉，让它从屏幕顶端开始比让出
-      一条导航栏更像一张照片。
-    -->
     <view class="records__body">
       <!--
         会话还在恢复。这段期间不该显示成「未登录」——
@@ -34,9 +26,15 @@
       </view>
 
       <template v-else>
-        <!-- 头图：最近一次出行 -->
+        <!--
+          头图：最近一次出行的照片 + 压在上面的标题与总览条。
+
+          头图上不放这条记录的日期地点渔获 —— 那些交给下面的行程卡。
+          同一件事在一屏里说两遍，等于一次都没说。
+        -->
         <view class="records__hero">
-          <RecordHero :log="heroLog" :today="today" @select="openDetail" />
+          <RecordHero :log="heroLog" />
+          <RecordHeroBand :stats="logStore.stats" />
         </view>
 
         <!--
@@ -56,20 +54,39 @@
             @shift="onShift"
           />
 
+          <!--
+            日历卡的脚注行。
+
+            左边是图例（两档底色各代表什么），右边是「今日」——
+            翻到过去的月份之后，这一枚是回到本月最短的路；
+            已经在本月时，它打开今天的抽屉。
+          -->
           <view class="records__legend">
-            <view class="records__legend-item">
-              <view class="records__swatch records__swatch--catch" />
-              <text class="records__legend-text">{{ legend.catch }}</text>
+            <view class="records__legend-group">
+              <view class="records__legend-item">
+                <view class="records__swatch records__swatch--catch" />
+                <text class="records__legend-text">{{ legend.catch }}</text>
+              </view>
+              <view class="records__legend-item">
+                <view class="records__swatch records__swatch--checkin" />
+                <text class="records__legend-text">{{ legend.checkin }}</text>
+              </view>
             </view>
-            <view class="records__legend-item">
-              <view class="records__swatch records__swatch--checkin" />
-              <text class="records__legend-text">{{ legend.checkin }}</text>
+
+            <view class="records__today" @tap="onToday">
+              <text class="records__today-text">{{ todayLabel }}</text>
             </view>
           </view>
         </view>
 
-        <view v-if="logStore.stats" class="records__stats">
-          <RecordStats :stats="logStore.stats" />
+        <!--
+          本月概览。
+
+          这一块跟着**当前显示的月份**走：环画的是这个月走了几成，
+          柱子是这个月每天钓到多少条。
+        -->
+        <view class="records__month">
+          <RecordMonthStats :month="logStore.month" :logs="monthLogs" :today="today" />
         </view>
 
         <!--
@@ -87,12 +104,12 @@
           <RecordTripRail :logs="railLogs" @select="openDetail" />
         </template>
 
-        <view class="records__bar">
-          <view class="records__create" @tap="openCreate">
-            <image class="records__create-icon" :src="createIcon" mode="aspectFit" />
-            <text class="records__create-text">{{ createLabel }}</text>
-          </view>
-        </view>
+        <!--
+          「记一笔」不在这一页。
+
+          底栏中间那颗圆键就是它（见 custom-tab-bar）——
+          同一个动作给两个入口，用户会以为是两件事。
+        -->
       </template>
     </view>
 
@@ -121,8 +138,8 @@
  * 取数在 store（`stores/fishingLog`），这一层只负责编排：
  * 把月份切好、把挑出来的那条摆成头图、把那一天送进抽屉。
  *
- * 这一页显示的东西都跟着**当前显示的月份**走：头图、往期行程、日历是同一批数据。
- * 只有四个数是全历史的 —— 那是服务端算的跨月量，翻月不该让它变。
+ * 这一页显示的东西都跟着**当前显示的月份**走：日历、行程是同一批数据。
+ * 只有头图上那三个数是全历史的 —— 那是服务端算的跨月量，翻月不该让它变。
  */
 import { computed, ref } from 'vue';
 import { onPageShow } from '@dcloudio/uni-app';
@@ -131,15 +148,15 @@ import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import RecordCalendar from '@/components/RecordCalendar/RecordCalendar.vue';
 import RecordDaySheet from '@/components/RecordDaySheet/RecordDaySheet.vue';
 import RecordHero from '@/components/RecordHero/RecordHero.vue';
-import RecordStats from '@/components/RecordStats/RecordStats.vue';
+import RecordHeroBand from '@/components/RecordHeroBand/RecordHeroBand.vue';
+import RecordMonthStats from '@/components/RecordMonthStats/RecordMonthStats.vue';
 import RecordTripRail from '@/components/RecordTripRail/RecordTripRail.vue';
 import { useViewport } from '@/composables/useViewport';
-import { icon } from '@/constants/icons';
 import {
   RECORD_CALENDAR_LEGEND,
-  RECORD_CREATE_ENTRY,
   RECORD_EMPTY_IMAGE,
   RECORD_LOGIN_REQUIRED,
+  RECORD_TODAY,
   RECORD_TRIPS,
 } from '@/constants/record';
 import { loginErrorMessage } from '@/api/auth';
@@ -154,13 +171,11 @@ const session = useSessionStore();
 const logStore = useFishingLogStore();
 
 const login = RECORD_LOGIN_REQUIRED;
-const createLabel = RECORD_CREATE_ENTRY;
 const legend = RECORD_CALENDAR_LEGEND;
 const trips = RECORD_TRIPS;
 const emptyImage = RECORD_EMPTY_IMAGE;
 const loadingText = '加载中';
-
-const createIcon = icon('plus', 'onAccent');
+const todayLabel = RECORD_TODAY;
 
 /** 会话恢复完了没有 */
 const ready = ref(false);
@@ -278,6 +293,24 @@ async function onShift(delta: number): Promise<void> {
   if (next > logMonthKey()) return;
 
   await logStore.switchMonth(next);
+}
+
+/**
+ * 「今日」这一枚。
+ *
+ * 翻到过去的月份之后，它回到本月；已经在本月时，它打开今天的抽屉。
+ * 两个动作都落在这枚键上 —— 一枚键只做一件事的话，
+ * 「回到本月」和「看今天」就得摆两枚键，键盘式地挤在脚注里。
+ */
+async function onToday(): Promise<void> {
+  closeDay();
+
+  if (!isCurrentMonth.value) {
+    await logStore.switchMonth(logMonthKey());
+  }
+
+  selected.value = today.value;
+  dayOpen.value = true;
 }
 
 /** 翻一个月。加一就跨年 */
@@ -414,52 +447,15 @@ async function onLogin(): Promise<void> {
 }
 
 /*
- * 底部动作条。
- *
- * 常驻底部。底色不是透明的 —— 内容从它底下滚过去，
- * 透明的话会看见字从按钮底下穿出来。
- */
-.records__bar {
-  padding: 16rpx 32rpx;
-  box-shadow: inset 0 1rpx 0 $fish-border-40;
-}
-
-/*
- * 「记一笔」。
- *
- * 通栏：这一页只有一个主动作，它得是页面上最宽、最重的一件东西。
- * 实心渐变，跟同链路的记录创建页提交按钮一套。
- */
-.records__create {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 88rpx;
-  border-radius: $fish-radius-pill;
-  background-image: $fish-gradient;
-  @include fish-press(0.97);
-}
-
-.records__create-icon {
-  width: 30rpx;
-  height: 30rpx;
-  margin-right: 10rpx;
-}
-
-.records__create-text {
-  color: $fish-on-accent;
-  @include fish-type(body);
-
-  font-weight: 600;
-}
-
-/*
  * 头图外面这一层。
  *
  * 动画挂在这一层而不是组件的宿主节点上：自定义组件的宿主节点不吃动画
  * （见 docs/mp-weixin-platform.md）。这一层没有边距，头图才是真正满幅的。
+ *
+ * 它也是总览条的定位参照 —— 总览条要绝对定位压住照片的上下缘。
  */
 .records__hero {
+  position: relative;
   @include fish-enter;
 }
 
@@ -475,17 +471,23 @@ async function onLogin(): Promise<void> {
 }
 
 /*
- * 图例。
+ * 日历卡的脚注行。图例在左，「今日」在右。
  *
- * 深浅两档底色读得出分别，但不解释的话读者得自己猜 ——
- * 猜错一次就会以为深的那档是「去得更多」。
+ * 「今日」是胶囊底的一枚小键 —— 它是这一行里唯一能点的东西，
+ * 所以给它一块实底，其余是字与色块。
  */
 .records__legend {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-top: 20rpx;
   padding-top: 24rpx;
   border-top: 1rpx solid $fish-border-40;
+}
+
+.records__legend-group {
+  display: flex;
+  align-items: center;
 }
 
 .records__legend-item {
@@ -516,15 +518,31 @@ async function onLogin(): Promise<void> {
 }
 
 /*
- * 四个数。
+ * 「今日」。
  *
- * 不套卡：它们是注脚，注脚不需要一张自己的卡。
- * 上下各一道发丝线，把这一行从日历卡和往期行程之间托出来。
- *
- * 这一行跟着统计一起出现（见模板里的 v-if）：取数没回来之前它不在，
- * 回来时连着这一行一起落位。
+ * 一枚描边小键，不跟图例抢 —— 图例是注脚，这一枚才是动作。
  */
-.records__stats {
+.records__today {
+  padding: 6rpx 20rpx;
+  border: 1rpx solid $fish-border;
+  border-radius: $fish-radius-pill;
+  @include fish-press-dim;
+}
+
+.records__today-text {
+  color: $fish-muted;
+  @include fish-type(caption);
+}
+
+/*
+ * 本月概览。
+ *
+ * 不套玻璃卡：它跟日历卡是同一组内容（都是这个月的索引），
+ * 两张卡之间隔开反而像两段东西。
+ *
+ * 上下各一道发丝线，把这一行从日历卡和往期行程之间托出来。
+ */
+.records__month {
   margin: 28rpx 32rpx 0;
   padding: 24rpx 0;
   @include fish-enter(120ms);

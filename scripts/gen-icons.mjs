@@ -46,6 +46,14 @@ const ICONS = [
   { name: 'navigation', color: 'onAccent', use: '钓点导航按钮' },
   { name: 'sparkles', color: 'blue600', use: 'AI 建议入口' },
   { name: 'chevron-down', color: 'muted60', use: '首屏「往下看」的提示箭头 / 头图地点标签的展开箭头' },
+  // —— 记录页 ——
+  // 总览条压在照片下缘，所以三枚图标一律压白（与头图上那排胶囊同一套做法）。
+  // 鱼那条已有 onAccent 版，不重复生成。
+  { name: 'calendar-days', color: 'onAccent', use: '记录页 · 总览条 · 累计出钓' },
+  { name: 'flame', color: 'onAccent', use: '记录页 · 总览条 · 当前连续' },
+  // 行程卡上的气温。压在照片上，压白。只有温度，没有天气码 ——
+  // 记天气时后端没存天气现象。
+  { name: 'thermometer', color: 'onAccent', use: '记录页 · 行程卡 · 当时气温' },
   // —— 数据页卡标题 ——
   // 标题行上的图标跟标题文字同色（ink）：一行里图标与文字分两个颜色，
   // 视线上就有两个焦点，标题反而被图标压过去。

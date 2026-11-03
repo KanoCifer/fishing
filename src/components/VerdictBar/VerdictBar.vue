@@ -92,9 +92,7 @@ const refreshIcon = icon('rotate-cw', 'muted');
   color: $fish-ink;
   @include fish-type(title);
 
-  /* 数字用 700：这一行里它是主角，字重要压过旁边的等级词 */
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 .verdict-bar__level {
