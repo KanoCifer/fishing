@@ -126,6 +126,7 @@
   "globalStyle": {
     "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTextStyle": "black",
+    "navigationStyle": "custom",
     "backgroundColor": "#FFFFFF"
   },
   "tabBar": {

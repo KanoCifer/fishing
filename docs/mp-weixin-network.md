@@ -52,12 +52,12 @@
 
 ## 微信后台配置
 
-| 项 | 值 | 不配 |
-| --- | --- | --- |
-| request 域名 | `VITE_API_BASE_URL` | 全失败 |
-| downloadFile 域名 | API+CDN(`VITE_CDN_BASE_URL` 主机名) | 照片裂 |
-| uploadFile 域名 | `VITE_API_BASE_URL` | 传不上 |
-| 预解析域名≤5 | `api.kanocifer.chat`、`cdn.kanocifer.chat` | 冷启慢 |
-| scope.userLocation/scope.userInfo | `manifest.json` | 定位空 |
+| 项                                | 值                                         | 不配   |
+| --------------------------------- | ------------------------------------------ | ------ |
+| request 域名                      | `VITE_API_BASE_URL`                        | 全失败 |
+| downloadFile 域名                 | API+CDN(`VITE_CDN_BASE_URL` 主机名)        | 照片裂 |
+| uploadFile 域名                   | `VITE_API_BASE_URL`                        | 传不上 |
+| 预解析域名≤5                      | `api.kanocifer.chat`、`cdn.kanocifer.chat` | 冷启慢 |
+| scope.userLocation/scope.userInfo | `manifest.json`                            | 定位空 |
 
 ⚠️ 三份域名名单互相独立，填一份不等于另两份生效；`requiredPrivateInfos` 漏了真机才炸。

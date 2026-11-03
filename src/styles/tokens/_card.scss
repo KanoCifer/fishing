@@ -33,7 +33,7 @@ $fish-card-head-gap: 20rpx;
  */
 @mixin fish-card($padding: $fish-card-padding) {
   padding: $padding;
-  @include fish-glass;
+  @include fish-card-glass;
 }
 
 @mixin fish-card-head {

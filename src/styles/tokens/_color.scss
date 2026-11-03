@@ -104,7 +104,7 @@ $fish-on-dark: #ffffff;
 
 /* ── 表面 ── */
 $fish-page: rgba(245, 248, 253, 1); // 卡片 / 面板底，systemBackground
-$fish-grouped: rgba(230, 237, 254, 1); // 页面底，systemGroupedBackground
+$fish-grouped: #e2e8f8; // 页面底，systemGroupedBackground
 
 /**
  * 白卡的面色。
@@ -133,6 +133,7 @@ $fish-material-dark: rgba(28, 28, 30, 0.82); // 深色导航栏
 $fish-scrim: rgba(0, 0, 0, 0.4); // 模态遮罩
 
 $fish-glass: rgba(255, 255, 255, 0.8);
+$fish-card-glass: rgba(249, 249, 253, 0.85);
 $fish-glass-strong: rgba(255, 255, 255, 0.6); // 分段控件的选中块
 $fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.85); // 顶边高光
 $fish-blur: 20px;
@@ -250,13 +251,13 @@ $fish-rain-medium: rgba($fish-tide, 0.58);
 $fish-rain-heavy: rgba($fish-tide, 0.82);
 $fish-rain-storm: $fish-tide;
 
-/* ── 分钟级降水的读数面 ──
-   一块淡蓝的渐变面，托住这张卡最大的那个数（窗口累计降水量）。
+/* ── 分钟级降水的干态底面 ──
+   整段没有降水时，给那条平线铺的一层淡蓝。
 
-   为什么是渐变而不是一块实色：这块面托的是主角数字，它得比周围
-   的卡片面亮一档才立得住；实色在玻璃卡上读成「贴纸」，渐变读成
-   「窗外的天光透进来」，跟这张卡讲的是天气这件事也对得上。 */
-$fish-rain-panel: linear-gradient(135deg, #e9f2fe 0%, #d4e4fb 100%);
+   为什么要有这层面：没有雨的时候图上只剩一条线，线浮在白卡上
+   像一张没画完的图 —— 一块极淡的蓝把它托住，它才读成「这一段的雨幕是平的」。
+   为什么是从上往下淡出的：跟页面底的渐变同一手笔，两处是同一片天光。 */
+$fish-rain-flat: linear-gradient(180deg, rgba($fish-tide, 0.1) 0%, rgba($fish-tide, 0.02) 100%);
 
 /* ── 图上的游标 ──
    图表里「现在读到哪一格」的那根竖线。

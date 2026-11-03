@@ -180,37 +180,6 @@ JOBS = [
         "dest": "cdn",
         "note": "天气页头图 · 晴夜 —— 走 CDN，不进代码包",
     },
-    # —— 分钟级降水面板的底纹（两张）——
-    # 为什么不直接用上面那四张头图：头图原图 2~2.8MB，当底纹拉一次就是
-    # 一次几 MB 的下载 —— 面板只有 170rpx 高，图里能看清的东西就那么一点，
-    # 那个体积换不来任何东西。所以单独裁一条窄条、压到几十 KB。
-    #
-    # 为什么裁成 4:1：面板是 686rpx × 170rpx，正好这个比例，铺满不留黑边。
-    #
-    # 为什么质量只到 72：这张图要以 20% 的透明度垫在数字底下，
-    # 读者看到的是色块不是细节，细节压掉一点看不出来。
-    {
-        "src": "weather/hero-sunny-v2.jpg",
-        "out": "weather/panel-sunny-v1.jpg",
-        "format": "JPEG",
-        "mode": "RGB",
-        "options": {"quality": 72, "subsampling": 0, "optimize": True},
-        "crop_ratio": 4.0,
-        "max_width": 1080,
-        "dest": "cdn",
-        "note": "降水面板底纹 · 晴 —— 走 CDN，不进代码包",
-    },
-    {
-        "src": "weather/hero-rain-v2.jpg",
-        "out": "weather/panel-rain-v1.jpg",
-        "format": "JPEG",
-        "mode": "RGB",
-        "options": {"quality": 72, "subsampling": 0, "optimize": True},
-        "crop_ratio": 4.0,
-        "max_width": 1080,
-        "dest": "cdn",
-        "note": "降水面板底纹 · 雨 —— 走 CDN，不进代码包",
-    },
     # —— 「我的」页头图 ——
     # 源是宣传图那套 AI 底图（posters/bg-brand-dawn.jpg）：同一片湖面，
     # 宣传图与头图共用，画面上就认得出是同一个产品。
