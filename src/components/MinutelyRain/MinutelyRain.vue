@@ -5,56 +5,40 @@
         <image class="minutely__icon" :src="rainBowDataUrl" />
         <text class="minutely__title">分钟级降水</text>
       </view>
+
+      <view v-if="showTotal" class="minutely__total">
+        <view class="minutely__total-row">
+          <text class="minutely__total-value">{{ totalText }}</text>
+          <text class="minutely__total-unit">毫米</text>
+        </view>
+        <text class="minutely__total-caption">{{ spanText }}累计</text>
+      </view>
     </view>
 
-    <text v-if="summary" class="minutely__summary">{{ summary }}</text>
+    <!--
+      上游那句话。
 
-    <view v-if="loading && !hasData" class="minutely__skeleton">
-      <view class="minutely__skeleton-panel" />
-      <view class="minutely__skeleton-plot" />
-    </view>
+      它是结论不是注脚，所以给正文的字阶 —— 压成灰色小字就成了一句
+      容易被划过去的补充说明，而它恰恰是这张卡最该被先读到的内容。
+    -->
+    <text v-if="summaryText" class="minutely__summary">{{ summaryText }}</text>
+
+    <!-- 骨架块。玻璃面上的骨架用 $fish-surface，跟同页其它卡同一档深浅 -->
+    <view v-if="loading && !hasData" class="minutely__skeleton" />
 
     <view v-else-if="hasData" class="minutely__body">
       <!--
-        读数面：这张卡最大的一块面。
+        干态：整段无降水的空态。
 
-        里面只放**一个数** —— 窗口内的累计降水量。它是「这两小时一共下多少」，
-        钓鱼看的就是这个总量。峰值和点选读到的那一格另起一行说（见下面的读数行），
-        雨强档由右上角的徽标说。三件事三处，屏幕上一眼能分清哪句是哪句。
+        雨幕全平 —— 图上不该再画一排 0 高度的柱子（那看着像一排没画完的柱子），
+        也不该写一句话（上游已经给过结论）。这里给的是一条平线：
+        每格一个点，一格一格都在，高度全是 0。
+
+        为什么是点而不是实线：柱阵是按格画的，平线也是按格画的，
+        读者一眼能对上「一格一点」；一条实线读不出格数，也读不出这是量出来的。
       -->
-      <view class="minutely__panel">
-        <!--
-          底纹：风景照以低透明度垫在这块面下面。
-
-          它不承载信息（雨有多大由柱子说），只给这块面一点天气的气氛 ——
-          无雨是晴景，有雨是雨景。图没上传或加载失败时什么都不显示，
-          面上还是那块淡蓝渐变，不会有破图。
-
-          用 view + 背景图，不用 <image >：image 是原生组件，尺寸在部分
-          基础库上不按百分比铺满（实测左右留一大块白），view 是普通盒子，
-          宽高一定跟着面板走。
-        -->
-        <view class="minutely__panel-bg" :style="{ 'background-image': `url(${panelBg})` }" />
-
-        <view class="minutely__panel-top">
-          <view class="minutely__figure">
-            <text class="minutely__value">{{ totalText }}</text>
-            <text class="minutely__unit">毫米</text>
-          </view>
-
-          <!--
-            徽标只报雨强档，不报数字。
-
-            干态不画：那一档是「无降水」，结论句（上游那句话）已经说了，
-            这里再说一遍就是同一句话说两遍。
-          -->
-          <view v-if="badge" class="minutely__badge">
-            <image class="minutely__badge-icon" :src="badge.icon" />
-            <text class="minutely__badge-text">{{ badge.label }}</text>
-          </view>
-        </view>
-
-        <text class="minutely__caption">未来{{ spanText }}预计降水量</text>
+      <view v-if="isDry" class="minutely__dry">
+        <view v-for="bucket in curtain.buckets" :key="bucket.index" class="minutely__dry-dot" />
       </view>
 
       <!--
@@ -65,6 +49,7 @@
         横向那两条虚线是量程档位线（中雨上限 / 大雨上限），给的是相对参照。
       -->
       <view
+        v-else
         class="minutely__plot"
         @touchstart="onTouchStart"
         @touchmove="onTouchMove"
@@ -107,13 +92,19 @@
       </view>
 
       <!--
-        读数行：峰值或者被点选的那一格。
+        读数行：雨强档 + 峰值或者被点选的那一格。
 
         常态读峰值 —— 峰值是这张卡最该被读到的一格，不该要用户点一下才看得到。
-        点了别的格就改读那一格。干态没有这一行：整段都是 0，
-        读数面上的「0.00 毫米」已经把这句话说完了。
+        点了别的格就改读那一格。
+
+        干态没有这一行：整段都是 0，图上那条平线已经说完了。
       -->
-      <view v-if="readingText" class="minutely__reading">
+      <view v-if="!isDry" class="minutely__reading">
+        <view v-if="badge" class="minutely__badge">
+          <image class="minutely__badge-icon" :src="badge.icon" />
+          <text class="minutely__badge-text">{{ badge.label }}</text>
+        </view>
+
         <text class="minutely__reading-text">{{ readingText }}</text>
       </view>
 
@@ -152,7 +143,6 @@ import {
 } from '@/utils/precip';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { rainBowSvg } from '@/constants/otherIcon';
-import { RAIN_PANEL_BG } from '@/constants/rainPanel';
 import { svgToDataUrl } from '@/utils/svg';
 
 const rainBowDataUrl = computed(() => svgToDataUrl(rainBowSvg));
@@ -189,7 +179,7 @@ const totalText = computed(() => curtain.value.total.toFixed(2));
 /**
  * 窗口跨度的人话（「2 小时」）。
  *
- * 读数面那行小字要写「未来2小时预计降水量」，跨度是算出来的：
+ * 标题行右侧那行小字要写「2小时累计」，跨度是算出来的：
  * 上游给几格就是几分钟，不写死 2 小时 —— 窗口短了这句话就是假的。
  */
 const spanText = computed(() => {
@@ -420,7 +410,7 @@ function onTouchCancel() {
  * 峰值格。
  *
  * 峰值是 0 时不算峰值 —— 整段都是 0 的话「峰值」是句废话，
- * 读者要的「无雨」由读数面上的那个数自己说。
+ * 读者要的「无雨」由那条平线自己说。
  */
 const peak = computed(() => {
   const bucket = curtain.value.peak;
@@ -445,8 +435,7 @@ const readoutBucket = computed(() => {
  * 常态：「峰值 · 20 分钟后 · 0.35 毫米」。
  * 点选态：「35 分钟后 · 0.12 毫米」（那一格是峰值时才标峰值）。
  *
- * 干态没有这一行：整段都是 0，读数面上的「0.00 毫米」已经说完了，
- * 这里再写一句「峰值 0.00 毫米」是同一句话说两遍。
+ * 干态没有这一行：整段都是 0，平线已经把这句话说完了。
  */
 const readingText = computed(() => {
   const bucket = readoutBucket.value;
@@ -474,7 +463,42 @@ const badge = computed(() => {
   return { label: precipLevelLabel(level), icon: precipLevelIcon(level) };
 });
 
-/** 柱子属于哪一档 —— 决定它的颜色 */
+/**
+ * 整段没有降水。
+ *
+ * 这种窗口下每一格都是 0，图上只剩一排 0 高度的短柱。
+ * 这时候图上**不再写一句话**：结论上游已经给过，
+ * 那条平线也把这件事说清楚了，三处各说一句就是同一句话说三遍。图只管画。
+ *
+ * 要求每一格都测到（不能有空串）：有空串说明数据有缺口，
+ * 那张图上就有一格「没测到」要说，不属于整段无雨。
+ */
+const isDry = computed(
+  () => hasData.value && curtain.value.total === 0 && curtain.value.buckets.every((bucket) => bucket.value !== null),
+);
+
+/**
+ * 标题行右侧的累计读数。
+ *
+ * 干态不显示：那个数是 0，与结论句说的是同一件事。
+ */
+const showTotal = computed(() => hasData.value && !isDry.value);
+
+/**
+ * 结论句。
+ *
+ * 上游给了就用上游的 —— 它比我们自己拼的准（它知道雨什么时候停）。
+ * 上游没给时，干态自己补一句：这张卡不能只剩一条平线。
+ */
+const summaryText = computed(() => {
+  if (summary.value) return summary.value;
+  if (isDry.value) return `未来${spanText.value}无降水`;
+  return '';
+});
+
+/**
+ * 柱子属于哪一档 —— 决定它的颜色
+ */
 function barClass(bucket: MinutelyBucket): string {
   if (bucket.value === null) return 'minutely__bar--gap';
 
@@ -506,23 +530,6 @@ function barStyle(bucket: MinutelyBucket): string {
   // 逐格错开入场：柱子从左到右立起来，像雨幕一档档拉开
   return `height: ${height}; animation-delay: ${bucket.index * 12}ms;`;
 }
-
-/**
- * 整段没有降水。
- *
- * 这种窗口下每一格都是 0，图上只剩一排 0 高度的短柱。
- * 这时候图上**不再写一句话**：结论上游已经给过，
- * 读数面上的「0.00 毫米」也把这件事说清楚了，
- * 三处各说一句就是同一句话说三遍。图只管画。
- */
-const isDry = computed(() => hasData.value && curtain.value.total === 0);
-
-/**
- * 读数面的底纹。
- *
- * 干态用晴景，有雨用雨景 —— 底纹说的就是这句话的意思，只是不用字说。
- */
-const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.wet));
 </script>
 
 <style lang="scss" scoped>
@@ -532,19 +539,63 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
 
 .minutely__head {
   @include fish-card-head;
+
+  align-items: flex-start;
 }
 
 .minutely__left {
   display: flex;
-  align-items: end;
+  align-items: center;
 }
+
 .minutely__icon {
-  width: 58rpx;
-  height: 58rpx;
+  width: 52rpx;
+  height: 52rpx;
+  margin-right: 10rpx;
 }
 
 .minutely__title {
   @include fish-card-title;
+}
+
+/*
+ * 窗口累计降水。
+ *
+ * 原来这块是一整块读数面（渐变 + 64rpx 大数 + 底纹图），占半张卡的高度，
+ * 说的却只是「这两小时一共下多少」这一个数。现在压成标题行右侧的一组小读数：
+ * 数字给 body 字阶加粗（30rpx 上下），单位与跨度退到 caption 档。
+ *
+ * 跨度是算出来的（上游给几格就是几分钟），不写死 2 小时。
+ */
+.minutely__total {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.minutely__total-row {
+  display: flex;
+  align-items: baseline;
+}
+
+/* tabular-nums：读数变的时候字宽不变，数字不会左右跳 */
+.minutely__total-value {
+  color: $fish-ink;
+  @include fish-type(body, 700);
+  @include numeric;
+}
+
+.minutely__total-unit {
+  margin-left: 6rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+}
+
+.minutely__total-caption {
+  margin-top: 2rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption);
 }
 
 /*
@@ -557,22 +608,13 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
   display: block;
   margin-bottom: 20rpx;
   color: $fish-ink;
-  @include fish-type(body);
+  @include fish-type(caption);
 }
 
 /* 骨架块。玻璃面上的骨架用 $fish-surface，跟同页其它卡同一档深浅 */
-.minutely__skeleton-panel {
-  height: 168rpx;
-  margin-bottom: 24rpx;
-  border-radius: $fish-radius-xl;
-  background-color: $fish-surface;
-  animation: fish-pulse 1.8s ease-in-out infinite;
-}
-
-/* 图区的高度照着真图来：数据到了不换版，页面不会往下跳一截 */
-.minutely__skeleton-plot {
+.minutely__skeleton {
   width: 100%;
-  height: 224rpx;
+  height: 200rpx;
   border-radius: $fish-radius-xl;
   background-color: $fish-surface;
   animation: fish-pulse 1.8s ease-in-out infinite;
@@ -587,106 +629,31 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
 }
 
 /* ===========================================================================
-   读数面
+   干态：整段无降水的空态
    =========================================================================== */
 
 /*
- * 一块淡蓝渐变的面，托着这张卡最大的那个数。
+ * 一条平线。
  *
- * 渐变而不是实色：这块面要跟卡面区分开 —— 实色在玻璃卡上读成「贴纸」，
- * 渐变读成「一块透进来的天光」，跟这张卡讲的是天气也对得上。
+ * 面底是一层很淡的蓝（雨没有也要有一块面托着它，别让这条线飘在白卡上），
+ * 点是按格画的：一格一点，高度全是 0 —— 与柱阵同一套语言，
+ * 读者一眼能对上「一格一点」，也读得出格数。
  */
-.minutely__panel {
-  position: relative;
-  overflow: hidden;
-  padding: 28rpx;
-  margin-bottom: 28rpx;
-  border-radius: $fish-radius-xl;
-  background-image: $fish-rain-panel;
-}
-
-.minutely__panel-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 145%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.3;
-}
-
-/* 内容压在底纹上面 */
-.minutely__panel-top,
-.minutely__caption {
-  position: relative;
-  z-index: 1;
-}
-
-.minutely__panel-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.minutely__figure {
-  display: flex;
-  align-items: baseline;
-  flex-shrink: 0;
-}
-
-/*
- * 主角数字。
- *
- * 64rpx 是字阶里最大的那一档 —— 这一屏只有这一个数值得用它。
- * 数字用 tabular-nums：读数变的时候字宽不变，数字不会左右跳。
- */
-.minutely__value {
-  color: $fish-ink;
-  @include fish-type(display, 700);
-  @include numeric;
-}
-
-/* 单位跟在数字后面，基线对齐。字阶比数字小两档 —— 它是注解不是主角 */
-.minutely__unit {
-  margin-left: 10rpx;
-  color: $fish-muted-60;
-  @include fish-type(body);
-}
-
-/* 数字下面那行小字：它说这个数是什么（哪个窗口的总量） */
-.minutely__caption {
-  display: block;
-  margin-top: 8rpx;
-  color: $fish-muted-60;
-  @include fish-type(body);
-}
-
-/*
- * 雨强徽标。
- *
- * 白底压在这块蓝面上：徽标要能从面上跳出来，蓝底蓝字读不出来。
- * 底用半透明白而不是实白 —— 实白是一块贴纸，半透明白是「面上的一层玻璃」。
- */
-.minutely__badge {
+.minutely__dry {
   display: flex;
   align-items: center;
-  padding: 8rpx 18rpx;
-  border-radius: $fish-radius-pill;
-  background-color: rgba(255, 255, 255, 0.72);
+  justify-content: space-between;
+  height: 96rpx;
+  padding: 0 12rpx;
+  border-radius: $fish-radius-xl;
+  background: $fish-rain-flat;
 }
 
-.minutely__badge-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 8rpx;
-}
-
-.minutely__badge-text {
-  color: $fish-blue-600;
-  @include fish-type(body, 600);
+.minutely__dry-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background-color: rgba($fish-tide, 0.3);
 }
 
 /* ===========================================================================
@@ -702,7 +669,7 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
   position: relative;
   flex: 1;
   min-width: 0;
-  height: 224rpx;
+  height: 168rpx;
 }
 
 /*
@@ -741,7 +708,7 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
   left: 0;
   display: flex;
   align-items: flex-end;
-  height: 224rpx;
+  height: 168rpx;
   border-bottom: 1rpx solid $fish-border-40;
 }
 
@@ -866,15 +833,37 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
    =========================================================================== */
 
 /*
- * 峰值/点选读到的那一格。
+ * 雨强档徽标 + 读数句。
  *
- * 右对齐：它是对图的补充说明，挂在图下面；跟标题行左对齐会读成
- * 「这段文字是这张卡的标题」。
+ * 徽标在左、读数在右：徽标是状态（那一格有多强），读数是量（哪一格、多少）。
  */
 .minutely__reading {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 8rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+/*
+ * 徽标用淡蓝底 + 深蓝字：白卡上实底太重，半透明白底读不出是徽标。
+ */
+.minutely__badge {
+  display: flex;
+  align-items: center;
+  padding: 4rpx 14rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent-tint;
+}
+
+.minutely__badge-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 6rpx;
+}
+
+.minutely__badge-text {
+  color: $fish-blue-600;
+  @include fish-type(caption, 600);
 }
 
 .minutely__reading-text {
@@ -896,9 +885,8 @@ const panelBg = computed(() => (isDry.value ? RAIN_PANEL_BG.dry : RAIN_PANEL_BG.
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid $fish-border-40;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
 }
 
 .minutely__legend-chip {
