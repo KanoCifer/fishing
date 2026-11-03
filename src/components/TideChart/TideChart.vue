@@ -1,16 +1,5 @@
 <template>
   <view class="tide-chart">
-    <!--
-      顶部读数。
-
-      为什么放顶部而不是图下方：这张图**没有纵轴刻度**了（见下面
-      「潮高（m）」那个标签的解释）。纵轴是绝对量的读数出口，
-      去掉之后「此刻多少米」在图上就没有对应的位置 ——
-      顶部这一块就是它的位置。
-
-      涨落状态是本地算出来的，不是后端给的字段：后端只给逐时潮高和潮汐表，
-      「比上一小时高了还是低了」在本地比一下就有了。
-    -->
     <view v-if="hasNow && showHead" class="tide-chart__head">
       <view class="tide-chart__head-main">
         <text class="tide-chart__head-label">当前潮高</text>
@@ -26,34 +15,8 @@
       </view>
     </view>
 
-    <!--
-      量纲标签。
-
-      纵轴刻度整列去掉之后，「这张图的纵轴是什么」就没有别的出口了 ——
-      这个标签就是那个出口。它必须在图**外面**（DOM 里）而不是画在 canvas 上：
-      canvas 里画字只能用硬编码色值和 px 字号，跟令牌层对不上；
-      放在 DOM 里就能直接吃样式层的字阶与颜色。
-    -->
     <text class="tide-chart__axis-label">潮高（m）</text>
 
-    <!--
-      canvas 的宽高必须是确定的数值，不能用百分比：
-      小程序端拿不到百分比的实际尺寸，会画成 0 宽。
-      另：display: block 写在样式里，否则微信端 canvas 是 inline 元素，尺寸计算会偏。
-      数值在 setup 里就算好绑定（cssWidthPx/cssHeightPx），不是 onMounted 里补的 ——
-      少一次「先空串渲染、再补值」的往返，节点首帧就带着确定宽高。
-    -->
-    <!--
-      绘图区。静态层在下、动态层在上，两块画布叠在一起。
-
-      为什么拆两层：网格线、时间刻度和极值标注是**死的**（数据没变就不变），
-      曲线、面积、标线则每一帧都在变。单画布每帧都要 clearRect 再整张重画，
-      那十来个刻度数字就被重画了四十多遍 —— 文字光栅化是 canvas 里最贵的一档。
-      拆成两层之后，刻度只画一次，动画帧只清空上层画曲线。
-
-      两块画布的 CSS 尺寸完全一致、绝对定位在同一个原点，所以两层像素对齐，
-      不会错位。触摸事件挂在上层（下面那层被上层整个盖住，收不到事件）。
-    -->
     <view class="tide-chart__plot" :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }">
       <canvas
         :id="baseCanvasId"
@@ -62,6 +25,7 @@
         :style="{ width: cssWidthPx + 'px', height: cssHeightPx + 'px' }"
       />
       <canvas
+        v-if="showTop"
         :id="canvasId"
         type="2d"
         class="tide-chart__canvas tide-chart__canvas--top"
@@ -75,57 +39,33 @@
 </template>
 
 <script setup lang="ts">
-/**
- * TideChart —— 逐时潮高曲线。
- *
- * 版式（对着参考稿排的）：
- *   顶部   当前潮高（大字） + 当前时刻 + 涨落状态
- *   图上   虚线网格（**没有纵轴刻度**）+ 平滑曲线 + 面积 + 极值标注 + 「现在」标线
- *   底部   时间刻度
- *
- * 纵轴刻度去掉之后，潮高这个绝对量就只能落在**图上**读 ——
- * 所以每个关键点（当前时刻、每天的极值）都在曲线上直接标出数值，
- * 而不是让人去轴上找。
- */
 import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
-import { axisScale } from '@/utils/chartAxis';
 import { CANVAS_FONT_STACK, setCanvasFont, withAlpha } from '@/utils/canvas';
-import { createSelectorQuery } from '@/utils/selectorQuery';
+import {
+  X_LABEL_SIZE,
+  computeTideGeom,
+  formatHeight,
+  indexToX,
+  layoutAxisLabels,
+  layoutExtremumLabels,
+  parseHeight,
+  positionOf,
+  valueToY,
+  type PlotGeom,
+} from '@/utils/tideChart';
+import {
+  CHART_LINE_WIDTH,
+  createCanvasLayer,
+  createEntryAnimator,
+  type CanvasMetrics,
+  type EntryAnimator,
+} from '@/utils/chartCanvas';
 import { windowMetrics } from '@/composables/windowMetrics';
-
+import { createIntersectionObserver } from '@/utils/intersection';
 import Chip from '../Chip/Chip.vue';
-
-/**
- * `fields({ node: true })` 返回的 canvas 节点没有官方类型，按用到的成员局部声明。
- */
-interface CanvasNode2D {
-  width: number;
-  height: number;
-  getContext(type: '2d'): CanvasRenderingContext2D;
-  /** 基础库 2.7.0+ 由 canvas 节点提供（type="2d" 本身要求 2.9.0+，所以一定在） */
-  requestAnimationFrame(cb: () => CanvasFrameCallback | void): number;
-  cancelAnimationFrame(requestId: number): void;
-}
-
-type CanvasFrameCallback = () => void;
-
-/**
- * SelectorQuery 里取出来的 canvas 节点，以及它相对视口的左边距。
- *
- * 官方 `fields` 回调的类型是 `NodeInfo`，但它里面没有 `node` 字段
- * （node 在 `NodeCallbackResult` 里，官方把它标成了 any），而 `NodeInfo` 本身
- * 在应用代码里也无法按名引用 —— 它在未导出的 `UniNamespace` 内。
- * 所以这里按实际用到的成员自己声明，值在回调里收窄一次。
- *
- * 宽高不取自查询结果：那是布局测量值，画布尺寸由 rpx 自己算，见 cssWidthPx。
- */
-interface CanvasQueryResult {
-  node?: CanvasNode2D;
-  left?: number;
-}
 
 interface Props {
   /** 逐时潮高，形如 [{ fxTime, height }] */
@@ -169,7 +109,7 @@ const props = withDefaults(defineProps<Props>(), {
   width: 630,
   height: 400,
   animate: true,
-  duration: 700,
+  duration: 1000,
   smooth: true,
   showHead: true,
 });
@@ -192,16 +132,46 @@ const baseCanvasId = `tide-chart-base-${uid}`;
 const cssWidthPx = computed(() => uni.upx2px(props.width));
 const cssHeightPx = computed(() => uni.upx2px(props.height));
 
+/** 画布尺寸快照。两层共用一份，两层才像素对齐 */
 const sizeRef = ref<{ width: number; height: number } | null>(null);
-/** 动态层 ctx：曲线、面积、标线，每帧重画 */
-const ctxRef = ref<CanvasRenderingContext2D | null>(null);
-/** 静态层 ctx：网格与刻度，只在几何变了时重画一次 */
-const baseCtxRef = ref<CanvasRenderingContext2D | null>(null);
 const dprRef = ref(1);
 
-/** 画布节点，帧调度要用它自带的方法。不进模板也不需要响应式 */
-let canvasNode: CanvasNode2D | null = null;
-let rafId = 0;
+/**
+ * 两层画布。
+ *
+ * 静态层画网格与刻度，动态层画曲线、面积、标线。
+ * 取节点、判空、重试都在 utils/chartCanvas 里，这里只管画什么。
+ */
+const baseLayer = createCanvasLayer({
+  instance,
+  id: baseCanvasId,
+  metrics: layerMetrics,
+  label: 'TideChart 静态层',
+});
+const topLayer = createCanvasLayer({
+  instance,
+  id: canvasId,
+  metrics: layerMetrics,
+  label: 'TideChart 动态层',
+});
+
+/** 入场动画。progress 0→1，动画帧回调里重画动态层 */
+const animator: EntryAnimator = createEntryAnimator({
+  getNode: () => topLayer.node,
+  onFrame: () => draw(),
+});
+
+/**
+ * 位图尺寸。dpr 从共享窗口快照取（getWindowInfo 是同步 API，不该现调）。
+ */
+function layerMetrics(): CanvasMetrics {
+  const dpr = windowMetrics().pixelRatio;
+  const width = cssWidthPx.value;
+  const height = cssHeightPx.value;
+  sizeRef.value = { width, height };
+  dprRef.value = dpr;
+  return { width, height, dpr };
+}
 
 /**
  * 当前选中的点（**原始下标**，不是清洗后的位置）。
@@ -219,22 +189,6 @@ let plotLeft = 0;
 let pointGap = 0;
 
 /**
- * 画布在**视口**里的左边距。
- *
- * 触摸换算必须先减掉它：touches[0].clientX 是视口坐标，而 plotLeft /
- * pointGap 是画布坐标。之前直接拿 clientX 去减画布坐标，整条曲线的取值
- * 都偏右了整整一个画布宽度 —— 贴着右端按，选中的却是倒数第二三个点。
- * （这里一度被当成「LineChart 的折算范本」写在注释里，其实两个都错。）
- *
- * 只测一次：画布是定宽块、在卡片里横向居中，位置不会变。
- * 每次 touchmove 都走一遍 SelectorQuery 得不偿失。
- */
-let canvasLeft = 0;
-
-/** 入场动画进度 0→1 */
-let progress = 1;
-
-/**
  * Canvas 色值。**必须与令牌层 _color.scss 的 $fish-* 令牌保持一致**。
  *
  * Canvas 2d 只能从 context 读色，解析不了 SCSS 变量和 CSS 变量，
@@ -250,124 +204,10 @@ const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（底边基线�
 const X_TEXT_COLOR = '#5b5b60'; // $fish-muted-60（tertiaryLabel）
 const NOW_LINE_COLOR = 'rgba(60, 60, 67, 0.32)'; // $fish-border（参照线）
 
-/**
- * 绘图区四周的留白（px）。
- *
- * 左右几乎贴边：曲线是这张图的主角，两边各留一截就把它挤窄了。
- * 上面留的那一截不是留白，是**给曲线上的数值标注用的**——
- * 标注画在极值点上方，没有这截就会顶出画布被切掉。
- */
-const PAD = { left: 2, right: 2, top: 22, bottom: 4 };
-/** X 轴标签区的高度 */
-const AXIS_H = 26;
-/** 曲线线宽。与 LineChart 同一档，两张图才是一套东西 */
-const LINE_WIDTH = 2.5;
 /** 网格虚线的节奏 */
 const GRID_DASH = [4, 4];
-
-/** 时间刻度的字号（px） */
-const X_LABEL_SIZE = 11;
 /** 曲线上数值标注的字号（px）。比时间刻度大一号 —— 它是读数，时间只是语境 */
 const VALUE_LABEL_SIZE = 12;
-/**
- * 两个数值标注之间的最小水平间距（px）。
- *
- * 太近会叠在一起，两串数字糊成一团就等于没标。
- */
-const MIN_LABEL_GAP = 40;
-/**
- * 极值的最小显著度（m）。
- *
- * 逐时潮高里偶尔有一两个点的抖动，标出来是图上多一个孤零零的数字，
- * 没有信息量 —— 5cm 以下的变化不算一个极值。
- */
-const MIN_PROMINENCE = 0.05;
-
-/**
- * 数据本身的取值域：向上/向下取整到 0.1。
- *
- * 这一步只管「数据大概在什么范围」；刻度怎么落在整数上由 axisScale 决定 ——
- * 两者分开，是为了这里不必关心标签好不好看。
- */
-function niceBounds(values: number[]): { min: number; max: number } {
-  if (!values.length) return { min: 0, max: 1 };
-
-  let lo = Math.min(...values);
-  let hi = Math.max(...values);
-
-  // 潮差通常不到 1m，直接取整会把曲线压成一条直线，拉开一档看得清起伏
-  const span = hi - lo;
-  if (span < 0.5) {
-    const mid = (hi + lo) / 2;
-    lo = mid - 0.5;
-    hi = mid + 0.5;
-  }
-
-  lo = Math.floor(lo * 10) / 10;
-  hi = Math.ceil(hi * 10) / 10;
-  return { min: lo, max: hi === lo ? lo + 1 : hi };
-}
-
-/** 量一段文字的宽度（px） */
-function measureText(ctx: CanvasRenderingContext2D, text: string, size: number, weight = 400): number {
-  ctx.save();
-  setCanvasFont(ctx, weight, size);
-  const width = ctx.measureText(text).width;
-  ctx.restore();
-  return width;
-}
-
-/**
- * 潮高文案。
- *
- * `height` 的后端类型是 `number | string`，实测会出现 `""` / `null`。
- * 这里必须逐个判空：直接 `Number(x)` 会把 `""` 和 `null` 都变成 0，
- * 读数上于是显示「0.00 m」——一个凭空长出来的、看着还挺可信的数字。
- * 脏值一律显示破折号，和图上「跳过该点」的处理保持一致。
- */
-function formatHeight(value: number | string | null | undefined): string {
-  const n = parseHeight(value);
-  return n === null ? '—' : n.toFixed(2);
-}
-
-/**
- * 把后端给的潮高解析成一个能画的数，脏值给 null。
- *
- * 为什么不能直接 `Number(x)`：`Number('')` 和 `Number(null)` 都是 **0**，
- * 一个空字段会变成「潮高 0.00 m」—— 图上凭空多出一段贴着零的曲线，
- * 还会把取值域拉低、把刻度算歪。看着还挺可信的数字最坏。
- *
- * 所以先判空再转数，转完还要看是不是有限值。
- */
-function parseHeight(value: number | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
- * 把逐时潮高清洗成可绘制的数值序列，并记下每个值来自原始序列的哪个位置。
- *
- * 为什么必须清洗：后端 `height` 字段类型是 `number | string`，实测会出现
- * `""` / `null` 这类脏值。此前这里用 `values.some(...)` 一票否决 ——
- * 24 个点里任意一个是脏的就整张图不画，且没有任何提示，表现就是
- * 「潮汐卡片一片空白」。改为逐点剔除非有限值：脏点跳过、其余照常画，
- * 曲线最多短一截，而不会整张图消失。
- *
- * 顺带记下「位置 → 原始下标」：剔掉脏点之后位置与原始下标不再一一对应，
- * 而时间刻度、当前时刻、选中点都是按原始下标给的，不记这一笔就没法对回去。
- */
-function cleanPoints(): { values: number[]; sourceIndex: number[] } {
-  const values: number[] = [];
-  const sourceIndex: number[] = [];
-  props.points.forEach((point, index) => {
-    const value = parseHeight(point.height);
-    if (value === null) return;
-    values.push(value);
-    sourceIndex.push(index);
-  });
-  return { values, sourceIndex };
-}
 
 /**
  * 画布内空态：数据全脏时给一行说明，别让用户对着空白猜。
@@ -440,30 +280,6 @@ function traceSegments(ctx: CanvasRenderingContext2D, segments: CurveSegment[]):
 }
 
 /**
- * 绘图区几何。两层画布共用同一份 —— 静态层画网格、动态层画曲线，
- * 两者必须落在同一套坐标上，否则刻度和曲线会错开。
- */
-interface PlotGeom {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-  plotW: number;
-  plotH: number;
-  min: number;
-  max: number;
-  /** 刻度值（升序）。轴上的数字必须是整齐的档位 */
-  ticks: number[];
-  len: number;
-  /** 相邻采样点的横向间距 */
-  gap: number;
-  /** 清洗后的潮高序列 */
-  values: number[];
-  /** 清洗后序列的每个位置来自原始序列的哪个下标 */
-  sourceIndex: number[];
-}
-
-/**
  * 最近一次算出的几何。
  *
  * 数据没变就一直有效 —— 动画帧只重画动态层，不必每帧重算一遍轴范围。
@@ -481,9 +297,8 @@ function computeGeom(): PlotGeom | null {
   const size = sizeRef.value;
   if (!size) return null;
 
-  const { values, sourceIndex } = cleanPoints();
-  // 只有全是脏值才没得画；零星脏值上面已经滤掉了
-  if (!values.length) {
+  const result = computeTideGeom(props.points, size);
+  if (!result) {
     // 几何作废：上一轮的数据可能画过，触摸换算不能继续用旧的间距
     plotLeft = 0;
     pointGap = 0;
@@ -491,168 +306,10 @@ function computeGeom(): PlotGeom | null {
     return null;
   }
 
-  const { width, height } = size;
-  const bounds = niceBounds(values);
-  // 刻度对齐到整齐的档位：0 / 1 / 2 / 3，而不是 0.8 / 1.6 这种半档。
-  // 三格就够：格数一多，图就成了格纸，曲线淹没在网格里。
-  const scale = axisScale(bounds.min, bounds.max, 3);
-  const min = scale.min;
-  const max = scale.max;
-  const len = values.length;
-
-  const left = PAD.left;
-  const right = width - PAD.right;
-  const top = PAD.top;
-  const bottom = height - AXIS_H - PAD.bottom;
-  const plotW = Math.max(1, right - left);
-  const plotH = Math.max(1, bottom - top);
-  const gap = len > 1 ? plotW / (len - 1) : plotW;
-
-  plotLeft = left;
-  pointGap = gap;
-
-  geom = { left, right, top, bottom, plotW, plotH, min, max, ticks: scale.ticks, len, gap, values, sourceIndex };
+  plotLeft = result.plotLeft;
+  pointGap = result.pointGap;
+  geom = result.geom;
   return geom;
-}
-
-/** 原始下标 → 清洗后序列里的位置。找不到返回 -1 */
-function positionOf(originalIndex: number): number {
-  if (!geom || originalIndex < 0) return -1;
-  return geom.sourceIndex.indexOf(originalIndex);
-}
-
-/** 位置 → 画布 x 坐标 */
-function indexToX(pos: number, g: PlotGeom): number {
-  return g.len > 1 ? g.left + g.gap * pos : g.left + g.plotW / 2;
-}
-
-/** 潮高 → 画布 y 坐标 */
-function valueToY(value: number, g: PlotGeom): number {
-  return g.bottom - ((value - g.min) / (g.max - g.min)) * g.plotH;
-}
-
-/**
- * 画在 X 轴上的时间标签。
- *
- * 位置是**清洗后序列**里的位置 —— 与曲线上的点一一对应，
- * 竖向网格线就画在这些标签的正上方。
- */
-interface AxisLabel {
-  pos: number;
-  text: string;
-  x: number;
-}
-
-/**
- * 选出画在 X 轴上的时刻。
- *
- * 规则：整点、且是 4 的倍数 —— 04:00 / 08:00 / 12:00 / 16:00 / 20:00。
- * 逐时数据有 24 个点，全画会糊成一片，四个小时一档刚好读得清。
- *
- * 标签不是 HH:mm（后端换了格式）时退回按步长取，保证轴上始终有刻度。
- */
-function pickLabelPositions(g: PlotGeom): number[] {
-  const positions: number[] = [];
-  g.sourceIndex.forEach((original, pos) => {
-    const label = props.labels[original] ?? '';
-    const matched = /^(\d{1,2}):(\d{2})$/.exec(label);
-    if (!matched) return;
-    if (Number(matched[2]) !== 0) return;
-    if (Number(matched[1]) % 4 !== 0) return;
-    positions.push(pos);
-  });
-  if (positions.length >= 3) return positions;
-
-  const step = Math.max(1, Math.ceil(g.len / 5));
-  const fallback: number[] = [];
-  for (let i = 0; i < g.len; i += step) fallback.push(i);
-  return fallback;
-}
-
-/**
- * 排好版的 X 轴标签。
- */
-function layoutAxisLabels(
-  ctx: CanvasRenderingContext2D,
-  size: { width: number; height: number },
-  g: PlotGeom,
-): AxisLabel[] {
-  const items: AxisLabel[] = [];
-  for (const pos of pickLabelPositions(g)) {
-    const text = props.labels[g.sourceIndex[pos]] ?? '';
-    if (!text) continue;
-    const x = indexToX(pos, g);
-    const half = measureText(ctx, text, X_LABEL_SIZE, 600) / 2;
-    if (x - half < 0 || x + half > size.width) continue;
-    items.push({ pos, text, x });
-  }
-  return items;
-}
-
-/**
- * 曲线上要标出数值的极值点。
- */
-interface ExtremumLabel {
-  pos: number;
-  value: number;
-  x: number;
-  y: number;
-}
-
-/**
- * 找局部极值（局部高点与局部低点），并给出每个极值的「显著度」。
- *
- * 显著度 = 它与**相邻反向极值**的潮高差。
- *
- * 为什么不用紧挨着的那一个点：真实潮水的谷底常常是平的 ——
- * 连续两三个小时的潮高只差一两厘米，拿紧邻的点比，差值不到 1cm，
- * 一个真正的低潮就被当成抖动扔掉了。拿相邻的反向极值比，
- * 才对得上肉眼看到的那道起伏。
- *
- * 只认内点：序列两端没有两侧可比，判不出「高」还是「低」。
- */
-function findExtrema(values: number[]): { pos: number; isMax: boolean; significance: number }[] {
-  const raw: { pos: number; isMax: boolean }[] = [];
-  for (let i = 1; i < values.length - 1; i++) {
-    const prev = values[i - 1];
-    const cur = values[i];
-    const next = values[i + 1];
-    if (cur > prev && cur >= next) raw.push({ pos: i, isMax: true });
-    else if (cur < prev && cur <= next) raw.push({ pos: i, isMax: false });
-  }
-
-  return raw.map((item, index) => {
-    let significance = Number.POSITIVE_INFINITY;
-    for (const other of [raw[index - 1], raw[index + 1]]) {
-      // 同向的极值比不出起伏（两个高点之间没有落差可言）
-      if (!other || other.isMax === item.isMax) continue;
-      const gap = Math.abs(values[item.pos] - values[other.pos]);
-      if (gap < significance) significance = gap;
-    }
-    return { pos: item.pos, isMax: item.isMax, significance };
-  });
-}
-
-/**
- * 极值标注的位置。
- *
- * 「现在」那个点不标：它自带一个标线和一个数值，两个标注重叠成一团。
- */
-function layoutExtremumLabels(g: PlotGeom): ExtremumLabel[] {
-  const out: ExtremumLabel[] = [];
-  const now = positionOf(props.nowIndex);
-  for (const item of findExtrema(g.values)) {
-    // 起伏太小的不是极值，是逐时数据里的一个抖动
-    if (item.significance < MIN_PROMINENCE) continue;
-    // 「现在」那个点不标：它自带一个标线和一个数值，两个标注重叠成一团
-    if (item.pos === now) continue;
-    const pos = item.pos;
-    const x = indexToX(pos, g);
-    // 挨太近的两个标注会叠在一起
-    if (out.length && x - out[out.length - 1].x < MIN_LABEL_GAP) continue;
-    out.push({ pos, value: g.values[pos], x, y: valueToY(g.values[pos], g) });
-  }
-  return out;
 }
 
 /**
@@ -663,7 +320,7 @@ function layoutExtremumLabels(g: PlotGeom): ExtremumLabel[] {
  * 而文字光栅化恰恰是 canvas 2d 里最贵的一档操作。
  */
 function drawBase(): void {
-  const ctx = baseCtxRef.value;
+  const ctx = baseLayer.ctx;
   const size = sizeRef.value;
   if (!ctx || !size) return;
 
@@ -691,7 +348,7 @@ function drawBase(): void {
     ctx.stroke();
   });
 
-  const labels = layoutAxisLabels(ctx, size, g);
+  const labels = layoutAxisLabels(ctx, size, g, props.labels);
   labels.forEach((label) => {
     const x = Math.round(label.x) + 0.5;
     ctx.beginPath();
@@ -719,7 +376,7 @@ function drawBase(): void {
   });
 
   // 极值标注：画在静态层。它们只跟着数据变，不跟着帧变。
-  const extremes = layoutExtremumLabels(g);
+  const extremes = layoutExtremumLabels(g, props.nowIndex);
   extremes.forEach((item) => {
     drawValueLabel(ctx, item.x, item.y, formatHeight(item.value));
   });
@@ -773,7 +430,7 @@ function drawMarkerDot(ctx: CanvasRenderingContext2D, x: number, y: number): voi
  * 网格和刻度在下面那层静态画布上，这里只管会动的东西。
  */
 function draw() {
-  const ctx = ctxRef.value;
+  const ctx = topLayer.ctx;
   const size = sizeRef.value;
   if (!ctx || !size) return;
 
@@ -798,7 +455,7 @@ function draw() {
   gradient.addColorStop(1, withAlpha(TIDE_COLOR, 0));
 
   // 入场动画：只画到 progress 对应的位置，曲线像被"画"出来
-  const cut = progress * (len - 1);
+  const cut = animator.progress * (len - 1);
 
   const points: CurvePoint[] = values.map((value, i) => ({
     x: indexToX(i, g),
@@ -831,7 +488,7 @@ function draw() {
   ctx.beginPath();
   traceSegments(ctx, segments);
   ctx.strokeStyle = TIDE_COLOR;
-  ctx.lineWidth = LINE_WIDTH;
+  ctx.lineWidth = CHART_LINE_WIDTH;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -840,8 +497,8 @@ function draw() {
   //
   // 纵轴刻度去掉了，这根线是图上唯一标出「此刻在哪」的参照 ——
   // 读数在顶部，但位置得在图上找得到。
-  const now = positionOf(props.nowIndex);
-  if (now >= 0 && now < len && progress >= 1) {
+  const now = positionOf(g, props.nowIndex);
+  if (now >= 0 && now < len && animator.progress >= 1) {
     const x = indexToX(now, g);
     const y = valueToY(values[now], g);
 
@@ -866,8 +523,8 @@ function draw() {
   //
   // 与上面那根参照线可以共存、语义也不同：「现在」是时间参照，
   // 选中是当前正在看的位置。两者可能重合，重合时只画一根。
-  const selected = positionOf(activeIndex.value);
-  if (selected >= 0 && selected < len && selected !== now && progress >= 1) {
+  const selected = positionOf(g, activeIndex.value);
+  if (selected >= 0 && selected < len && selected !== now && animator.progress >= 1) {
     const x = indexToX(selected, g);
     const y = valueToY(values[selected], g);
 
@@ -893,14 +550,13 @@ function draw() {
  * 本来就由我们按 rpx 算好绑在节点上，数值在手上，问布局是引入了一个
  * 既不必要又会失败的依赖。
  *
- * 拿不到节点时按 INIT_RETRY_DELAYS 的节奏继续试，**不**一次就放弃：
+ * 拿不到节点时按 utils/chartCanvas 的重试节奏继续试，**不**一次就放弃：
  * 本组件挂在 TideCard 的 `v-else-if` 分支里，节点是在「数据到了、
  * 面板正在展开」那一刻创建的。面板展开带 0.28s 的高度过渡，节点和
  * 布局就绪的时间点会飘 —— 之前只重试 3 次（约 360ms）就永久放弃，
  * 放弃之后没有任何东西会再触发一次，图表就一直空白，只有切港口/日期
  * 触发重新挂载才恢复。数据变化时会把整条重试链重新武装一次。
  */
-const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
 
 /**
  * 布局落定后补画。
@@ -912,82 +568,12 @@ const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
  */
 const SETTLE_REDRAW_DELAYS = [0, 320, 800] as const;
 
-/**
- * 取节点，顺便量出它相对视口的左边距（触摸换算要用，见 canvasLeft）。
- *
- * 量不到时按 0 处理：这时取值会整体偏右，但总比拿 NaN 去算下标、
- * 把选中态彻底弄丢要好。
- */
-function queryCanvas(): Promise<CanvasQueryResult | null> {
-  return new Promise((resolve) => {
-    createSelectorQuery(instance)
-      .select(`#${canvasId}`)
-      .fields({ node: true, rect: true }, (res) => {
-        const item = Array.isArray(res) ? res[0] : res;
-        // node 在官方类型里是 any，这里收窄成本组件实际用到的形状；
-        // 顺手做一次判空，省得把 undefined 交给后面 getContext
-        const node = (item as { node?: unknown } | undefined)?.node;
-        if (typeof node !== 'object' || node === null) {
-          resolve(null);
-          return;
-        }
-        const left = (item as { left?: unknown } | undefined)?.left;
-        resolve({
-          node: node as CanvasNode2D,
-          left: typeof left === 'number' && Number.isFinite(left) ? left : 0,
-        });
-      })
-      .exec();
-  });
-}
-
-/** ctx 是否就绪。没就绪时 play()/draw() 都是空转，调用方要先看这个 */
-let initialized = false;
-/**
- * 是否已经出过「有数据的」图。
- *
- * 决定数据变化时是播入场动画还是直接出最终态：第一次拿到数据直接出图
- * （那一帧 progress=0，曲线还没画出来，用户看到的是一块空白等它慢慢画），
- * 之后切港口/日期才播动画。
- *
- * 只认「有数据」这一种出图：卡片先于潮位数据挂载，画布会先画一张空图
- * （画布被 v-show 藏着，看不见），那时如果就把标记置上，首屏真正出图时
- * 就会走动画路径，又变回空白等它慢慢画。
- */
-let hasPaintedData = false;
-/** 同时只允许一次初始化在飞，避免数据变化和重试叠在一起重复建 ctx */
-let initializing = false;
-/** 已经排到第几次重试 */
-let retryIndex = 0;
-let retryTimer = 0;
 const settleTimers: number[] = [];
-
-function clearRetryTimer(): void {
-  if (retryTimer) {
-    clearTimeout(retryTimer);
-    retryTimer = 0;
-  }
-}
 
 function clearSettleTimers(): void {
   while (settleTimers.length) {
     clearTimeout(settleTimers.pop()!);
   }
-}
-
-function scheduleRetry(): void {
-  const delay = INIT_RETRY_DELAYS[retryIndex];
-  if (delay === undefined) {
-    // 重试用尽还是拿不到节点，画布会一直空白。留一条 warn，
-    // 下次再遇到空图能直接分清是「节点没进 DOM」还是「绘制逻辑出错」。
-    console.warn(`[TideChart] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`);
-    return;
-  }
-  retryIndex += 1;
-  retryTimer = setTimeout(() => {
-    retryTimer = 0;
-    void initCanvas();
-  }, delay);
 }
 
 /** 布局落定后补画，见 SETTLE_REDRAW_DELAYS */
@@ -996,131 +582,144 @@ function scheduleSettleRedraw(): void {
   for (const delay of SETTLE_REDRAW_DELAYS) {
     settleTimers.push(
       setTimeout(() => {
-        if (!initialized) return;
-        progress = 1;
+        if (!topLayer.ready) return;
+        // 动画还在跑就别动 progress —— 补画不该把入场动画打断
+        if (!animator.running) animator.progress = 1;
         draw();
       }, delay),
     );
   }
 }
 
+/* ── 视口可见性 ── */
+
 /**
- * 查静态层画布节点。
+ * 动态层是否挂载。
  *
- * 静态层不参与触摸换算，只要 node —— 画布自己的宽高按 rpx 算，不必问布局。
+ * 曲线、面积、标线要等组件**完全**进入视口才画：
+ * 画到一半的曲线在滚动中看得见，停下来还得重画一遍。
+ *
+ * 静态层（网格、时间刻度、极值标注）不归它管 —— 初始就画，不进观察。
  */
-function queryBaseCanvas(): Promise<CanvasNode2D | null> {
-  return new Promise((resolve) => {
-    createSelectorQuery(instance)
-      .select(`#${baseCanvasId}`)
-      .fields({ node: true }, (res) => {
-        const item = Array.isArray(res) ? res[0] : res;
-        const node = (item as { node?: unknown } | undefined)?.node;
-        resolve(typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null);
-      })
-      .exec();
-  });
+const showTop = ref(false);
+
+/** 观察目标：组件根节点 */
+const ROOT_SELECTOR = '.tide-chart';
+
+let topObserver: WechatMiniprogram.IntersectionObserver | null = null;
+
+/**
+ * 动态层被摘掉（离开视口）时的清理。
+ *
+ * ctx 指向的是已经销毁的节点，留着只会画到一块死画布上。
+ * 静态层不动 —— 它不随滚动变化，留着就行。
+ *
+ * 顺序要紧：先停动画（取消帧要拿节点），再丢节点。
+ */
+function resetTop(): void {
+  animator.cancel();
+  topLayer.reset();
+  activeIndex.value = -1;
 }
 
-async function initCanvas(): Promise<void> {
-  if (initializing || initialized) return;
-  initializing = true;
+/**
+ * 初始化静态层。
+ *
+ * 只做静态层的事：节点、尺寸、ctx、几何、网格与刻度。
+ * 曲线是动态层的事，等完全进入视口再说。
+ */
+async function initBase(): Promise<void> {
+  if (!await baseLayer.init()) return;
 
-  try {
-    await nextTick();
+  // 静态层先画好：动态层就绪时直接叠上去
+  computeGeom();
+  drawBase();
+}
 
-    // 两块画布一起查。任一没查到都重试 —— 少一层的话静态层是空的，
-    // 整张图会缺网格和刻度，而这种半残状态比全空白更难看出原因。
-    const [item, base] = await Promise.all([queryCanvas(), queryBaseCanvas()]);
-    if (!item?.node || !base) {
-      scheduleRetry();
+/**
+ * 初始化动态层。
+ */
+async function initTop(): Promise<void> {
+  if (!showTop.value) return;
+  if (!await topLayer.init()) return;
+
+  scheduleSettleRedraw();
+
+  // 静态层先在下面等着：网格和刻度得先落定
+  computeGeom();
+  drawBase();
+
+  // 动态层挂上来的这一刻就是给用户看动画的时机：
+  // 组件完全进入视口才挂这一层，曲线正好从左往右画出来。
+  play();
+}
+
+/**
+ * 挂观察器：只管动态层。
+ *
+ * 静态层初始就画，不进观察 —— 它不随滚动变化。
+ * 动态层参照严格视口，完全进入才画曲线。
+ *
+ * 阈值里带上 0.5/1，是为了让「完全进入」这个状态变化也能收到回调 ——
+ * 只挂 0 的话只有进出视口才回调，滚到一半停下时不会通知。
+ */
+function setupTopObserver(): boolean {
+  const observer = createIntersectionObserver(instance, { thresholds: [0, 0.5, 1], initialRatio: 0, nativeMode: true });
+  if (!observer) return false;
+
+  topObserver = observer;
+  observer.relativeToViewport().observe(ROOT_SELECTOR, (res) => {
+    const rect = res.boundingClientRect;
+    const winHeight = windowMetrics().windowHeight;
+    // 元素比视口还高时永远进不了「完全进入」，上边缘进屏就算
+    const fully = rect.height >= winHeight ? rect.top >= 0 : rect.top >= 0 && rect.bottom <= winHeight;
+
+    if (fully) {
+      if (!showTop.value) {
+        showTop.value = true;
+        void nextTick(() => {
+          void initTop();
+        });
+      }
       return;
     }
-
-    const canvas = item.node;
-    canvasLeft = item.left ?? 0;
-    // dpr 从共享窗口快照取（getWindowInfo 是同步 API，不该现调）
-    const dpr = windowMetrics().pixelRatio;
-    const width = cssWidthPx.value;
-    const height = cssHeightPx.value;
-
-    // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定。
-    // 位图尺寸取整：小屏换算下来可能是小数（622rpx @414pt = 343.36），
-    // 位图尺寸按整数给，绘制仍按 CSS 像素走 setTransform，肉眼无差。
-    // 两层用同一套尺寸，两层才像素对齐。
-    for (const node of [canvas, base]) {
-      node.width = Math.round(width * dpr);
-      node.height = Math.round(height * dpr);
+    // 完全离开视口才收：滚到一半时曲线留着，别来回重画
+    if (res.intersectionRatio === 0) {
+      showTop.value = false;
+      resetTop();
     }
-
-    sizeRef.value = { width, height };
-    dprRef.value = dpr;
-    ctxRef.value = canvas.getContext('2d');
-    baseCtxRef.value = base.getContext('2d');
-    canvasNode = canvas;
-    initialized = true;
-    clearRetryTimer();
-
-    scheduleSettleRedraw();
-
-    // 静态层先画：动态层每帧只清空自己，网格和刻度得先在下面等着
-    computeGeom();
-    drawBase();
-
-    // 首帧直接出最终态，不播入场动画。
-    //
-    // 首次出图发生在「数据到位 + 面板正在展开」那一刻，动画的第一帧
-    // progress=0、曲线还没画出来（见 draw 里 pathPoints 不足两点就 return
-    // 的那段），用户看到的是一块空白等它慢慢画出来。切数据是用户主动
-    // 操作，动画才有表达意义，所以动画只留给那一条路径。
-    progress = 1;
-    draw();
-    if (props.points.length > 0) hasPaintedData = true;
-  } finally {
-    initializing = false;
-  }
-}
-
-function cancelFrame() {
-  // 必须同一个节点取消：把 requestId 交给别处的 cancelAnimationFrame 会静默失效
-  if (canvasNode && rafId) {
-    canvasNode.cancelAnimationFrame(rafId);
-  }
-  rafId = 0;
+  });
+  return true;
 }
 
 /**
- * 入场动画。
+ * 画动态层：播入场动画，或者直接落到最终态。
  *
- * mp-weixin 逻辑层没有全局 requestAnimationFrame（那是浏览器 API，连 window 都没有），
- * 取帧走 canvas 节点自带的方法，帧率跟随系统刷新、页面隐藏自动暂停。
+ * 取帧与取消帧都在 utils/chartCanvas 里：取消必须用同一个节点，
+ * 把 requestId 交给别处的 cancelAnimationFrame 会静默失效。
  */
-function play() {
-  // watch 可能早于 SelectorQuery 回调触发，那时节点还没拿到，等 initCanvas 里再放
-  if (!canvasNode) return;
-
-  const node = canvasNode;
-  cancelFrame();
-  const start = Date.now();
-  progress = 0;
-
-  const tick = () => {
-    const t = Math.min(1, (Date.now() - start) / props.duration);
-    // easeOutCubic，末尾减速，比线性自然
-    progress = 1 - Math.pow(1 - t, 3);
-    draw();
-    if (t < 1) {
-      rafId = node.requestAnimationFrame(tick);
-    } else {
-      rafId = 0;
-    }
-  };
-
-  rafId = node.requestAnimationFrame(tick);
+function play(): void {
+  if (props.animate) {
+    animator.play(props.duration);
+    return;
+  }
+  animator.progress = 1;
+  draw();
 }
 
 onMounted(() => {
-  void initCanvas();
+  // 静态层初始就画：网格、时间刻度、极值标注不随滚动变化
+  void initBase();
+
+  // 观察器必须按原生组件实例建，作用域才落在组件内部 —— 页面级的观察器
+  // 看不见自定义组件里的节点。取不到原生实例时就没有组件作用域的观察器，
+  // 动态层直接画，别让图表永远空着。
+  if (!setupTopObserver()) {
+    showTop.value = true;
+    void nextTick(() => {
+      void initTop();
+    });
+  }
 });
 
 watch(
@@ -1129,30 +728,25 @@ watch(
     // 换数据后旧的选中下标不再有意义，留着会显示另一组数据里的点
     activeIndex.value = -1;
 
-    // 画布还没拿到就先补拿。之前这里无条件走 play()，而 play() 拿不到
-    // 节点就直接 return，等于白等 —— 数据变了但图表还是空的。
-    if (!initialized) {
-      retryIndex = 0;
-      void initCanvas();
+    // 轴范围和标签都跟着数据变了：静态层得重画，
+    // 否则刻度上还挂着上一组数据的数字。
+    if (baseLayer.ready) {
+      computeGeom();
+      drawBase();
+    }
+
+    // 画布还没拿到就先补拿。之前这里无条件走 play()，而画布没就绪时
+    // 动画直接返回，等于白等 —— 数据变了但图表还是空的。
+    if (!topLayer.ready) {
+      void initTop();
       return;
     }
 
     scheduleSettleRedraw();
-
-    // 轴范围和标签都跟着数据变了：静态层得重画，
-    // 否则刻度上还挂着上一组数据的数字。
     computeGeom();
-    drawBase();
 
-    // 切港口/日期是用户主动操作，这里才播入场动画；
-    // 第一次拿到数据（hasPainted 还没置位）直接出最终态。
-    if (props.animate && hasPaintedData) {
-      play();
-    } else {
-      progress = 1;
-      draw();
-      if (props.points.length > 0) hasPaintedData = true;
-    }
+    // 换数据（切港口/日期）是用户主动操作，播入场动画
+    play();
   },
   { deep: true },
 );
@@ -1164,27 +758,32 @@ watch(
  * 或者节点在后台被回收后彻底空白。这里直接补一帧最终态。
  */
 onPageShow(() => {
-  if (!initialized) {
-    retryIndex = 0;
-    void initCanvas();
+  // 静态层也跟着数据走，回前台补一帧
+  if (baseLayer.ready) drawBase();
+
+  if (!topLayer.ready) {
+    if (showTop.value) void initTop();
     return;
   }
-  progress = 1;
+  animator.progress = 1;
   draw();
 });
 
 // 页面反复进出会持续漏帧，不取消就一路漏下去；定时器同理
 onBeforeUnmount(() => {
-  cancelFrame();
-  clearRetryTimer();
+  animator.cancel();
+  baseLayer.reset();
+  topLayer.reset();
   clearSettleTimers();
+  topObserver?.disconnect();
+  topObserver = null;
 });
 
 /**
  * 触摸换算。
  *
  * clientX 是**视口**坐标，plotLeft / pointGap 是**画布**坐标，
- * 两者之间隔着画布自己的左边距 canvasLeft —— 不减它，整条曲线偏右一个画布宽。
+ * 两者之间隔着画布自己的左边距（topLayer.left）—— 不减它，整条曲线偏右一个画布宽。
  *
  * 选中后必须重绘：标线和数值都画在 canvas 上，见 draw 里那段。
  */
@@ -1192,7 +791,7 @@ function pick(clientX: number) {
   const g = geom;
   if (!g || !g.len || pointGap <= 0) return;
 
-  const rel = (clientX - canvasLeft - plotLeft) / pointGap;
+  const rel = (clientX - topLayer.left - plotLeft) / pointGap;
   const pos = Math.round(rel);
   if (pos < 0 || pos >= g.len) {
     if (activeIndex.value !== -1) {
