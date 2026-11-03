@@ -80,7 +80,7 @@
         v-if="$slots.footer"
         ref="footerRef"
         class="snap-sheet__footer snap-sheet__enter"
-        :style="{ animationDelay: enterDelay(CONTENT_BASE + 2) }"
+        :style="{ animationDelay: enterDelay(CONTENT_BASE + 2), paddingBottom: '180rpx' }"
       >
         <slot name="footer" />
       </view>

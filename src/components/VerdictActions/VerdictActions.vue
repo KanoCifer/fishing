@@ -51,17 +51,6 @@ const chevronIcon = icon('chevron-right', 'muted60');
   @include fish-enter;
 }
 
-/*
- * 两枚药丸同一档：都是玻璃面、同样宽、同样 88rpx 高。
- *
- * 88rpx = 44pt，正好是 Apple 判定为「可放心点按」的最小命中尺寸。
- * 反馈在手指落下的那一帧就给出（fish-press），抬手回弹用满 260ms ——
- * 两段时长一短一长，是 iOS 按压手感的关键，缺一段立刻变塑料。
- *
- * 材质是「浮在背景上的一层玻璃」而不是一块实色：
- * 半透明白 + 顶边高光 + 一圈发丝描边。mp-weixin 不保证 backdrop-filter，
- * 所以模糊是加分项，半透明底和描边才是这层材质的地基。
- */
 .verdict-actions__btn {
   display: flex;
   flex: 1;
@@ -75,10 +64,6 @@ const chevronIcon = icon('chevron-right', 'muted60');
   /* 描边：一圈白色发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
   border: 1rpx solid rgba(255, 255, 255, 0.92);
 
-  /*
-   * 厚度。玻璃面压在浅底上，一层近乎不可见的影就够；
-   * 顶边那道白高光是玻璃的光源方向，跟整块面的朝向一致。
-   */
   box-shadow:
     0 10rpx 30rpx rgba(12, 40, 90, 0.1),
     inset 0 1rpx 0 rgba(255, 255, 255, 1),

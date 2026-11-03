@@ -1,5 +1,5 @@
 <template>
-  <view class="records" :style="{ minHeight: windowHeight + 'px' }">
+  <view class="records" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
     <PageBackdrop />
 
     <!--
