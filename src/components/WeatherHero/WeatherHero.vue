@@ -17,8 +17,15 @@
         <image class="hero__icon hero__icon--chevron" :src="chevronDownIcon" mode="widthFix" />
       </view>
 
-      <view class="hero__refresh" :class="{ 'hero__refresh--busy': busy }" @tap="onRefresh">
-        <image class="hero__icon__refresh" :src="refreshIcon" mode="widthFix" />
+      <!-- 右簇：AI 建议 / 刷新。两枚键挨着，用户一眼知道这是同一组动作 -->
+      <view class="hero__top-actions">
+        <view class="hero__analysis" @tap="emit('analysis')">
+          <image class="hero__icon__analysis" :src="sparklesIcon" mode="widthFix" />
+        </view>
+
+        <view class="hero__refresh" :class="{ 'hero__refresh--busy': busy }" @tap="onRefresh">
+          <image class="hero__icon__refresh" :src="refreshIcon" mode="widthFix" />
+        </view>
       </view>
     </view>
 
@@ -81,6 +88,8 @@ const emit = defineEmits<{
   breakdown: [];
   /** 点地点标签上的箭头：换一个地方看 */
   pickPlace: [];
+  /** 打开渔碌建议 */
+  analysis: [];
 }>();
 
 const mapStore = useFishingMapStore();
@@ -233,6 +242,9 @@ const chevronDownIcon = icon('chevron-down', 'muted60');
 
 /** 头图上的其余图标一律压白 —— 图标的颜色烤在 data URI 里，换色要回去跑 pnpm icons */
 const refreshIcon = icon('rotate-cw', 'ink');
+
+/** AI 建议键。蓝色：它是这一行里唯一的「去看点东西」，不是数据上的一个开关 */
+const sparklesIcon = icon('sparkles', 'blue600');
 const fishIcon = icon('fish', 'onAccent');
 const chevronIcon = icon('chevron-right', 'onAccent');
 
@@ -381,6 +393,39 @@ function onRefresh() {
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* 右簇：两枚图标键并排 */
+.hero__top-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/*
+ * AI 建议键。
+ *
+ * 与刷新键同一枚玻璃圆 —— 命中区 88rpx 见方（44pt），图标键要盲按，
+ * 热区不够大就按不准。
+ */
+.hero__analysis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  @include fish-press-dim;
+}
+
+/* 玻璃圆做在图标上：32rpx 图标 + 16rpx 内衬 = 64rpx 的圆 */
+.hero__icon__analysis {
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  padding: 16rpx;
+  @include fish-glass($fish-radius-pill);
 }
 
 /*

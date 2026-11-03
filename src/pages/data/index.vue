@@ -12,15 +12,17 @@
         :place="placeName"
         :busy="mapStore.indexLoading || mapStore.locating"
         @refresh="onRefresh"
+        @analysis="openAnalysis"
       />
 
-      <WeatherHero :show-anim="showAnim" @breakdown="openBreakdown" @pick-place="onPickPlace" />
+      <WeatherHero
+        :show-anim="showAnim"
+        @breakdown="openBreakdown"
+        @pick-place="onPickPlace"
+        @analysis="openAnalysis"
+      />
 
-      <view class="data__actions">
-        <VerdictActions :show-anim="showAnim" @feedback="openFeedback" @analysis="openAnalysis" />
-      </view>
-
-      <view class="sect">
+      <view class="sect sect__first">
         <view class="sect__card" :style="enterStyle(1, showAnim)">
           <Next24Hours />
         </view>
@@ -77,7 +79,6 @@ import MinutelyRain from '@/components/MinutelyRain/MinutelyRain.vue';
 import Next24Hours from '@/components/Next24Hours/Next24Hours.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
-import VerdictActions from '@/components/VerdictActions/VerdictActions.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
@@ -233,17 +234,6 @@ onLoad(() => {
   enableShareMenu();
 });
 
-/**
- * 去反馈鱼口。
- *
- * 走独立页而不是浮层：反馈与记录已经合成一张表单了 ——
- * 登录时一次提交两样东西（记录 + 鱼口反馈），未登录时只剩反馈那一半。
- * 浮层装不下这张表单。
- */
-function openFeedback() {
-  uni.navigateTo({ url: '/pages/record/create/index' });
-}
-
 function openAnalysis() {
   analysisOpen.value = true;
 }
@@ -258,6 +248,10 @@ function openBreakdown() {
   background-color: $fish-grouped;
 }
 
+.sect.sect__first {
+  margin-top: -28rpx;
+}
+
 .data__content {
   position: relative;
   z-index: 1;
@@ -265,13 +259,6 @@ function openBreakdown() {
 
 .sect {
   @include fish-section;
-}
-
-/* 头图下面的动作行。左右留白跟分区对齐，它才落在同一套竖线上 */
-.data__actions {
-  padding-right: 32rpx;
-  padding-left: 32rpx;
-  margin-top: -20rpx;
 }
 
 /* 落款 */

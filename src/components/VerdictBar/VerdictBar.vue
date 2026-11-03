@@ -12,6 +12,10 @@
 
       <text class="verdict-bar__place">{{ place }}</text>
 
+      <view class="verdict-bar__analysis" @tap="emit('analysis')">
+        <image class="verdict-bar__icon" :src="sparklesIcon" mode="widthFix" />
+      </view>
+
       <view class="verdict-bar__refresh" :class="{ 'verdict-bar__refresh--busy': busy }" @tap="emit('refresh')">
         <image class="verdict-bar__icon" :src="refreshIcon" mode="widthFix" />
       </view>
@@ -48,12 +52,17 @@ withDefaults(
 
 const emit = defineEmits<{
   refresh: [];
+  /** 打开渔碌建议 */
+  analysis: [];
 }>();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { statusBarHeight, navBarHeight, capsuleInsetRight } = useNavMetrics();
 
 const refreshIcon = icon('rotate-cw', 'muted');
+
+/** AI 建议键。与头图上那一枚同一个图标、同一档蓝 —— 两处是同一个入口 */
+const sparklesIcon = icon('sparkles', 'blue600');
 </script>
 
 <style lang="scss" scoped>
@@ -149,6 +158,24 @@ const refreshIcon = icon('rotate-cw', 'muted');
 }
 
 /*
+ * AI 建议键：圆形热区，按下即反馈。
+ *
+ * 命中区 88rpx 见方（44pt），与刷新键同规格 —— 两枚都是图标键，
+ * 热区不一样大，按起来手感就两样。
+ */
+.verdict-bar__analysis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  border-radius: 50%;
+  @include fish-press-dim;
+}
+
+/*
  * 刷新键：圆形热区，按下即反馈。
  *
  * 命中区 88rpx 见方（44pt）：它挂在导航栏那一行的末尾，又是图标键，
@@ -161,14 +188,18 @@ const refreshIcon = icon('rotate-cw', 'muted');
   width: 88rpx;
   height: 88rpx;
   flex-shrink: 0;
-  margin-left: 16rpx;
+  margin-left: 8rpx;
   border-radius: 50%;
   @include fish-press-dim;
 }
 
 .verdict-bar__icon {
-  width: 30rpx;
-  height: 30rpx;
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  padding: 16rpx;
+  @include fish-glass($fish-radius-pill);
+  box-shadow: $smooth-shadow-md;
 }
 
 /* 刷新中。转起来只是加强信号，静态的那一份是变暗 ——
