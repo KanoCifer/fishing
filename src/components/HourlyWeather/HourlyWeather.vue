@@ -1,16 +1,6 @@
 <template>
   <view class="hourly">
     <scroll-view class="hourly__scroll" scroll-x :show-scrollbar="false">
-      <!--
-        骨架与实数据交叉淡入（见 composables/useCrossFade）。
-
-        这一处不用 grid 叠放：格子在横向 scroll-view 里，
-        叠进 grid 会被 grid 的宽度卡住，横向就滚不动了。
-        骨架改成绝对定位浮在数据上面。
-
-        内容没到时骨架要占位（position: static）——
-        绝对定位的层不占高度，卡片会塌掉。
-      -->
       <view class="hourly__stack" :class="{ 'hourly__stack--skeleton': !hours.length }">
         <view v-if="hours.length" class="hourly__content">
           <view class="hourly__track">
@@ -21,7 +11,7 @@
               :class="{ 'hourly__cell--first': i === 0 }"
             >
               <text class="hourly__time">{{ parseFxTime(hour.fxTime)?.time ?? '' }}</text>
-              <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFit" />
+              <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFill" />
               <text class="hourly__temp">{{ hour.temp }}°</text>
               <view class="hourly__prob">
                 <view v-if="hour.prob > 0" class="hourly__prob-fill" :style="`width:${hour.prob}%`" />
@@ -45,7 +35,6 @@
           </view>
         </view>
       </view>
-
     </scroll-view>
     <!--
       空态不是加载态。取不到逐时数据的时候，这张卡要是继续摆骨架，
@@ -198,8 +187,8 @@ const { skeletonVisible } = useCrossFade({
  * 图标在竖排里独占一行，这一行的高度得跟同格的其他两行对得上。
  */
 .hourly__icon {
-  width: 64rpx;
-  height: 64rpx;
+  width: 84rpx;
+  height: 84rpx;
   margin: 12rpx 0;
 }
 

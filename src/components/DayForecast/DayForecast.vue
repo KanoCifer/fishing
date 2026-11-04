@@ -23,7 +23,7 @@
             <!-- 行首的星期 -->
             <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
 
-            <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFit" />
+            <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFill" />
 
             <!-- 最低温 -->
             <text class="days__temp days__temp--min">{{ day.min }}°</text>
@@ -148,11 +148,7 @@ function segmentGeometry(day: ForecastDay): { left: number; width: number } {
 function segmentStyle(day: ForecastDay, index: number): string {
   const { left, width } = segmentGeometry(day);
 
-  return [
-    `left:${left.toFixed(2)}%`,
-    `width:${width.toFixed(2)}%`,
-    `animation-delay:${index * 12}ms`,
-  ].join(';');
+  return [`left:${left.toFixed(2)}%`, `width:${width.toFixed(2)}%`, `animation-delay:${index * 12}ms`].join(';');
 }
 
 /**
@@ -375,7 +371,7 @@ const emptyText = computed(() => {
   width: 64rpx;
   flex-shrink: 0;
   color: $fish-ink;
-  @include fish-type(caption);
+  @include fish-type(body);
 }
 
 .days__label--today {
@@ -389,10 +385,10 @@ const emptyText = computed(() => {
  * （理由见 HourlyWeather 的 .hourly__icon）。
  */
 .days__icon {
-  width: 56rpx;
-  height: 56rpx;
+  width: 84rpx;
+  height: 84rpx;
   flex-shrink: 0;
-  margin-right: 8rpx;
+  margin-right: 4rpx;
 }
 
 /*
@@ -434,7 +430,7 @@ const emptyText = computed(() => {
   position: relative;
   flex: 1;
   min-width: 0;
-  height: 8rpx;
+  height: 12rpx;
   margin: 0 20rpx;
 }
 
@@ -522,7 +518,7 @@ const emptyText = computed(() => {
   @include fish-type(caption);
 
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  @include numeric;
 }
 
 /*
