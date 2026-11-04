@@ -438,12 +438,17 @@ async function onLogin(): Promise<void> {
  *
  * 顶部不给内边距：头图从屏幕顶端起，先撞上状态栏和微信胶囊。
  *
- * 底部留出底部动作条的高度 + 安全区，不然最后一段内容被它盖住。
+ * 底部只留安全区。底栏本体（160rpx）由根节点上的 paddingBottom 让开，
+ * 与数据页同一档 —— 这里再补一份 160rpx，底下会多出一截空白。
+ *
+ * ⚠️ `env()` 不能与长度直接相加：SCSS 会把它当字符串接起来，
+ * 编译出来是 `160rpxenv(safe-area-inset-bottom)` —— 整条声明无效，
+ * 安全区让不开。要相加就套 calc()。
  */
 .records__body {
   position: relative;
   z-index: 1;
-  padding-bottom: (160rpx + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /*

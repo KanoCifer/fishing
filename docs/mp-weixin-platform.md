@@ -11,6 +11,10 @@
 
 - **不认属性名选择器（`[...]`）**：不报错、不白屏，规则都不匹配，切样式只能走 class。`scripts/check-mp-compat.mjs` 扫产物，发现即构建失败。
 
+## WXSS 的值
+
+- **`env()` 不能与长度直接相加**：SCSS 会把它当字符串接起来 —— `160rpx + env(safe-area-inset-bottom)` 编译成 `160rpxenv(safe-area-inset-bottom)`，整条声明无效。不报错、只是不生效 → 要相加就套 `calc()`。
+
 ## 高度
 
 - **`100vh` 把原生 tabBar 高度也算进去了** → 用 `uni.getWindowInfo().windowHeight`。快照 `src/composables/windowMetrics.ts`；⚠️ 别把 `useNavMetrics` / `useViewport` 改异步。
@@ -32,6 +36,7 @@
 - **`canvasToTempFilePath` 的 `x/y/width/height` 是画布元素的 CSS 坐标**，不是位图像素 → 画布的 `style` 尺寸要跟位图一致（`750px × 1000px`），裁切框写设计坐标才不出错。
 - **同一块画布导出两次，两次写同一个临时文件**：后一次把前一次盖掉 → 要出两张图就备两块画布，别指望一块导出两遍。
 - **`createImage()` 的图像对象跟着画布节点走**：另一块画布要用同一张图，得在它自己身上重新 `createImage()`。
+- **页面隐藏期间画布节点会被回收**：缓存下来的 ctx 指向一块死画布，在它上面绘制是**原生崩溃**（小程序闪退），不是 JS 异常，开发者工具里看不出来 → 画布统一走 `utils/chartCanvas.ts` 的 `createCanvasLayer`，`onPageShow` 时先 `reset()` 再重新取节点。
 
 ## 图标
 
@@ -42,6 +47,13 @@
 
 - `<map>` 层级最高，**遮罩拦不住它的手势**：浮层打开时关掉地图手势。**卫星与路况是两个独立开关**。
 - `latitude`/`longitude`/`scale` 受控：写回三个值一起写；**`causedBy === 'update'` 要丢**。中心点在 `detail.centerLocation`，不在 `detail` 顶层。
+
+## 导航要加锁
+
+- **连点会调多次 `wx.switchTab`** → 并发的页面切换互相打断页面栈，表现为卡死或崩溃。**导航请求发出时上锁，回调里解锁**。
+- **`success` 里要延迟解锁**，不能一到就放：`switchTab` 的 success 在切换动作发起时就回来了，那一刻转场动画还没走完，马上放开锁连点仍能打断动画。等动画走完再放（`src/custom-tab-bar/index.js` 里是 1000ms）。`fail` 则立即解锁 —— 失败要能马上重试。
+- 锁放**模块作用域**，不放组件 data：各 tab 页的底栏实例互相独立，但共用模块状态，切换过程中新旧实例同时存在。
+- 锁要有**兜底定时器**（`src/custom-tab-bar/index.js` 里是 3000ms）—— 回调万一丢了，没有兜底就会把底栏锁死，比多调一次 `switchTab` 更糟。
 
 ## 自定义事件不能与原生事件同名
 

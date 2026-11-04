@@ -77,6 +77,84 @@ var selectedKey = null;
 /** 上一次看到的当前路由。变了 = 真的发生了一次页面切换 */
 var lastRoute = '';
 
+/**
+ * 导航中标记。
+ *
+ * 连点底栏会把 wx.switchTab 调多次，多个并发的 switchTab 会互相打断
+ * 页面栈，导致卡住或崩溃。所以发导航请求时上锁，请求回来
+ * 才解锁。
+ *
+ * 解锁时机分两种：成功要等一段（转场动画走完才允许下一次点击），失败
+ * 立即放。
+ *
+ * 锁放在模块作用域而不是组件 data：各 tab 页的实例互相独立，但共用这份
+ * 模块状态 —— 页面切换过程中新旧实例同时存在，需要它们看到同一个锁。
+ */
+var navigating = false;
+
+/**
+ * 导航成功后到允许下一次点击的等待时长（ms）。
+ *
+ * switchTab 的 success 回调在切换动作发起时就回来了，那一刻转场动画还没
+ * 走完 —— 马上放开锁，连点仍能打断动画。所以在 success 里不解锁，等这
+ * 段时间过去再放。
+ */
+var NAV_UNLOCK_DELAY = 1000;
+
+/**
+ * 兜底：回调彻底不来的最坏锁定时长（ms）。
+ *
+ * 成功走 NAV_UNLOCK_DELAY，失败立即解锁，但万一两个回调都丢了，没有
+ * 兜底就会把底栏永久锁死 —— 那比多调一次 switchTab 更糟。
+ */
+var NAV_FALLBACK_TIMEOUT = 3000;
+
+/** 成功后的延迟解锁定时器 */
+var navUnlockTimer = null;
+
+/** 兜底解锁定时器 */
+var navFallbackTimer = null;
+
+/** 上锁 */
+function lockNavigation() {
+  navigating = true;
+
+  if (navFallbackTimer) {
+    clearTimeout(navFallbackTimer);
+  }
+  navFallbackTimer = setTimeout(function () {
+    navFallbackTimer = null;
+    navigating = false;
+  }, NAV_FALLBACK_TIMEOUT);
+}
+
+/**
+ * 解锁。
+ *
+ * delay 为 0 立即放开；给正数则等这么久再放开 —— 成功导航走这条。
+ */
+function unlockNavigation(delay) {
+  if (navFallbackTimer) {
+    clearTimeout(navFallbackTimer);
+    navFallbackTimer = null;
+  }
+
+  if (navUnlockTimer) {
+    clearTimeout(navUnlockTimer);
+    navUnlockTimer = null;
+  }
+
+  if (!delay) {
+    navigating = false;
+    return;
+  }
+
+  navUnlockTimer = setTimeout(function () {
+    navUnlockTimer = null;
+    navigating = false;
+  }, delay);
+}
+
 /** 所有活着的实例。点击时统一刷新，缓存页的实例不必等 show 事件 */
 var instances = [];
 
@@ -213,6 +291,12 @@ Component({
 
   methods: {
     onTap: function (e) {
+      /*
+       * 上一次导航还没回来就再点，会把 wx.switchTab 调多次 —— 并发的页面切换
+       * 会互相打断页面栈，表现是卡住或崩溃。所以导航期间直接忽略这次点击。
+       */
+      if (navigating) return;
+
       var key = e.currentTarget.dataset.key;
       var item = null;
 
@@ -225,7 +309,20 @@ Component({
       if (!item) return;
 
       if (item.type === 'action') {
-        wx.navigateTo({ url: '/pages/record/create/index' });
+        /*
+         * 加号键也是导航：连点会开好几个建档页。一并上锁。
+         */
+        lockNavigation();
+
+        wx.navigateTo({
+          url: '/pages/record/create/index',
+          success: function () {
+            unlockNavigation(NAV_UNLOCK_DELAY);
+          },
+          fail: function () {
+            unlockNavigation(0);
+          },
+        });
         return;
       }
 
@@ -240,7 +337,22 @@ Component({
       var route = currentRoute();
       if (route === item.path.slice(1)) return;
 
-      wx.switchTab({ url: item.path });
+      /*
+       * 上锁到导航回来为止。成功走延迟解锁（转场动画走完才允许下一次点击），
+       * 失败立即解锁 —— 失败的场景更常见（比如目标页还没注册），锁住不让重试
+       * 等于底栏失灵。
+       */
+      lockNavigation();
+
+      wx.switchTab({
+        url: item.path,
+        success: function () {
+          unlockNavigation(NAV_UNLOCK_DELAY);
+        },
+        fail: function () {
+          unlockNavigation(0);
+        },
+      });
     },
   },
 });
