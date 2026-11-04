@@ -105,6 +105,9 @@ const ICONS = [
   { name: 'message-square', color: 'blue', use: '「我的」页「联系客服」入口' },
   // —— 关于页 ——
   { name: 'chevron-left', color: 'blue', use: '子页导航栏的返回按钮' },
+  // 免责摘要前的提示图标。压灰：它是结构符号不是内容，跟文字一样的灰
+  // 才不会把视线从免责那句话上拉走（与 AboutNotice 的说明同一条理由）。
+  { name: 'info', color: 'muted60', use: '关于页免责摘要前的提示图标' },
   // —— 钓点详情页 ——
   { name: 'chevron-left', color: 'onAccent', use: '钓点详情页压在头图上的返回按钮' },
   { name: 'share-2', color: 'onAccent', use: '钓点详情页压在头图上的分享入口' },

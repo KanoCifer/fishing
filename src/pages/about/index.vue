@@ -10,20 +10,19 @@
     <PageNav title="关于渔碌" :scrolled="scrolled" />
 
     <view class="about__body" :style="{ paddingTop: navBarBottom + 'px' }">
+      <!-- 身份。图标 + 名字 + 版本 + 一句话介绍，横排一行 -->
       <view class="sect">
         <view class="sect__card" :style="{ animationDelay: enterDelay(0) }">
           <AboutHeader />
         </view>
       </view>
 
-      <!-- 免责声明 -->
+      <!-- 免责。一行摘要，链到《用户协议》全文 -->
       <view class="sect">
-        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">免责声明</text>
+        <text class="sect__title" :style="{ animationDelay: enterDelay(1) }">说明</text>
 
-        <view class="sect__card about__disclaimer" :style="{ animationDelay: enterDelay(2) }">
-          <view v-for="(paragraph, i) in disclaimer" :key="i" class="about__disclaimer-item">
-            <text class="about__disclaimer-text">{{ paragraph }}</text>
-          </view>
+        <view class="sect__card" :style="{ animationDelay: enterDelay(2) }">
+          <AboutNotice :notice="notice" @select="openDocByKey" />
         </view>
       </view>
 
@@ -61,13 +60,13 @@
 
 <script setup lang="ts">
 /**
- * 关于页 —— 应用身份、免责声明与协议文档。
+ * 关于页 —— 应用身份、免责摘要与协议文档。
  *
  * 文案全部来自 @/constants/about，这个文件里只有排版和交互：
  * 文字要改，改那个文件，不要改这里。
  *
- * ⚠️ 这一页**不提供分享与联系客服**了：那两个入口搬去了「我的」页
- * （见 src/pages/mine/components/MineActions）。关于页答「这是什么」，
+ * 这一页只回答「这是什么」与「规则在哪儿」两件事。
+ * 分享与联系客服在「我的」页（见 src/pages/mine/components/MineActions）——
  * 「我要把这个 App 分享出去」「我有话要说」不是这一页要答的事。
  */
 import { ref } from 'vue';
@@ -75,13 +74,19 @@ import { onLoad, onPageScroll } from '@dcloudio/uni-app';
 
 import AboutDoc from './components/AboutDoc/AboutDoc.vue';
 import AboutHeader from './components/AboutHeader/AboutHeader.vue';
+import AboutNotice from './components/AboutNotice/AboutNotice.vue';
 import AboutLinks from '@/components/AboutLinks/AboutLinks.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import PageNav from '@/components/PageNav/PageNav.vue';
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { ABOUT_ENTRIES, APP_FOOTER, DISCLAIMER } from '@/constants/about';
+import {
+  ABOUT_ENTRIES,
+  ABOUT_NOTICE,
+  APP_FOOTER,
+  PRIVACY_POLICY_DOC,
+} from '@/constants/about';
 import type { AboutDoc as AboutDocItem, AboutLink, PrivacyContractEntry } from '@/constants/about';
 import { enterDelay } from '@/utils/motion';
 import { openPrivacyContract } from '@/utils/privacy';
@@ -109,7 +114,7 @@ onPageScroll((event) => {
   scrolled.value = event.scrollTop > 8;
 });
 
-const disclaimer = DISCLAIMER;
+const notice = ABOUT_NOTICE;
 const footer = APP_FOOTER;
 
 /**
@@ -128,9 +133,38 @@ const entries = ABOUT_ENTRIES;
  */
 const entryByKey = new Map(ABOUT_ENTRIES.map((entry) => [entry.key, entry]));
 
+/**
+ * key → 本地文档。
+ *
+ * 协议区之外还有一篇本地文档：隐私政策全文（PRIVACY_POLICY_DOC）。
+ * 它不进协议区 —— 那一行叫「隐私政策」，点开走的是微信官方那份；
+ * 本地全文只在官方那份弹不出来时兜底，但它得能被查到。
+ */
+const docEntries = ABOUT_ENTRIES.filter(
+  (entry): entry is AboutDocItem => entry.kind === 'doc',
+);
+
+const docByKey = new Map<string, AboutDocItem>([
+  ...docEntries.map((doc): [string, AboutDocItem] => [doc.key, doc]),
+  [PRIVACY_POLICY_DOC.key, PRIVACY_POLICY_DOC],
+]);
+
 /** 当前打开的文档。null 表示抽屉关着 —— 正文随之卸载，不占布局 */
 const activeDoc = ref<AboutDocItem | null>(null);
 const docOpen = ref(false);
+
+/**
+ * 按 key 打开一篇本地文档。
+ *
+ * 说明区里的《用户协议》走这里 —— 它给的是 key，不给条目。
+ */
+function openDocByKey(key: string) {
+  const doc = docByKey.get(key);
+  if (!doc) return;
+
+  activeDoc.value = doc;
+  docOpen.value = true;
+}
 
 /**
  * 点开协议区的一行。
@@ -154,7 +188,7 @@ function openEntry(link: AboutLink) {
  * 打开微信官方的隐私协议。
  *
  * 官方那份是微信后台「用户隐私保护指引」配的文本，平台要求用户能直达；
- * 本地那份完整条款另起一行（见 ABOUT_ENTRIES）—— 两者不是同一份文件。
+ * 本地那份完整条款是退路 —— 两者不是同一份文件。
  *
  * 打不开就退回本地全文：官方协议能不能弹，取决于后台配没配
  * 「用户隐私保护指引」（没配直接 fail）。这时候让用户读到本地全文，
@@ -164,8 +198,8 @@ async function openOfficialPrivacy(entry: PrivacyContractEntry) {
   try {
     await openPrivacyContract();
   } catch {
-    const fallback = entryByKey.get(entry.fallbackKey);
-    if (fallback?.kind !== 'doc') return;
+    const fallback = docByKey.get(entry.fallbackKey);
+    if (!fallback) return;
 
     activeDoc.value = fallback;
     docOpen.value = true;
@@ -180,10 +214,10 @@ onLoad((options) => {
   const key = options?.doc;
   if (!key) return;
 
-  const entry = entryByKey.get(String(key));
-  if (!entry || entry.kind !== 'doc') return;
+  const doc = docByKey.get(String(key));
+  if (!doc) return;
 
-  activeDoc.value = entry;
+  activeDoc.value = doc;
   docOpen.value = true;
 });
 </script>
@@ -205,29 +239,13 @@ onLoad((options) => {
 }
 
 /*
- * 一个分区。
- *
- * 缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
- * 与数据页、「我的」页是同一条规则，三页的分块节奏因此必然一致。
- */
+  一个分区。
+
+  缩进、眉标、卡间距全部走令牌层 _layout.scss 的 fish-section ——
+  与数据页、「我的」页是同一条规则，三页的分块节奏因此必然一致。
+*/
 .sect {
   @include fish-section;
-}
-
-/* 免责段落：玻璃卡浮在环境色上，靠面分层而不是描边（见令牌层 _color.scss 的分层说明） */
-.about__disclaimer {
-  @include fish-card;
-}
-
-/* 段间距交给容器：段落之间靠这一个数断开，段落本身不再各带 margin */
-.about__disclaimer-item + .about__disclaimer-item {
-  margin-top: 20rpx;
-}
-
-/* 免责文字压成辅助灰而不是主色：它是需要被同意的条款，不是页面要传达的主张 */
-.about__disclaimer-text {
-  color: $fish-muted;
-  @include fish-type(caption);
 }
 
 /* 落款 */
@@ -236,14 +254,11 @@ onLoad((options) => {
 }
 
 /*
- * 落款的入场。
- *
- * 落款是这一页最后落位的一件东西，不该在上面的卡片还在淡入时就先亮出来 ——
- * 它是页面的句号，句号先落，句子就断了。
- *
- * 这个类原来只写在模板上、样式里没有：入场动画没挂上，
- * 模板里的 animationDelay 也就成了一句空话。
- */
+  落款的入场。
+
+  落款是这一页最后落位的一件东西，不该在上面的卡片还在淡入时就先亮出来 ——
+  它是页面的句号，句号先落，句子就断了。
+*/
 .about__enter {
   @include fish-enter;
 }

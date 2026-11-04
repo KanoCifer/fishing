@@ -1,20 +1,26 @@
 <template>
   <!--
-    应用身份卡 —— 「我的」页的头部，也是整屏唯一说明「这是什么」的地方。
+    应用身份条 —— 图标 + 名称 + 版本 + 一句话介绍，横排一行。
 
-    一屏之内的层级从大到小：图标 → 名称 → 版本 → 介绍。介绍与上面三行之间用
-    一道 1rpx 发丝线断开，而不是再加一段空白 —— 分隔线把「这是什么」和「它做什么」
-    明确切成两件事，空白只让人以为是同组的松散排布。
+    为什么横排而不是竖排居中：这一页要回答的问题是「这是什么」，
+    答案只有一行字。竖排居中的大卡片把一行字撑成一整屏，
+    剩下的空间全被空白吃掉 —— 读者要的信息在第三行才开始出现。
+    横排把「图标 / 名字 / 介绍」收在同一视线高度上，一眼扫完。
+
+    版本号跟在名字后面，不单独占一行：它是给「确认自己装的是哪一版」
+    用的元信息，不该跟介绍抢位置。
   -->
   <view class="about-header">
     <image class="about-header__logo" :src="APP_LOGO" mode="aspectFit" />
 
-    <text class="about-header__name">{{ info.name }}</text>
-    <text class="about-header__version">{{ info.version }}</text>
+    <view class="about-header__text">
+      <view class="about-header__name-row">
+        <text class="about-header__name">{{ info.name }}</text>
+        <text class="about-header__version">v{{ info.version }}</text>
+      </view>
 
-    <view class="about-header__divider" />
-
-    <text class="about-header__tagline">{{ info.tagline }}</text>
+      <text class="about-header__tagline">{{ info.tagline }}</text>
+    </view>
   </view>
 </template>
 
@@ -29,33 +35,43 @@ const info = APP_INFO;
 
 <style lang="scss" scoped>
 /*
- * 卡片：玻璃面浮在环境色上，靠面分层而不是描边和阴影，理由见令牌层 _color.scss 的分层说明。
- *
- * 圆角用 $fish-radius-2xl（32pt），和鱼口概率的仪表卡同一级 ——
- * 它是关于页的「结论卡」，和数据页的结论卡是同一个位置上的东西，
- * 圆角就该是同一个尺寸。其余卡片用 $fish-radius-card（24pt）。
- */
+  卡片：玻璃面浮在环境色上，靠面分层而不是描边和阴影，理由见令牌层 _color.scss 的分层说明。
+
+  圆角用 $fish-radius-card（16pt）：它跟协议清单那张卡同级 ——
+  这一页上是两张同级的卡（身份、清单），不是一张主卡加一张次卡。
+*/
 .about-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 48rpx 40rpx 40rpx;
-  @include fish-glass($fish-radius-2xl);
+  padding: 28rpx 32rpx;
+  @include fish-glass($fish-radius-card);
 }
 
 /*
- * 60pt：iOS 设置页里应用图标的惯例尺寸。
- *
- * 圆角 22%：图标和页面的关系必须靠圆角建立 —— 直接贴上去会读成一块色块
- * 而不是一枚图标。源图自带的圆角比例（≈21%）和这里几乎一致，所以这层 CSS
- * 在当前源图下不改变形状，留着是为了让满幅出血的源图也能直接换上。
- * 用百分比而不是固定 rpx，圆角就跟着图标尺寸走，改尺寸时不必回来配一个数。
- */
+  60pt：iOS 设置页里应用图标的惯例尺寸。
+
+  圆角 22%：图标和页面的关系必须靠圆角建立 —— 直接贴上去会读成一块色块
+  而不是一枚图标。源图自带的圆角比例（≈21%）和这里几乎一致，所以这层 CSS
+  在当前源图下不改变形状，留着是为了让满幅出血的源图也能直接换上。
+  用百分比而不是固定 rpx，圆角就跟着图标尺寸走，改尺寸时不必回来配一个数。
+*/
 .about-header__logo {
   width: 120rpx;
   height: 120rpx;
-  margin-bottom: 24rpx;
+  flex-shrink: 0;
   border-radius: 22%;
+}
+
+/* 文字块。min-width: 0 让长文案能正常收缩，不把图标挤出去 */
+.about-header__text {
+  min-width: 0;
+  margin-left: 28rpx;
+}
+
+/* 名字与版本同一行 */
+.about-header__name-row {
+  display: flex;
+  align-items: baseline;
 }
 
 .about-header__name {
@@ -63,33 +79,24 @@ const info = APP_INFO;
   @include fish-type(title);
 }
 
-/* 版本号压到 caption：它是给「确认自己装的是哪一版」用的，
-   不该和名称抢视线，更不该和下面的介绍平级 */
+/*
+  版本号压到 caption：它是给「确认自己装的是哪一版」用的，
+  不该跟名字抢视线，更不该跟下面的介绍平级。
+
+  左边留一点距：名字与版本挤在一起会读成一个词组，
+  留一档空隙才看得出「名字」和「版本」是两件事。
+*/
 .about-header__version {
-  margin-top: 8rpx;
+  margin-left: 14rpx;
   color: $fish-muted-60;
   @include fish-type(caption);
 }
 
-/*
- * 发丝线。
- *
- * 缩进成内容宽而不是满宽：一道横贯卡片的白卡分隔线读起来像「表格」，
- * 留出和上下文字对齐的缩进，它就退回成一行字前面的一个小节拍。
- */
-.about-header__divider {
-  width: 96rpx;
-  height: 1rpx;
-  margin: 32rpx 0 24rpx;
-  background-color: $fish-border;
-}
-
-/* 介绍是这一屏里唯一的解释性文字，用 body 而不是 caption：
-   它要被读，读的段落就该有正文的行距 */
+/* 介绍是这一屏里唯一的解释性文字，用 body 而不是 caption：它要被读 */
 .about-header__tagline {
+  display: block;
+  margin-top: 6rpx;
   color: $fish-muted;
   @include fish-type(body);
-
-  text-align: center;
 }
 </style>
