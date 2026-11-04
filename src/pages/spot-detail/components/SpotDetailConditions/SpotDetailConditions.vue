@@ -144,10 +144,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
  * （判断 + 判断的依据），分成两张卡就得靠滚动去把它们连起来。
  */
 .conditions__card {
-  padding: $fish-card-padding;
-  border-radius: $fish-radius-card;
-  background-color: $fish-page;
-  box-shadow: $smooth-shadow-md;
+  @include fish-card;
 }
 
 /* ── 结论 ──────────────────────────────────────────────────────────────── */

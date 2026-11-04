@@ -94,11 +94,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
  * 再压三道线，卡片会读成一张表格。
  */
 .info__group {
-  overflow: hidden;
-  border-radius: $fish-radius-card;
-  background-color: $fish-page;
-  box-shadow: $smooth-shadow-md;
-  padding-top: 24rpx;
+  @include fish-card;
 }
 
 /* 两行两列。flex + 50% 宽，不用 grid（老基础库不认） */

@@ -231,18 +231,8 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-/*
- * 主体卡。
- *
- * 圆角用 $fish-radius-2xl（32pt），阴影用 $smooth-shadow-lg ——
- * 比页面里别的卡都重一档，因为它是唯一一张压在照片上的卡：
- * 「浮出来」这个感觉靠的就是它比周围高出一层。
- */
 .head {
-  padding: 40rpx 32rpx 36rpx;
-  border-radius: $fish-radius-2xl;
-  background-color: $fish-page;
-  box-shadow: $smooth-shadow-lg;
+  @include fish-card;
 }
 
 /*

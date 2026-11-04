@@ -462,16 +462,6 @@ const emptyText = computed(() => {
   height: 100%;
   overflow: hidden;
   border-radius: $fish-radius-pill;
-
-  /*
-   * 温度条从左端展开。
-   *
-   * 只动 transform：条是绝对定位，改 width 也能做，
-   * 但那是布局属性，七行一起动会带着兄弟节点重排。
-   *
-   * 逐行延迟走行内 animation-delay（见 segmentStyle），
-   * 步长 12ms —— 与分钟降水的雨幕同一档。
-   */
   transform-origin: left center;
 
   @if $fish-motion {

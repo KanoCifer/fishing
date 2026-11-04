@@ -13,7 +13,11 @@
   <view class="about-notice">
     <image class="about-notice__icon" :src="infoIcon" mode="aspectFit" />
 
-    <text class="about-notice__text"><text class="about-notice__lead">{{ notice.lead }}</text><text class="about-notice__link" @tap="emit('select', notice.linkKey)">{{ notice.link }}</text><text class="about-notice__tail">{{ notice.tail }}</text></text>
+    <text class="about-notice__text"
+      ><text class="about-notice__lead">{{ notice.lead }}</text
+      ><text class="about-notice__link" @tap="emit('select', notice.linkKey)">{{ notice.link }}</text
+      ><text class="about-notice__tail">{{ notice.tail }}</text></text
+    >
   </view>
 </template>
 
@@ -61,7 +65,7 @@ const infoIcon = icon('info', 'muted60');
   width: 28rpx;
   height: 28rpx;
   flex-shrink: 0;
-  margin-top: 2rpx;
+  margin-top: 4rpx;
 }
 
 /* 摘要正文。左边让出图标那一档 */
