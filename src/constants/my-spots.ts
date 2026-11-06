@@ -7,6 +7,8 @@
  */
 
 /** 页面标题 */
+import { FISHING_SPOT_STATUS_LABELS } from '@/types/fishing';
+
 export const MY_SPOTS_TITLE = '我的钓点';
 
 /**
@@ -69,8 +71,36 @@ export const MY_SPOTS_LOGGED_OUT = {
   hint: '提交记录和审核状态都存在账号里',
 } as const;
 
-/** 列表顶部的说明 */
-export const MY_SPOTS_HINT = '审核通过的钓点会出现在地图上';
+/**
+ * 筛选档位。
+ *
+ * 待审核、未通过、已通过是三件不同的事 —— 等 / 改 / 存档。
+ * 混在一条流水里，用户得自己从列表里挑出有事的那条；给一段筛选，
+ * 各看各的。这一页因此是「清单」而不是「动态」。
+ *
+ * 三个状态的文案取自 types/fishing 的那一份：徽标上写什么，这里就写什么，
+ * 不在这里再抄一遍。
+ */
+export const MY_SPOTS_FILTERS = [
+  { value: 'all', label: '全部' },
+  { value: 'pending', label: FISHING_SPOT_STATUS_LABELS.pending },
+  { value: 'rejected', label: FISHING_SPOT_STATUS_LABELS.rejected },
+  { value: 'approved', label: FISHING_SPOT_STATUS_LABELS.approved },
+] as const;
+
+/** 筛选档位的取值 */
+export type MySpotsFilter = (typeof MY_SPOTS_FILTERS)[number]['value'];
+
+/**
+ * 某一档里没有东西时的那一段。
+ *
+ * 三档各写各的：空在哪一档是不同的事，笼统一句「暂无数据」等于没说话。
+ */
+export const MY_SPOTS_FILTER_EMPTY = {
+  pending: { title: '没有待审核的钓点', hint: '提交之后会在这里等着' },
+  rejected: { title: '没有被驳回的钓点', hint: '审核不通过会写明原因' },
+  approved: { title: '还没有通过审核的钓点', hint: '过了审的钓点会出现在地图上' },
+} as const;
 
 /**
  * 审核状态对应的徽标色调。
@@ -87,13 +117,13 @@ export const MY_SPOTS_STATUS_TONES = {
 /**
  * 每条钓点下面的操作。
  *
- * 驳回的那条给「修改后重交」—— 它要连着理由一起看，理由就是改稿的说明，
- * 按钮得说的是「改完再交」而不只是「编辑」；别的状态给「编辑」，
- * 说「重交」会让人以为要重新排队。
+ * 只剩「修改后重交」一个：编辑自己那条的入口在钓点详情页（属主才看得到），
+ * 这一页不再重复给一遍 —— 同一件事在一屏里说两次，等于一次都没说。
+ *
+ * 文案说的是「改完再交」而不只是「编辑」：它要连着上面的驳回理由一起看，
+ * 理由就是改稿的说明；说「重交」会让人以为要重新排队。
  */
 export const MY_SPOTS_ACTIONS = {
   /** 未通过：改完重新提交 */
   resubmit: '修改后重交',
-  /** 其余状态：改一改 */
-  edit: '编辑',
 } as const;
