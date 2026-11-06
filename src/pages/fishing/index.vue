@@ -11,6 +11,26 @@
         @create="openCreate"
         :logged-in="session.loggedIn"
       />
+
+      <!--
+        钓点一块都没拿到时的空态。
+
+        压在地图左下角而不是居中：这一屏还有别的用处（定位、投稿），
+        缺的是标记这一层 —— 做成一张居中的大卡片等于把地图整个盖住。
+      -->
+      <view v-if="spotsFailed" class="spots-error">
+        <view class="spots-error__text">
+          <text class="spots-error__title">钓点没加载出来</text>
+          <text class="spots-error__reason">{{ mapStore.spotsError }}</text>
+        </view>
+        <view
+          class="spots-error__retry"
+          :class="{ 'spots-error__retry--busy': mapStore.spotsLoading }"
+          @tap="retrySpots"
+        >
+          <text class="spots-error__retry-text">重试</text>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -19,8 +39,8 @@
 /**
  * 钓点页 —— 全屏地图 + 钓点标记。
  */
-import { ref } from 'vue';
-import { onLoad, onReady, onShareAppMessage } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { onLoad, onReady, onShareAppMessage, onShow } from '@dcloudio/uni-app';
 
 import FullscreenMap from '@/components/FullscreenMap/FullscreenMap.vue';
 import { useMapMarkers } from '@/composables/useMapMarkers';
@@ -42,6 +62,24 @@ const { markerItems, resolveMarker } = useMapMarkers(() => mapStore.markers);
 
 const focusedLng = ref(MAP_CENTER[0]);
 const focusedLat = ref(MAP_CENTER[1]);
+
+/**
+ * 钓点一块都没拿到 —— 这时才把空态亮出来。
+ *
+ * 地图上已经有标记就是可用状态：后台那次刷新没成，用户不需要知道。
+ * 什么都没有的时候，「这一片真的没有钓点」和「没取到」才分不清。
+ */
+const spotsFailed = computed(
+  () => mapStore.markers.length === 0 && mapStore.spotsError !== '',
+);
+
+/**
+ * 重试取钓点。force：不管新鲜窗口 —— 用户点了就是现在要。
+ */
+function retrySpots() {
+  if (mapStore.spotsLoading) return;
+  void mapStore.fetchSpots({ force: true });
+}
 
 /**
  * 点 marker → 推钓点详情页。
@@ -104,6 +142,14 @@ onLoad(() => {
 });
 
 /**
+ * 首屏那一轮取完了没有。
+ *
+ * onShow 在 onReady 之前就会跑一次（这一页是启动落点时），
+ * 那一次落在启动阶段里，不能发请求 —— 规矩见 docs/mp-weixin-network.md。
+ */
+let ready = false;
+
+/**
  * 只拉钓点。
  *
  * 天气和鱼口概率是 store 里的同一份数据，只有数据页那三张卡在用，
@@ -116,23 +162,37 @@ onLoad(() => {
  * 请求就确定落在启动阶段之外了。
  */
 onReady(() => {
+  ready = true;
+
   setTimeout(() => {
     void mapStore.fetchSpots();
 
     /*
      * 恢复会话。
      *
-     * 这一页是 tabBar 首页，冷启动就落在这儿 —— 而工具条上的「投稿」键
-     * 取决于有没有登录。不恢复就判断不出来：用户明明是登录着的，
-     * 却因为进程重启没了内存里的用户，就看不到投稿入口了。
+     * 工具条上的「投稿」键取决于有没有登录。不恢复就判断不出来：
+     * 用户明明是登录着的，却因为进程重启没了内存里的用户，
+     * 就看不到投稿入口了。
      *
-     * 跟取钓点放在同一个宏任务里：这一页是启动落点，
-     * 启动阶段不能有请求（见 docs/mp-weixin-network.md）。
+     * 跟取钓点放在同一个宏任务里：分享链接可以落到这一页，
+     * 那时它就是启动落点，启动阶段不能有请求（见 docs/mp-weixin-network.md）。
      *
      * 没登录不会白发请求 —— restore() 读到本地没有 token 就直接返回。
      */
     void session.restore();
   }, 0);
+});
+
+/**
+ * 切回本页时补一次取数。
+ *
+ * 这一页的 onReady 只跑一次（tab 页实例一直在），那一次失败就定格到
+ * 用户杀进程重进为止。切 tab 回来补一刀：store 里按五分钟的新鲜窗口
+ * 判断该不该发，所以不会每次都白发一条，而失败的那次一定会重发。
+ */
+onShow(() => {
+  if (!ready) return;
+  void mapStore.fetchSpots();
 });
 </script>
 
@@ -160,5 +220,64 @@ onReady(() => {
 .fishing__map {
   width: 100%;
   height: 100%;
+}
+
+/*
+ * 钓点没取到时的空态。
+ *
+ * 压在地图左下角，不占中间：这一屏还有别的用处（定位、投稿），
+ * 缺的是标记这一层 —— 做成一张居中的大卡片等于把地图整个盖住。
+ *
+ * 材质跟右上那根工具条一致：同一块玻璃面、同一档圆角与阴影，
+ * 两块浮在地图上的东西看着是一套。
+ */
+.spots-error {
+  position: absolute;
+  left: 24rpx;
+  bottom: 24rpx;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  max-width: calc(100% - 48rpx);
+  padding: 16rpx 16rpx 16rpx 24rpx;
+  border-radius: $fish-radius-lg;
+  background-color: rgba(255, 255, 255, 0.88);
+  box-shadow: $smooth-shadow-md;
+}
+
+.spots-error__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.spots-error__title {
+  color: $fish-ink;
+  @include fish-type(caption, 600);
+}
+
+.spots-error__reason {
+  margin-top: 4rpx;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+}
+
+.spots-error__retry {
+  flex-shrink: 0;
+  margin-left: 20rpx;
+  padding: 10rpx 24rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent-tint;
+  @include fish-press(0.94);
+}
+
+.spots-error__retry-text {
+  color: $fish-blue-600;
+  @include fish-type(caption, 600);
+}
+
+/* 重试在飞：按下去不重复发 */
+.spots-error__retry--busy {
+  opacity: 0.5;
 }
 </style>

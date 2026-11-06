@@ -267,6 +267,31 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const spotsError = ref('');
 
   /**
+   * 最近一次**成功**取到钓点的时刻（毫秒）。0 = 还没成功过。
+   *
+   * 失败不改这一项：失败的那次没有数据可算新鲜。留着旧时间戳，
+   * 下一次刷新会以为自己刚取过，白等一个 TTL。
+   */
+  const spotsFetchedAt = ref(0);
+
+  /**
+   * 钓点列表的新鲜窗口。
+   *
+   * 与服务端那道缓存对齐：`GET /v3/fish/spots` 的响应带
+   * `Cache-Control: public, max-age=300`，五分钟内谁都拿同一份。
+   * 窗口比这短就是在拿一份被缓存住的数据 —— 白发一条请求。
+   */
+  const SPOTS_TTL = 5 * 60 * 1000;
+
+  /**
+   * 钓点请求的 in-flight 守卫。
+   *
+   * 页面的 onShow 与用户点的「重试」可能落在同一刻 —— 两条响应先后回来
+   * 会互相覆盖。与天气那一路的 inflightKey 同一个道理，只是这里只有一个 URL。
+   */
+  let spotsInflight: Promise<void> | null = null;
+
+  /**
    * 我提交的钓点。
    *
    * 与 markers 分开存，因为它们是两份不同的数据：markers 是公开列表
@@ -792,21 +817,57 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     }
   }
 
-  /** 拉钓点列表并转成地图标记 */
-  async function fetchSpots(): Promise<void> {
-    spotsLoading.value = true;
-    spotsError.value = '';
+  /**
+   * 拉钓点列表并转成地图标记。
+   *
+   * 与原来那一版差在三处：
+   *
+   * 1. **失败不动已有的标记**。一次网络抖动不该把已经画在地图上的钓点抹掉 ——
+   *    空地图比旧地图更糟，它看起来像「这一片真的没有钓点」。
+   * 2. **不并发**。页面的 onShow 与用户点的「重试」可能落在同一刻，
+   *    两条响应先后回来会互相覆盖（与天气那一路的 inflightKey 同一个道理）。
+   * 3. **五分钟内不重取**。与服务端那道缓存对齐，切 tab 回来不必每次都发一条。
+   *
+   * force = true 时无视新鲜度 —— 用户点了「重试」。
+   */
+  async function fetchSpots(options?: { force?: boolean }): Promise<void> {
+    // 已在飞：等那一条，不发第二条
+    if (spotsInflight) return spotsInflight;
 
-    try {
-      const spots = await fishingSpotApi.list();
-      markers.value = toMapMarkers(spots);
-      spotsLoading.value = false;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '加载钓点失败';
-      notifyError(message);
-      spotsError.value = message;
-      spotsLoading.value = false;
-    }
+    const fresh = spotsFetchedAt.value > 0 && Date.now() - spotsFetchedAt.value <= SPOTS_TTL;
+    if (!options?.force && fresh) return;
+
+    spotsLoading.value = true;
+    /*
+     * 不在这里清 spotsError：重试途中那行错误得留着，
+     * 否则浮层一闪就消失，用户不知道自己按的那一下有没有用。
+     * 成功之后再清。
+     */
+
+    const pending = (async (): Promise<void> => {
+      try {
+        const spots = await fishingSpotApi.list();
+        markers.value = toMapMarkers(spots);
+        spotsFetchedAt.value = Date.now();
+        spotsError.value = '';
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '加载钓点失败';
+        spotsError.value = message;
+        /*
+         * 这里不弹 toast：这句话已经写在地图上的浮层里了（见钓点页），
+         * 再弹一次就是同一件事说两遍。
+         *
+         * 浮层只在「一个标记都没拿到」时出现 —— 已经画在地图上的旧数据
+         * 不需要用户操心，后台那次刷新没成不影响他看钓点。
+         */
+      } finally {
+        spotsLoading.value = false;
+        spotsInflight = null;
+      }
+    })();
+
+    spotsInflight = pending;
+    return pending;
   }
 
   /**
@@ -941,6 +1002,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     markers,
     spotsLoading,
     spotsError,
+    spotsFetchedAt,
     // 我提交的钓点
     mySpots,
     mySpotsLoading,
