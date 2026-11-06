@@ -46,7 +46,7 @@
 
         柱高按绝对量程算（见 utils/precip 的 SCALE_MAX_5MIN），图上不标毫米数：
         柱高本身已经说清了雨有多大，左边再挂一列数字只是把同一件事说两遍。
-        横向那两条虚线是量程档位线（中雨上限 / 大雨上限），给的是相对参照。
+        横向那两条虚线是量程参考线（中雨上限 / 大雨上限），给的是相对参照。
       -->
       <view
         v-else
@@ -57,9 +57,9 @@
         @touchcancel="onTouchCancel"
       >
         <view
-          v-for="line in gridlines"
+          v-for="line in refLines"
           :key="line.pct"
-          class="minutely__gridline"
+          class="minutely__refline"
           :style="{ bottom: line.pct + '%' }"
         />
 
@@ -138,8 +138,8 @@ import {
   offsetLabel,
   precipLevelIcon,
   precipLevelLabel,
-  PRECIP_GRID_PCTS,
   PRECIP_LEGEND_LEVELS,
+  PRECIP_REF_PCTS,
 } from '@/utils/precip';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { rainBowSvg } from '@/constants/otherIcon';
@@ -189,13 +189,13 @@ const spanText = computed(() => {
 });
 
 /**
- * 横向虚线：量程档位线。
+ * 横向参考线：量程档位线。
  *
  * 两条线对应雨强的档位边界（中雨上限 / 大雨上限），画的是**相对**高度，
  * 不标毫米数 —— 左边挂一列数字就得同时解释两把尺子，读者反而读不清。
  * 0 那条是柱阵自己的基线（实线），这里只画虚的。
  */
-const gridlines = PRECIP_GRID_PCTS.map((pct) => ({ pct }));
+const refLines = PRECIP_REF_PCTS.map((pct) => ({ pct }));
 
 /**
  * 空态文案分两种：取不到（多为境外坐标，上游没覆盖）和拿到了但没数据。
@@ -673,16 +673,20 @@ function barStyle(bucket: MinutelyBucket): string {
 }
 
 /*
- * 横向虚线（网格）。
+ * 横向参考线（量程档位线）。
  *
- * 虚线不是描边而是网格：$fish-grid 那一档比发丝线淡得多，
- * 网格是背景不是内容。0 那条线由柱阵自己的基线承担，所以这里只画虚的。
+ * 虚线而不是实线：它标的是「量程到哪儿了」，不是图框的一边。
+ * 0 那条线由柱阵自己的基线承担（实线），这里只画虚的。
+ *
+ * 用 $fish-border 而不是 $fish-grid：这两条线是读者拿来比柱顶高度的，
+ * 网格那一档（8%）淡到等于没画。虚线 + 比基线重一档的线重，
+ * 于是它既不跟柱子抢眼，也不是背景。
  */
-.minutely__gridline {
+.minutely__refline {
   position: absolute;
   right: 0;
   left: 0;
-  border-top: 1rpx dashed $fish-grid;
+  border-top: 1rpx dashed $fish-border;
 }
 
 /*
