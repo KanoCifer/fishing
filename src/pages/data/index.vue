@@ -1,5 +1,5 @@
 <template>
-  <view class="data" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
+  <view class="data" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
     <view class="data__content">

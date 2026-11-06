@@ -11,6 +11,7 @@
 
 import { nextTick } from 'vue';
 import type { ComponentInternalInstance } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 
 import { createSelectorQuery } from './selectorQuery';
 
@@ -275,6 +276,44 @@ export function createCanvasLayer(options: CanvasLayerOptions): CanvasLayer {
   };
 }
 
+/**
+ * 页面回前台时把画布层作废，并让调用方重取节点、重画一遍。
+ *
+ * 为什么必须作废：页面隐藏期间小程序会回收 canvas 节点。缓存下来的 ctx
+ * 指向的是一块死画布，在它上面绘制不是 JS 异常，是**原生崩溃**
+ * （小程序直接闪退），开发者工具里看不出来，只有真机上会炸。
+ *
+ * 所以页面一回前台不能拿旧 ctx 补画一帧 —— 节点得重新取一遍。
+ *
+ * 为什么子组件里也能监听页面显示：uni-app 的 onShow 走 injectHook，
+ * 页面类钩子（isRootHook）会挂到 target.root 上，也就是**所属页面**的
+ * onShow 队列 —— 组件里写和页面里写效果一样，不必让页面把信号往下传。
+ *
+ * ⚠️ 必须在 setup 里调用（onShow 要挂在当前组件实例上）。
+ *
+ * @param layers 这一页上的画布层
+ * @param redraw 层作废了：重新取节点、重画（怎么 init 由调用方决定）
+ * @param keep 层没作废（节点还在）：也要做的事。补一帧最终态这类。
+ */
+export function useCanvasPageShow(
+  layers: CanvasLayer[],
+  redraw: () => void,
+  keep?: () => void,
+): void {
+  onShow(() => {
+    // 只有已经拿到 ctx 的层才有死画布的风险。还没拿到节点的层不用管：
+    // 那一轮取节点本来就是在页面显示之后做的，拿到的就是新节点。
+    const stale = layers.filter((layer) => layer.ready);
+    if (!stale.length) {
+      keep?.();
+      return;
+    }
+
+    stale.forEach((layer) => layer.reset());
+    redraw();
+  });
+}
+
 /** 入场动画的播放状态 */
 export interface EntryAnimator {
   /** 进度 0→1。外部可以置 1 表示「直接落到最终态」 */
@@ -302,6 +341,14 @@ export function createEntryAnimator(options: {
   onFrame(progress: number): void;
 }): EntryAnimator {
   let rafId = 0;
+  /**
+   * 排帧时用的那个节点。
+   *
+   * cancel 必须用**排帧时**的节点去取消，不能现去 getNode()：
+   * 画布层被 reset 之后 getNode() 返回 null，旧节点上那一串帧就停不下来 ——
+   * 它会一直往一块已经死掉的画布上排帧。新节点不认识旧的 requestId。
+   */
+  let rafNode: CanvasNode2D | null = null;
 
   const animator: EntryAnimator = {
     progress: 1,
@@ -326,16 +373,18 @@ export function createEntryAnimator(options: {
         } else {
           // t=1 时 progress 已经是 1，这一帧画完循环自然结束
           rafId = 0;
+          rafNode = null;
           animator.running = false;
         }
       };
+      rafNode = node;
       rafId = node.requestAnimationFrame(tick);
     },
 
     cancel() {
-      const node = options.getNode();
-      if (node && rafId) node.cancelAnimationFrame(rafId);
+      if (rafNode && rafId) rafNode.cancelAnimationFrame(rafId);
       rafId = 0;
+      rafNode = null;
       animator.running = false;
     },
   };

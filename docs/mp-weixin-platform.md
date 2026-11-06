@@ -36,7 +36,10 @@
 - **`canvasToTempFilePath` 的 `x/y/width/height` 是画布元素的 CSS 坐标**，不是位图像素 → 画布的 `style` 尺寸要跟位图一致（`750px × 1000px`），裁切框写设计坐标才不出错。
 - **同一块画布导出两次，两次写同一个临时文件**：后一次把前一次盖掉 → 要出两张图就备两块画布，别指望一块导出两遍。
 - **`createImage()` 的图像对象跟着画布节点走**：另一块画布要用同一张图，得在它自己身上重新 `createImage()`。
-- **页面隐藏期间画布节点会被回收**：缓存下来的 ctx 指向一块死画布，在它上面绘制是**原生崩溃**（小程序闪退），不是 JS 异常，开发者工具里看不出来 → 画布统一走 `utils/chartCanvas.ts` 的 `createCanvasLayer`，`onPageShow` 时先 `reset()` 再重新取节点。
+- **页面隐藏期间画布节点会被回收**：缓存下来的 ctx 指向一块死画布，在它上面绘制是**原生崩溃**（小程序闪退），不是 JS 异常，开发者工具里看不出来 → 画布统一走 `utils/chartCanvas.ts` 的 `createCanvasLayer`，页面回前台时先 `reset()` 再重新取节点。
+- **切 tab 就是「页面被隐藏」**：底栏一 `switchTab`，旧页的画布节点就被回收了。天气页有 `TideGauge` 与 `LineChart` 两块画布，回来时数据一刷新就往死画布上画 —— 这是 iPhone 上偶现闪退的主因。**回前台不能拿旧 ctx 补画一帧**，要作废重取。
+- **子组件里的 `onShow` 也能收到页面显示**：uni-app 的 `onShow` 走 `injectHook`，页面类钩子（`isRootHook`）会挂到 `target.root`，也就是所属页面 → 组件里写和页面里写效果一样。统一用 `chartCanvas.ts` 的 `useCanvasPageShow(layers, redraw)`：层已就绪（可能有死 ctx）就作废重取，没就绪的不用管。
+- **画布层 `reset()` 之后取消动画要认旧节点**：`createEntryAnimator` 记下排帧时那个节点再取消 —— 现去 `getNode()` 拿到的是新节点，不认识旧的 requestId，旧节点上那串帧就停不下来，会一直往死画布上排帧。
 
 ## 图标
 
@@ -48,12 +51,10 @@
 - `<map>` 层级最高，**遮罩拦不住它的手势**：浮层打开时关掉地图手势。**卫星与路况是两个独立开关**。
 - `latitude`/`longitude`/`scale` 受控：写回三个值一起写；**`causedBy === 'update'` 要丢**。中心点在 `detail.centerLocation`，不在 `detail` 顶层。
 
-## 导航要加锁
+## 底栏
 
-- **连点会调多次 `wx.switchTab`** → 并发的页面切换互相打断页面栈，表现为卡死或崩溃。**导航请求发出时上锁，回调里解锁**。
-- **`success` 里要延迟解锁**，不能一到就放：`switchTab` 的 success 在切换动作发起时就回来了，那一刻转场动画还没走完，马上放开锁连点仍能打断动画。等动画走完再放（`src/custom-tab-bar/index.js` 里是 1000ms）。`fail` 则立即解锁 —— 失败要能马上重试。
-- 锁放**模块作用域**，不放组件 data：各 tab 页的底栏实例互相独立，但共用模块状态，切换过程中新旧实例同时存在。
-- 锁要有**兜底定时器**（`src/custom-tab-bar/index.js` 里是 3000ms）—— 回调万一丢了，没有兜底就会把底栏锁死，比多调一次 `switchTab` 更糟。
+- **底栏是原生的**：`pages.json` 的 `tabBar` 里没有 `"custom": true`，`src/custom-tab-bar/` 目录已删除。自定义底栏在排查「首次进入后切到「我的」闪退」时摘掉了 —— 原生底栏自己管切换，不存在自定义底栏那套导航加锁。
+- **原生底栏不浮在内容上**：tab 页的内容区本来就不含底栏高度（见上面 `windowHeight` 那条），页面底部**不要**再留 `paddingBottom` 余量 —— 那是自定义底栏（fixed 浮层）才需要的。
 
 ## 自定义事件不能与原生事件同名
 

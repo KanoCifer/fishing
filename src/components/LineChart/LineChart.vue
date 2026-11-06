@@ -102,6 +102,7 @@ import {
   CHART_LINE_WIDTH,
   createCanvasLayer,
   createEntryAnimator,
+  useCanvasPageShow,
   type CanvasMetrics,
   type EntryAnimator,
 } from '@/utils/chartCanvas';
@@ -706,6 +707,18 @@ function play(): void {
   animator.progress = 1;
   draw();
 }
+
+/**
+ * 页面回前台：画布节点可能已被回收，缓存的 ctx 作废。
+ *
+ * 不作废就拿旧 ctx 补画一帧 —— 那是画到一块死画布上，原生崩溃
+ * （小程序闪退），不是 JS 异常，开发者工具里看不出来。
+ *
+ * 天气页是底栏的第一个 tab，切走就会命中：节点被回收，回来再画就是死画布。
+ */
+useCanvasPageShow([baseLayer, topLayer], () => {
+  void initCanvases();
+});
 
 onMounted(() => {
   // 尺寸在 setup 里就算好了，这里只管把节点拿到手

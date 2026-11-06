@@ -1,5 +1,5 @@
 <template>
-  <view class="records" :style="{ minHeight: windowHeight + 'px', paddingBottom: '180rpx' }">
+  <view class="records" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
 
     <view class="records__body">
@@ -107,8 +107,8 @@
         <!--
           「记一笔」不在这一页。
 
-          底栏中间那颗圆键就是它（见 custom-tab-bar）——
-          同一个动作给两个入口，用户会以为是两件事。
+          底栏中间那颗圆键是自定义底栏带来的，底栏回到原生后它就没了——
+          入口改到日历里：点某一天，浮层上就是「记一笔」。
         -->
       </template>
     </view>
@@ -438,8 +438,8 @@ async function onLogin(): Promise<void> {
  *
  * 顶部不给内边距：头图从屏幕顶端起，先撞上状态栏和微信胶囊。
  *
- * 底部只留安全区。底栏本体（160rpx）由根节点上的 paddingBottom 让开，
- * 与数据页同一档 —— 这里再补一份 160rpx，底下会多出一截空白。
+ * 底部只留安全区。底栏是原生的、内容区本来就不含底栏高度，
+ * 根节点上不再补 paddingBottom —— 这里再补一份，底下会多出一截空白。
  *
  * ⚠️ `env()` 不能与长度直接相加：SCSS 会把它当字符串接起来，
  * 编译出来是 `160rpxenv(safe-area-inset-bottom)` —— 整条声明无效，

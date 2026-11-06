@@ -34,10 +34,9 @@
  * 组件本身不管这个数是什么意思（连续天数、别的什么）—— 语义在调用方。
  */
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
 
 import { windowMetrics } from '@/composables/windowMetrics';
-import { createCanvasLayer } from '@/utils/chartCanvas';
+import { createCanvasLayer, useCanvasPageShow } from '@/utils/chartCanvas';
 
 interface Props {
   /** 当前值 */
@@ -164,8 +163,7 @@ onMounted(() => {
  * 所以回前台不是「拿旧 ctx 补画一帧」，而是把节点重新取一遍：
  * 拿到新节点、重新装 ctx，再画。取不到时画布层会按重试节奏等节点回来。
  */
-onShow(() => {
-  layer.reset();
+useCanvasPageShow([layer], () => {
   void initCanvas();
 });
 

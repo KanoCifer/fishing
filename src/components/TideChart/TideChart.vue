@@ -39,7 +39,6 @@
 </template>
 
 <script setup lang="ts">
-import { onPageShow } from '@dcloudio/uni-app';
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
@@ -60,6 +59,7 @@ import {
   CHART_LINE_WIDTH,
   createCanvasLayer,
   createEntryAnimator,
+  useCanvasPageShow,
   type CanvasMetrics,
   type EntryAnimator,
 } from '@/utils/chartCanvas';
@@ -752,22 +752,39 @@ watch(
 );
 
 /**
- * 页面回到前台时补画。
+ * 页面回到前台时重画。
  *
- * 小程序切后台期间 rAF 会停，回来后不会自动续画 —— 曲线会停在半截，
- * 或者节点在后台被回收后彻底空白。这里直接补一帧最终态。
+ * 小程序切后台期间 rAF 会停，回来后不会自动续画 —— 曲线会停在半截。
+ * 更要紧的是：页面隐藏期间画布节点会被回收，缓存下来的 ctx 指向一块死画布，
+ * 在它上面绘制是**原生崩溃**（小程序闪退），不是 JS 异常，开发者工具里看不出来。
+ *
+ * 所以这里不是「拿旧 ctx 补画一帧」，而是把画布层作废、重新取节点再画。
  */
-onPageShow(() => {
-  // 静态层也跟着数据走，回前台补一帧
-  if (baseLayer.ready) drawBase();
+useCanvasPageShow(
+  [baseLayer, topLayer],
+  () => {
+    void (async () => {
+      // 静态层先来：动态层画曲线要拿静态层的 ctx 量刻度宽度，
+      // 静态层没就绪时量出来是 0，曲线会歪。
+      await initBase();
+      if (!showTop.value) return;
 
-  if (!topLayer.ready) {
-    if (showTop.value) void initTop();
-    return;
-  }
-  animator.progress = 1;
-  draw();
-});
+      await initTop();
+
+      // 回前台是补画，不是重播入场动画：曲线直接落到最终态
+      animator.cancel();
+      animator.progress = 1;
+      draw();
+    })();
+  },
+  () => {
+    // 节点没被回收，但 rAF 停在了半截 —— 补一帧最终态。
+    if (!topLayer.ready) return;
+    animator.cancel();
+    animator.progress = 1;
+    draw();
+  },
+);
 
 // 页面反复进出会持续漏帧，不取消就一路漏下去；定时器同理
 onBeforeUnmount(() => {

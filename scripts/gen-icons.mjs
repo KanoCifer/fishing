@@ -68,6 +68,8 @@ const ICONS = [
   // 实心版把中间那个圆挖空成洞，洞里透出胶囊底色（见 punchHoles）。
   { name: 'map-pin', color: 'ink', filled: true, use: '头图 · 地点标签的图钉（实心）' },
   { name: 'rotate-cw', color: 'onAccent', use: '头图 · 刷新键' },
+  // 刷新键压在一枚玻璃圆上，那枚圆是浅色的 —— 圆上的字得是深墨，白的压在白底上读不出来。
+  { name: 'rotate-cw', color: 'ink', use: '头图 · 刷新键（玻璃圆上的深墨版）' },
   { name: 'sparkles', color: 'onAccent', use: '头图 · 渔碌建议入口' },
   { name: 'fish', color: 'onAccent', use: '头图 · 鱼口概率标记' },
   { name: 'chevron-right', color: 'onAccent', use: '头图 · 「看构成」箭头' },
@@ -127,6 +129,8 @@ const ICONS = [
   // 一个是收的动作一个是给的动作，不该同色。
   { name: 'minus', color: 'muted', use: '渔获数量的减号' },
   { name: 'plus', color: 'blue', use: '渔获数量的加号' },
+  // 渔获行的删除键。压灰：它是「收掉这一条」，不是报错，不该抢红。
+  { name: 'x', color: 'muted', use: '渔获行的删除键' },
   // —— 实况读数磁贴 ——
   // 一屏里九格读数并排，只有数字和标签时眼睛得逐格去认「这是哪一项」。
   // 图形锚点解决这件事：一个图标点一下就认出来了。
@@ -235,14 +239,30 @@ function main() {
     ...entries.map((e) => `  /** ${e.use} */\n  '${e.key}':\n    '${e.uri}',`),
     '} as const;',
     '',
+    '/** 图标表。查表用宽松类型：查不到的那一档要能读出 undefined */',
+    'const ICON_TABLE = ICONS as Record<string, string>;',
+    '',
     '/**',
     ' * 取图标数据 URI，给 <image> 的 src 用。',
     ' *',
-    ' * 没有对应配色时退回 muted —— 图标缺色最多是「不显眼」，',
-    ' * 缺图标则整块内容塌掉，所以这里保底而不是抛错。',
+    ' * **一定返回字符串。** 取不到就退档：原色 → muted → 同一个图形的任一档 → 空串。',
+    ' *',
+    ' * 为什么不能返回 undefined：undefined 进了 <image> 的 src，小程序在渲染期报',
+    ' * 「property "src" received type-incompatible value: expected <String> but get null value」，',
+    ' * 一次渲染期报错比少一个图标吵得多 —— 而少的那部分，调用方多半本来就 v-if 掉了。',
+    ' *',
+    ' * 退档顺序里要有「任一档」这一层，是因为 muted 不是每个图形都有一档：',
+    ' * 清单只列真正在用的配色，图形没生成过 muted 时它自己就是空的。',
     ' */',
     "export function icon(name: IconName, color: IconColor = 'muted'): string {",
-    '  return ICONS[`${name}__${color}` as keyof typeof ICONS] ?? ICONS[`${name}__muted` as keyof typeof ICONS];',
+    '  const exact = ICON_TABLE[`${name}__${color}`];',
+    '  if (exact) return exact;',
+    '',
+    '  const muted = ICON_TABLE[`${name}__muted`];',
+    '  if (muted) return muted;',
+    '',
+    '  const variant = Object.keys(ICON_TABLE).find((key) => key.startsWith(`${name}__`));',
+    "  return variant ? ICON_TABLE[variant] : '';",
     '}',
     '',
   ];

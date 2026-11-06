@@ -7,6 +7,7 @@
     "dev": "uni -p mp-weixin",
     "build": "uni build -p mp-weixin",
     "check:compat": "node scripts/check-mp-compat.mjs",
+    "check:icons": "node scripts/check-icons.mjs",
     "assets": "python3 scripts/optimize-assets.py",
     "type-check": "vue-tsc --noEmit",
     "lint": "oxlint",

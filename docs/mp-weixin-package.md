@@ -33,6 +33,13 @@
 - 安卓整包白屏：`common/vendor.js` 解析失败；开发者工具看不出来 —— babel 覆盖 `??`、`?.`，**不覆盖正则 Unicode 属性转义（8 条）与命名捕获组（2 条）**。
 - 修法 `pnpm patch marked@18.1.1`：8 条属性转义换显式字符范围，2 条命名捕获组换按反引号个数枚举；**替换必须保持组数一致**（`((?:…))`），组数一变 `\1` `\2` 整体错位。
 
+### 图标少一档：src 收到 null，页面少一枚图标
+
+- 症状：`property "src" received type-incompatible value: expected <String> but get null value` —— 只在渲染层冒出来，页面上看不出少了什么，只少一枚图标（渔获行的删除键）。
+- 成因：`icon()` 的退档规则是「取不到就退回 muted」，但清单里不是每个图形都生成过 muted（清单只列真正在用的配色）。少一档时表里两边都查不到 → 返回 `undefined` → 进了 `<image>` 的 src。
+- TypeScript 拦不住：`ICONS` 是 `as const` 的字面量表，取出来的类型是字符串不是 `string | undefined`，`??` 那一侧看着永远有值。
+- 修法：`icon()` 现在一定返回字符串（原色 → muted → 同一图形的任一档 → 空串）；缺档位由 `pnpm check:icons` 在构建期拦住 —— 扫出所有字面量 `icon()` 调用，对照 `scripts/gen-icons.mjs` 生成好的表逐条核对，少一档就让构建失败。
+
 ### 渲染特性有下限
 
 - WXSS 不支持新特性时那条声明被**直接丢掉**，静默失效：`@property` 注册（Safari 16.4/Chromium 85，流光每 3 秒跳一下）、flex `gap`（14.5/84）、`inset: 0` 简写（14.1/87）。

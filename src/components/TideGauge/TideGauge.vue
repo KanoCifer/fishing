@@ -18,20 +18,11 @@
  * 颜色也是两端色给的：from 落在弧的起点、to 落在弧的尖端，
  * 中间是同色相的渐变。颜色取哪一档、档位叫什么名字仍然归调用方。
  */
-import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 
 import { windowMetrics } from '@/composables/windowMetrics';
 import { mixColor } from '@/utils/canvas';
-import { createSelectorQuery } from '@/utils/selectorQuery';
-
-/**
- * `fields({ node: true })` 返回的 canvas 节点没有官方类型，按用到的成员局部声明。
- */
-interface CanvasNode2D {
-  width: number;
-  height: number;
-  getContext(type: '2d'): CanvasRenderingContext2D;
-}
+import { createCanvasLayer, useCanvasPageShow } from '@/utils/chartCanvas';
 
 interface Props {
   /** 当前值 */
@@ -79,8 +70,27 @@ const canvasId = `tide-gauge-${uid}`;
 const sizePx = computed(() => uni.upx2px(props.size));
 const strokePx = computed(() => uni.upx2px(props.stroke));
 
-const ctxRef = ref<CanvasRenderingContext2D | null>(null);
+/**
+ * 画布层。取节点、判空、重试都在 utils/chartCanvas 里。
+ *
+ * 这一层原来是自己抄的一份取节点的流程（queryCanvas + INIT_RETRY_DELAYS），
+ * 少了两样东西：世代号（节点被回收后缓存的 ctx 会作废）与页面回前台的作废。
+ * 表在天气页上，页面一被切走画布节点就被回收，回来再画就是画到死画布上 ——
+ * 那是原生崩溃（小程序闪退），不是 JS 异常，开发者工具里看不出来。
+ */
 const dprRef = ref(1);
+
+const layer = createCanvasLayer({
+  instance,
+  id: canvasId,
+  metrics: () => {
+    const dpr = windowMetrics().pixelRatio;
+    const size = sizePx.value;
+    dprRef.value = dpr;
+    return { width: size, height: size, dpr };
+  },
+  label: 'TideGauge',
+});
 
 /**
  * 弧的起止角。
@@ -159,7 +169,7 @@ function drawValueArc(
 }
 
 function draw(): void {
-  const ctx = ctxRef.value;
+  const ctx = layer.ctx;
   if (!ctx) return;
 
   const size = sizePx.value;
@@ -188,89 +198,28 @@ function draw(): void {
 }
 
 /**
- * 初始化画布。
+ * 取节点、装 ctx、画一遍。
  *
  * 宽高不从 SelectorQuery 要 —— 那是布局测量值，画布的 CSS 宽高本来就由
  * rpx 算好绑在节点上，数值在手上，问布局是引入了一个既不必要又会失败的依赖。
  *
- * 拿不到节点时按 INIT_RETRY_DELAYS 的节奏继续试：组件可能挂在一个
- * 还在做高度过渡的容器里，节点进 DOM 的时间点会飘。
+ * 拿不到节点时由画布层自己按节奏重试：组件可能挂在一个还在做高度过渡的
+ * 容器里，节点进 DOM 的时间点会飘。
  */
-const INIT_RETRY_DELAYS = [0, 60, 120, 200, 300, 400, 600] as const;
-
-let initialized = false;
-let initializing = false;
-let retryIndex = 0;
-let retryTimer = 0;
-
-function clearRetryTimer(): void {
-  if (retryTimer) {
-    clearTimeout(retryTimer);
-    retryTimer = 0;
-  }
-}
-
-function scheduleRetry(): void {
-  const delay = INIT_RETRY_DELAYS[retryIndex];
-  if (delay === undefined) {
-    // 重试用尽还是拿不到节点，画布会一直空白。留一条 warn，
-    // 下次再遇到空图能直接分清是「节点没进 DOM」还是「绘制逻辑出错」。
-    console.warn(`[TideGauge] 画布节点获取失败（已重试 ${INIT_RETRY_DELAYS.length} 次）：未查到 canvas 节点`);
-    return;
-  }
-  retryIndex += 1;
-  retryTimer = setTimeout(() => {
-    retryTimer = 0;
-    void initCanvas();
-  }, delay);
-}
-
-function queryCanvas(): Promise<CanvasNode2D | null> {
-  return new Promise((resolve) => {
-    createSelectorQuery(instance)
-      .select(`#${canvasId}`)
-      .fields({ node: true }, (res) => {
-        const item = Array.isArray(res) ? res[0] : res;
-        // node 在官方类型里是 any，这里收窄成本组件实际用到的形状
-        const node = (item as { node?: unknown } | undefined)?.node;
-        resolve(typeof node === 'object' && node !== null ? (node as CanvasNode2D) : null);
-      })
-      .exec();
-  });
-}
-
 async function initCanvas(): Promise<void> {
-  if (initializing || initialized) return;
-  initializing = true;
+  if (!(await layer.init())) return;
 
-  try {
-    await nextTick();
-
-    const node = await queryCanvas();
-    if (!node) {
-      scheduleRetry();
-      return;
-    }
-
-    const dpr = windowMetrics().pixelRatio;
-    const width = sizePx.value;
-    const height = sizePx.value;
-
-    // 按 dpr 放大位图尺寸，避免高分屏发虚；CSS 尺寸不变，由 rpx 决定。
-    // 位图尺寸取整：换算下来可能是小数，位图按整数给，绘制仍按 CSS 像素走。
-    node.width = Math.round(width * dpr);
-    node.height = Math.round(height * dpr);
-
-    dprRef.value = dpr;
-    ctxRef.value = node.getContext('2d');
-    initialized = true;
-    clearRetryTimer();
-
-    draw();
-  } finally {
-    initializing = false;
-  }
+  draw();
 }
+
+/**
+ * 页面回前台：画布节点可能已被回收，缓存的 ctx 作废，重新取节点再画。
+ *
+ * 不作废就是拿旧 ctx 补画一帧 —— 那是画到一块死画布上，原生崩溃。
+ */
+useCanvasPageShow([layer], () => {
+  void initCanvas();
+});
 
 onMounted(() => {
   void initCanvas();
@@ -280,8 +229,7 @@ watch(
   () => [props.value, props.min, props.max, props.fromColor, props.toColor, props.trackColor],
   () => {
     // 画布还没拿到就先补拿，等节点到了再画
-    if (!initialized) {
-      retryIndex = 0;
+    if (!layer.ready) {
       void initCanvas();
       return;
     }
