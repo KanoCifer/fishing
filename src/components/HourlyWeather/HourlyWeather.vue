@@ -14,7 +14,7 @@
               <image class="hourly__icon" :src="weatherIconUri(hour.icon)" mode="aspectFill" />
               <text class="hourly__temp">{{ hour.temp }}°</text>
               <view class="hourly__prob">
-                <view v-if="hour.prob > 0" class="hourly__prob-fill" :style="`width:${hour.prob}%`" />
+                <text v-if="hour.prob > 0">{{ hour.prob + '%' }}</text>
               </view>
             </view>
           </view>
@@ -199,24 +199,10 @@ const { skeletonVisible } = useCrossFade({
   font-weight: 500;
 }
 
-/*
- * 降水概率的轨道与填充。
- *
- * 轨道没有底色 —— 它只是给填充条留出位置，让整排格子的温度落在同一条基线上。
- * 真给它一个灰底，每格就都多了一条没意义的横杠。
- */
 .hourly__prob {
-  display: flex;
-  align-items: center;
-  width: 56rpx;
-  height: 6rpx;
-  margin-top: 10rpx;
-}
-
-.hourly__prob-fill {
-  height: 100%;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-tide;
+  color: $fish-blue-600;
+  @include fish-type(caption);
+  @include numeric(500);
 }
 
 .hourly__skeleton {
