@@ -28,25 +28,23 @@
             </view>
           </scroll-view>
 
-          <!-- 日期：今日起 8 天 -->
-          <scroll-view class="tide__dates" scroll-x :show-scrollbar="false">
-            <view class="tide__dates-track">
-              <view
-                v-for="opt in dateOptions"
-                :key="opt.value"
-                class="tide__chip"
-                :class="{ 'tide__chip--active': mapStore.selectedDate === opt.value }"
-                @tap="mapStore.setSelectedDate(opt.value)"
-              >
-                <text
-                  class="tide__chip-text"
-                  :class="{ 'tide__chip-text--active': mapStore.selectedDate === opt.value }"
-                >
-                  {{ opt.label }} {{ opt.weekday }}
-                </text>
+          <!-- 日期：原生日期选择器，范围是今天起 10 天 -->
+          <picker
+            class="tide__date-picker"
+            mode="date"
+            :value="pickerValue"
+            :start="dateRange.start"
+            :end="dateRange.end"
+            @change="onDateChange"
+          >
+            <view class="tide__date-row">
+              <text class="tide__date-label">日期</text>
+              <view class="tide__date-value">
+                <text class="tide__date-text">{{ dateLabel }}</text>
+                <image class="tide__date-chevron" :src="chevronIcon" mode="aspectFit" />
               </view>
             </view>
-          </scroll-view>
+          </picker>
         </view>
       </view>
 
@@ -61,7 +59,9 @@
             <text class="tide__now-label">当前潮位 · {{ spotName }}</text>
             <view class="tide__now-row">
               <view class="tide__now-left">
-                <text class="tide__now-trend">{{ trendText }}</text>
+                <view class="tide__now-pill">
+                  <text class="tide__now-trend">{{ trendText }}</text>
+                </view>
                 <text class="tide__now-rate">{{ rateText }}</text>
               </view>
               <view class="tide__now-level">
@@ -81,8 +81,14 @@
 
           <!-- 这一天的两个数：潮差与下一个潮时 -->
           <view v-if="hasHourly" class="tide__meta">
-            <text class="tide__meta-item">潮差 {{ rangeText }} m</text>
-            <text class="tide__meta-item">{{ metaText }}</text>
+            <view class="tide__meta-cell">
+              <text class="tide__meta-label">潮差</text>
+              <text class="tide__meta-value">{{ rangeText }} m</text>
+            </view>
+            <view class="tide__meta-cell">
+              <text class="tide__meta-label">{{ nextTideLabel }}</text>
+              <text class="tide__meta-value">{{ nextTideValue }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -91,12 +97,12 @@
       <view v-if="high || low" class="sect">
         <view class="sect__row">
           <view class="sect__half tide__peak">
-            <text class="tide__peak-label">{{ highLabel }}</text>
+            <text class="tide__peak-label tide__peak-label--high">{{ highLabel }}</text>
             <text class="tide__peak-time">{{ high?.time ?? '--' }}</text>
             <text class="tide__peak-height">潮高 {{ highHeight }} m</text>
           </view>
           <view class="sect__half tide__peak">
-            <text class="tide__peak-label">{{ lowLabel }}</text>
+            <text class="tide__peak-label tide__peak-label--low">{{ lowLabel }}</text>
             <text class="tide__peak-time">{{ low?.time ?? '--' }}</text>
             <text class="tide__peak-height">潮高 {{ lowHeight }} m</text>
           </view>
@@ -140,8 +146,16 @@ import SkeletonCard from '@/components/SkeletonCard/SkeletonCard.vue';
 import TideChart from '@/components/TideChart/TideChart.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { icon } from '@/constants/icons';
 import { useFishingMapStore } from '@/stores/fishingMap';
-import { formatCompactDate, fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
+import {
+  formatCompactDate,
+  fxHourKey,
+  localHourKey,
+  parseFxTime,
+  shortDate,
+  weekdayCn,
+} from '@/utils/date';
 import { deriveTideNow, highestHighTide, lowestLowTide, nextTideEvent, tideRange } from '@/utils/tide';
 
 const mapStore = useFishingMapStore();
@@ -159,27 +173,44 @@ onPageScroll((event) => {
   scrolled.value = event.scrollTop > 8;
 });
 
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+/** picker 要的日期格式：`YYYY-MM-DD` */
+function toPickerDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 
 /**
- * 今日起 8 天。
+ * 可选范围：今天起 10 天（含今天）。
  *
- * 这里是本地日期运算（不是后端时间），走 new Date() 是对的 ——
+ * 边界是本地日历日（不是后端时间），走 new Date() 是对的 ——
  * 只有解析后端 fxTime 才需要避时区换算。
  */
-const dateOptions = computed(() => {
+const dateRange = computed(() => {
   const today = new Date();
-  return Array.from({ length: 8 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return {
-      value: `${d.getFullYear()}${month}${day}`,
-      label: `${month}-${day}`,
-      weekday: WEEKDAYS[d.getDay()],
-    };
-  });
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 9);
+  return { start: toPickerDate(start), end: toPickerDate(end) };
 });
+
+/** picker 的当前值。store 里存的是 `YYYYMMDD`，这里换成 picker 要的 `YYYY-MM-DD` */
+const pickerValue = computed(() => {
+  const value = mapStore.selectedDate;
+  if (!value || value.length < 8) return dateRange.value.start;
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+});
+
+const dateLabel = computed(() => `${shortDate(pickerValue.value)} ${weekdayCn(pickerValue.value)}`);
+
+/** picker 选完：`YYYY-MM-DD` → store 的 `YYYYMMDD` */
+function onDateChange(event: { detail: { value: string } }): void {
+  const picked = event.detail.value;
+  if (!picked) return;
+  mapStore.setSelectedDate(picked.replace(/-/g, ''));
+}
+
+/** 日期行右边的小箭头。它是「这里能改」的唯一提示 */
+const chevronIcon = icon('chevron-down', 'muted60');
 
 const tide = computed(() => mapStore.panelTideData);
 
@@ -246,13 +277,22 @@ const rangeText = computed(() => {
  *
  * 看别的日子时，表里的潮时全在未来，「距下一次」数出来是几十小时 ——
  * 那不是「下一次潮」，是那天最早的一次潮。这种时候给的是当天潮时次数。
+ *
+ * 标签与取值拆开：标签说「这是什么事」，取值只说「多少」。
  */
-const metaText = computed(() => {
-  if (!isToday.value) return `潮时 ${tide.value?.tideTable?.length ?? 0} 次`;
+const nextTideLabel = computed(() => {
+  if (!isToday.value) return '当天潮时';
 
   const event = nextTideEvent(tide.value);
-  if (!event) return '潮时已过';
-  return `距${event.type === 'H' ? '高潮' : '低潮'} ${formatDuration(event.minutesToNext)}`;
+  return event ? `距${event.type === 'H' ? '高潮' : '低潮'}` : '潮时';
+});
+
+const nextTideValue = computed(() => {
+  if (!isToday.value) return `${tide.value?.tideTable?.length ?? 0} 次`;
+
+  const event = nextTideEvent(tide.value);
+  if (!event) return '已过';
+  return formatDuration(event.minutesToNext);
 });
 
 /** 分钟数写成「2 小时 18 分」。不到一小时就不写小时 */
@@ -333,10 +373,13 @@ const tableRows = computed(() => {
  *
  * 轨道是中性填充、选中块是白底浮在上面 —— 轨道不给品牌色是刻意的，
  * 彩色留给选中项，整排才不会一起抢注意力。
+ *
+ * 轨道按内容宽度铺：站名长短不一，轨道得跟着最长的那个名字走，
+ * 选中块才不会被挤成半截字。站名多到一屏放不下时，这一排自己横滑。
  */
 .tide__segmented {
   width: 100%;
-  margin-bottom: 16rpx;
+  margin-bottom: 24rpx;
   white-space: nowrap;
   border-radius: $fish-radius-lg;
   background-color: $fish-fill;
@@ -345,6 +388,8 @@ const tableRows = computed(() => {
 
 .tide__segmented-track {
   display: flex;
+  width: max-content;
+  min-width: 100%;
   padding: 4rpx;
 }
 
@@ -353,8 +398,8 @@ const tableRows = computed(() => {
   align-items: center;
   justify-content: center;
   min-height: 64rpx;
-  flex: 1;
-  flex-shrink: 0;
+  flex: 1 0 auto;
+  min-width: 120rpx;
   padding: 0 24rpx;
   border-radius: 14rpx;
   /* 分段按下是变暗不是缩小：缩小会让整排的选中块位置跳一下 */
@@ -377,44 +422,39 @@ const tableRows = computed(() => {
 }
 
 /*
- * 日期 chip。选中态是胶囊形的实色按钮 —— iOS 的 chip 选中就是
- * 「填满 + 颜色反转」，而不是「描边加粗」。
+ * 日期行。原生 picker：整行可点，点了拉起微信自己的日期轮盘。
+ *
+ * 左边是字段名，右边是取值与箭头 —— 箭头是「这里能改」的唯一提示，
+ * 没有它，这一行看着像一行静态文字。
  */
-.tide__dates {
-  width: 100%;
-  white-space: nowrap;
-}
-
-.tide__dates-track {
-  display: flex;
-  padding: 4rpx;
-}
-
-.tide__chip {
+.tide__date-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 72rpx;
-  flex-shrink: 0;
-  margin-right: 12rpx;
-  padding: 0 28rpx;
-  border-radius: $fish-radius-pill;
-  background-color: $fish-surface;
-  @include fish-press;
+  justify-content: space-between;
+  padding-top: 22rpx;
+  border-top: 1rpx solid $fish-border-40;
 }
 
-.tide__chip--active {
-  background-color: $fish-accent;
+.tide__date-label {
+  color: $fish-muted;
+  @include fish-type(body);
 }
 
-.tide__chip-text {
+.tide__date-value {
+  display: flex;
+  align-items: center;
+}
+
+.tide__date-text {
   color: $fish-ink;
-  @include fish-type(caption);
+  @include fish-type(body, 500);
 }
 
-.tide__chip-text--active {
-  color: $fish-on-accent;
-  font-weight: 500;
+.tide__date-chevron {
+  width: 28rpx;
+  height: 28rpx;
+  margin-left: 10rpx;
+  opacity: 0.6;
 }
 
 /*
@@ -429,7 +469,7 @@ const tableRows = computed(() => {
 
 .tide__now-label {
   display: block;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
   color: $fish-muted-60;
   @include fish-type(caption);
 }
@@ -443,17 +483,26 @@ const tableRows = computed(() => {
 .tide__now-left {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 状态胶囊。它只报状态，不装别的信息 */
+.tide__now-pill {
+  padding: 6rpx 18rpx;
+  border-radius: $fish-radius-pill;
+  background-color: $fish-accent-tint;
 }
 
 .tide__now-trend {
-  color: $fish-ink;
-  @include fish-type(body, 500);
+  color: $fish-blue-600;
+  @include fish-type(caption, 500);
 }
 
 .tide__now-rate {
-  margin-top: 4rpx;
+  margin-top: 10rpx;
   color: $fish-muted;
   @include fish-type(caption);
+  @include numeric(500);
 }
 
 .tide__now-level {
@@ -461,9 +510,11 @@ const tableRows = computed(() => {
   align-items: baseline;
 }
 
+/* 读数取曲线的那个蓝：同一个数，跟图上那条线是一件事 */
 .tide__now-value {
-  color: $fish-blue;
+  color: $fish-tide;
   @include fish-type(display);
+  @include numeric;
 }
 
 .tide__now-unit {
@@ -476,23 +527,46 @@ const tableRows = computed(() => {
   padding: 8rpx 0 24rpx;
 }
 
-/* 潮差与下一个潮时。放在曲线下面，与曲线之间留一段 */
+/*
+ * 潮差与下一个潮时。放在曲线下面，与曲线之间留一段。
+ *
+ * 两格并排，中间一道发丝线：标签在上、取值在下 ——
+ * 取值是这一格真正要读的东西，标签只是它是什么。
+ */
 .tide__meta {
   display: flex;
-  justify-content: space-between;
   padding-top: 20rpx;
   border-top: 1rpx solid $fish-border-40;
 }
 
-.tide__meta-item {
-  color: $fish-muted;
+.tide__meta-cell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tide__meta-cell + .tide__meta-cell {
+  padding-left: 24rpx;
+  border-left: 1rpx solid $fish-border-40;
+}
+
+.tide__meta-label {
+  color: $fish-muted-60;
   @include fish-type(caption);
+}
+
+.tide__meta-value {
+  margin-top: 6rpx;
+  color: $fish-ink;
+  @include fish-type(body, 500);
+  font-variant-numeric: tabular-nums;
 }
 
 /*
  * 当天最高与最低。
  *
- * 两张并排的面板，中间露出一道发丝线底 —— 面板从缝里浮起来，
+ * 两张并排的内嵌面板，中间露出一道发丝线底 —— 面板从缝里浮起来，
  * 才读得成一个分组。
  */
 .tide__peak {
@@ -500,25 +574,35 @@ const tableRows = computed(() => {
   flex-direction: column;
   padding: 24rpx 28rpx;
   border-radius: $fish-radius-lg;
-  background-color: $fish-glass-strong;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  background-color: $fish-fill;
 }
 
+/* 标签分色：高潮蓝、低潮琥珀，与时刻表同一套颜色语言 */
 .tide__peak-label {
   color: $fish-muted;
   @include fish-type(caption);
+}
+
+.tide__peak-label--high {
+  color: $fish-blue-600;
+}
+
+.tide__peak-label--low {
+  color: $fish-warning-ink;
 }
 
 .tide__peak-time {
   margin-top: 8rpx;
   color: $fish-ink;
   @include fish-type(title);
+  font-variant-numeric: tabular-nums;
 }
 
 .tide__peak-height {
   margin-top: 4rpx;
   color: $fish-muted-60;
   @include fish-type(caption);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 潮时表的一行：时刻、高潮/低潮、潮高 */
@@ -526,7 +610,7 @@ const tableRows = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
+  padding: 22rpx 0;
   border-bottom: 1rpx solid $fish-border-40;
 }
 
@@ -537,9 +621,14 @@ const tableRows = computed(() => {
 .tide__row-time {
   color: $fish-ink;
   @include fish-type(body);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 高潮用蓝、低潮用琥珀：两件事要能一眼分开 */
+.tide__row-kind {
+  @include fish-type(body, 500);
+}
+
 .tide__row-kind--high {
   color: $fish-blue-600;
 }
@@ -548,17 +637,17 @@ const tableRows = computed(() => {
   color: $fish-warning-ink;
 }
 
-.tide__row-kind {
-  @include fish-type(body, 500);
-}
-
 .tide__row-height {
   color: $fish-muted;
   @include fish-type(body);
+  font-variant-numeric: tabular-nums;
 }
 
 .tide__empty {
-  color: $fish-muted;
-  @include fish-type(body);
+  display: block;
+  padding: 32rpx 0;
+  color: $fish-muted-60;
+  @include fish-type(caption);
+  text-align: center;
 }
 </style>
