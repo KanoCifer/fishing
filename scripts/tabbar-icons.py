@@ -25,11 +25,12 @@ from PIL import Image, ImageDraw
 SIZE = 81
 SS = 4  # 超采样倍数
 
-# 未选中 / 选中两态的色值，必须与令牌层 _color.scss 的 $fish-muted / $fish-blue 对齐，
-# 也必须与 pages.json 里 tabBar 的 color / selectedColor 对齐 ——
-# 三个地方是同一件事的三个出处，漏改一处，选中时的图标和文字就会一个蓝一个旧蓝。
+# 未选中 / 选中两态的色值，必须与令牌层 _color.scss 的 $fish-muted / $fish-blue 对齐。
+#
+# 选中态是 $fish-blue（#0f66d6）而不是 systemBlue（#007aff）：底栏的文字用令牌蓝，
+# 图标烤成另一个蓝，同一个选中态就是两个蓝 —— 令牌是唯一那一份，两边都得跟它走。
 COLOR_IDLE = (60, 60, 67, 255)  # #3c3c43 = $fish-muted（secondaryLabel）
-COLOR_ACTIVE = (0, 122, 255, 255)  # #007aff = $fish-blue（systemBlue）
+COLOR_ACTIVE = (15, 102, 214, 255)  # #0f66d6 = $fish-blue
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "src" / "static" / "tabbar"
 

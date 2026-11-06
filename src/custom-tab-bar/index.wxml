@@ -1,19 +1,35 @@
 <view class="tabbar">
-  <view
-    wx:for="{{list}}"
-    wx:key="key"
-    class="tabbar__item {{item.type === 'action' ? 'tabbar__item--action' : ''}}"
-    data-key="{{item.key}}"
-    bindtap="onTap"
-  >
-    <view class="tabbar__iconbox {{item.type === 'action' ? 'tabbar__iconbox--action' : ''}}">
-      <image
-        class="tabbar__icon"
-        src="{{item.key === selectedKey ? item.activeIcon : item.icon}}"
-        mode="aspectFit"
-      />
-    </view>
+  <view class="tabbar__row">
+    <view
+      wx:for="{{list}}"
+      wx:key="key"
+      class="tabbar__item"
+      data-key="{{item.key}}"
+      bindtap="onTap"
+      hover-class="tabbar__item--press"
+      hover-start-time="0"
+      hover-stay-time="80"
+    >
+      <!--
+        动作键（记一笔）：没有文字，圆键自己就是那枚标签。
+        它不参与选中态 —— 「在哪一格」与「现在能做什么」是两件事。
+      -->
+      <view wx:if="{{item.type === 'action'}}" class="tabbar__action">
+        <image class="tabbar__action-icon" src="{{item.icon}}" mode="aspectFit" />
+      </view>
 
-    <text class="tabbar__label {{item.key === selectedKey ? 'tabbar__label--on' : ''}}">{{item.text}}</text>
+      <!--
+        导航格：图标与文字是选中态药丸的两半，不是两次表态。
+        药丸只托住「在哪一格」，颜色变化是它的副产品。
+      -->
+      <view wx:else class="tabbar__cell {{item.key === selectedKey ? 'tabbar__cell--on' : ''}}">
+        <image
+          class="tabbar__icon"
+          src="{{item.key === selectedKey ? item.activeIcon : item.icon}}"
+          mode="aspectFit"
+        />
+        <text class="tabbar__label {{item.key === selectedKey ? 'tabbar__label--on' : ''}}">{{item.text}}</text>
+      </view>
+    </view>
   </view>
 </view>

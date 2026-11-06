@@ -5,18 +5,18 @@
  *
  * 为什么不用 100vh：
  *
- * 小程序的 100vh 以屏幕高度为基准，**把原生 tabBar 的高度也算进去了**。
- * 本项目三个页签都是 tabBar 页，页面内容按 100vh 铺满的话，
- * 实际高度比「真正能显示的那部分」高出整整一个 tabBar（约 50px）——
- * 页面于是变成可滚动的：内容比视口多出来的那一截，就是用户能拖出去的范围。
+ * 100vh 以屏幕高度为基准，而本项目的导航栏与底栏都是自定义的浮层。
+ * 页面能用的是「可用窗口高度」——uni.getWindowInfo().windowHeight。
+ * 按 100vh 铺满，页面会多出一截可滚动范围：内容比视口多出来的那一截，
+ * 就是用户能拖出去的范围。
  *
- * 在地图页上这个多出来的 50px 表现得很明显：双指在地图上滑动，
+ * 在地图页上这个多出来的一截表现得很明显：双指在地图上滑动，
  * 被 WebView 接管成页面滚动，整页跟着滑，地图被拖离原位；
  * iOS 上还会叠加一层橡皮筋回弹。
  *
- * uni.getWindowInfo().windowHeight 才是「真正能显示的那部分高度」——
- * tabBar 页面上它不含 tabBar 高度。微信社区上也是这个结论：
- * https://developers.weixin.qq.com/community/minihome/doc/000a8afb7c834838f842547536b800
+ * ⚠️ 自定义底栏是浮层：windowHeight 里**含**它，tab 页的底部要自己让开
+ * （见令牌层的 fish-tabbar-inset）。地图页是例外 —— 地图要铺满整屏，
+ * 底栏浮在地图上。
  *
  * 只做全屏铺底的页面用它；有内容要滚的页面用 min-height 就够了。
  *
@@ -26,7 +26,7 @@
 import { windowMetrics } from './windowMetrics';
 
 export interface Viewport {
-  /** 可用窗口高度（px）。tabBar 页面上不含 tabBar 高度 */
+  /** 可用窗口高度（px）。自定义底栏是浮层，这个高度里含它 */
   windowHeight: number;
   /** 可用窗口宽度（px） */
   windowWidth: number;

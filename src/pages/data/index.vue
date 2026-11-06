@@ -253,6 +253,9 @@ function openBreakdown() {
 .data__content {
   position: relative;
   z-index: 1;
+
+  /* 底栏是 fixed 通栏，浮在内容之上 —— 最后一屏要自己让开 */
+  @include fish-tabbar-inset;
 }
 
 .sect {

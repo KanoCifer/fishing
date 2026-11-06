@@ -234,7 +234,12 @@ onShow(() => {
 .spots-error {
   position: absolute;
   left: 24rpx;
-  bottom: 24rpx;
+
+  /*
+   * 抬到底栏之上。地图铺满整屏，而底栏是浮在屏幕上的通栏 ——
+   * 空态卡片原本贴着地图下沿，现在那块地正好是底栏。
+   */
+  bottom: calc(#{$fish-tabbar-height} + env(safe-area-inset-bottom) + 24rpx);
   z-index: 10;
   display: flex;
   align-items: center;

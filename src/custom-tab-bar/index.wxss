@@ -1,3 +1,25 @@
+/*
+ * 自定义 tabBar —— 「分段」形态。
+ *
+ * 结构（见 index.wxml）：
+ *   .tabbar        贴底通栏
+ *     .tabbar__row   一行五格
+ *       .tabbar__item  一格（导航格或动作键）
+ *         .tabbar__cell   导航格，选中时整块被药丸托住
+ *         .tabbar__action 动作键（记一笔），圆键自己就是标签
+ *
+ * 分层的理由（两条都不是洁癖，是小程序的实际限制）：
+ *
+ * 1. 入场动画挂在 .tabbar__cell / .tabbar__action 上，按压回弹挂在
+ *    .tabbar__item 上 —— 两者都是 transform，但落在不同元素上。
+ *    同一元素上 animation 的 transform 会盖掉 :active 的回弹。
+ *
+ * 2. 动画不挂在 .tabbar 根节点上 —— 组件宿主节点不吃动画。
+ *
+ * 长度单位：1px（375pt 机型）= 2rpx。
+ */
+
+/* 贴底通栏。高度由内容撑出来，安全区是叠加的，不是被吃掉的 */
 .tabbar {
   position: fixed;
   left: 0;
@@ -5,81 +27,119 @@
   bottom: 0;
   z-index: 100;
 
-  display: flex;
   box-sizing: border-box;
-  height: 160rpx;
-  padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 
-  background-color: #ffffff;
-  border-radius: 56rpx, 56rpx, 0, 0;
+  background-color: rgba(250,250,250,0.6);
+  backdrop-filter: blur(16px) saturate(1.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow: inset 0 1rpx 0 rgba(60, 60, 67, 0.18);
 }
 
-/* 一格。flex:1 平分底栏 */
+/* 一行五格 */
+.tabbar__row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 100rpx;
+  padding: 0 8rpx;
+}
+
+/* 一格。按压回弹在这层，动画在里层，两者不打架 */
 .tabbar__item {
   display: flex;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 100%;
+
+  transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.tabbar__item--press {
+  transform: scale(0.96);
+}
+
+/*
+ * 导航格 —— 药丸。
+ *
+ * 选中态不是「图标变蓝 + 文字变蓝」这种两次表态，而是整块被托起来：
+ * 药丸是唯一的表态位，颜色变化只是它的副产品。
+ */
+.tabbar__cell {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 100rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 28rpx;
+
+  animation: tabbar-cell-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-/* 图标盒。固定大小，选中态与常态换的是图不是盒子 */
-.tabbar__iconbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48rpx;
-  height: 48rpx;
+.tabbar__cell--on {
+  background-color: rgba(15, 102, 214, 0.12);
 }
 
+@keyframes tabbar-cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 图标。固定盒子，两态换图不换盒子 */
 .tabbar__icon {
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
 }
 
 /*
- * 文字。
- *
- * 20rpx（10px）—— 与原生 tabBar 同一档（pages.json 没配 fontSize，默认 10px）。
+ * 文字。20rpx（10px）—— 与原生 tabBar 同一档（pages.json 没配 fontSize，
+ * 默认 10px）。
  */
 .tabbar__label {
+  display: block;
   margin-top: 2rpx;
   font-size: 20rpx;
   line-height: 24rpx;
-  color: #3c3c43;
+  color: #666666;
+
+  transition: color 260ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .tabbar__label--on {
-  color: #007aff;
+  color: #0f66d6;
+  font-weight: 500;
 }
 
-.tabbar__item--action {
-  position: relative;
-}
-
-.tabbar__iconbox--action {
-  position: absolute;
-  bottom: 4rpx;
-  left: 50%;
+/*
+ * 动作键（记一笔）。
+ *
+ * 它不参与选中态：「在哪一格」与「现在能做什么」是两件事，
+ * 一件事只说一遍。圆键自己就是那枚标签，所以没有文字。
+ */
+.tabbar__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
-  width: 116rpx;
-  height: 116rpx;
-  margin-left: -58rpx;
-  border: 4rpx solid #ffffff;
-  border-radius: 50%;
-  background-image: linear-gradient(135deg, rgb(56,130,252) 0%, #0f66d6 55%, rgb(56,130,252) 100%);
-  box-shadow: 0 6rpx 16rpx rgba(9, 24, 40, 0.24);
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 999px;
+  background-image: linear-gradient(135deg, #1a6ee0 0%, #0f66d6 55%, #1a4fa0 100%);
+  box-shadow: 0 10rpx 24rpx rgba(13, 28, 44, 0.22);
+
+  animation: tabbar-cell-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-.tabbar__iconbox--action .tabbar__icon {
-  width: 48rpx;
-  height: 48rpx;
-}
-
-/* 动作键没有文字标签：圆键自己就是那枚标签 */
-.tabbar__item--action .tabbar__label {
-  display: none;
+.tabbar__action-icon {
+  width: 38rpx;
+  height: 38rpx;
 }

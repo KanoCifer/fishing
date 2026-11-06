@@ -17,7 +17,8 @@
 
 ## 高度
 
-- **`100vh` 把原生 tabBar 高度也算进去了** → 用 `uni.getWindowInfo().windowHeight`。快照 `src/composables/windowMetrics.ts`；⚠️ 别把 `useNavMetrics` / `useViewport` 改异步。
+- **`100vh` 是屏幕高** → 用 `uni.getWindowInfo().windowHeight`。快照 `src/composables/windowMetrics.ts`；⚠️ 别把 `useNavMetrics` / `useViewport` 改异步。
+- **自定义底栏是浮层，`windowHeight` 里含它**：底栏浮在内容上，可用高度不会替它让出来 —— 要让开得由页面自己补（见下面「底栏」那节）。
 
 ## 测量：先量后动
 
@@ -53,8 +54,11 @@
 
 ## 底栏
 
-- **底栏是原生的**：`pages.json` 的 `tabBar` 里没有 `"custom": true`，`src/custom-tab-bar/` 目录已删除。自定义底栏在排查「首次进入后切到「我的」闪退」时摘掉了 —— 原生底栏自己管切换，不存在自定义底栏那套导航加锁。
-- **原生底栏不浮在内容上**：tab 页的内容区本来就不含底栏高度（见上面 `windowHeight` 那条），页面底部**不要**再留 `paddingBottom` 余量 —— 那是自定义底栏（fixed 浮层）才需要的。
+- **底栏是自定义的**：`pages.json` 的 `tabBar.custom` 为 `true`，底栏由 `src/custom-tab-bar/` 提供。微信给每个 tab 页各建一个组件实例、实例之间不共享 data —— 选中态的真值放在**模块作用域**，以点击为主、路由反推兜底（见 `index.js` 的注释）。
+- **`src/custom-tab-bar/` 不经 uni-app 编译**：原样拷到小程序代码根目录 → 只能写原生小程序语法（不能写 TS，不能用 `uni.*` 的 API）。
+- **自定义底栏是 fixed 浮层，浮在内容上**：tab 页的可用高度里**不含**底栏（`windowHeight` 也不会替它让出来），页面底部必须自己让开 —— 用 `fish-tabbar-inset` mixin（`calc(底栏行高 + env(safe-area-inset-bottom))`）。
+- **底栏高度是一套数**：WXSS 里 `.tabbar__row` 的行高 = 令牌层 `$fish-tabbar-height`。两处对不上就会「内容被切」或「底下多一截空白」。
+- **`custom: true` 时 `pages.json` 的 `color` / `selectedColor` / `iconPath` 不参与渲染**，但仍要完整声明（少了会报错）—— 真正的配色在 WXSS 与 PNG 里。
 
 ## 自定义事件不能与原生事件同名
 

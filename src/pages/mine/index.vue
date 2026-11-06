@@ -366,6 +366,17 @@ function onLogout() {
 <style lang="scss" scoped>
 .mine {
   background-color: $fish-grouped;
+
+  /*
+   * 底部让开自定义 tabBar 的整条高度。
+   * 这一页没有单独的内容层，落款直接挂在根节点上，所以让位给根节点。
+   *
+   * border-box 是必须的：根节点用 min-height 顶满一屏，
+   * 不锁 border-box 的话内边距会加在 min-height 之外，
+   * 页面底下会多出一截可滚动的空白。
+   */
+  box-sizing: border-box;
+  @include fish-tabbar-inset;
 }
 
 /*

@@ -87,3 +87,28 @@
 
   text-align: center;
 }
+
+/**
+ * 自定义 tabBar 的高度。50pt。
+ *
+ * 底栏是 fixed 通栏，浮在页面内容之上 —— 页面的可用高度里**不含**它。
+ * 所以 tab 页最后一屏的内容会被压在底栏底下，得由页面自己让开这一截。
+ *
+ * 与 src/custom-tab-bar/index.wxss 里 .tabbar__row 的高度是一套：
+ * 改那边就得改这里，两处对不上就会出现「内容被切」或「底下多一截空白」。
+ */
+$fish-tabbar-height: 100rpx;
+
+/**
+ * 让开底栏 + 安全区。
+ *
+ * 底栏自己垫了安全区（padding-bottom: env(safe-area-inset-bottom)），
+ * 所以这里让开的是「底栏整条」：行高 + 安全区。
+ *
+ * ⚠️ env() 不能与长度直接相加 —— SCSS 会把两段接成
+ * `100rpxenv(safe-area-inset-bottom)`，整条声明作废，安全区等于没让。
+ * 要相加必须套 calc()。
+ */
+@mixin fish-tabbar-inset {
+  padding-bottom: calc(#{$fish-tabbar-height} + env(safe-area-inset-bottom));
+}

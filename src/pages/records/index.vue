@@ -105,10 +105,10 @@
         </template>
 
         <!--
-          「记一笔」不在这一页。
+          「记一笔」不在这一页的版面上。
 
-          底栏中间那颗圆键是自定义底栏带来的，底栏回到原生后它就没了——
-          入口改到日历里：点某一天，浮层上就是「记一笔」。
+          全局入口是底栏中间那颗圆键；这一页自己的入口是日历 ——
+          点某一天，浮层上就是「记一笔」。
         -->
       </template>
     </view>
@@ -434,21 +434,18 @@ async function onLogin(): Promise<void> {
  * 不给这一层定位的话，环境色底会盖住所有没带 transform 的内容
  * （正文里的卡片就是那些）。
  *
- * 与数据页、我的页的 `.data__content` / `.mine__body` 同一套做法。
+ * 与数据页的 `.data__content`、我的页的 `.mine` 同一套做法。
  *
  * 顶部不给内边距：头图从屏幕顶端起，先撞上状态栏和微信胶囊。
  *
- * 底部只留安全区。底栏是原生的、内容区本来就不含底栏高度，
- * 根节点上不再补 paddingBottom —— 这里再补一份，底下会多出一截空白。
- *
- * ⚠️ `env()` 不能与长度直接相加：SCSS 会把它当字符串接起来，
- * 编译出来是 `160rpxenv(safe-area-inset-bottom)` —— 整条声明无效，
- * 安全区让不开。要相加就套 calc()。
+ * 底部让开自定义 tabBar 的整条高度（行高 + 安全区）。
+ * 底栏是 fixed 通栏、浮在内容之上，而页面可用高度里不含它 ——
+ * 不让开，这一页的落款就会被压在底栏底下。
  */
 .records__body {
   position: relative;
   z-index: 1;
-  padding-bottom: env(safe-area-inset-bottom);
+  @include fish-tabbar-inset;
 }
 
 /*
