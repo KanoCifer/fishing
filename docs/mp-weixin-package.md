@@ -26,7 +26,8 @@
 ### JS 引擎：两端不是一套
 
 - iOS 跑 JavaScriptCore，Android 跑微信打包的 V8：`Array.prototype.at`、`Object.hasOwn` 两端不一致。
-- 补法：`src/utils/polyfills.ts` 补齐、`main.ts` 模块顶层装上；同理补 `$set`/`$delete`（mp-html v2 在用），不补首渲白屏。
+- 补法：`src/utils/polyfills.ts` 补齐、`main.ts` 模块顶层装上。
+- `$set`/`$delete` 曾为 mp-html v2 补过（它内部 `this.$set(this, 'nodes', …)`），mp-html 已换成原生 `rich-text`，这层兼容随之删掉 —— Vue 3 本来就不需要它。
 
 ### marked 里的 ES2018 正则：整包白屏的真凶（已修）
 

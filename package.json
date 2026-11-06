@@ -38,7 +38,6 @@
     "@meteocons/svg": "^0.1.0",
     "@meteocons/svg-static": "^0.1.0",
     "marked": "^18.1.1",
-    "mp-html": "^2.5.2",
     "pinia": "^3.0.0",
     "vue": "^3.5.44",
     "vue-i18n": "^9.14.4"

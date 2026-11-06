@@ -109,7 +109,7 @@
  * 与源项目（kanocifer-chat-frontend）的 WeatherAnalysis 组件的差异，
  * 除了平台差异，也是版式差异：
  * - 源版是桌面右侧悬浮卡，这里是底部 SnapSheet（小程序没有 hover 下拉）
- * - 源版用 DOMPurify + v-html 渲染 Markdown，这里走 mp-html（小程序不能碰 DOM）
+ * - 源版用 DOMPurify + v-html 渲染 Markdown，这里走原生 rich-text（小程序不能碰 DOM）
  * - 源版用 AbortController 取消，这里用 RequestTask.abort（小程序没有 AbortController）
  * - 源版模型选择是 HoverDropdown，这里只有静态标签（后端上更多模型时换回 picker）
  * - 源版把状态与动作都摆在正文顶部，这里动作区挪进 SnapSheet 的 footer 插槽

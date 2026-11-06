@@ -6,7 +6,6 @@ settings:
 
 patchedDependencies:
   marked@18.1.1: 21c8f0c924e54bfb42cc8329690cbcade3c4197100ba28a0b81d1c5ef17fc4b8
-  mp-html@2.5.2: 7c98bdffe15c6e78cb96c93d7b54074ab84faace3b246bd935cd40b23fd39930
 
 importers:
 
@@ -69,9 +68,6 @@ importers:
       marked:
         specifier: ^18.1.1
         version: 18.1.1(patch_hash=21c8f0c924e54bfb42cc8329690cbcade3c4197100ba28a0b81d1c5ef17fc4b8)
-      mp-html:
-        specifier: ^2.5.2
-        version: 2.5.2(patch_hash=7c98bdffe15c6e78cb96c93d7b54074ab84faace3b246bd935cd40b23fd39930)
       pinia:
         specifier: ^3.0.0
         version: 3.0.4(typescript@4.9.5)(vue@3.5.44(typescript@4.9.5))
@@ -3056,9 +3052,6 @@ packages:
 
   module-alias@2.2.3:
     resolution: {integrity: sha512-23g5BFj4zdQL/b6tor7Ji+QY4pEfNH784BMslY9Qb0UnJWRAt+lQGLYmRaM0KDBwIG23ffEBELhZDP2rhi9f/Q==}
-
-  mp-html@2.5.2:
-    resolution: {integrity: sha512-45e8c32Qgux4YU4iC3qCSFsOh3y+RwPwZ+iz/vvLkDgSGWk+1zsL4WUzWWQc9w3AsAfkaD/QR0oIufIDngBmXA==}
 
   ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -7957,8 +7950,6 @@ snapshots:
       ufo: 1.6.4
 
   module-alias@2.2.3: {}
-
-  mp-html@2.5.2(patch_hash=7c98bdffe15c6e78cb96c93d7b54074ab84faace3b246bd935cd40b23fd39930): {}
 
   ms@2.0.0: {}
 
