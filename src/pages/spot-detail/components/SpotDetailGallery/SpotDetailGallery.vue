@@ -50,9 +50,9 @@ defineProps<{
 </script>
 
 <style lang="scss" scoped>
-/* 分区。标题上方的留白是 $fish-space-sectitle */
+/* 分区。标题上方的留白是 $fish-space-section */
 .gallery {
-  margin-top: $fish-space-sectitle;
+  margin-top: $fish-space-section;
 }
 
 /* 分区标签：eyebrow，与钓况、钓点信息两段同一档 */

@@ -520,7 +520,7 @@ function openNavigation() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: $fish-space-sectitle;
+  margin-top: $fish-space-section;
 }
 
 .spot-detail__foot-link {
@@ -549,6 +549,6 @@ function openNavigation() {
 .spot-detail__foot-text--accent {
   color: $fish-blue-600;
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

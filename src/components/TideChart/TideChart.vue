@@ -852,7 +852,7 @@ function onTouchEnd() {
 .tide-chart__head-label {
   color: $fish-muted;
   @include fish-type(caption);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tide-chart__head-value {
@@ -883,7 +883,7 @@ function onTouchEnd() {
   margin-bottom: 8rpx;
   color: $fish-muted-60;
   @include fish-type(body);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -897,7 +897,7 @@ function onTouchEnd() {
   margin-bottom: 8rpx;
   color: $fish-muted;
   @include fish-type(caption);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

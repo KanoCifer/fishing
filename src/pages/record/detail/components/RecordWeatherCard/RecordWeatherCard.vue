@@ -235,7 +235,7 @@ function isNumber(value: number | undefined): boolean {
 
 .wx__title {
   color: $fish-on-dark;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 /*
@@ -252,7 +252,7 @@ function isNumber(value: number | undefined): boolean {
   color: $fish-on-dark;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ── 主体 ──────────────────────────────────────────────────────────────── */
@@ -333,7 +333,7 @@ function isNumber(value: number | undefined): boolean {
   color: $fish-on-dark;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 
   /* 「1013hPa」与「6.3km/h」同排时不许折行 */
   white-space: nowrap;
@@ -404,7 +404,7 @@ function isNumber(value: number | undefined): boolean {
 .wx__index-word {
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .wx__index-word--success {

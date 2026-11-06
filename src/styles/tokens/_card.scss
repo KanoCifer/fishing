@@ -2,6 +2,7 @@
 @use 'color' as *;
 @use 'type' as *;
 @use 'material' as *;
+@use 'space' as *;
 
 /**
  * 卡内留白。
@@ -15,14 +16,11 @@ $fish-card-padding: 28rpx;
 /**
  * 标题行与内容之间的距离。
  *
- * 20rpx = 10pt。
- *
- * 这个数跟 _layout.scss 里眉标到卡片的 20rpx 一样，但**不是同一个数**：
- * 那一处是「标签离卡片多远」，这一处是「标题离内容多远」。
- * 量级相同而已 —— 两者都是「标签级的东西离内容多远」，
- * 所以放在各自那一层，不合并：合并了就说不清改的是哪一个。
+ * 24rpx = 12pt —— 就是「标签与它下面那组内容之间」那一档
+ * （$fish-space-label）。两者是同一件事：标签离内容多远，
+ * 所以只留一个出处，分区眉标到卡片、卡片标题到内容共用它。
  */
-$fish-card-head-gap: 20rpx;
+$fish-card-head-gap: $fish-space-label;
 
 /**
  * 卡片外壳。
@@ -34,6 +32,22 @@ $fish-card-head-gap: 20rpx;
 @mixin fish-card($padding: $fish-card-padding) {
   padding: $padding;
   @include fish-card-glass;
+}
+
+/**
+ * 装着一组列表行的卡片。
+ *
+ * 横向留白交给行自己给（$fish-list-pad-x），卡片不再带 ——
+ * 行是满宽的，内容在行里内缩 20pt，标题行用同一档内缩，
+ * 于是整张卡里的内容都对齐在同一条竖线上。
+ *
+ * 纵向留白仍由卡片给：卡片的上下沿是「这一块的边界」，
+ * 不是某一行的高度。
+ */
+@mixin fish-list-card($padding-top: $fish-card-padding, $padding-bottom: $fish-card-padding) {
+  @include fish-card(0);
+  padding-top: $padding-top;
+  padding-bottom: $padding-bottom;
 }
 
 @mixin fish-card-head {

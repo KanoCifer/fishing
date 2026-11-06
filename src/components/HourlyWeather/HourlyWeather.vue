@@ -177,7 +177,7 @@ const { skeletonVisible } = useCrossFade({
    而它其实是状态，不是提醒 */
 .hourly__cell--first .hourly__time {
   color: $fish-blue-600;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -196,7 +196,7 @@ const { skeletonVisible } = useCrossFade({
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

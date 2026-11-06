@@ -74,9 +74,9 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
 </script>
 
 <style lang="scss" scoped>
-/* 分区。标题上方的留白是 $fish-space-sectitle */
+/* 分区。标题上方的留白是 $fish-space-section */
 .info {
-  margin-top: $fish-space-sectitle;
+  margin-top: $fish-space-section;
 }
 
 /* 分区标签：eyebrow，与钓况、照片两段同一档 */
@@ -164,7 +164,7 @@ const viewText = computed(() => `${(props.spot.view_count ?? 0).toLocaleString('
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

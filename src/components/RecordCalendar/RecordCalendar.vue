@@ -180,7 +180,7 @@ function onTap(cell: CalendarCell): void {
   color: $fish-ink;
   @include fish-type(title);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 翻页键。命中区 72rpx（36pt），比视觉尺寸大 */
@@ -273,7 +273,7 @@ function onTap(cell: CalendarCell): void {
 /* 有渔获的那天，日期用品牌蓝 —— 底是蓝底，字得比底更深一档才读得清 */
 .cal__cell--catch .cal__day {
   color: $fish-blue-600;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .cal__cell--checkin .cal__day {

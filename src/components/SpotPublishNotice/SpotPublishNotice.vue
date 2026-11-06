@@ -138,7 +138,7 @@ const chevronIcon = icon('chevron-right', 'muted60');
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 说明正文 */
@@ -199,7 +199,7 @@ const chevronIcon = icon('chevron-right', 'muted60');
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

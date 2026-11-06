@@ -32,7 +32,7 @@
   color: $fish-muted-60;
   @include fish-type(title);
 
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.04em;
 }
 
@@ -41,12 +41,12 @@
   flex-direction: column;
   padding-right: 32rpx;
   padding-left: 32rpx;
-  margin-top: $fish-space-sectitle;
+  margin-top: $fish-space-section;
 
-  /* 眉标：标题到卡片留 20rpx —— 标签是卡片的小节拍，不是卡片的一部分 */
+  /* 眉标：标题到卡片留 12pt —— 标签是卡片的小节拍，不是卡片的一部分 */
   .sect__title {
     display: block;
-    margin-bottom: 20rpx;
+    margin-bottom: $fish-space-label;
     @include fish-eyebrow;
     @include fish-enter;
   }
@@ -74,7 +74,7 @@
   .sect__card + .sect__card,
   .sect__card + .sect__row,
   .sect__row + .sect__card {
-    margin-top: $fish-space-section;
+    margin-top: $fish-space-card;
   }
 }
 

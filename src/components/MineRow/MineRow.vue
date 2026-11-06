@@ -83,9 +83,10 @@ function onTap() {
   position: relative;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   width: 100%;
   min-height: 120rpx;
-  padding: 0 40rpx;
+  padding: $fish-list-pad-y $fish-list-pad-x;
   margin: 0;
   border: none;
   background-color: transparent;
@@ -118,21 +119,21 @@ function onTap() {
 }
 
 /*
- * 内缩的那一道：从文字起点起画（行内边距 40 + 图标 40 + 图标右距 28）。
+ * 内缩的那一道：从文字起点起画（行内边距 40 + 图标 56 + 图标右距 28）。
  */
 .mine-row__divider--inset {
-  left: 108rpx;
+  left: 124rpx;
 }
 
 /*
- * 行首图标 20pt。
+ * 行首图标 28pt —— 列表图标那一档。
  *
- * 方形图标与 20pt 的行字齐平，它就退成「这一行的起点」；
- * 再大一点它就开始跟字抢注意力。
+ * 它标的是「这一行是哪一项」，所以要跟 16pt 的行字齐平当一档看；
+ * 再小就只是行里的一个杂点。
  */
 .mine-row__icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: $fish-icon-list;
+  height: $fish-icon-list;
   flex-shrink: 0;
   margin-right: 28rpx;
 }

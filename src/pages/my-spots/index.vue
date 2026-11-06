@@ -405,7 +405,7 @@ onPageShow(async () => {
 
 .my-spots__filter-label {
   color: $fish-muted;
-  @include fish-type(caption, 600);
+  @include fish-type(caption, 500);
 }
 
 .my-spots__filter-item--on .my-spots__filter-label {
@@ -471,7 +471,7 @@ onPageShow(async () => {
 
 .my-spots__row-glyph {
   color: $fish-blue-600;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 /* 文字列。占满剩余宽度，名字长了才有地方截 */
@@ -491,7 +491,7 @@ onPageShow(async () => {
   min-width: 0;
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -552,7 +552,7 @@ onPageShow(async () => {
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -571,7 +571,7 @@ onPageShow(async () => {
 
 .my-spots__blank-title {
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .my-spots__blank-hint {
@@ -623,6 +623,6 @@ onPageShow(async () => {
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

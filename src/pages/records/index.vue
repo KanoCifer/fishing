@@ -423,7 +423,7 @@ async function onLogin(): Promise<void> {
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -564,7 +564,7 @@ async function onLogin(): Promise<void> {
 
 .records__sechead-title {
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .records__sechead-hint {

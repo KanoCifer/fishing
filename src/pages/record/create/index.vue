@@ -957,7 +957,7 @@ onLoad(async () => {
   min-width: 0;
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1033,7 +1033,7 @@ onLoad(async () => {
 
 .create__lead-title {
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .create__lead-count {
@@ -1096,14 +1096,14 @@ onLoad(async () => {
 
 .create__weather-title {
   color: $fish-on-dark;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .create__weather-action {
   color: $fish-deep-muted;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press-dim;
 }
 
@@ -1139,7 +1139,7 @@ onLoad(async () => {
   color: $fish-on-dark;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 
   white-space: nowrap;
 }
@@ -1205,7 +1205,7 @@ onLoad(async () => {
   color: $fish-on-dark;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ── 载入 / 未登录 ─────────────────────────────────────────────────────── */
@@ -1248,7 +1248,7 @@ onLoad(async () => {
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press-dim;
 }
 
@@ -1307,7 +1307,7 @@ onLoad(async () => {
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 次要按钮上的字是蓝的，不是白的 —— 它压的是淡底 */

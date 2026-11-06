@@ -560,6 +560,6 @@ watch(isStreaming, (streaming) => {
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

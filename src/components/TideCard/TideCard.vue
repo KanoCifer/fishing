@@ -138,14 +138,14 @@ watch(() => [mapStore.tideData, mapStore.tideStation, mapStore.nearestStationRes
 /*
  * 标题行。左边标题、右边入口，两端对齐到基线。
  *
- * 入口那一块撑到 88rpx 高（44pt 的可点按热区）：它字小，
+ * 入口是按钮：撑到 44pt 高（拇指盲按的最小命中区）。它字小，
  * 按热区不跟着缩，否则点不准。
  */
 .tide-card__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: $fish-card-head-gap;
 }
 
 .tide-card__title {
@@ -160,28 +160,30 @@ watch(() => [mapStore.tideData, mapStore.tideStation, mapStore.nearestStationRes
 }
 
 .tide-card__title-icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-title;
+  height: $fish-icon-title;
 }
 
 .tide-card__entry {
-  display: flex;
-  align-items: center;
-  padding-top: 16rpx;
-  padding-bottom: 16rpx;
-  margin-top: -16rpx;
+  @include fish-button;
+  @include fish-button-content;
+
+  /* 命中区抵到卡边：右边那一截留白是卡片的，不是这个键的 */
+  margin-right: -$fish-btn-pad-x;
   @include fish-press-dim;
 }
 
+/* 文字自己裹一层 4pt 的留白，图标紧贴它 —— 两者之间不留缝 */
 .tide-card__entry-text {
+  @include fish-button-label;
   color: $fish-muted;
   @include fish-type(caption);
 }
 
+/* 附属箭头：结构符号，不是图标键 */
 .tide-card__entry-icon {
   width: 24rpx;
   height: 24rpx;
-  margin-left: 6rpx;
   opacity: 0.8;
 }
 

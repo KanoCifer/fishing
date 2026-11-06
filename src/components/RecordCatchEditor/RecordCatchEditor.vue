@@ -386,6 +386,6 @@ function onQuantityInput(index: number, event: { detail: { value: string } }): v
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

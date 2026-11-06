@@ -195,7 +195,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 
 .metric__item-text--active {
   color: $fish-ink;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .metric__empty {

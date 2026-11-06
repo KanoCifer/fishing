@@ -94,11 +94,18 @@ const emptyText = computed(() => {
  * 分层靠面 + 阴影，区块之间隔多远交给页面（见 pages/data 的 .sect）。
  */
 .life {
-  @include fish-card;
+  /* 这张卡装的是一组行：横向留白交给行自己给，
+     纵向留给行自己的上下留白 —— 最后一行的那一档就是卡的下沿 */
+  @include fish-list-card($fish-card-padding, 0);
 }
 
 .life__head {
   @include fish-card-head;
+
+  /* 标题到下面那组行的距离，由行自己的上留白给（12pt）——
+     标题再带一份 12pt，两份叠起来就成了 24pt，那是另起一段的距离 */
+  margin-bottom: 0;
+  padding: 0 $fish-list-pad-x;
 }
 
 /* 分区标题统一走 fish-card-title（见 DayForecast 同名注释） */
@@ -118,22 +125,21 @@ const emptyText = computed(() => {
 .life__item {
   display: flex;
   flex-direction: column;
-  padding: 8rpx 0;
+  @include fish-list-row;
 }
 
-/* 多条指数之间用发丝线分开，理由同 WeatherCard 的行分隔 */
+/* 多条指数之间用发丝线分开，理由同 WeatherCard 的行分隔。
+   线压到纸边：线是纸上的一道折痕，缩进就成表格的格线了。 */
 .life__item--divided {
-  margin-top: 20rpx;
-  padding-top: 24rpx;
   border-top: 1rpx solid $fish-border-40;
 }
 
 .life__name {
   display: block;
-  margin-bottom: 10rpx;
+  margin-bottom: $fish-space-label;
   color: $fish-muted;
   @include fish-type(body);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -154,7 +160,7 @@ const emptyText = computed(() => {
   border-radius: $fish-radius-pill;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

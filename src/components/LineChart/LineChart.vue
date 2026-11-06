@@ -880,7 +880,7 @@ function onTouchEnd() {
 .line-chart__stat-value {
   color: $fish-ink;
   @include fish-type(body);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .line-chart__stat-unit {

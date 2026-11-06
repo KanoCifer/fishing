@@ -457,28 +457,29 @@ function onLogout() {
  * 白块在这儿是唯一能一眼看清的东西，所以它不能是半透明的。
  */
 .mine__cta {
-  display: flex;
-  align-items: center;
+  @include fish-button-content;
   justify-content: center;
-  height: 88rpx;
-  padding: 0 56rpx;
+  height: $fish-btn-height;
+  padding: 0 $fish-btn-pad-x;
   border-radius: $fish-radius-pill;
   background-color: $fish-card-face;
   box-shadow: $smooth-shadow-md;
   @include fish-press(0.97);
 }
 
+/* 图标 24pt，紧贴文字那一层 —— 两者之间不留缝 */
 .mine__cta-icon {
-  width: 34rpx;
-  height: 34rpx;
-  margin-right: 14rpx;
+  width: $fish-icon-nav;
+  height: $fish-icon-nav;
 }
 
+/* 文字自己裹一层 4pt 的留白 */
 .mine__cta-text {
+  @include fish-button-label;
   color: $fish-deep-base;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 两组白卡。上下留白 40rpx —— 卡与卡之间 24rpx，段与段之间才分得出段 */
@@ -544,7 +545,7 @@ mine-row {
   color: $fish-destructive;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 落款 */

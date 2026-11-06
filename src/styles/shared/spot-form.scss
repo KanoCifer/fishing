@@ -60,7 +60,7 @@
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .spot-form__draft-time {
@@ -77,7 +77,7 @@
   color: $fish-destructive-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press-dim;
 }
 
@@ -137,7 +137,7 @@
   color: $fish-warning-ink;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .sect__badge--done {
@@ -286,5 +286,5 @@
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }

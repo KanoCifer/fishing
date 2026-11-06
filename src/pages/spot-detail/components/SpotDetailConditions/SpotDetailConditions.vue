@@ -120,9 +120,9 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
 </script>
 
 <style lang="scss" scoped>
-/* 分区。标题上方的留白是 $fish-space-sectitle —— 「另起一段」的那一截 */
+/* 分区。标题上方的留白是 $fish-space-section —— 「另起一段」的那一截 */
 .conditions {
-  margin-top: $fish-space-sectitle;
+  margin-top: $fish-space-section;
 }
 
 /*
@@ -365,7 +365,7 @@ const retryLabel = SPOT_DETAIL_CONDITIONS.retry;
   color: $fish-blue-600;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press-dim;
 }
 </style>

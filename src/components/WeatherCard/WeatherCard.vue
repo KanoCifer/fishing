@@ -353,7 +353,7 @@ const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime))
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weather__meta {
@@ -389,13 +389,13 @@ const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime))
   color: $fish-muted-60;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 图标是标识，不是状态信号 —— 所以统一用 ink 色 */
 .weather__tile-icon {
-  width: 30rpx;
-  height: 30rpx;
+  width: $fish-icon-badge;
+  height: $fish-icon-badge;
   flex-shrink: 0;
 }
 
@@ -420,7 +420,7 @@ const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime))
   color: $fish-muted-60;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weather__tile-foot {
@@ -438,7 +438,7 @@ const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime))
   flex-shrink: 0;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weather__tile-level--success {

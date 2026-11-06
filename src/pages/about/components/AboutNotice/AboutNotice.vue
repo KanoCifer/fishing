@@ -89,7 +89,7 @@ const infoIcon = icon('info', 'muted60');
 */
 .about-notice__link {
   color: $fish-blue-600;
-  @include fish-type(caption, 600);
+  @include fish-type(caption, 500);
 
   text-decoration: underline;
 }

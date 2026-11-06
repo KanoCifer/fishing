@@ -624,7 +624,7 @@ onPageShow(async () => {
   color: $fish-blue-600;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press-dim;
 }
 
@@ -640,7 +640,7 @@ onPageShow(async () => {
   color: $fish-destructive-ink;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .spot-form__reject-text {

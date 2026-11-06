@@ -266,7 +266,8 @@ const emptyText = computed(() => {
   /* 空态时给一块高度，别让「取不到」那一句话孤零零贴在顶上 */
   min-height: 320rpx;
 
-  @include fish-card;
+  /* 这张卡装的是一组行：横向留白交给行自己给 */
+  @include fish-list-card;
 
   /* fish-card 的默认圆角是 radius-card，那一档留给方卡 */
   border-radius: $fish-radius-mid;
@@ -290,6 +291,7 @@ const emptyText = computed(() => {
 
 .days__head {
   @include fish-card-head;
+  padding: 0 $fish-list-pad-x;
 }
 
 /* 标题。分区标题统一走 fish-card-title（跟其余卡片同一档） */
@@ -305,8 +307,8 @@ const emptyText = computed(() => {
 }
 
 .days__title-icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-title;
+  height: $fish-icon-title;
 }
 
 /* 列表 */
@@ -359,6 +361,7 @@ const emptyText = computed(() => {
   display: flex;
   align-items: center;
   height: 76rpx;
+  padding: 0 $fish-list-pad-x;
 }
 
 /*
@@ -368,14 +371,14 @@ const emptyText = computed(() => {
  * 而它其实是状态，不是提醒（跟 HourlyWeather 的首格同一手法）。
  */
 .days__label {
-  width: 64rpx;
+  width: 72rpx;
   flex-shrink: 0;
   color: $fish-ink;
   @include fish-type(body);
 }
 
 .days__label--today {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -502,7 +505,7 @@ const emptyText = computed(() => {
  * 降水概率。右对齐：它是一列数字，右对齐才能竖着比大小。
  */
 .days__prob {
-  width: 64rpx;
+  width: 76rpx;
   flex-shrink: 0;
   color: $fish-blue-600;
   @include fish-type(caption);
@@ -530,9 +533,9 @@ const emptyText = computed(() => {
   height: 46rpx;
 }
 
-/* 星期 */
+/* 星期。宽度照着上面真实的那一列 */
 .days__skeleton--label {
-  width: 48rpx;
+  width: 72rpx;
   height: 28rpx;
   margin-right: 16rpx;
 }
@@ -559,9 +562,9 @@ const emptyText = computed(() => {
   border-radius: $fish-radius-pill;
 }
 
-/* 概率 */
+/* 概率。宽度照着上面真实的那一列 */
 .days__skeleton--prob {
-  width: 48rpx;
+  width: 76rpx;
   height: 28rpx;
 }
 </style>

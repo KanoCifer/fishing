@@ -364,6 +364,6 @@ const userGlyph = icon('user', 'muted60');
 
 .profile-sheet__btn--primary .profile-sheet__btn-text {
   color: $fish-on-accent;
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

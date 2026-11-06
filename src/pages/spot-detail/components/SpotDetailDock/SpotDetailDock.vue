@@ -73,34 +73,34 @@ const navIcon = icon('navigation', 'onAccent');
 /*
  * 主按钮。
  *
- * 满宽药丸。min-height 108rpx（54pt）—— 拇指点得中的高度。
+ * 满宽药丸。44pt 高 —— 拇指点得中的高度。
  * 按下缩到 0.97：iOS 的按钮是手指落下就开始缩，抬手才回弹，
  * 等 click 再反应就是「假」的。
  */
 .dock__cta {
-  display: flex;
-  align-items: center;
+  @include fish-button-content;
   justify-content: center;
-  gap: 16rpx;
   width: 100%;
-  min-height: 108rpx;
+  min-height: $fish-btn-height;
+  padding: 0 $fish-btn-pad-x;
   border-radius: $fish-radius-pill;
   background: $fish-gradient;
   box-shadow: $smooth-shadow-lg;
   @include fish-press(0.97);
 }
 
+/* 图标 24pt。它紧贴文字那一层 —— 图标与文字之间不留缝 */
 .dock__icon {
-  width: 36rpx;
-  height: 36rpx;
-  margin-right: 16rpx;
+  width: $fish-icon-nav;
+  height: $fish-icon-nav;
 }
 
-/* 实心按钮上的文字必须反色：pill 的蓝底够深，沿用深色文字会糊在底色里 */
+/* 文字自己裹一层 4pt 的留白 */
 .dock__text {
+  @include fish-button-label;
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

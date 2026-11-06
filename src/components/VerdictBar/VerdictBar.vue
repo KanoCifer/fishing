@@ -108,7 +108,7 @@ const sparklesIcon = icon('sparkles', 'blue600');
   margin-left: 16rpx;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -194,10 +194,10 @@ const sparklesIcon = icon('sparkles', 'blue600');
 }
 
 .verdict-bar__icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-key;
+  height: $fish-icon-key;
   flex-shrink: 0;
-  padding: 16rpx;
+  padding: 12rpx;
   @include fish-glass($fish-radius-pill);
   box-shadow: $smooth-shadow-md;
 }

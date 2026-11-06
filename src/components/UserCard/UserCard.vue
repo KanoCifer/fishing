@@ -208,7 +208,7 @@ function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   white-space: nowrap;
   text-overflow: ellipsis;
   color: $fish-on-dark;
-  @include fish-type(title, 600);
+  @include fish-type(title, 500);
 }
 
 /* 还没有昵称时压成半透明白：那不是「名字」，是「这里缺一个名字」 */

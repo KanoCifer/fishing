@@ -168,7 +168,7 @@ function onBack() {
  * 返回按钮。
  *
  * 命中区 88rpx 见方（44pt，iOS 判定为可放心点按的最小尺寸），
- * 图标 40rpx 居中 —— 命中区比图标大，点得准；图标比命中区小，按下不糊。
+ * 图标 24pt 居中 —— 命中区比图标大，点得准；图标比命中区小，按下不糊。
  *
  * 按下反馈用变暗而不是缩小：缩小会让标题微微位移（见令牌层 _motion.scss 的 fish-press）。
  */
@@ -183,8 +183,8 @@ function onBack() {
 }
 
 .page-nav__back-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: $fish-icon-nav;
+  height: $fish-icon-nav;
 }
 
 /*
@@ -218,7 +218,7 @@ function onBack() {
 .page-nav__title {
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 
   white-space: nowrap;
   text-overflow: ellipsis;

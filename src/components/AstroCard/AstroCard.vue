@@ -277,8 +277,8 @@ const emptyText = computed(() => {
 }
 
 .astro__title-icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-title;
+  height: $fish-icon-title;
 }
 
 .astro__body {
@@ -314,7 +314,7 @@ const emptyText = computed(() => {
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -398,6 +398,6 @@ const emptyText = computed(() => {
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

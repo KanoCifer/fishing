@@ -89,7 +89,7 @@ defineProps<{
   display: block;
   margin-bottom: 12rpx;
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 /*

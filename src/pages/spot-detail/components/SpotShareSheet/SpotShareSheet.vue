@@ -506,7 +506,7 @@ const closeIcon = icon('x', 'muted60');
 }
 
 .share__title {
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .share__subtitle {
@@ -659,7 +659,7 @@ const closeIcon = icon('x', 'muted60');
   font-size: inherit;
   line-height: inherit;
   @include fish-type(body);
-  font-weight: 600;
+  font-weight: 500;
   @include fish-press;
 }
 

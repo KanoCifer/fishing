@@ -243,20 +243,22 @@ function time(log: FishingLog): string {
  * 实心蓝：抽屉里只有这一个动作，它是这一屏唯一能改变数据的地方。
  */
 .day-sheet__action {
-  display: flex;
-  align-items: center;
+  @include fish-button-content;
   justify-content: center;
-  height: 88rpx;
+  height: $fish-btn-height;
   margin: 0 40rpx 32rpx;
+  padding: 0 $fish-btn-pad-x;
   border-radius: $fish-radius-pill;
   background-color: $fish-accent;
   @include fish-press(0.97);
 }
 
+/* 文字自己裹一层 4pt 的留白 */
 .day-sheet__action-text {
+  @include fish-button-label;
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

@@ -423,7 +423,7 @@ onLoad((options) => {
   display: block;
   margin-top: 4rpx;
   color: $fish-muted-60;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .scene__place-row {
@@ -441,7 +441,7 @@ onLoad((options) => {
 
 .scene__place {
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .scene__meta {
@@ -571,7 +571,7 @@ onLoad((options) => {
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 合计那一行：线重一档，字轻一档 */

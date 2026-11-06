@@ -799,7 +799,7 @@ function barStyle(bucket: MinutelyBucket): string {
  */
 .minutely__ticks {
   position: relative;
-  height: 32rpx;
+  height: 40rpx;
   margin-top: 8rpx;
 }
 
@@ -817,7 +817,7 @@ function barStyle(bucket: MinutelyBucket): string {
  */
 .minutely__tick--now {
   color: $fish-ink;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .minutely__tick--mid {
@@ -863,7 +863,7 @@ function barStyle(bucket: MinutelyBucket): string {
 
 .minutely__badge-text {
   color: $fish-blue-600;
-  @include fish-type(caption, 600);
+  @include fish-type(caption, 500);
 }
 
 .minutely__reading-text {

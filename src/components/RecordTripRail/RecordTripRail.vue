@@ -338,7 +338,7 @@ function place(log: FishingLog): string {
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }

@@ -376,10 +376,10 @@ watch(
 }
 
 .hero__icon__refresh {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-key;
+  height: $fish-icon-key;
   flex-shrink: 0;
-  padding: 16rpx;
+  padding: 12rpx;
   @include fish-glass($fish-radius-pill);
 }
 
@@ -404,7 +404,7 @@ watch(
   color: $fish-ink;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -433,12 +433,12 @@ watch(
   @include fish-press-dim;
 }
 
-/* 玻璃圆做在图标上：32rpx 图标 + 16rpx 内衬 = 64rpx 的圆 */
+/* 玻璃圆做在图标上：20pt 图形 + 6pt 内衬 = 32pt 的圆 —— 与地点胶囊同高 */
 .hero__icon__analysis {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-key;
+  height: $fish-icon-key;
   flex-shrink: 0;
-  padding: 16rpx;
+  padding: 12rpx;
   @include fish-glass($fish-radius-pill);
 }
 
@@ -640,7 +640,7 @@ watch(
 /* 天气现象 */
 .hero__now-cond {
   margin-top: 10rpx;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 /* 体感：一行注脚 */

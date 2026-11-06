@@ -333,7 +333,7 @@ function goBack(): void {
   color: $fish-on-accent;
   @include fish-type(body);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*

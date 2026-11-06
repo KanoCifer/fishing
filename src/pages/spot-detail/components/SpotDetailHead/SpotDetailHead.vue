@@ -270,7 +270,7 @@ watch(
   color: $fish-muted;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
   line-height: 52rpx;
   white-space: nowrap;
 }
@@ -422,6 +422,6 @@ watch(
   color: $fish-blue-600;
   @include fish-type(caption);
 
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

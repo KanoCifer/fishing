@@ -253,7 +253,7 @@ onShow(() => {
 
 .spots-error__title {
   color: $fish-ink;
-  @include fish-type(caption, 600);
+  @include fish-type(caption, 500);
 }
 
 .spots-error__reason {
@@ -273,7 +273,7 @@ onShow(() => {
 
 .spots-error__retry-text {
   color: $fish-blue-600;
-  @include fish-type(caption, 600);
+  @include fish-type(caption, 500);
 }
 
 /* 重试在飞：按下去不重复发 */

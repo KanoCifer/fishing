@@ -373,7 +373,7 @@ const tableRows = computed(() => {
 
 .tide__segment-text--active {
   color: $fish-ink;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -414,7 +414,7 @@ const tableRows = computed(() => {
 
 .tide__chip-text--active {
   color: $fish-on-accent;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /*
@@ -447,7 +447,7 @@ const tableRows = computed(() => {
 
 .tide__now-trend {
   color: $fish-ink;
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .tide__now-rate {
@@ -549,7 +549,7 @@ const tableRows = computed(() => {
 }
 
 .tide__row-kind {
-  @include fish-type(body, 600);
+  @include fish-type(body, 500);
 }
 
 .tide__row-height {

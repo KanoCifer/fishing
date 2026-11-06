@@ -103,6 +103,6 @@ function select(value: FishingFeedbackLevel): void {
 
 .bite__option-text--active {
   color: $fish-on-accent;
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

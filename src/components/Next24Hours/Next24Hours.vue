@@ -59,8 +59,8 @@ const clockIcon = icon('clock', 'ink');
 
 /* 图标跟标题文字同色（ink），底边贴着文字基线 */
 .next24__title-icon {
-  width: 32rpx;
-  height: 32rpx;
+  width: $fish-icon-title;
+  height: $fish-icon-title;
 }
 
 .next24__title {
@@ -106,6 +106,6 @@ const clockIcon = icon('clock', 'ink');
 
 .next24__item-text--active {
   color: $fish-ink;
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>
