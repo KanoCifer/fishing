@@ -29,6 +29,13 @@
 - `showModal` 的 `confirmText`/`cancelText` **最多 4 字符，超了静默失败**。
 - `vibrateShort` 的 `type` 微信必填但 uni 类型声明没有。
 
+## 版本更新
+
+- **更新管理只在正式版生效**：开发版、体验版里 `wx.getUpdateManager` 的回调不触发 —— 开发阶段看不到弹窗是正常的。
+- **只在冷启动时问一次版本**：没有「立即检查更新」这个 API，检测必须挂在 `App.onLaunch`（见 `src/utils/update.ts`）。
+- 新包是后台悄悄下载的，`onUpdateReady` 回调时已下好；`applyUpdate` 重启并杀掉当前会话。
+- `showModal` 的 `confirmText`/`cancelText` 仍受 4 字符限制。
+
 ## canvas
 
 - **WXML 不认 `<svg>` 标签**：画图走 canvas 2d；SVG 只能转 data URI 进 `<image>`。

@@ -1,5 +1,17 @@
 <script setup lang="ts">
-import { onShow, onHide, onReady } from '@dcloudio/uni-app';
+import { onShow, onHide, onReady, onLaunch } from '@dcloudio/uni-app';
+
+import { setupAppUpdate } from '@/utils/update';
+
+/*
+ * 版本更新检测。
+ *
+ * 挂在 onLaunch：微信只在冷启动时向后台问一次版本，
+ * 晚挂就问不到那一次了（详见 src/utils/update.ts 的注释）。
+ */
+onLaunch(() => {
+  setupAppUpdate();
+});
 
 onReady(() =>
   uni.loadFontFace({
