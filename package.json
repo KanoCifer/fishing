@@ -8,6 +8,7 @@
     "build": "uni build -p mp-weixin",
     "check:compat": "node scripts/check-mp-compat.mjs",
     "check:icons": "node scripts/check-icons.mjs",
+    "check:colors": "node scripts/check-hardcoded-colors.mjs",
     "assets": "python3 scripts/optimize-assets.py",
     "type-check": "vue-tsc --noEmit",
     "lint": "oxlint",
@@ -16,7 +17,7 @@
     "format": "oxfmt .",
     "icons": "node scripts/gen-icons.mjs && oxfmt src/constants/icons.ts",
     "weather-icons": "node scripts/gen-meteocons-icons.mjs && oxfmt src/constants/weatherIcons.ts",
-    "tabbar": "node scripts/gen-tabbar-icons.mjs"
+    "tabbar": "python3 scripts/tabbar-icons.py --dark-only"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029001",

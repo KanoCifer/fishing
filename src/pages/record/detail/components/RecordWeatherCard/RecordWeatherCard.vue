@@ -382,7 +382,7 @@ function isNumber(value: number | undefined): boolean {
   height: 14rpx;
   margin-right: 8rpx;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.24);
+  background-color: rgba(255, 255, 255, 0.24); /* color-allow: 深色面上的小圆点 */
 }
 
 .wx__dot:last-child {

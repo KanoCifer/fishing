@@ -210,8 +210,7 @@ function onDateChange(event: { detail: { value: string } }): void {
 }
 
 /** 日期行右边的小箭头。它是「这里能改」的唯一提示 */
-const chevronIcon = icon('chevron-down', 'muted60');
-
+const chevronIcon = computed(() => icon('chevron-down', 'muted60'));
 const tide = computed(() => mapStore.panelTideData);
 
 const spotName = computed(() => mapStore.panelTideSpotName || mapStore.activeHarbor);
@@ -383,7 +382,7 @@ const tableRows = computed(() => {
   white-space: nowrap;
   border-radius: $fish-radius-lg;
   background-color: $fish-fill;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }
 
 .tide__segmented-track {
@@ -408,7 +407,7 @@ const tableRows = computed(() => {
 
 .tide__segment--active {
   background-color: $fish-page;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }
 
 .tide__segment-text {

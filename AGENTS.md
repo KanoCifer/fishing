@@ -20,4 +20,5 @@ uni-app + Vue 3 + TypeScript 的微信小程序，用 `pnpm`，构建产物在 `
 | 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 隐私协议 / 域名与后台配置 | `docs/mp-weixin-network.md`   |
 | 动代码包：分包、包体大小、静态图、勋章素材；真机引擎与依赖兼容        | `docs/mp-weixin-package.md`   |
 | 做鱼种识别（拍照认鱼，方案尚未落地）                                  | `docs/fish-identification.md` |
+| 做夜间模式（深色、跟随系统、切主题、令牌翻色）                        | `docs/mp-weixin-darkmode.md`  |
 | 真机预览、编译、上传发布                                              | `/wechatide-skill`            |

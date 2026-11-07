@@ -7,6 +7,8 @@
 - `src/uni.scss` **只有一行** `@use '@/styles/tokens/_index.scss' as *;` —— **不能再有变量声明**。
 - 数值来源：**iOS App 设计速查表**（SF Pro）。字阶、文字色、间距、图标尺寸、按钮规格都从那里来。
 - 令牌按主题分文件：`platform / color / type / space / control / depth / material / motion / layout / card`。
+- **深浅两套值在 `src/styles/theme.scss`**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 770 处调用点一行没改。两套值集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻。
+- **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
 
 ## 卡片
 

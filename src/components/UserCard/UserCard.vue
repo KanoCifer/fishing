@@ -82,8 +82,8 @@ const handleText = computed(() => {
   return props.user?.username ?? '';
 });
 
-const userGlyph = icon('user', 'onAccent');
-const cameraIcon = icon('camera', 'onAccent');
+const userGlyph = computed(() => icon('user', 'onAccent'));
+const cameraIcon = computed(() => icon('camera', 'onAccent'));
 
 /**
  * 选到了新头像。

@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 /**
  * 行程卡横滑条。
  *
@@ -98,8 +99,8 @@ const emit = defineEmits<{
  */
 const emptyImage = RECORD_EMPTY_IMAGE;
 
-const thermometerIcon = icon('thermometer', 'onAccent');
-const pinIcon = icon('map-pin', 'onAccent');
+const thermometerIcon = computed(() => icon('thermometer', 'onAccent'));
+const pinIcon = computed(() => icon('map-pin', 'onAccent'));
 const catchUnit = RECORD_MONTH.catchUnit;
 
 /**

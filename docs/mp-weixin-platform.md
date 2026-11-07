@@ -15,6 +15,17 @@
 
 - **`env()` 不能与长度直接相加**：SCSS 会把它当字符串接起来 —— `160rpx + env(safe-area-inset-bottom)` 编译成 `160rpxenv(safe-area-inset-bottom)`，整条声明无效。不报错、只是不生效 → 要相加就套 `calc()`。
 
+## 夜间模式
+
+- **WXSS 支持 `@media (prefers-color-scheme: dark)`，且不受 `app.json` 的 `darkmode` 开关影响** —— 官方文档明写。页面层的深浅两套靠它切，开关只管 JS 侧。
+- **`darkmode: true` 才带来 JS 侧的主题值**：声明后 `getAppBaseInfo` 才返回 `theme`（light / dark），`wx.onThemeChange` 才触发。canvas 与图标拿不到 CSS 变量，只能靠这一条。
+- **`uni.onThemeChange` 在 mp-weixin 的运行时里没有实现**（类型里有，`@dcloudio/uni-mp-weixin/dist` 里查不到）→ 要调 `wx.onThemeChange`，并自己声明窄类型（见 `src/utils/theme.ts`）。
+- **小程序没有 `:root`**：变量定义在 `page, .page` 上。`page` 覆盖整棵页面树，`.page` 是给不在这个作用域里的内容准备的兜底类。
+- **CSS 变量要带兜底值**（`var(--fish-ink, #000000)`）：作用域万一没生效，退回浅色 —— 界面难看，但读得出来。只写变量不写兜底会得到透明文字与透明背景。
+- **`theme.json` 走的是另一条路**：只服务原生 UI（导航栏、tabBar、下拉刷新背景），管不了页面内的 WXSS。`pages.json` 的 `globalStyle` 用 `@变量` 引用它，`manifest.json` 里要配 `darkmode` 与 `themeLocation`。
+- **canvas 2d 不解析 `var()`**：canvas 的色板另走 JS 主题值，见 `src/utils/chartPalette.ts`；主题变了要重画（复用 `useCanvasPageShow` 的重取节点机制）。
+- **`src/custom-tab-bar/` 拿不到 page 的 CSS 变量**：底栏自带一套深色值（WXSS 媒体查询 + 深色 PNG）。
+
 ## 高度
 
 - **`100vh` 是屏幕高** → 用 `uni.getWindowInfo().windowHeight`。快照 `src/composables/windowMetrics.ts`；⚠️ 别把 `useNavMetrics` / `useViewport` 改异步。

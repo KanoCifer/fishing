@@ -61,6 +61,7 @@ import { computed, ref } from 'vue';
 
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { parseFxTime } from '@/utils/date';
+import { chartPalette } from '@/utils/chartPalette';
 import { num } from '@/utils/weather';
 
 import LineChart from '../LineChart/LineChart.vue';
@@ -79,15 +80,26 @@ interface Metric {
   key: 'temp' | 'precip' | 'windSpeed';
   label: string;
   unit: string;
-  /** canvas 读不了 SCSS 变量，颜色只能硬编码，与令牌层 _color.scss 保持一致 */
-  color: string;
 }
 
 const METRICS: ReadonlyArray<Metric> = [
-  { key: 'temp', label: '气温', unit: '°C', color: '#ff3b30' }, // $fish-temp
-  { key: 'precip', label: '降水', unit: 'mm', color: '#007aff' }, // $fish-tide 的蓝：水
-  { key: 'windSpeed', label: '风速', unit: 'km/h', color: '#0e7490' }, // $fish-wind-ink（canvas 侧硬编码）
+  { key: 'temp', label: '气温', unit: '°C' },
+  { key: 'precip', label: '降水', unit: 'mm' },
+  { key: 'windSpeed', label: '风速', unit: 'km/h' },
 ];
+
+/**
+ * 指标图的系列色。
+ *
+ * canvas 读不了 SCSS 变量与 CSS 变量，取色走 utils/chartPalette，
+ * 深浅两套都在那儿 —— 与 _color.scss 的同名令牌保持一致。
+ */
+function metricColor(key: Metric['key']): string {
+  const tone = chartPalette();
+  if (key === 'temp') return tone.metricTemp;
+  if (key === 'precip') return tone.metricPrecip;
+  return tone.metricWind;
+}
 
 const mapStore = useFishingMapStore();
 
@@ -107,7 +119,7 @@ const categories = computed(() => hours.value.map((hour) => parseFxTime(hour.fxT
 
 const series = computed(() =>
   hours.value.length
-    ? [{ name: active.value.label, data: hours.value.map((h) => h.value), color: active.value.color }]
+    ? [{ name: active.value.label, data: hours.value.map((h) => h.value), color: metricColor(active.value.key) }]
     : [],
 );
 
@@ -185,7 +197,7 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
 .metric__item--active {
   background-color: $fish-page;
   /* 选中块压出轨道用的那层投影。0.08 就够，再重就变成灰色描边了 */
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }
 
 .metric__item-text {

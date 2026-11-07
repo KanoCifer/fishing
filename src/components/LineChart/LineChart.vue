@@ -89,6 +89,8 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } 
 
 import { buildCurve, buildPolyline, clipCurve, type CurvePoint, type CurveSegment } from '@/utils/curve';
 import { CANVAS_FONT_STACK, withAlpha } from '@/utils/canvas';
+import { chartPalette } from '@/utils/chartPalette';
+import { themeMode } from '@/utils/theme';
 import {
   GUTTER_GAP,
   computeLineGeom,
@@ -239,7 +241,15 @@ const baseCanvasId = `line-chart-base-${uid}`;
  *
  * 同样是 canvas 硬编码，改主题时要和令牌层 _color.scss 的 $fish-* 一起看。
  */
-const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
+/**
+ * 系列色。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()。
+ *
+ * 按序号取，序号越界就绕回去。
+ */
+function seriesColor(index: number): string {
+  const series = chartPalette().series;
+  return series[index % series.length];
+}
 
 /**
  * 画布侧的色值。**必须与令牌层 _color.scss 保持一致**。
@@ -252,10 +262,11 @@ const PALETTE = ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'];
  * 「基线重一档」，不是「线更多」—— 四条同重量的线加上顶边，
  * 图就框成了一个盒子，那是报表软件的做法。
  */
-const GRID_COLOR = 'rgba(60, 60, 67, 0.08)'; // $fish-grid（内部网格线）
-const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（基线）
-const Y_TEXT_COLOR = '#3f3f45'; // $fish-muted（secondaryLabel）
-const X_TEXT_COLOR = '#5b5b60'; // $fish-muted-60（tertiaryLabel）
+/**
+ * 色板。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()，
+ * 只能手写两份（见 utils/canvas.ts 的说明）。
+ */
+const tone = () => chartPalette();
 
 /**
  * 画布的 CSS 尺寸（px）。
@@ -369,7 +380,7 @@ const activeRows = computed<ActiveRow[]>(() => {
   return props.series.map((s, si) => ({
     key: String(si),
     name: s.name,
-    color: s.color || PALETTE[si % PALETTE.length],
+    color: s.color || seriesColor(si),
     text: formatValue(s.data[i], props.precision),
     band: bandLabel(s.data[i]),
   }));
@@ -481,21 +492,21 @@ function drawBase(): void {
     const isTop = y <= g.top + 0.5;
 
     if (!isTop) {
-      ctx.strokeStyle = isBase ? AXIS_COLOR : GRID_COLOR;
+      ctx.strokeStyle = isBase ? tone().axis : tone().gridFaint;
       ctx.beginPath();
       ctx.moveTo(g.left, y);
       ctx.lineTo(g.right, y);
       ctx.stroke();
     }
 
-    ctx.fillStyle = Y_TEXT_COLOR;
+    ctx.fillStyle = tone().yText;
     ctx.font = `11px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'right';
     ctx.fillText(tick.label, g.left - GUTTER_GAP, y);
   });
 
   // X 轴标签。比 Y 轴淡一档：它是语境，读的时候顺带扫过
-  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.fillStyle = tone().xText;
   ctx.font = `10px ${CANVAS_FONT_STACK}`;
   ctx.textBaseline = 'top';
   // 指定了要出标签的下标就按它来（位置不等距），否则走等距步长
@@ -522,7 +533,7 @@ function drawBase(): void {
  * 画布内空态：数据全脏时给一行说明，别让用户对着空白猜。
  */
 function drawEmptyHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.fillStyle = tone().xText;
   ctx.font = `12px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -565,7 +576,7 @@ function draw() {
   const areaAlpha = props.series.length > 1 ? 0.15 : 0.3;
 
   props.series.forEach((s, si) => {
-    const color = s.color || PALETTE[si % PALETTE.length];
+    const color = s.color || seriesColor(si);
 
     for (const run of splitRuns(s.data)) {
       const points: CurvePoint[] = run.map((r) => ({ x: indexToX(r.index), y: valueToY(r.value) }));
@@ -637,7 +648,7 @@ function draw() {
     const primary = props.series[0];
     const value = primary?.data?.[activeIndex.value];
     if (typeof value === 'number' && Number.isFinite(value)) {
-      const color = primary?.color || PALETTE[0];
+      const color = primary?.color || seriesColor(0);
       const x = Math.round(indexToX(activeIndex.value)) + 0.5;
       const y = Math.round(valueToY(value)) + 0.5;
 
@@ -664,7 +675,7 @@ function draw() {
       // 没有底下那圈，准星交点上的点和线上其它点分不出主次。
       ctx.beginPath();
       ctx.arc(indexToX(activeIndex.value), valueToY(value), 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = tone().markerRing;
       ctx.fill();
       ctx.beginPath();
       ctx.arc(indexToX(activeIndex.value), valueToY(value), 4.5, 0, Math.PI * 2);
@@ -740,6 +751,23 @@ watch(
   },
   { deep: true },
 );
+
+/**
+ * 主题变了要重画。
+ *
+ * canvas 上的颜色是烤进去的，不像 WXSS 那样跟着媒体查询自动翻。
+ * 网格、刻度、曲线、准星都要重来一遍。
+ *
+ * 不重播入场动画：切主题不是用户要看动画的时刻，直接落到最终态。
+ */
+watch(themeMode, () => {
+  if (!baseLayer.ready || !topLayer.ready) return;
+  computeGeom();
+  drawBase();
+  animator.cancel();
+  animator.progress = 1;
+  draw();
+});
 
 onBeforeUnmount(() => {
   animator.cancel();

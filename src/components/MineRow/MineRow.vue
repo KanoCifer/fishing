@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { icon } from '@/constants/icons';
 
 withDefaults(
@@ -70,7 +71,7 @@ const emit = defineEmits<{
  * 箭头取 muted60（tertiaryLabel）而不是 muted：箭头是结构符号，
  * 压到第三档灰才不会和它指向的那行标题抢注意力。
  */
-const chevronIcon = icon('chevron-right', 'muted60');
+const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
 
 /** 普通行点一下：由调用方决定去哪儿 */
 function onTap() {

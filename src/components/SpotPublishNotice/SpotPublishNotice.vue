@@ -88,10 +88,10 @@ const bannerBody = computed(() => props.text || SPOT_PUBLISH_BANNER.text);
 const notice = SPOT_PUBLISH_NOTICE;
 
 /** 说明图标。蓝色 —— 它是中性信息，不是错误也不是警告 */
-const infoIcon = icon('info', 'blue');
+const infoIcon = computed(() => icon('info', 'blue'));
 
 /** 箭头。muted60，与协议区那一列的箭头同一档 */
-const chevronIcon = icon('chevron-right', 'muted60');
+const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
 </script>
 
 <style lang="scss" scoped>

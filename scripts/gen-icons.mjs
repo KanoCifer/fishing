@@ -30,6 +30,32 @@ const COLORS = {
 };
 
 /**
+ * 深色色板。同一批语义档在深色下的取值。
+ *
+ * 为什么是「语义档」而不是「具体色值」：图标清单里写的是 ink / muted / blue
+ * 这种档位，不是 #000000 这种色值。档位跟着主题翻，具体色值不用管 ——
+ * 这一条是深色模式能零改动铺开的前提。
+ *
+ * 取值与 src/styles/theme.scss 的深色段一一对应：
+ * ink → 正文白，muted → 次级灰，muted60 → 辅助灰，
+ * blue → 品牌蓝的深色档，blue600 → 更浅一档（深色下「文字专用档」要反过来变亮），
+ * success / destructive → 语义色的深色档，onAccent 不变。
+ *
+ * 注意 muted60 在浅色板里是 #5b5b60，而令牌层的 $fish-muted-60 是 #666666 ——
+ * 图标在 24rpx 下不需要 4.5:1，两边差这一点是历史遗留，改任何一边都要一起改。
+ */
+const COLORS_DARK = {
+  ink: '#ffffff',
+  muted: '#b8bcc4',
+  muted60: '#8e939c',
+  blue: '#4c9bff',
+  blue600: '#6fb0ff',
+  success: '#3ddc84',
+  destructive: '#ff6961',
+  onAccent: '#ffffff',
+};
+
+/**
  * 清单：每个图标只列它真正在用的那一两个配色，不铺满色板。
  *
  * 数量刻意压着不加 —— 图标一多，页面就从「读数据」滑向「看图标」。
@@ -212,11 +238,33 @@ function toDataUri(svg) {
 
 function main() {
   const colorNames = Object.keys(COLORS);
-  const entries = ICONS.map(({ name, color, use, filled }) => {
+  const entries = [];
+
+  for (const { name, color, use, filled } of ICONS) {
     const raw = readFileSync(resolve(ICON_DIR, `${name}.svg`), 'utf8');
-    const svg = toInlineSvg(raw, COLORS[color], filled);
-    return { key: `${name}__${color}`, name, color, use, uri: toDataUri(svg) };
-  });
+
+    entries.push({
+      key: `${name}__${color}`,
+      name,
+      color,
+      use,
+      uri: toDataUri(toInlineSvg(raw, COLORS[color], filled)),
+    });
+
+    /*
+     * 深色那一版，键加 --dark 后缀。
+     *
+     * 后缀而不是第二张表：icon() 只需要按主题挑一个键，
+     * 一张表 + 后缀比两张表少一半查表代码，也少一半「加档位时忘了加深色版」的机会。
+     */
+    entries.push({
+      key: `${name}__${color}--dark`,
+      name,
+      color,
+      use,
+      uri: toDataUri(toInlineSvg(raw, COLORS_DARK[color], filled)),
+    });
+  }
 
   const nameUnion = [...new Set(entries.map((e) => e.name))].sort();
   const usedColors = colorNames.filter((c) => entries.some((e) => e.color === c));
@@ -229,11 +277,13 @@ function main() {
     ' * 这里只保存生成结果。',
     ' */',
     '',
+    "import { isDarkTheme } from '@/utils/theme';",
+    '',
     '/** 图标名与颜色档位。取值与令牌层 _color.scss 的同名变量一致 */',
     `export type IconName = ${nameUnion.map((n) => `'${n}'`).join(' | ')};`,
     `export type IconColor = ${usedColors.map((c) => `'${c}'`).join(' | ')};`,
     '',
-    '/** 已生成的图标数据 URI，键为 `图标名__颜色档位` */',
+    '/** 已生成的图标数据 URI，键为 `图标名__颜色档位`，深色那份多一个 --dark 后缀 */',
     'export const ICONS = {',
     // base64 一行有近千字符，值单独换行，读起来和格式化后的结果一致
     ...entries.map((e) => `  /** ${e.use} */\n  '${e.key}':\n    '${e.uri}',`),
@@ -253,15 +303,23 @@ function main() {
     ' *',
     ' * 退档顺序里要有「任一档」这一层，是因为 muted 不是每个图形都有一档：',
     ' * 清单只列真正在用的配色，图形没生成过 muted 时它自己就是空的。',
+    ' *',
+    ' * 深浅两套：按当前主题在键上加不加 --dark 后缀。',
+    ' * 调用方要写在渲染函数里（或 computed 里），主题变了才会重新取。',
     ' */',
     "export function icon(name: IconName, color: IconColor = 'muted'): string {",
-    '  const exact = ICON_TABLE[`${name}__${color}`];',
+    "  const suffix = isDarkTheme() ? '--dark' : '';",
+    '',
+    '  const exact = ICON_TABLE[`${name}__${color}${suffix}`];',
     '  if (exact) return exact;',
     '',
-    '  const muted = ICON_TABLE[`${name}__muted`];',
+    '  const muted = ICON_TABLE[`${name}__muted${suffix}`];',
     '  if (muted) return muted;',
     '',
-    '  const variant = Object.keys(ICON_TABLE).find((key) => key.startsWith(`${name}__`));',
+    '  const prefix = `${name}__`;',
+    '  const variant = Object.keys(ICON_TABLE).find(',
+    '    (key) => key.startsWith(prefix) && key.endsWith(suffix),',
+    '  );',
     "  return variant ? ICON_TABLE[variant] : '';",
     '}',
     '',

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -31,6 +32,16 @@ SS = 4  # 超采样倍数
 # 图标烤成另一个蓝，同一个选中态就是两个蓝 —— 令牌是唯一那一份，两边都得跟它走。
 COLOR_IDLE = (60, 60, 67, 255)  # #3c3c43 = $fish-muted（secondaryLabel）
 COLOR_ACTIVE = (15, 102, 214, 255)  # #0f66d6 = $fish-blue
+
+# 深色两态。
+#
+# 未选中的那一档在浅色下是 #3c3c43 —— 压在深色底上几乎看不见，
+# 所以深色必须另出一套，不能拿浅色图凑合。
+#
+# 取值与 src/styles/theme.scss 的深色段一致：
+# 辅助文字 #8e939c、品牌蓝文字 #4c9bff。
+COLOR_IDLE_DARK = (142, 147, 156, 255)  # #8e939c
+COLOR_ACTIVE_DARK = (76, 155, 255, 255)  # #4c9bff
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "src" / "static" / "tabbar"
 
@@ -162,15 +173,73 @@ def draw_mine(color: tuple[int, int, int, int]) -> Image.Image:
     return img
 
 
+def recolor(src: Path, dst: Path, color: tuple[int, int, int, int]) -> None:
+    """
+    把一张单色图标换色，alpha 原样保留。
+
+    为什么深色那套是「换色」而不是「重画」：重画要写两遍图形，
+    两遍迟早画得不一样 —— 同一枚图标在浅色下和深色下形状差了半像素，
+    切主题时看着就是一枚图标跳了一下。换色保证形状完全一致。
+
+    换色只动 rgb 不动 alpha：这些图标是实心单色 + 抗锯齿边，
+    边缘的半透明像素本来就带着同一个 rgb，只是 alpha 不同。
+    """
+    im = Image.open(src).convert("RGBA")
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, _g, _b, a = px[x, y]
+            if a == 0:
+                continue
+            px[x, y] = (color[0], color[1], color[2], a)
+    im.save(dst)
+
+
+# 浅色那套的图形名。深色那套从它们换色派生。
+LIGHT_NAMES = (
+    "spots",
+    "spots-active",
+    "data",
+    "data-active",
+    "mine",
+    "mine-active",
+    "records",
+    "records-active",
+)
+
+
 def main() -> None:
+    # --dark-only：只从现有的浅色 PNG 派生深色那套，不重画浅色。
+    #
+    # 为什么需要这个开关：浅色那套里 spots / data 的图形是设计稿导出的，
+    # 与这个脚本里的画法已经对不上（脚本里还留着旧版的地图钉与折线）。
+    # 重画会把在用的图形换成旧版 —— 那是产品改动，不该由跑一次脚本顺手做掉。
+    # 改图形要改设计稿，不是改这个脚本。
+    dark_only = "--dark-only" in sys.argv[1:]
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     print(f"生成 tabBar 图标（{SIZE}×{SIZE}）→ {OUT_DIR}")
-    save(draw_spots(COLOR_IDLE), "spots.png")
-    save(draw_spots(COLOR_ACTIVE), "spots-active.png")
-    save(draw_data(COLOR_IDLE), "data.png")
-    save(draw_data(COLOR_ACTIVE), "data-active.png")
-    save(draw_mine(COLOR_IDLE), "mine.png")
-    save(draw_mine(COLOR_ACTIVE), "mine-active.png")
+
+    if not dark_only:
+        save(draw_spots(COLOR_IDLE), "spots.png")
+        save(draw_spots(COLOR_ACTIVE), "spots-active.png")
+        save(draw_data(COLOR_IDLE), "data.png")
+        save(draw_data(COLOR_ACTIVE), "data-active.png")
+        save(draw_mine(COLOR_IDLE), "mine.png")
+        save(draw_mine(COLOR_ACTIVE), "mine-active.png")
+
+    # 深色那一套。
+    #
+    # 名单里含 records —— 记录页那两枚图标从来不是这个脚本画的（是随包进来的静态资源），
+    # 同样要出深色版，所以一并在这里换色。
+    for name in LIGHT_NAMES:
+        active = name.endswith("-active")
+        recolor(
+            OUT_DIR / f"{name}.png",
+            OUT_DIR / f"{name}-dark.png",
+            COLOR_ACTIVE_DARK if active else COLOR_IDLE_DARK,
+        )
+        print(f"  {name}-dark.png")
 
 
 if __name__ == "__main__":

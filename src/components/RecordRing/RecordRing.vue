@@ -37,6 +37,8 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } 
 
 import { windowMetrics } from '@/composables/windowMetrics';
 import { createCanvasLayer, useCanvasPageShow } from '@/utils/chartCanvas';
+import { chartPalette } from '@/utils/chartPalette';
+import { themeMode } from '@/utils/theme';
 
 interface Props {
   /** 当前值 */
@@ -58,13 +60,14 @@ const props = withDefaults(defineProps<Props>(), {
   size: 152,
   stroke: 8,
   /**
-   * 轨道色 = $fish-surface，值弧色 = $fish-accent。
+   * 轨道色与值弧色不设默认值 —— canvas 不解析 SCSS 变量与 CSS 变量，
+   * 默认值必须是编译期常量，深色下就翻不了。
    *
-   * ⚠️ canvas 不解析 SCSS 变量与 CSS 变量，这里只能手抄 ——
-   * 改令牌层的这两个值时，这两行要一起改（见 utils/canvas.ts 的说明）。
+   * 取色走 utils/chartPalette（轨道 = $fish-surface，值弧 = $fish-accent），
+   * 调用方显式传色时才用传入的（见 utils/canvas.ts 的说明）。
    */
-  trackColor: 'rgba(120, 120, 128, 0.16)',
-  fillColor: '#0f66d6',
+  trackColor: undefined,
+  fillColor: undefined,
 });
 
 const instance = getCurrentInstance()!;
@@ -129,7 +132,7 @@ function draw(): void {
   // 轨道：整圈
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
-  ctx.strokeStyle = props.trackColor;
+  ctx.strokeStyle = props.trackColor ?? chartPalette().ringTrack;
   ctx.stroke();
 
   const value = ratio();
@@ -138,7 +141,7 @@ function draw(): void {
   // 值弧：从正上方顺时针走
   ctx.beginPath();
   ctx.arc(cx, cy, r, START_ANGLE, START_ANGLE + Math.PI * 2 * value, false);
-  ctx.strokeStyle = props.fillColor;
+  ctx.strokeStyle = props.fillColor ?? chartPalette().ringFill;
   ctx.stroke();
 }
 
@@ -150,6 +153,14 @@ async function initCanvas(): Promise<void> {
 
 onMounted(() => {
   void initCanvas();
+});
+
+/**
+ * 主题变了要重画。canvas 上的颜色是烤进去的，跟不上 WXSS 的媒体查询。
+ */
+watch(themeMode, () => {
+  if (!layer.ready) return;
+  draw();
 });
 
 /**

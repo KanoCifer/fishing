@@ -313,7 +313,7 @@ const weatherEdit = RECORD_CREATE.weatherEdit;
 const weatherDone = RECORD_CREATE.weatherDone;
 
 /** 时间那一行右边的小箭头。它是「这里能改」的唯一提示 */
-const chevronIcon = icon('chevron-down', 'muted60');
+const chevronIcon = computed(() => icon('chevron-down', 'muted60'));
 
 /**
  * 地点那一行右边的小箭头。
@@ -321,7 +321,7 @@ const chevronIcon = icon('chevron-down', 'muted60');
  * 与时间那行同一套约定（点得开别的界面才有箭头），但方向不同：
  * 时间是往下拉出一张表，地点是往前走一整页地图。
  */
-const placeChevronIcon = icon('chevron-right', 'muted60');
+const placeChevronIcon = computed(() => icon('chevron-right', 'muted60'));
 
 /** 导航栏材质层要不要显形 */
 const scrolled = ref(false);

@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 /**
  * SpotDetailDock —— 底部导航 CTA。
  *
@@ -35,7 +36,7 @@ const emit = defineEmits<{
 }>();
 
 /** 导航键的箭头。压在主色按钮上，所以是白色 */
-const navIcon = icon('navigation', 'onAccent');
+const navIcon = computed(() => icon('navigation', 'onAccent'));
 </script>
 
 <style lang="scss" scoped>

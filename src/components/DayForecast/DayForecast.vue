@@ -87,7 +87,7 @@ import { forecastDays, weatherIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
-const calendarIcon = icon('calendar-days', 'ink');
+const calendarIcon = computed(() => icon('calendar-days', 'ink'));
 
 /**
  * 有效的预报日。

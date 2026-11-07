@@ -23,6 +23,7 @@ import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 import { windowMetrics } from '@/composables/windowMetrics';
 import { mixColor } from '@/utils/canvas';
 import { createCanvasLayer, useCanvasPageShow } from '@/utils/chartCanvas';
+import { chartPalette } from '@/utils/chartPalette';
 
 interface Props {
   /** 当前值 */
@@ -52,13 +53,16 @@ const props = withDefaults(defineProps<Props>(), {
   max: 3,
   size: 180,
   stroke: 12,
-  // 默认值取深色面那一档：弧形表现在只用在深色面上，
+  // 轨道取深色面那一档：弧形表现在只用在深色面上，
   // 轨道与深色面上的发丝线同一档，弧线是深色面上唯一亮起来的东西。
-  trackColor: 'rgba(255, 255, 255, 0.14)',
+  //
+  // 不设字面量默认值 —— canvas 不解析 CSS 变量，写死就锁死在浅色那套。
+  // 取色走 utils/chartPalette（深浅两套同值：深色面不随主题变）。
+  trackColor: undefined,
   // 深蓝 → 浅蓝。潮位表走这一档：潮位是米数，不是好坏，不能拿红黄绿去上色。
   // 它压在深色面上，所以尖端取最亮的那一档。
-  fromColor: '#4f8cff',
-  toColor: '#82d4ff',
+  fromColor: undefined,
+  toColor: undefined,
 });
 
 const instance = getCurrentInstance()!;
@@ -188,13 +192,14 @@ function draw(): void {
   // 轨道：整条量程
   ctx.beginPath();
   ctx.arc(cx, cy, r, START_ANGLE, START_ANGLE + SWEEP_ANGLE, false);
-  ctx.strokeStyle = props.trackColor;
+  ctx.strokeStyle = props.trackColor ?? chartPalette().gaugeTrack;
   ctx.stroke();
 
   const value = ratio();
   if (value <= 0) return;
 
-  drawValueArc(ctx, cx, cy, r, stroke, value, props.fromColor, props.toColor);
+  const tone = chartPalette();
+  drawValueArc(ctx, cx, cy, r, stroke, value, props.fromColor ?? tone.gaugeFrom, props.toColor ?? tone.gaugeTo);
 }
 
 /**

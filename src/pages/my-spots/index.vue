@@ -291,7 +291,7 @@ function metaText(spot: FishingSpot): string {
 }
 
 /** 行尾那枚箭头 */
-const chevronIcon = icon('chevron-right', 'muted60');
+const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
 
 /** 去投稿钓点 */
 function openCreate(): void {
@@ -400,7 +400,7 @@ onPageShow(async () => {
  */
 .my-spots__filter-item--on {
   background-color: $fish-card-face;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }
 
 .my-spots__filter-label {

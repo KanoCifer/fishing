@@ -150,9 +150,9 @@ const emit = defineEmits<{
 const mapStore = useFishingMapStore();
 const { status, summary, reasoning, errorMessage, start, stop } = useFishingAnalysis();
 
-const sparklesIcon = icon('sparkles', 'blue600');
-const chevronDownIcon = icon('chevron-down', 'muted60');
-const chevronRightIcon = icon('chevron-right', 'muted60');
+const sparklesIcon = computed(() => icon('sparkles', 'blue600'));
+const chevronDownIcon = computed(() => icon('chevron-down', 'muted60'));
+const chevronRightIcon = computed(() => icon('chevron-right', 'muted60'));
 
 /** 思考过程默认收起 */
 const reasoningOpen = ref(false);

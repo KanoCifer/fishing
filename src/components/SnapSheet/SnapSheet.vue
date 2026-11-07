@@ -550,7 +550,7 @@ function onMaskTap() {
   border-top-right-radius: $fish-radius-sheet;
   background-color: $fish-page;
 
-  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.16);
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.16); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 
   transform-origin: bottom center;
   /*

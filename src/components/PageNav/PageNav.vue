@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 /**
  * PageNav —— 二级页面的导航栏。
  *
@@ -81,7 +82,7 @@ const { windowWidth } = useViewport();
 const titleMaxWidth = Math.max(120, windowWidth - 2 * capsuleInsetRight);
 
 /** 返回箭头用主色：它是这一屏唯一能离开的动作，得一眼看得见 */
-const backIcon = icon('chevron-left', 'blue');
+const backIcon = computed(() => icon('chevron-left', 'blue'));
 
 /**
  * 返回上一页。

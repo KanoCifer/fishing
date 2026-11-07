@@ -246,7 +246,7 @@ onShow(() => {
   max-width: calc(100% - 48rpx);
   padding: 16rpx 16rpx 16rpx 24rpx;
   border-radius: $fish-radius-lg;
-  background-color: rgba(255, 255, 255, 0.88);
+  background-color: $fish-map-panel;
   box-shadow: $smooth-shadow-md;
 }
 

@@ -108,7 +108,7 @@ const props = defineProps<{
 const instance = getCurrentInstance();
 
 /** 地址前面的定位针 */
-const pinIcon = icon('map-pin', 'muted');
+const pinIcon = computed(() => icon('map-pin', 'muted'));
 
 /** 水体类型。缺这个字段时按未分类渲染（后端 omitempty 会整个省略它） */
 const kindLabel = computed(() => fishingSpotKindLabel(props.spot.kind));

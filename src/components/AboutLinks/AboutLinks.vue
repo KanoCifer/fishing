@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 /**
  * AboutLinks —— 一组可点开的条目。
  *
@@ -47,7 +48,7 @@ const emit = defineEmits<{
   select: [link: AboutLink];
 }>();
 
-const chevronIcon = icon('chevron-right', 'muted60');
+const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
 </script>
 
 <style lang="scss" scoped>

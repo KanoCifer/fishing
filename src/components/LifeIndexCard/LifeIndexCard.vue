@@ -173,22 +173,22 @@ const emptyText = computed(() => {
  */
 .life__badge--success {
   color: $fish-success-ink;
-  background-color: rgba(52, 199, 89, 0.16);
+  background-color: $fish-tone-tint;
 }
 
 .life__badge--blue {
   color: $fish-blue-600;
-  background-color: rgba(15, 102, 214, 0.14);
+  background-color: $fish-accent-tint;
 }
 
 .life__badge--warning {
   color: $fish-warning-ink;
-  background-color: rgba(255, 149, 0, 0.16);
+  background-color: $fish-warning-tint;
 }
 
 .life__badge--destructive {
   color: $fish-destructive-ink;
-  background-color: rgba(255, 59, 48, 0.14);
+  background-color: $fish-destructive-tint;
 }
 
 .life__badge--muted {

@@ -205,7 +205,7 @@ const trafficIcon = computed(() => icon('road', traffic.value ? 'blue' : 'muted'
  * 也不套实心圆：一枚实心的蓝块压在一列细键中间，它就成了整条工具条
  * 唯一被看见的东西，而这四枚键里没有哪一枚比另一枚更重要。
  */
-const createIcon = icon('plus', 'ink');
+const createIcon = computed(() => icon('plus', 'ink'));
 
 /**
  * 定位键图标。
@@ -459,7 +459,7 @@ onMounted(() => {
   /* 左右只留 8rpx：这一列是压在地图上的一根细柱，白面越宽越像一块招牌 */
   padding: 8rpx;
   border-radius: $fish-radius-lg;
-  background-color: rgba(255, 255, 255, 0.88);
+  background-color: $fish-map-panel;
   box-shadow: $smooth-shadow-md;
 }
 

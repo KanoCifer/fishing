@@ -166,7 +166,7 @@ const loadingText = '加载中';
 const emptyText = '这条记录找不到了';
 
 /** 地点那一行前面的图钉 */
-const placeIcon = icon('map-pin', 'muted');
+const placeIcon = computed(() => icon('map-pin', 'muted'));
 
 /** 导航栏材质层要不要显形 */
 const scrolled = ref(false);
@@ -316,7 +316,7 @@ function onRemove(): void {
     content: RECORD_DETAIL.removeConfirmHint,
     confirmText: RECORD_DETAIL.removeConfirmAction,
     cancelText: RECORD_DETAIL.cancel,
-    confirmColor: '#ff3b30',
+    confirmColor: '#ff3b30', /* color-allow: 系统弹窗的按钮色，由系统自己适配深浅 */
     success: async (res) => {
       if (!res.confirm) return;
 

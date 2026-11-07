@@ -38,6 +38,8 @@ var LIST = [
     path: '/pages/data/index',
     icon: '/static/tabbar/data.png',
     activeIcon: '/static/tabbar/data-active.png',
+    iconDark: '/static/tabbar/data-dark.png',
+    activeIconDark: '/static/tabbar/data-active-dark.png',
   },
   {
     key: 'spots',
@@ -46,6 +48,8 @@ var LIST = [
     path: '/pages/fishing/index',
     icon: '/static/tabbar/spots.png',
     activeIcon: '/static/tabbar/spots-active.png',
+    iconDark: '/static/tabbar/spots-dark.png',
+    activeIconDark: '/static/tabbar/spots-active-dark.png',
   },
   {
     key: 'feedback',
@@ -60,6 +64,8 @@ var LIST = [
     path: '/pages/records/index',
     icon: '/static/tabbar/records.png',
     activeIcon: '/static/tabbar/records-active.png',
+    iconDark: '/static/tabbar/records-dark.png',
+    activeIconDark: '/static/tabbar/records-active-dark.png',
   },
   {
     key: 'mine',
@@ -68,6 +74,8 @@ var LIST = [
     path: '/pages/mine/index',
     icon: '/static/tabbar/mine.png',
     activeIcon: '/static/tabbar/mine-active.png',
+    iconDark: '/static/tabbar/mine-dark.png',
+    activeIconDark: '/static/tabbar/mine-active-dark.png',
   },
 ];
 

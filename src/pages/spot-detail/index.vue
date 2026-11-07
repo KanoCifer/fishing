@@ -209,8 +209,8 @@ const feedbackLabel = SPOT_FEEDBACK_ENTRY.label;
  * 图标不是可有可无的装饰：页脚这两个入口是这一页仅有的两处文字，
  * 没有图标的话它们读起来像版权声明，而不是点得动的东西。
  */
-const feedbackIcon = icon('message-square', 'muted');
-const editIcon = icon('pencil', 'blue600');
+const feedbackIcon = computed(() => icon('message-square', 'muted'));
+const editIcon = computed(() => icon('pencil', 'blue600'));
 
 /**
  * 这条钓点是不是我的。

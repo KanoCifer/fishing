@@ -486,7 +486,7 @@ onBeforeUnmount(() => {
 
 /* ── 图标 ────────────────────────────────────────────────────────────── */
 
-const closeIcon = icon('x', 'muted60');
+const closeIcon = computed(() => icon('x', 'muted60'));
 </script>
 
 <style lang="scss" scoped>
@@ -599,7 +599,7 @@ const closeIcon = icon('x', 'muted60');
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  background-color: rgba(255, 255, 255, 0.86);
+  background-color: $fish-overlay;
 }
 
 .share__overlay-text {

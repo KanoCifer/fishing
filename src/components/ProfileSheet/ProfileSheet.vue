@@ -203,7 +203,7 @@ function save() {
   emit('save', nickname.value.trim());
 }
 
-const userGlyph = icon('user', 'muted60');
+const userGlyph = computed(() => icon('user', 'muted60'));
 </script>
 
 <style lang="scss" scoped>

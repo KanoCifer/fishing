@@ -141,13 +141,13 @@ const spotsLoaded = ref(false);
  * 一行一个色：蓝色是「去哪儿」，绿色是「这是什么」，两行之间才分得开。
  * 图标本身统一 20pt —— 再大就跟行字抢注意力了。
  */
-const spotsIcon = icon('map-pin', 'blue');
-const aboutIcon = icon('fish', 'success');
-const shareIcon = icon('share-2', 'blue');
-const contactIcon = icon('message-square', 'blue');
+const spotsIcon = computed(() => icon('map-pin', 'blue'));
+const aboutIcon = computed(() => icon('fish', 'success'));
+const shareIcon = computed(() => icon('share-2', 'blue'));
+const contactIcon = computed(() => icon('message-square', 'blue'));
 
 /** 退出登录那一枚 */
-const logoutIcon = icon('log-out', 'destructive');
+const logoutIcon = computed(() => icon('log-out', 'destructive'));
 
 /**
  * 胶囊按钮上的字。
@@ -349,7 +349,7 @@ function onLogout() {
     title: '退出登录',
     content: '退出后本机不再保留登录状态，重新登录后才能同步你的钓点与反馈。',
     confirmText: '退出',
-    confirmColor: '#ff3b30',
+    confirmColor: '#ff3b30' /* color-allow: 系统弹窗的按钮色，由系统自己适配深浅 */,
     success: async (res) => {
       if (!res.confirm) return;
       await session.logout();
@@ -422,7 +422,7 @@ function onLogout() {
   bottom: 0;
   left: 0;
   background-image:
-    linear-gradient(180deg, rgba(9, 24, 40, 0.5) 0%, rgba(9, 24, 40, 0) 26%),
+    linear-gradient(180deg, rgba(9, 24, 40, 0.5) 0%, rgba(9, 24, 40, 0) 26%), /* color-allow: 压在头图照片上的压暗层 */
     linear-gradient(0deg, rgba(9, 24, 40, 0.58) 0%, rgba(9, 24, 40, 0) 46%);
 }
 
@@ -432,7 +432,7 @@ function onLogout() {
   bottom: 0;
   left: 0;
   height: 90rpx;
-  background-image: linear-gradient(0deg, $fish-page-base 0%, rgba($fish-page-base, 0) 100%);
+  background-image: linear-gradient(0deg, $fish-page-base 0%, $fish-page-base-fade 100%);
 }
 /*
  * 身份块。贴在头图区左下，避开右侧的钓鱼人。
@@ -487,7 +487,7 @@ function onLogout() {
 /* 文字自己裹一层 4pt 的留白 */
 .mine__cta-text {
   @include fish-button-label;
-  color: $fish-deep-base;
+  color: $fish-ink;
   @include fish-type(body);
 
   font-weight: 500;

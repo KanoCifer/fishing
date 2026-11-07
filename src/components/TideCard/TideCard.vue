@@ -68,9 +68,8 @@ const mapStore = useFishingMapStore();
 /** 详情页入口 */
 const DETAIL_URL = '/pages/tide/index';
 
-const chevronIcon = icon('chevron-right', 'muted60');
-const wavesIcon = icon('waves', 'ink');
-
+const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
+const wavesIcon = computed(() => icon('waves', 'ink'));
 const hourly = computed(() => mapStore.homeTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */

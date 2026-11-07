@@ -77,7 +77,7 @@
  * 每次按键都要走一趟「父组件改 state → 回传 prop」，
  * 在小程序里这个回路会让光标跳。
  */
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 
 import { icon } from '@/constants/icons';
 import { RECORD_CREATE, RECORD_SPECIES_SUGGESTIONS } from '@/constants/record';
@@ -120,8 +120,8 @@ const emptyTitle = RECORD_CREATE.catchEmpty;
 const emptyHint = RECORD_CREATE.catchEmptyHint;
 const addLabel = RECORD_CREATE.addCatch;
 
-const addIcon = icon('plus', 'muted');
-const removeIcon = icon('x', 'muted');
+const addIcon = computed(() => icon('plus', 'muted'));
+const removeIcon = computed(() => icon('x', 'muted'));
 
 /**
  * 步进的两个箭头。
@@ -129,8 +129,8 @@ const removeIcon = icon('x', 'muted');
  * 减号压灰、加号压蓝：减是收的动作，加是给的动作，
  * 一个是往回退一个是往前要，不该同色。
  */
-const minusIcon = icon('minus', 'muted');
-const plusIcon = icon('plus', 'blue');
+const minusIcon = computed(() => icon('minus', 'muted'));
+const plusIcon = computed(() => icon('plus', 'blue'));
 
 /** 把改动抛上去 */
 function commit(next: FishingLogCatch[]): void {

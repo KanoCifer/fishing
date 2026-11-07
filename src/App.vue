@@ -2,6 +2,7 @@
 import { onShow, onHide, onReady, onLaunch } from '@dcloudio/uni-app';
 
 import { setupAppUpdate } from '@/utils/update';
+import { initTheme } from '@/utils/theme';
 
 /*
  * 版本更新检测。
@@ -11,6 +12,12 @@ import { setupAppUpdate } from '@/utils/update';
  */
 onLaunch(() => {
   setupAppUpdate();
+
+  /*
+   * 主题真值。放在 onLaunch 里，是为了让第一帧的 canvas 与图标
+   * 就已经拿到正确的色板 —— 晚一拍就等于首屏闪一次浅色。
+   */
+  initTheme();
 });
 
 onReady(() =>
@@ -24,6 +31,12 @@ onShow(() => {});
 onHide(() => {});
 </script>
 <style lang="scss">
+/*
+ * 夜间模式的两套令牌值。由 App.vue 引入，全局只有这一份 ——
+ * 放进 uni.scss 会被复制到每个组件的 wxss 里。
+ */
+@import '@/styles/theme.scss';
+
 page {
   background-color: $fish-grouped;
   font-family: $fish-font;

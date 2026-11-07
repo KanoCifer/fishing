@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 import { icon } from '@/constants/icons';
 
@@ -38,7 +38,7 @@ type Mode = 'hours' | 'chart';
 
 const mode = ref<Mode>('hours');
 
-const clockIcon = icon('clock', 'ink');
+const clockIcon = computed(() => icon('clock', 'ink'));
 </script>
 
 <style lang="scss" scoped>
@@ -95,7 +95,7 @@ const clockIcon = icon('clock', 'ink');
 .next24__item--active {
   background-color: $fish-page;
   /* 选中块压出轨道用的那层投影。0.08 就够，再重就变成灰色描边了 */
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }
 
 .next24__item-text {

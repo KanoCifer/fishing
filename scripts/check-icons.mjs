@@ -32,8 +32,13 @@ const CALL = /(?<![A-Za-z0-9_$])icon\(\s*'([a-z0-9-]+)'\s*,\s*([^)]*?)\s*\)/g;
 /** 表达式里的字符串字面量 */
 const QUOTED = /'([A-Za-z0-9]+)'/g;
 
-/** 图标表里的键，形如 name__color: */
-const KEY = /^\s*'?([a-z0-9-]+__[A-Za-z0-9]+)'?:\s*$/gm;
+/**
+ * 图标表里的键，形如 name__color:，深色那份多一个 --dark 后缀。
+ *
+ * 后缀必须收进捕获组 —— 否则深色键被截成 name__color，
+ * 「深色档齐不齐」这道检查就形同虚设。
+ */
+const KEY = /^\s*'?([a-z0-9-]+__[A-Za-z0-9]+(?:--dark)?)'?:\s*$/gm;
 
 /** 递归收集目录下的源文件 */
 async function collect(dir) {

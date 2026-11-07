@@ -16,6 +16,8 @@
       "minified": true
     },
     "usingComponents": true,
+    "darkmode": true,
+    "themeLocation": "theme.json",
     "permission": {
       "scope.userLocation": {
         "desc": "用于在地图上显示你的位置并标记钓点"

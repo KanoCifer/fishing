@@ -58,9 +58,19 @@ export function heroSky(group: WeatherGroup): HeroSky {
   return SKY_BY_GROUP[group];
 }
 
+/**
+ * 天色 → 头图地址。
+ *
+ * 与 heroImageUrl 分开是因为有第二条取图路径：夜间模式下不用当前天色，
+ * 直接指定某一张（见 WeatherHero 里的 sky）。
+ */
+export function heroImageUrlBySky(sky: HeroSky): string {
+  return `${HERO_IMAGE_DIR}/hero-${sky}-${HERO_IMAGE_VERSION}.jpg`;
+}
+
 /** 天气外观组 → 头图地址 */
 export function heroImageUrl(group: WeatherGroup): string {
-  return `${HERO_IMAGE_DIR}/hero-${heroSky(group)}-${HERO_IMAGE_VERSION}.jpg`;
+  return heroImageUrlBySky(heroSky(group));
 }
 
 /**

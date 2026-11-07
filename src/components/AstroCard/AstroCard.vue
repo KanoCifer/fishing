@@ -120,7 +120,7 @@ import { moonPhaseIconUri } from '@/utils/weather';
 
 const mapStore = useFishingMapStore();
 
-const sunMoonIcon = icon('sun-moon', 'ink');
+const sunMoonIcon = computed(() => icon('sun-moon', 'ink'));
 
 /** 一天 1440 分钟。时间轴的比例尺 */
 const DAY_MINUTES = 24 * 60;
@@ -346,7 +346,7 @@ const emptyText = computed(() => {
 
 /* 民用晨昏：同一支暖色压淡，是白昼的余韵而不是白昼本身 */
 .astro__band--twilight {
-  background-color: rgba(255, 149, 0, 0.3);
+  background-color: rgba(255, 149, 0, 0.3); /* color-allow: 日夜带的配色是图表语义色，不随主题翻 */
 }
 
 /* 「现在」 */
@@ -358,7 +358,7 @@ const emptyText = computed(() => {
   margin-left: -8rpx;
   border-radius: 50%;
   background-color: $fish-page;
-  box-shadow: 0 0 0 4rpx rgba(0, 0, 0, 0.16);
+  box-shadow: 0 0 0 4rpx rgba(0, 0, 0, 0.16); /* color-allow: 「现在」那枚点的描边环，压在彩色带上 */
   transform: translateY(-50%);
 }
 

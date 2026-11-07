@@ -23,9 +23,21 @@
         药丸只托住「在哪一格」，颜色变化是它的副产品。
       -->
       <view wx:else class="tabbar__cell {{item.key === selectedKey ? 'tabbar__cell--on' : ''}}">
+        <!--
+          两枚图标叠着放，一枚浅色一枚深色，由 WXSS 的媒体查询决定露哪一枚。
+
+          为什么不在 JS 里换 src：底栏是原生组件，拿不到 uni 的主题真值，
+          自己再探一次系统主题就多一份判断。媒体查询跟着系统走，
+          切主题时页面与底栏是同一帧翻的，不会一个先翻一个后翻。
+        -->
         <image
-          class="tabbar__icon"
+          class="tabbar__icon tabbar__icon--light"
           src="{{item.key === selectedKey ? item.activeIcon : item.icon}}"
+          mode="aspectFit"
+        />
+        <image
+          class="tabbar__icon tabbar__icon--dark"
+          src="{{item.key === selectedKey ? item.activeIconDark : item.iconDark}}"
           mode="aspectFit"
         />
         <text class="tabbar__label {{item.key === selectedKey ? 'tabbar__label--on' : ''}}">{{item.text}}</text>

@@ -43,6 +43,8 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
 import { CANVAS_FONT_STACK, setCanvasFont, withAlpha } from '@/utils/canvas';
+import { chartPalette } from '@/utils/chartPalette';
+import { themeMode } from '@/utils/theme';
 import {
   X_LABEL_SIZE,
   computeTideGeom,
@@ -198,11 +200,11 @@ let pointGap = 0;
  * 网格线只有一档（发丝虚线）：纵轴刻度去掉之后，图上不再有两种线重，
  * 只靠虚线与实线（底边）区分层次。
  */
-const TIDE_COLOR = '#0f66d6'; // $fish-tide（systemBlue）
-const GRID_COLOR = 'rgba(60, 60, 67, 0.1)'; // $fish-grid（内部网格线）
-const AXIS_COLOR = 'rgba(60, 60, 67, 0.18)'; // $fish-border-40（底边基线）
-const X_TEXT_COLOR = '#5b5b60'; // $fish-muted-60（tertiaryLabel）
-const NOW_LINE_COLOR = 'rgba(60, 60, 67, 0.32)'; // $fish-border（参照线）
+/**
+ * 色板。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()，
+ * 只能手写两份（见 utils/canvas.ts 的说明）。
+ */
+const tone = () => chartPalette();
 
 /** 网格虚线的节奏 */
 const GRID_DASH = [4, 4];
@@ -215,7 +217,7 @@ const VALUE_LABEL_SIZE = 12;
  * canvas 里画文字要注意 ctx.font 只认 px。
  */
 function drawEmptyHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.fillStyle = tone().xText;
   ctx.font = `12px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -336,7 +338,7 @@ function drawBase(): void {
   // 网格：横竖都虚线，底边单独一条实线。
   // 实线只有底边一条 —— 上下左右都框一道，图就成了一个盒子。
   ctx.setLineDash(GRID_DASH);
-  ctx.strokeStyle = GRID_COLOR;
+  ctx.strokeStyle = tone().grid;
 
   g.ticks.forEach((value, i) => {
     // i === 0 是底边那一档（最小值），留给实线画
@@ -359,7 +361,7 @@ function drawBase(): void {
   ctx.setLineDash([]);
 
   // 底边基线
-  ctx.strokeStyle = AXIS_COLOR;
+  ctx.strokeStyle = tone().axis;
   const baseY = Math.round(g.bottom) + 0.5;
   ctx.beginPath();
   ctx.moveTo(g.left, baseY);
@@ -367,7 +369,7 @@ function drawBase(): void {
   ctx.stroke();
 
   // X 轴时刻
-  ctx.fillStyle = X_TEXT_COLOR;
+  ctx.fillStyle = tone().xText;
   setCanvasFont(ctx, 600, X_LABEL_SIZE);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
@@ -401,9 +403,9 @@ function drawValueLabel(ctx: CanvasRenderingContext2D, x: number, y: number, tex
   ctx.textBaseline = 'bottom';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 3;
-  ctx.strokeStyle = '#ffffff';
+  ctx.strokeStyle = tone().halo;
   ctx.strokeText(text, x, baseline);
-  ctx.fillStyle = TIDE_COLOR;
+  ctx.fillStyle = tone().tide;
   ctx.fillText(text, x, baseline);
 }
 
@@ -416,11 +418,11 @@ function drawValueLabel(ctx: CanvasRenderingContext2D, x: number, y: number, tex
 function drawMarkerDot(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.beginPath();
   ctx.arc(x, y, 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = tone().markerRing;
   ctx.fill();
   ctx.beginPath();
   ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-  ctx.fillStyle = TIDE_COLOR;
+  ctx.fillStyle = tone().tide;
   ctx.fill();
 }
 
@@ -448,11 +450,11 @@ function draw() {
 
   const { left, top, bottom, plotH, len, values } = g;
 
-  // 面积渐变（竖直方向：上浓下淡）。底色跟 TIDE_COLOR 同源，见上面「必须同步」的说明
+  // 面积渐变（竖直方向：上浓下淡）。底色跟潮位曲线同源，见上面「必须同步」的说明
   const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-  gradient.addColorStop(0, withAlpha(TIDE_COLOR, 0.2));
-  gradient.addColorStop(0.7, withAlpha(TIDE_COLOR, 0.04));
-  gradient.addColorStop(1, withAlpha(TIDE_COLOR, 0));
+  gradient.addColorStop(0, withAlpha(tone().tide, 0.2));
+  gradient.addColorStop(0.7, withAlpha(tone().tide, 0.04));
+  gradient.addColorStop(1, withAlpha(tone().tide, 0));
 
   // 入场动画：只画到 progress 对应的位置，曲线像被"画"出来
   const cut = animator.progress * (len - 1);
@@ -487,7 +489,7 @@ function draw() {
 
   ctx.beginPath();
   traceSegments(ctx, segments);
-  ctx.strokeStyle = TIDE_COLOR;
+  ctx.strokeStyle = tone().tide;
   ctx.lineWidth = CHART_LINE_WIDTH;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -504,7 +506,7 @@ function draw() {
 
     ctx.save();
     ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = NOW_LINE_COLOR;
+    ctx.strokeStyle = tone().nowLine;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(Math.round(x) + 0.5, top);
@@ -530,7 +532,7 @@ function draw() {
 
     ctx.save();
     ctx.setLineDash([4, 3]);
-    ctx.strokeStyle = withAlpha(TIDE_COLOR, 0.5);
+    ctx.strokeStyle = withAlpha(tone().tide, 0.5);
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(Math.round(x) + 0.5, top);
@@ -750,6 +752,26 @@ watch(
   },
   { deep: true },
 );
+
+/**
+ * 主题变了要重画。
+ *
+ * canvas 上的颜色是烤进去的，不像 WXSS 那样跟着媒体查询自动翻。
+ * 静态层（网格、刻度）与动态层（曲线）都得重来一遍。
+ *
+ * 不重播入场动画：切主题不是用户要看动画的时刻，直接落到最终态。
+ */
+watch(themeMode, () => {
+  if (baseLayer.ready) {
+    computeGeom();
+    drawBase();
+  }
+
+  if (!topLayer.ready) return;
+  animator.cancel();
+  animator.progress = 1;
+  draw();
+});
 
 /**
  * 页面回到前台时重画。

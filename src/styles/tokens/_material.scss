@@ -8,8 +8,8 @@
 
   box-shadow: $smooth-shadow-xs;
   box-shadow: $smooth-shadow-xs, $fish-glass-edge;
-  /* 描边：一圈白色发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
-  border: 2rpx solid rgba(255, 255, 255, 0.92);
+  /* 描边：一圈发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
+  border: 2rpx solid $fish-glass-stroke;
 }
 
 @mixin fish-card-glass($radius: $fish-radius-mid) {
@@ -18,8 +18,8 @@
 
   box-shadow: $smooth-shadow-xs;
   box-shadow: $smooth-shadow-xs, $fish-glass-edge;
-  /* 描边：一圈白色发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
-  border: 2rpx solid rgba(255, 255, 255, 0.92);
+  /* 描边：一圈发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
+  border: 2rpx solid $fish-glass-stroke;
 }
 
 @mixin fish-glass-blur {

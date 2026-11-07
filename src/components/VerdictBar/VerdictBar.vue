@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
 import type { Tone } from '@/utils/weather';
@@ -59,10 +60,10 @@ const emit = defineEmits<{
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { statusBarHeight, navBarHeight, capsuleInsetRight } = useNavMetrics();
 
-const refreshIcon = icon('rotate-cw', 'muted');
+const refreshIcon = computed(() => icon('rotate-cw', 'muted'));
 
 /** AI 建议键。与头图上那一枚同一个图标、同一档蓝 —— 两处是同一个入口 */
-const sparklesIcon = icon('sparkles', 'blue600');
+const sparklesIcon = computed(() => icon('sparkles', 'blue600'));
 </script>
 
 <style lang="scss" scoped>
@@ -73,7 +74,7 @@ const sparklesIcon = icon('sparkles', 'blue600');
   left: 0;
   z-index: 30;
   background-color: $fish-glass-strong;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 
   @include fish-glass-blur;
 

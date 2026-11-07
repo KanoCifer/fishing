@@ -94,10 +94,58 @@
   }
 }
 
+/*
+ * 深色。
+ *
+ * 底色从半透明白改成半透明深：底栏浮在内容之上，深色下再压一层白
+ * 会把下面的深色内容压出一块灰斑。顶边高光同步反转 —— 深色面上
+ * 压白线才是「浮起来」的那道边。
+ *
+ * 图标两态的色值与 scripts/tabbar-icons.py 里烤进 PNG 的那两个一致：
+ * 未选中 #8e939c、选中 #4c9bff。
+ */
+@media (prefers-color-scheme: dark) {
+  .tabbar {
+    background-color: rgba(22, 24, 29, 0.72);
+    box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .tabbar__cell--on {
+    background-color: rgba(76, 155, 255, 0.18);
+  }
+
+  .tabbar__label {
+    color: #8e939c;
+  }
+
+  .tabbar__label--on {
+    color: #4c9bff;
+  }
+
+  .tabbar__icon--light {
+    display: none;
+  }
+
+  .tabbar__icon--dark {
+    display: block;
+  }
+}
+
 /* 图标。固定盒子，两态换图不换盒子 */
 .tabbar__icon {
   width: 44rpx;
   height: 44rpx;
+}
+
+/*
+ * 深色那枚默认藏着。
+ *
+ * 底栏是原生组件，不在 page 的作用域里 —— 拿不到 theme.scss 里定义的
+ * CSS 变量，也继承不到 page 上的那些。所以底栏自带一套深色值，
+ * 用媒体查询切，跟页面层用的是同一个系统信号。
+ */
+.tabbar__icon--dark {
+  display: none;
 }
 
 /*

@@ -100,8 +100,8 @@ const committed = ref<string[]>([...props.initial]);
 const pending = ref<PendingUpload[]>([]);
 
 const uploadingText = UPLOADING_TEXT;
-const addIcon = icon('plus', 'muted');
-const removeIcon = icon('x', 'onAccent');
+const addIcon = computed(() => icon('plus', 'muted'));
+const removeIcon = computed(() => icon('x', 'onAccent'));
 
 /** 还能再选几张 */
 const canAdd = computed(() => committed.value.length + pending.value.length < props.max);

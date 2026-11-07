@@ -80,9 +80,17 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import TideGauge from '@/components/TideGauge/TideGauge.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
-import { HERO_GAUGE_SIZE, HERO_GAUGE_STOPS, HERO_GAUGE_STROKE, heroImageUrl, heroSky } from '@/constants/weatherHero';
+import {
+  HERO_GAUGE_SIZE,
+  HERO_GAUGE_STOPS,
+  HERO_GAUGE_STROKE,
+  heroImageUrlBySky,
+  heroSky,
+  type HeroSky,
+} from '@/constants/weatherHero';
 import { useFishingMapStore } from '@/stores/fishingMap';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
+import { isDarkTheme } from '@/utils/theme';
 import { num, weatherGroup, weatherIconUri } from '@/utils/weather';
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
@@ -106,12 +114,23 @@ const { capsuleTop, capsuleInsetRight } = useNavMetrics();
 /** 当前天气落在哪一组外观上（十种，见 utils/weather） */
 const group = computed(() => weatherGroup(mapStore.liveWeather?.icon));
 
-/** 头图只有四种天色 */
-const sky = computed(() => heroSky(group.value));
+/**
+ * 当前天色。头图只有四种。
+ *
+ * **夜间模式下恒为 night。**
+ *
+ * 头图是整屏最大的一块面 —— 一张浅色的照片压在深色页面上，
+ * 整页的观感就被它拉浅，深色模式等于白做。所以深色下图片与兜底渐变
+ * 一起走夜的那一套（hero--night 的渐变是深色的，图片加载的那一瞬也不会闪白）。
+ *
+ * 读的是主题真值，不是系统的 prefers-color-scheme —— 那边只管 WXSS，
+ * 这里要的是「现在是不是深色」这个判断，好让图片与渐变一起翻。
+ */
+const sky = computed<HeroSky>(() => (isDarkTheme() ? 'night' : heroSky(group.value)));
 
 const skyClass = computed(() => `hero--${sky.value}`);
 
-const imageUrl = computed(() => heroImageUrl(group.value));
+const imageUrl = computed(() => heroImageUrlBySky(sky.value));
 
 /* ── 实时天气 ──────────────────────────────────────────────────────────── */
 
@@ -239,19 +258,18 @@ onBeforeUnmount(() => {
  * 它压在玻璃胶囊上：白色的描边图钉在浅底上读不出来，实心的才立得住。
  * 实心版是生成脚本里的 filled 变体（中间那个圆被挖空成洞）。
  */
-const pinIcon = icon('map-pin', 'ink');
+const pinIcon = computed(() => icon('map-pin', 'ink'));
 
 /** 展开箭头：灰。深墨压在玻璃上太重 */
-const chevronDownIcon = icon('chevron-down', 'muted60');
+const chevronDownIcon = computed(() => icon('chevron-down', 'muted60'));
 
 /** 头图上的其余图标一律压白 —— 图标的颜色烤在 data URI 里，换色要回去跑 pnpm icons */
-const refreshIcon = icon('rotate-cw', 'ink');
+const refreshIcon = computed(() => icon('rotate-cw', 'ink'));
 
 /** AI 建议键。蓝色：它是这一行里唯一的「去看点东西」，不是数据上的一个开关 */
-const sparklesIcon = icon('sparkles', 'blue600');
-const fishIcon = icon('fish', 'onAccent');
-const chevronIcon = icon('chevron-right', 'onAccent');
-
+const sparklesIcon = computed(() => icon('sparkles', 'blue600'));
+const fishIcon = computed(() => icon('fish', 'onAccent'));
+const chevronIcon = computed(() => icon('chevron-right', 'onAccent'));
 /* ── 动作 ──────────────────────────────────────────────────────────────── */
 
 /**
@@ -338,7 +356,7 @@ watch(
   bottom: 0;
   left: 0;
   height: 90rpx;
-  background-image: linear-gradient(0deg, $fish-page-base 0%, rgba($fish-page-base, 0) 100%);
+  background-image: linear-gradient(0deg, $fish-page-base 0%, $fish-page-base-fade 100%);
 }
 
 .hero__top {

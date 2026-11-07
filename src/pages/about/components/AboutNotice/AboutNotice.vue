@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 /**
  * AboutNotice —— 关于页上那一行免责摘要。
  *
@@ -43,7 +44,7 @@ const emit = defineEmits<{
  *
  * 它是结构符号不是内容 —— 跟文字一样的灰才不会把读者的视线从免责那句话上拉走。
  */
-const infoIcon = icon('info', 'muted60');
+const infoIcon = computed(() => icon('info', 'muted60'));
 </script>
 
 <style lang="scss" scoped>
