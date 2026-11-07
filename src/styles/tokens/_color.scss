@@ -59,6 +59,17 @@ $fish-sun: #ff9500;
 $fish-sun-soft: #ffd60a;
 
 /**
+ * 月色。
+ *
+ * 夜钓窗口那条带用 —— 与月相图标（Meteocons）里那轮月亮的颜色同一个值。
+ * 图标是烤进 data URI 的色（见 constants/weatherIcons.ts），窗口是块面，
+ * 两者指着同一件事，不该是两个蓝。
+ *
+ * 跟 $fish-sun 一样是图表语义色：它讲的是「这一段是夜」，不随主题翻。
+ */
+$fish-moon: #72b9d5;
+
+/**
  * 取 systemOrange 而不是 systemYellow。
  *
  * systemYellow(#ffcc00) 在白底上对比度约 1.6:1，是纯粹的填充色；
