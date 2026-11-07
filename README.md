@@ -74,7 +74,7 @@
 | 格式化 / 校验 | oxfmt / oxlint + vue-tsc       |
 
 > **平台边界**：小程序没有浏览器运行时，`document` / `window` / `localStorage` / `fetch` 一律不可用，
-> 所有平台能力走 `uni.*` 命名空间。`pnpm lint` 的 `no-undef` 就是这条边界的静态版本。
+> 所有平台能力走 `uni.*` 命名空间。
 
 ---
 
@@ -85,9 +85,6 @@ pnpm install          # 安装依赖
 pnpm dev              # 开发构建，产物在 dist/dev/mp-weixin/
 pnpm build            # 生产构建 + 兼容性检查，产物在 dist/build/mp-weixin/
 ```
-
-用微信开发者工具打开 `dist/dev/mp-weixin/` 目录即可预览。真机预览、编译与上传发布走
-`/wechatide-skill` 技能，代码包体积与分包约束见 [代码包](docs/mp-weixin-package.md)。
 
 提交前请依次跑完这两道关：
 
@@ -100,16 +97,11 @@ pnpm lint
 
 ## 🔧 环境变量
 
-所有变量只从 `import.meta.env.VITE_*` 读取。复制 [.env.example](.env.example) 为 `.env.local` 后按需填写：
-
 | 变量                | 作用                                                      |
 | ------------------- | --------------------------------------------------------- |
 | `VITE_API_BASE_URL` | 接口基址，默认走 `@/config/env` 的默认值                  |
 | `VITE_CDN_BASE_URL` | 静态资源 CDN 基址，需在微信后台配为 downloadFile 合法域名 |
 | `VITE_YULU_VERSION` | 应用版本号，关于页显示，发布时与 `src/manifest.json` 的 versionName 一致 |
-
-新增 `VITE_*` 变量时，记得同步把它加进 `vite.config.ts` 的 `envPrefix` 白名单 ——
-那是白名单不是前缀，漏一个变量运行时就取到 `undefined` 且不报错。
 
 ---
 
@@ -124,7 +116,7 @@ src/
 ├── constants/    # 文案与图标的唯一出处
 ├── pages/        # 页面；主包三页 + 五个分包
 ├── stores/       # Pinia：会话、地图与钓点数据
-├── styles/       # tokens（手写）/ shared（手写）/ generated（脚本产出）
+├── styles/       # 样式系统
 ├── types/        # 类型定义
 └── utils/        # 纯函数：换算、存储、绘图
 ```
@@ -143,20 +135,15 @@ src/
 | 碰 SSE / 定位 / 选点 / 上传 / 分享 / 登录 / 域名与后台配置 | [网络与后台](docs/mp-weixin-network.md)      |
 | 动代码包：分包、包体大小、静态图、勋章素材                 | [代码包](docs/mp-weixin-package.md)          |
 | 做鱼种识别（拍照认鱼，方案尚未落地）                       | [鱼种识别](docs/fish-identification.md)      |
-| 关心代码能不能商用、能不能改协议、素材能不能用             | [许可协议](#-许可与审查)                      |
-
-开发约定见 [AGENTS.md](AGENTS.md)。
 
 ---
 
 ## 📜 许可与审查
 
-**本仓库公开，目的是让使用者能审查这段代码做了什么、往服务端发了什么 —— 不是邀请闭源白嫖。**
-
 代码采用 [GPL-3.0](LICENSE)（GNU General Public License v3，SPDX `GPL-3.0-only`）：
 
 - 允许自由使用、修改、再分发，**包括商业使用**；
-- 但**任何衍生作品必须同样以 GPL-3.0 发布并提供完整源码** —— 用了这份代码，就不能闭源卖；
+- 但**任何衍生作品必须同样以 GPL-3.0 发布并提供完整源码**；
 - 含明确的专利授权（§11）与专利报复终止条款；
 - 服务端不属于本仓库，不受本协议约束。
 
@@ -170,5 +157,6 @@ Copyright (c) 2026 Kuroome
 - 鱼口概率由服务端依据气象与潮汐要素加权计算得出，仅供参考，不作为渔获的保证。
 - 钓点信息由用户自行添加与共享，平台不对其准确性、可达性与安全性作出保证。
 - 本小程序提供的信息仅供垂钓活动参考，不作为航行、水上作业或任何安全决策的依据，实际水文与气象条件请以官方发布为准。
+- 垂钓活动请遵守当地法律法规，注意安全⚠️。
 
 完整条款见小程序内「我的 → 关于渔碌」。
