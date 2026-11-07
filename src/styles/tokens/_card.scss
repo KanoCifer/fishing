@@ -1,5 +1,6 @@
 // 卡片
 @use 'color' as *;
+@use 'depth' as *;
 @use 'type' as *;
 @use 'material' as *;
 @use 'space' as *;
@@ -31,7 +32,7 @@ $fish-card-head-gap: $fish-space-label;
  */
 @mixin fish-card($padding: $fish-card-padding) {
   padding: $padding;
-  @include fish-card-glass;
+  @include fish-glass($fish-radius-mid, $fish-card-glass);
 }
 
 /**

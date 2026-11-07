@@ -55,10 +55,6 @@ const ALLOW = [
     why: '流光按钮的渐变色，品牌固定色',
   },
   {
-    file: 'src/styles/tokens/_platform.scss',
-    why: 'uni 组件库变量覆盖，给的是 uni.* 的默认色',
-  },
-  {
     file: 'src/utils/chartPalette.ts',
     why: 'canvas 色板。canvas 2d 不解析 var()，深浅两套只能手写',
   },

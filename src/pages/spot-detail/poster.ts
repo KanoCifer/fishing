@@ -601,8 +601,9 @@ function drawPhoto(ctx: CanvasRenderingContext2D, data: PosterSpot, image: Poste
   if (image) {
     drawCoverImage(ctx, image, 0, 0, w, photoH);
   } else {
-    // 没图时铺一块中性灰 —— 不能留白，白底上白字直接看不见
-    ctx.fillStyle = '#d8dde4';
+    // 没图时铺一块中性灰 —— 不能留白，白底上白字直接看不见。
+    // = $fish-photo-placeholder
+    ctx.fillStyle = '#dfe6ea';
     ctx.fillRect(0, 0, w, photoH);
   }
 

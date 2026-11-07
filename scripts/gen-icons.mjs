@@ -12,7 +12,7 @@ const ICON_DIR = resolve(ROOT, 'node_modules/lucide-static/icons');
 const OUT_FILE = resolve(ROOT, 'src/constants/icons.ts');
 
 /**
- * 色板。取值必须与 src/styles/tokens/_color.scss 的同名变量一致 —— 这里只能写十六进制，
+ * 色板。取值必须与 src/styles/tokens/_color.scss 的同名令牌一致 —— 这里只能写十六进制，
  * 因为 CSS 变量传不进 <image>。改色值两处都要动，注释是给下一个人看的路标。
  *
  * 全部是实色：SVG 的 stroke-opacity 跟 rgba 一样会被合成到背景上，
@@ -21,12 +21,12 @@ const OUT_FILE = resolve(ROOT, 'src/constants/icons.ts');
 const COLORS = {
   ink: '#000000', // $fish-ink
   muted: '#3f3f45', // $fish-muted（secondaryLabel）
-  muted60: '#5b5b60', // $fish-muted-60（tertiaryLabel）
+  muted60: '#666666', // $fish-muted-60（tertiaryLabel）
   blue: '#0f66d6', // $fish-blue
   blue600: '#0062cc', // $fish-blue-600
   success: '#34c759', // $fish-success
   destructive: '#ff3b30', // $fish-destructive
-  onAccent: '#ffffff', // 主色按钮上的前景色
+  onAccent: '#ffffff', // $fish-on-accent
 };
 
 /**
@@ -36,22 +36,25 @@ const COLORS = {
  * 这种档位，不是 #000000 这种色值。档位跟着主题翻，具体色值不用管 ——
  * 这一条是深色模式能零改动铺开的前提。
  *
- * 取值与 src/styles/theme.scss 的深色段一一对应：
- * ink → 正文白，muted → 次级灰，muted60 → 辅助灰，
- * blue → 品牌蓝的深色档，blue600 → 更浅一档（深色下「文字专用档」要反过来变亮），
- * success / destructive → 语义色的深色档，onAccent 不变。
+ * 取值与 src/styles/theme.scss 的深色段对应。逐档：
  *
- * 注意 muted60 在浅色板里是 #5b5b60，而令牌层的 $fish-muted-60 是 #666666 ——
- * 图标在 24rpx 下不需要 4.5:1，两边差这一点是历史遗留，改任何一边都要一起改。
+ *   ink / muted / muted60  → --fish-ink / --fish-muted / --fish-muted-60
+ *   blue / blue600        → --fish-blue-600（深色档）。深色面上只留亮档品牌蓝：
+ *                           填充档那一档压上来读不出来，而深色下也没有
+ *                           「实心块压白字」那种用法 —— 图标是图形。
+ *   success / destructive → --fish-success-ink / --fish-destructive-ink
+ *   onAccent              → $fish-on-accent（固定，不翻）
  */
 const COLORS_DARK = {
-  ink: '#ffffff',
-  muted: '#b8bcc4',
-  muted60: '#8e939c',
+  ink: '#ffffff', // --fish-ink
+  muted: '#b8bcc4', // --fish-muted
+  muted60: '#8e939c', // --fish-muted-60
+  // 深色下用亮档：图标是**压在深色面上的图形**，不是实心块 ——
+  // 填充档 #0f66d6 压上去读不出来。
   blue: '#4c9bff',
-  blue600: '#6fb0ff',
-  success: '#3ddc84',
-  destructive: '#ff6961',
+  blue600: '#4c9bff', // --fish-blue-600
+  success: '#3ddc84', // --fish-success-ink
+  destructive: '#ff6961', // --fish-destructive-ink
   onAccent: '#ffffff',
 };
 
@@ -279,7 +282,7 @@ function main() {
     '',
     "import { isDarkTheme } from '@/utils/theme';",
     '',
-    '/** 图标名与颜色档位。取值与令牌层 _color.scss 的同名变量一致 */',
+    '/** 图标名与颜色档位。取值与令牌层的对应档位一致（深色那套不是同名，见 scripts/gen-icons.mjs） */',
     `export type IconName = ${nameUnion.map((n) => `'${n}'`).join(' | ')};`,
     `export type IconColor = ${usedColors.map((c) => `'${c}'`).join(' | ')};`,
     '',

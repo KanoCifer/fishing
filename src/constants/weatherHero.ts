@@ -86,11 +86,29 @@ export function heroImageUrl(group: WeatherGroup): string {
  * 同一个词在两个页面上必须是同一个颜色，可这条弧画的是 0–100 的数，
  * 跟着词走就丢了数：分数从 62 涨到 68，弧一点没变。
  *
- * ⚠️ 这些值必须与 src/styles/tokens/_color.scss 的同名档位一致 ——
- * canvas 2d 不解析 SCSS 变量，两边只能手工对齐（改色时一起改）。
+ * 这三个值是 canvas 颜色的**唯一出处** —— canvas 2d 不解析 SCSS 变量与
+ * CSS 变量，SCSS 侧不抄它们（抄一份只会让人以为改那里就能改到 canvas）。
+ * 红与绿跟语义色同值（$fish-destructive / $fish-success），黄是日照色那一档。
  */
 export const HERO_GAUGE_STOPS: readonly string[] = [
-  '#ff3b30', // $fish-gauge-low
-  '#ffd60a', // $fish-gauge-mid
-  '#34c759', // $fish-gauge-high
+  '#ff3b30', // = $fish-destructive
+  '#ffd60a', // = $fish-sun-soft
+  '#34c759', // = $fish-success
 ];
+
+/**
+ * 四种天色的兜底渐变。
+ *
+ * 头图在 CDN 上（图片加载的那一瞬会先露出这一层），
+ * 所以它得跟图片是同一种天 —— 图与渐变分属两处时，
+ * 加载完成的瞬间会闪一下别的颜色。
+ *
+ * 它跟天色映射、图片地址、版本号放在同一个文件里，是同一个决定的三个部分：
+ * 「此刻是什么天」由这一份说了算。
+ */
+export const HERO_SKY_GRADIENTS: Readonly<Record<HeroSky, string>> = {
+  sunny: 'linear-gradient(180deg, #bfe0f2 0%, #e7f3f6 46%, #7fd3d8 100%)',
+  cloudy: 'linear-gradient(180deg, #9db6cc 0%, #cfd9e6 42%, #6d8fa8 100%)',
+  rain: 'linear-gradient(180deg, #59697a 0%, #93a3ae 48%, #45535e 100%)',
+  night: 'linear-gradient(180deg, #0a1a33 0%, #16365e 50%, #060f1e 100%)',
+};

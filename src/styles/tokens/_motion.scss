@@ -21,7 +21,7 @@
 @use 'color' as *;
 @use 'depth' as *;
 
-$fish-ease-out: cubic-bezier(0.32, 0.72, 0, 1); // 呈现 / 展开
+$fish-ease-out: cubic-bezier(0.23, 1, 0.32, 1); // 呈现 / 展开
 $fish-ease-in: cubic-bezier(0.4, 0, 1, 1); // 退场
 $fish-spring: cubic-bezier(0.2, 0, 0, 1); // 临界阻尼
 
@@ -52,7 +52,7 @@ $fish-dur-sheet: 600ms;
  */
 $fish-dur-press: 260ms;
 
-$fish-dur-cross: 300ms;
+$fish-dur-cross: 160ms;
 /**
  * 按下反馈。
  *
@@ -371,6 +371,10 @@ $fish-enter-sheet-y: 16rpx;
 //
 // 时长用 $fish-dur-cross（160ms）：读数轨道那一处也是「同一位置换内容」，
 // 这里沿用同一个约定，不另立一档。
+//
+// 这条时长在 JS 侧也有一份（utils/motion.ts 的 CROSS_FADE_DURATION）——
+// JS 读不到 Sass 变量，两处要一样。旧态淡出要等淡完才摘（useCrossFade），
+// 两个数一旦不等，骨架会在淡完之前被摘掉，中间露出卡片底色。
 // ===========================================================================
 
 $fish-cross-y: 4rpx;

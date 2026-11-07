@@ -112,7 +112,7 @@ const SCALE_MAX_5MIN = (RAIN_LEVELS.find((level) => level.key === 'storm')?.from
  * （再高就是暴雨），与柱子用的是同一把绝对量程（见 SCALE_MAX_5MIN）。
  * 阈值改了这里跟着改 —— 参考线和色卡必须说同一件事。
  *
- * 这两条不是网格：网格是背景（$fish-grid 那一档），参考线是读者要拿来
+ * 这两条不是网格：网格是背景，参考线是读者要拿来
  * 比柱高的东西，淡到看不见就等于没画。所以组件里按参考线的重量画。
  */
 export const PRECIP_REF_PCTS: ReadonlyArray<number> = [100, (heavyFrom / SCALE_MAX_5MIN) * 100];

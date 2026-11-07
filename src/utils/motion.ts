@@ -99,7 +99,7 @@ export const CROSS_FADE_DURATION = 160;
 /**
  * 数字滚动的缓动。
  *
- * CSS 那条 cubic-bezier(0.32, 0.72, 0, 1)（$fish-ease-out）在 JS 里复刻不了：
+ * CSS 那条 cubic-bezier(0.23, 1, 0.32, 1)（$fish-ease-out）在 JS 里复刻不了：
  * 小程序没有 getComputedStyle 能把曲线读回来，要自己解贝塞尔方程。
  * 这里用 easeOutCubic —— 同一族的近似：起步快、末端慢停，
  * 和 $fish-ease-out 落位是同一口气。

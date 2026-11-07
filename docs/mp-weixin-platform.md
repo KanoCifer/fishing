@@ -50,7 +50,7 @@
 ## canvas
 
 - **WXML 不认 `<svg>` 标签**：画图走 canvas 2d；SVG 只能转 data URI 进 `<image>`。
-- **canvas 2d 不解析 `var()`**：色值硬编码，对齐 `_color.scss`（`$fish-tide`）；字体抄 `$fish-font`。
+- **canvas 2d 不解析 `var()`**：色值只能硬编码 —— canvas 色的**原件**是 `src/utils/chartPalette.ts`（深浅两套），令牌层不抄它们；字体抄 `$fish-font`（原件在 `utils/canvas.ts`）。
 - **导出用的画布位图按设计分辨率铺**；`createImage()` 只认网络地址与 base64 Data URI。
 - **`canvasToTempFilePath` 的 `x/y/width/height` 是画布元素的 CSS 坐标**，不是位图像素 → 画布的 `style` 尺寸要跟位图一致（`750px × 1000px`），裁切框写设计坐标才不出错。
 - **同一块画布导出两次，两次写同一个临时文件**：后一次把前一次盖掉 → 要出两张图就备两块画布，别指望一块导出两遍。

@@ -1,23 +1,43 @@
 # 设计系统
 
-界面是**材质系统**加**动效系统**，落在小程序的能力边界内：没有弹簧引擎、没有 `backdrop-filter` 保证、没有 `prefers-reduced-motion`。真源 `src/styles/tokens/`。
+界面是**材质系统**加**动效系统**，落在小程序的能力边界内：没有弹簧引擎、没有 `backdrop-filter` 保证、没有 `prefers-reduced-motion`。真源 `src/styles/tokens/` —— 哪些值归哪个文件管，见下面「一个值一个出处」。
 
 ## 令牌
 
 - `src/uni.scss` **只有一行** `@use '@/styles/tokens/_index.scss' as *;` —— **不能再有变量声明**。
 - 数值来源：**iOS App 设计速查表**（SF Pro）。字阶、文字色、间距、图标尺寸、按钮规格都从那里来。
-- 令牌按主题分文件：`platform / color / type / space / control / depth / material / motion / layout / card`。
-- **深浅两套值在 `src/styles/theme.scss`**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 770 处调用点一行没改。两套值集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻。
+- 令牌按关注点分文件：`color / type / space / control / depth / material / motion / layout / card`。
+- **深浅两套值在 `src/styles/theme.scss`**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。两套值集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻。
 - **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
+
+### 一个值一个出处
+
+同一个设计值在仓库里只该有一份。哪一份是原件，取决于**谁读得到它**：
+
+| 载体 | 原件 | 别人怎么用 |
+| --- | --- | --- |
+| 页面层（WXSS） | `src/styles/tokens/_color.scss` 写字面量或 `var(--fish-*)`；深浅两套在 `src/styles/theme.scss` | 直接用 `$fish-xxx` |
+| canvas | `src/utils/chartPalette.ts` | canvas 2d 不解析 var()，只能手写；SCSS 侧**不抄** |
+| 原生底栏 | `src/custom-tab-bar/index.wxss` | 原生组件不经 uni-app 编译，拿不到 SCSS 令牌 |
+| 图标 | `scripts/gen-icons.mjs` | 色值烤进 data URI，改色只改那一处 |
+| 分享出去的富文本 / 海报 | `src/constants/markdown-style.ts`、`src/pages/spot-detail/poster.ts` | 固定浅色，不随本机主题变 |
+
+**要抄就注明抄的是哪一份**（在旁边写 `= $fish-xxx`），**反过来那一侧不该有的副本要删掉** ——
+留着只会让人以为改那里就能改到别处。
+
+一个值在两处都存在、彼此不引用，那不是「有备份」，是下一次漂移。
 
 ## 卡片
 
-四个 mixin 在 `_card.scss`：`fish-card`、`fish-card-head`、`fish-card-title`、`fish-card-meta`。
+卡片这一层的 mixin 在 `_card.scss`：`fish-card`、`fish-list-card`、`fish-card-head`、`fish-card-title`、`fish-card-meta`。
 
 ## 材质与深度
 
 - **圆角是轮廓，阴影是厚度**；**层次靠面，不靠描边**
-- **锚面** `fish-anchor-face` 铺到屏幕顶承担当屏主语。**纸面** `fish-sheet` 从锚面下缘长出来、下面内容落在它上面，压住 60rpx，投影深蓝不是黑。
+- **玻璃面** `fish-glass`：一个 mixin，两个面色（面板底 / 卡面）。外形、阴影、描边三者一样，
+  所以只留一个 mixin，面色由调用方给 —— 写成两个 mixin 就是把同一段外壳抄两遍。
+- **深色面** `fish-deep-face`：不透明的深色面，浅色的东西浮在它上面。深色面不随主题变，
+  所以它那族色值是固定色。
 
 ## 排版
 
@@ -25,7 +45,9 @@
 - 三档正文级 + 一档主角数字：**18/22**（标题）、**16/20**（正文）、**14/18**（辅助），display 32pt 只给主角数字（它不是文字）。
 - **字重只有 Regular 400 与 Medium 500** —— 速查表里 SF Pro 给的就是这两档，标题靠 Medium 与 Regular 拉开，不靠更重的字重。
 - **字重是字阶之外唯一可调的一维**：要「正文尺寸但加重」写 `fish-type(body, 500)`，不要为此另开一级字号。
-- 文字色两档：**#000000**（默认）、**#666666**（subtle）。中间还留着 `$fish-muted` 一档 secondary，速查表没覆盖。
+- 文字色三阶：`$fish-ink`（正文）、`$fish-muted`（次级）、`$fish-muted-60`（辅助）。
+  弱化的两档不用 iOS 那套半透明灰 —— 它们在本项目里都是要读的正文，
+  1.7:1 那一档在白卡片上等于没画；换成实色灰，层级靠明度差保住。
 
 ## 控件
 
@@ -52,6 +74,7 @@
 
 - **曲线即弹簧**：没有弹簧引擎，只能近似成 cubic-bezier；`$fish-spring` 临界阻尼，末端减速不回头。**落位只动 `transform`+`opacity`**，`enterDelay(index)` 步长 60ms、**第 9 项封顶**。
 - **交叉淡入**（同一位置换内容）：两态叠在同一个格子里，旧态淡出、新态淡入，160ms `$fish-dur-cross`、位移 4rpx。mixin `fish-cross-in`（新态，挂载即播）与 `fish-cross-out`（旧态，类一切就淡）；骨架摘除时机在 `composables/useCrossFade`。
+  这条时长在 JS 侧也有一份（`utils/motion.ts` 的 `CROSS_FADE_DURATION`）—— **两个数必须一样**：旧态要等淡完才摘，两个数不等就等于在淡完之前把骨架摘了，中间露出卡片底色。
 
 ### 动画定义放哪
 
@@ -73,7 +96,7 @@
 **新页面照抄这几页的骨架** —— 漏改一处就「一页冷、一页暖」。环境色底**不放全局 `page`**（还要给 tabBar 切换与地图边缘兜底）。
 
 - **首屏定高**：概览取 `windowHeight`，**不用 `100vh`**（`100vh` 是屏幕高，会多出一截可滚动范围）。自定义底栏是浮层、`windowHeight` 里含它 —— tab 页的底部用 `fish-tabbar-inset` 让开。**钓点详情**：一屏定内容，头图 280pt，描述限两行，结论前置。**记录页**：满幅头图 + 日历索引。**我的页**：身份卡 + 两组出口。
-- **分区**：左右缩进 32rpx，分区之间 56rpx（28pt），同段内两张卡之间 32rpx，标签到它下面那组内容 24rpx（12pt）；分区间距由页面给，组件不再自带 margin-top。
+- **分区**：左右缩进 32rpx，分区之间 `$fish-space-section`，同段内两张卡之间 `$fish-space-card`，标签到它下面那组内容 `$fish-space-label`；分区间距由页面给，组件不再自带 margin-top。
 
 ### 一件事只说一遍
 
@@ -93,6 +116,25 @@
 
 图标是 `scripts/gen-icons.mjs` 生成的数据 URI；WXML 不认 `<svg>`，`currentColor` 不继承，颜色必须在生成时烤死。
 
+那八个语义档（ink / muted / muted60 / blue / blue600 / success / destructive / onAccent）
+的取值必须与令牌层的对应档位相等 —— 图标色是令牌层的复制品，复制品变了就是漂移。
+
+**但不是同名**：深色下图标是图形，品牌蓝取 `--fish-blue-600`（亮档）而不是填充档，
+success / destructive 取的是 `--fish-success-ink` / `--fish-destructive-ink`。
+逐档对应写在 `scripts/gen-icons.mjs` 的色板注释里。
+
+底栏图标是另一条路：`scripts/tabbar-icons.py` 把颜色烤进 PNG，
+**图形是设计稿导出的静态资源，脚本只管换色** —— 图形要改就改设计稿。
+
+## 原生底栏
+
+`src/custom-tab-bar/` 是原生组件，不经 uni-app 编译：拿不到 SCSS 令牌，
+也继承不到 `page` 上的 CSS 变量。所以它的色值要自己写一份
+（`index.wxss` 与烤进 PNG 的图标色），并且每一处都注明对应令牌层的哪一个。
+
+底栏与页面层是**两套渲染**，但读起来要像同一个产品 —— 两边对不上，
+最明显的就是底栏图标与底栏文字一个深一个浅（一个烤进 PNG，一个写在 WXSS 里）。
+
 ## 单位
 
 **rpx** 是设计稿尺寸（1pt = 2rpx），**px** 是运行时量出来的尺寸；相加先过 `uni.upx2px()`。
@@ -108,6 +150,9 @@
 7. **拖拽全在逻辑层。** 改：真要更跟手迁到 WXS；先不做。
 8. **降级开关盖不住浮层自己的关键帧。** `$fish-motion` 置 false 后页面不演了，`SnapSheet` 的面板关键帧没跟着关。改：关键帧与退场时长挂到 `$fish-motion` 下。
 9. **降级开关盖不住数字滚动。** 概览的分数是滚出来的（`utils/motion.ts` 的 `createCountUp`）；`$fish-motion` 置 false 后页面不演了数字还在演。改：开关搬到 SCSS 与 JS 都读得到的地方；代价是构建链改造，先不做。
+10. **雨强那族在深色下读不出来。** `$fish-rain-*` 是 `rgba($fish-tide, α)`，而 `rgba()` 不吃 `var()` —— 它们只能是固定色。深色下那张卡是深色玻璃面，alpha 阶梯是照浅底调的，压上去几乎看不见。改：给深色各出一套（浅 8 档 / 深 8 档），这是一次视觉调校，不在重构里做。
+11. **折线图的系列色有一档在白卡上读不出来。** `chartPalette.series[2]` 浅色是 systemYellow，白底上约 1.6:1，低于「有意义图形 3:1」那条线。改：换一个在白卡上够 3:1 的黄 —— 这是配色决定，不是重构能定的。
+12. **品牌蓝的填充档在深色面上偏暗。** `$fish-blue`（#0f66d6）不能随主题翻 —— 实心块上压的是白字，翻成亮蓝会让白字掉到 2.82:1。但它自己压在深色卡上时只有 3.2:1（canvas 的值弧与图标那两处为此用了亮蓝）。改：把「实心块 + 白字」与「压在深色面上的图形」拆成两档 —— 这是把一个档位拆成两个的决定，不在重构里做。
 
 ## 参考
 

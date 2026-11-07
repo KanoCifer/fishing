@@ -15,8 +15,14 @@
  * 是不生效的无效值。所以下面存的是 rpx，渲染时统一换算成 px（见 markdownNodes.ts）。
  */
 
-/** 弱化文字色。对应 _color.scss 的 $fish-muted-60 一档（iOS secondaryLabel）。 */
-const MUTED = 'rgba(60, 60, 67, 0.6)';
+/**
+ * 弱化文字色。对应 _color.scss 的 $fish-muted-60。
+ *
+ * 以前这里是 iOS 那套半透明灰（rgba(60, 60, 67, 0.6)），
+ * 令牌层已经不用它了 —— 弱化的两档改用实色灰，层级靠明度差保住。
+ * 这里跟着改，不然后面分享出去的正文跟界面上的正文不是一个灰。
+ */
+const MUTED = '#666666';
 /** 分隔线色。 */
 const BORDER = 'rgba(60, 60, 67, 0.18)';
 /** 链接与强调色。对应 $fish-blue-600。 */

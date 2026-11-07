@@ -1,6 +1,6 @@
 <template>
   <view class="hero" :class="skyClass" :data-weather="group">
-    <view class="hero__bg" />
+    <view class="hero__bg" :style="{ backgroundImage: skyGradient }" />
 
     <image class="hero__img" :src="imageUrl" mode="aspectFill" />
 
@@ -83,6 +83,7 @@ import { icon } from '@/constants/icons';
 import {
   HERO_GAUGE_SIZE,
   HERO_GAUGE_STOPS,
+  HERO_SKY_GRADIENTS,
   HERO_GAUGE_STROKE,
   heroImageUrlBySky,
   heroSky,
@@ -134,6 +135,7 @@ const sky = computed<HeroSky>(() => (isDarkTheme() ? 'night' : heroSky(group.val
 const skyClass = computed(() => `hero--${sky.value}`);
 
 const imageUrl = computed(() => heroImageUrlBySky(sky.value));
+const skyGradient = computed(() => HERO_SKY_GRADIENTS[sky.value]);
 
 /* ── 实时天气 ──────────────────────────────────────────────────────────── */
 
@@ -307,29 +309,13 @@ watch(
   overflow: hidden;
 }
 
-/* 兜底天色 */
+/* 兜底天色。渐变本身在 constants/weatherHero.ts —— 与天色映射、图片地址同属一处 */
 .hero__bg {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-}
-
-.hero--sunny .hero__bg {
-  background-image: linear-gradient(180deg, #bfe0f2 0%, #e7f3f6 46%, #7fd3d8 100%);
-}
-
-.hero--cloudy .hero__bg {
-  background-image: linear-gradient(180deg, #9db6cc 0%, #cfd9e6 42%, #6d8fa8 100%);
-}
-
-.hero--rain .hero__bg {
-  background-image: linear-gradient(180deg, #59697a 0%, #93a3ae 48%, #45535e 100%);
-}
-
-.hero--night .hero__bg {
-  background-image: linear-gradient(180deg, #0a1a33 0%, #16365e 50%, #060f1e 100%);
 }
 
 .hero__img {

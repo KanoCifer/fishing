@@ -17,6 +17,15 @@
  * 2. 动画不挂在 .tabbar 根节点上 —— 组件宿主节点不吃动画。
  *
  * 长度单位：1px（375pt 机型）= 2rpx。
+ *
+ * ── 为什么这份 WXSS 要自己抄一遍令牌 ──
+ *
+ * 原生自定义 tabBar 不经 uni-app 编译，拿不到 SCSS 令牌，
+ * 也继承不到 page 上的 CSS 变量。所以这里只能手写。
+ *
+ * 手写不等于各写各的：下面每一处值都在注释里注明它对应令牌层的哪一个，
+ * 那边改了这里要跟着改。反过来，令牌层也不抄这一份 ——
+ * 两边各有一份、彼此不引用，那才是真漂移。
  */
 
 /* 贴底通栏。高度由内容撑出来，安全区是叠加的，不是被吃掉的 */
@@ -30,9 +39,12 @@
   box-sizing: border-box;
   padding-bottom: env(safe-area-inset-bottom);
 
-  background-color: rgba(250,250,250,0.6);
-  backdrop-filter: blur(16px) saturate(1.8);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  /* = $fish-glass-strong / --fish-glass-strong */
+  background-color: rgba(255, 255, 255, 0.6);
+  /* = $fish-blur */
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  /* = $fish-border-40（浅色）—— 顶边是发丝线，不是高光 */
   box-shadow: inset 0 1rpx 0 rgba(60, 60, 67, 0.18);
 }
 
@@ -76,7 +88,8 @@
   padding: 8rpx 20rpx;
   border-radius: 28rpx;
 
-  animation: tabbar-cell-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  /* = $fish-ease-out */
+  animation: tabbar-cell-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .tabbar__cell--on {
@@ -120,9 +133,11 @@
   margin-top: 2rpx;
   font-size: 20rpx;
   line-height: 24rpx;
+  /* = $fish-muted-60 —— 未选中这一档，图标烤进 PNG，用的是同一个值 */
   color: #666666;
 
-  transition: color 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* = $fish-ease-out */
+  transition: color 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .tabbar__label--on {
@@ -143,11 +158,14 @@
   box-sizing: border-box;
   width: 80rpx;
   height: 80rpx;
-  border-radius: 999px;
+  /* = $fish-radius-pill */
+  border-radius: 999rpx;
+  /* = $fish-gradient */
   background-image: linear-gradient(135deg, #1a6ee0 0%, #0f66d6 55%, #1a4fa0 100%);
   box-shadow: 0 10rpx 24rpx rgba(13, 28, 44, 0.22);
 
-  animation: tabbar-cell-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  /* = $fish-ease-out */
+  animation: tabbar-cell-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .tabbar__action-icon {
@@ -174,8 +192,10 @@
  */
 @media (prefers-color-scheme: dark) {
   .tabbar {
-    background-color: rgba(22, 24, 29, 0.72);
-    box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
+    /* = --fish-glass-strong（深色） */
+    background-color: rgba(28, 30, 36, 0.82);
+    /* = --fish-glass-edge（深色） */
+    box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.14);
   }
 
   .tabbar__cell--on {
@@ -187,6 +207,7 @@
   }
 
   .tabbar__label--on {
+    /* = --fish-blue-600（深色档） */
     color: #4c9bff;
   }
 

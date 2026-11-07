@@ -73,11 +73,6 @@ $fish-btn-pad-x: 32rpx;
  */
 $fish-btn-text-pad-x: 8rpx;
 
-/**
- * 按钮。
- *
- * 高 44pt、横向留白 16pt。
- */
 @mixin fish-button($height: $fish-btn-height) {
   min-height: $height;
   padding-right: $fish-btn-pad-x;
@@ -85,8 +80,6 @@ $fish-btn-text-pad-x: 8rpx;
 }
 
 /**
- * 按钮里的文字那一层。
- *
  * 文字不直接贴在按钮的留白上：它自己裹一层 4pt 的横向留白，
  * 于是文字到按钮边缘是 16 + 4 = 20pt。
  */
@@ -96,8 +89,6 @@ $fish-btn-text-pad-x: 8rpx;
 }
 
 /**
- * 按钮里「文字 + 图标」并排。
- *
  * 两者之间**不留缝**：图标是文字的一部分，不是并排的另一件东西。
  * 留了缝就读成「一句话」加「一个图标」，按钮也就散了。
  */
@@ -106,11 +97,6 @@ $fish-btn-text-pad-x: 8rpx;
   align-items: center;
 }
 
-/**
- * 列表行。
- *
- * 上下 12pt、左右 20pt。
- */
 @mixin fish-list-row {
   padding: $fish-list-pad-y $fish-list-pad-x;
 }

@@ -511,7 +511,7 @@ const tableRows = computed(() => {
 
 /* 读数取曲线的那个蓝：同一个数，跟图上那条线是一件事 */
 .tide__now-value {
-  color: $fish-tide;
+  color: $fish-tide-ink;
   @include fish-type(display);
   @include numeric;
 }

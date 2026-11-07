@@ -394,7 +394,7 @@ function isNumber(value: number | undefined): boolean {
 }
 
 .wx__dot--on.wx__dot--blue {
-  background-color: $fish-gauge-from;
+  background-color: $fish-blue-on-dark;
 }
 
 .wx__dot--on.wx__dot--destructive {
@@ -412,7 +412,7 @@ function isNumber(value: number | undefined): boolean {
 }
 
 .wx__index-word--blue {
-  color: $fish-gauge-from;
+  color: $fish-blue-on-dark;
 }
 
 .wx__index-word--destructive {

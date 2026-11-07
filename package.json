@@ -17,7 +17,7 @@
     "format": "oxfmt .",
     "icons": "node scripts/gen-icons.mjs && oxfmt src/constants/icons.ts",
     "weather-icons": "node scripts/gen-meteocons-icons.mjs && oxfmt src/constants/weatherIcons.ts",
-    "tabbar": "python3 scripts/tabbar-icons.py --dark-only"
+    "tabbar": "python3 scripts/tabbar-icons.py"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029001",

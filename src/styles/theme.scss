@@ -2,7 +2,8 @@
  * 夜间模式 —— 浅色与深色两套令牌值。
  *
  * 这个文件只放**会随主题变**的那些值。固定色（品牌蓝实色、语义实色、
- * 深色面、图表色）留在 tokens/_color.scss 里当字面量。
+ * 深色面）留在 tokens/_color.scss 里当字面量；canvas 的色在
+ * src/utils/chartPalette.ts —— canvas 不读这里的变量。
  *
  * 为什么变量定义在这里、而不是组件里：
  * 令牌层是唯一的取值出处（见 src/styles/tokens/_color.scss）。
@@ -17,6 +18,16 @@
  * 为什么每个变量都带兜底值：
  * 变量没被解析到时退回浅色 —— 界面难看，但读得出来。
  * 反过来（只写变量不写兜底）会得到透明文字与透明背景，整屏读不出来。
+ *
+ * ── 这个文件是页面层那些值的唯一出处 ──
+ *
+ * 随主题变的颜色，只有这一份。令牌层写成 var(--fish-*, 兜底值)，
+ * 兜底值就是下面浅色那一行 —— 浅色段与兜底值必须一样，
+ * 页面层一次翻完，深浅两套也永远不会各写各的。
+ *
+ * canvas 不读这里的变量（canvas 2d 不解析 var()），
+ * 原生底栏也不读（它不经 uni-app 编译，继承不到 page 上的变量），
+ * 那两边各有各的出处，见 src/utils/chartPalette.ts 与 src/custom-tab-bar/。
  *
  * 深色不是把浅色反过来。深色有自己的表面关系：
  * 页面底接近纯黑，卡片面抬高一档，玻璃面从半透明白改成半透明深，
@@ -57,12 +68,12 @@ page,
   /* ── 页面底 ── */
   --fish-page-base: #f3f4f9;
   --fish-page-base-fade: rgba(243, 244, 249, 0);
-  --fish-page-bg: radial-gradient(
+  /* 页面底上那圈蓝调。底色不在这层里 —— 见 tokens/_color.scss 的 $fish-page-bg */
+  --fish-page-glow: radial-gradient(
     118% 44% at 50% -12%,
     rgba(203, 231, 255, 0.9) 0%,
     rgba(203, 231, 255, 0) 62%
-  ),
-  var(--fish-page-base, #f3f4f9);
+  );
   --fish-dock-fade: linear-gradient(
     180deg,
     rgba(242, 242, 247, 0) 0%,
@@ -83,6 +94,9 @@ page,
   --fish-success-ink: #1d7a38;
   --fish-warning-ink: #9a5b00;
   --fish-destructive-ink: #c92a20;
+
+  /* ── 潮位读数（跟 canvas 的潮位曲线同色）── */
+  --fish-tide-ink: #007aff;
 }
 
 /*
@@ -137,12 +151,12 @@ page,
     /* ── 页面底 ── */
     --fish-page-base: #0b0d11;
     --fish-page-base-fade: rgba(11, 13, 17, 0);
-    --fish-page-bg: radial-gradient(
-        118% 44% at 50% -12%,
-        rgba(30, 64, 110, 0.55) 0%,
-        rgba(30, 64, 110, 0) 62%
-      ),
-      var(--fish-page-base, #0b0d11);
+    /* 页面底上那圈蓝调。深色下是深蓝调，不是浅色那一圈 */
+    --fish-page-glow: radial-gradient(
+      118% 44% at 50% -12%,
+      rgba(30, 64, 110, 0.55) 0%,
+      rgba(30, 64, 110, 0) 62%
+    );
     --fish-dock-fade: linear-gradient(
       180deg,
       rgba(11, 13, 17, 0) 0%,
@@ -163,5 +177,8 @@ page,
     --fish-success-ink: #3ddc84;
     --fish-warning-ink: #ffb340;
     --fish-destructive-ink: #ff6961;
+
+    /* 潮位读数：跟 canvas 的潮位曲线同色 */
+    --fish-tide-ink: #4c9bff;
   }
 }

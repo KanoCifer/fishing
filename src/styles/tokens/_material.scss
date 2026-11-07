@@ -2,21 +2,20 @@
 @use 'color' as *;
 @use 'depth' as *;
 
-@mixin fish-glass($radius: $fish-radius-mid) {
+/**
+ * 玻璃面。
+ *
+ * 两个玻璃面只有面色不同 —— 面板底（$fish-glass）与卡面（$fish-card-glass）——
+ * 外形、阴影、描边完全一样。所以这里只留一个 mixin，面色由调用方给：
+ * 写成两个 mixin 就是把同一段外壳抄两遍，改材质要记得改两处。
+ *
+ * @param $radius 圆角
+ * @param $background 面色
+ */
+@mixin fish-glass($radius: $fish-radius-mid, $background: $fish-glass) {
   border-radius: $radius;
-  background-color: $fish-glass;
+  background-color: $background;
 
-  box-shadow: $smooth-shadow-xs;
-  box-shadow: $smooth-shadow-xs, $fish-glass-edge;
-  /* 描边：一圈发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
-  border: 2rpx solid $fish-glass-stroke;
-}
-
-@mixin fish-card-glass($radius: $fish-radius-mid) {
-  border-radius: $radius;
-  background-color: $fish-card-glass;
-
-  box-shadow: $smooth-shadow-xs;
   box-shadow: $smooth-shadow-xs, $fish-glass-edge;
   /* 描边：一圈发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
   border: 2rpx solid $fish-glass-stroke;
@@ -25,20 +24,6 @@
 @mixin fish-glass-blur {
   backdrop-filter: blur($fish-blur) saturate(1.8);
   -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
-}
-
-@mixin fish-anchor-face {
-  background-color: $fish-deep-base;
-  background-image:
-    radial-gradient(circle at 50% -12%, $fish-deep-glow, transparent 62%),
-    radial-gradient(circle at 92% 108%, $fish-deep-glow-2, transparent 60%),
-    linear-gradient(180deg, $fish-deep-top 0%, $fish-deep-bottom 100%);
-}
-
-@mixin fish-sheet($radius: $fish-radius-mid) {
-  border-top-left-radius: $radius;
-  border-top-right-radius: $radius;
-  background-color: $fish-page;
 }
 
 @mixin fish-deep-face($radius: $fish-radius-mid) {

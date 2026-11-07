@@ -434,7 +434,7 @@ onPageShow(async () => {
 .my-spots__list {
   margin-top: 24rpx;
   overflow: hidden;
-  @include fish-card-glass($fish-radius-card);
+  @include fish-glass($fish-radius-card, $fish-card-glass);
 }
 
 /* 一条钓点 */

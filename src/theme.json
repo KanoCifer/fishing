@@ -6,7 +6,7 @@
     "bgColorTop": "#e2e8f8",
     "bgColorBottom": "#e2e8f8",
     "bgTxtStyle": "dark",
-    "tabFontColor": "#3c3c43",
+    "tabFontColor": "#666666",
     "tabSelectedColor": "#0f66d6",
     "tabBgColor": "#ffffff",
     "tabBorderStyle": "white"
