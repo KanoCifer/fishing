@@ -140,9 +140,7 @@ export function parseHeight(value: number | string | null | undefined): number |
  * 顺带记下「位置 → 原始下标」：剔掉脏点之后位置与原始下标不再一一对应，
  * 而时间刻度、当前时刻、选中点都是按原始下标给的，不记这一笔就没法对回去。
  */
-function cleanPoints(
-  points: ReadonlyArray<{ height: number | string }>,
-): { values: number[]; sourceIndex: number[] } {
+function cleanPoints(points: ReadonlyArray<{ height: number | string }>): { values: number[]; sourceIndex: number[] } {
   const values: number[] = [];
   const sourceIndex: number[] = [];
   points.forEach((point, index) => {

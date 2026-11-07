@@ -11,28 +11,28 @@
 
 ## 落地清单
 
-| 文件 | 做什么 |
-| --- | --- |
-| `src/styles/theme.scss` | 深浅两套 CSS 变量。作用域 `page, .page` |
-| `src/styles/tokens/_color.scss` | B 组令牌换成 `var()`；新增 `$fish-page-base-fade`、`$fish-map-panel`、`$fish-overlay` |
-| `src/App.vue` | 全局 style 引入 theme.scss；`onLaunch` 里 `initTheme()` |
-| `src/utils/theme.ts` | 主题真值（模块级 ref）+ `wx.onThemeChange` 监听 |
-| `src/utils/chartPalette.ts` | canvas 色板，深浅两套。**canvas 色的原件**，SCSS 侧不抄 |
-| `src/manifest.json` | `mp-weixin` 加 `darkmode: true` 与 `themeLocation: "theme.json"` |
-| `src/theme.json` | 原生 UI 的深浅两套（窗口底色、下拉刷新文字色） |
-| `src/pages.json` | `globalStyle` 改用 `@变量` 引用 theme.json |
-| `scripts/gen-icons.mjs` | 每个语义档产出浅深两份，键加 `--dark` 后缀 |
-| `scripts/tabbar-icons.py` | 把令牌层的色烤进底栏 PNG（只换色，不画图形），并派生深色一套 |
-| `src/custom-tab-bar/index.wxss` | 底栏自带一套深色值（媒体查询），每一处注明对应哪个令牌 |
-| `scripts/check-hardcoded-colors.mjs` | 令牌层之外的硬编码色值门禁 |
+| 文件                                 | 做什么                                                                                |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| `src/styles/theme.scss`              | 深浅两套 CSS 变量。作用域 `page, .page`                                               |
+| `src/styles/tokens/_color.scss`      | B 组令牌换成 `var()`；新增 `$fish-page-base-fade`、`$fish-map-panel`、`$fish-overlay` |
+| `src/App.vue`                        | 全局 style 引入 theme.scss；`onLaunch` 里 `initTheme()`                               |
+| `src/utils/theme.ts`                 | 主题真值（模块级 ref）+ `wx.onThemeChange` 监听                                       |
+| `src/utils/chartPalette.ts`          | canvas 色板，深浅两套。**canvas 色的原件**，SCSS 侧不抄                               |
+| `src/manifest.json`                  | `mp-weixin` 加 `darkmode: true` 与 `themeLocation: "theme.json"`                      |
+| `src/theme.json`                     | 原生 UI 的深浅两套（窗口底色、下拉刷新文字色）                                        |
+| `src/pages.json`                     | `globalStyle` 改用 `@变量` 引用 theme.json                                            |
+| `scripts/gen-icons.mjs`              | 每个语义档产出浅深两份，键加 `--dark` 后缀                                            |
+| `scripts/tabbar-icons.py`            | 把令牌层的色烤进底栏 PNG（只换色，不画图形），并派生深色一套                          |
+| `src/custom-tab-bar/index.wxss`      | 底栏自带一套深色值（媒体查询），每一处注明对应哪个令牌                                |
+| `scripts/check-hardcoded-colors.mjs` | 令牌层之外的硬编码色值门禁                                                            |
 
 ## 令牌分三组
 
-| 组 | 成员 | 载体（原件） | 随主题变 |
-| --- | --- | --- | --- |
-| A 固定色 | `on-accent`、`on-dark`、`deep-*`、`sun`/`sun-soft`、语义实色、`gradient`、`rain-*`、`tide`、`guide`、`blue-on-dark`、`scrim`、`blue`（填充档） | SCSS 字面量（`_color.scss`） | 否 |
-| B 表面与文字 | `ink`、`muted`、`muted-60`、`page`、`grouped`、`card-face`、`surface`、`fill`、`border`、`border-40`、`faint`、`glass`、`card-glass`、`glass-strong`、`glass-edge`、`glass-stroke`、`page-base`、`page-glow`（页面底那圈蓝调，令牌是 `$fish-page-bg`）、`dock-fade`、各 `tint`、各 `*-ink`、`photo-placeholder`、`map-panel`、`overlay`、`blue-600`（文字档）、`tide-ink` | CSS 变量（`theme.scss`） | 是 |
-| C 图表与图标 | canvas 的网格线、基线、游标、坐标文字、系列色、量表色阶；图标的 8 个语义色档 | **JS 主题值**（`chartPalette.ts` / `gen-icons.mjs` / `constants/weatherHero.ts` 的量表色阶） | 是 |
+| 组           | 成员                                                                                                                                                                                                                                                                                                                                                                      | 载体（原件）                                                                                 | 随主题变 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------- |
+| A 固定色     | `on-accent`、`on-dark`、`deep-*`、`sun`/`sun-soft`、语义实色、`gradient`、`rain-*`、`tide`、`guide`、`blue-on-dark`、`scrim`、`blue`（填充档）                                                                                                                                                                                                                            | SCSS 字面量（`_color.scss`）                                                                 | 否       |
+| B 表面与文字 | `ink`、`muted`、`muted-60`、`page`、`grouped`、`card-face`、`surface`、`fill`、`border`、`border-40`、`faint`、`glass`、`card-glass`、`glass-strong`、`glass-edge`、`glass-stroke`、`page-base`、`page-glow`（页面底那圈蓝调，令牌是 `$fish-page-bg`）、`dock-fade`、各 `tint`、各 `*-ink`、`photo-placeholder`、`map-panel`、`overlay`、`blue-600`（文字档）、`tide-ink` | CSS 变量（`theme.scss`）                                                                     | 是       |
+| C 图表与图标 | canvas 的网格线、基线、游标、坐标文字、系列色、量表色阶；图标的 8 个语义色档                                                                                                                                                                                                                                                                                              | **JS 主题值**（`chartPalette.ts` / `gen-icons.mjs` / `constants/weatherHero.ts` 的量表色阶） | 是       |
 
 C 组的原件在 JS 侧，**SCSS 侧不抄**。抄一份只会让人以为改那里就能改到 canvas ——
 canvas 2d 不解析 SCSS 变量与 CSS 变量，它只认那份 TS 里的字面量。
@@ -41,7 +41,7 @@ canvas 2d 不解析 SCSS 变量与 CSS 变量，它只认那份 TS 里的字面�
 
 ```scss
 // _color.scss
-$fish-ink: var(--fish-ink, #000000);   // 原来：#000000
+$fish-ink: var(--fish-ink, #000000); // 原来：#000000
 ```
 
 兜底值必须写：变量作用域万一没生效，退回当前浅色值，界面难看但读得出来。反过来（只写变量不写兜底）会得到透明文字与透明背景。

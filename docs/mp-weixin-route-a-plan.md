@@ -12,17 +12,18 @@
 
 附件方案与常见说法都暗示「单页容器 = 主包瘦身」。本项目实测**不成立**：
 
-| 目录 | 体积 |
-| --- | --- |
-| `components/` | 720K |
-| `static/` | 360K（其中 `medals` 268K） |
-| `common/` | 140K |
+| 目录                                          | 体积                            |
+| --------------------------------------------- | ------------------------------- |
+| `components/`                                 | 720K                            |
+| `static/`                                     | 360K（其中 `medals` 268K）      |
+| `common/`                                     | 140K                            |
 | `pages/data` + `fishing` + `records` + `mine` | 16K + 16K + 16K + 20K = **68K** |
-| 主包合计 | 2.2M |
+| 主包合计                                      | 2.2M                            |
 
 四个 tab 页**总共只有 68K**。它们搬进主包的 `views/` 后体积不变（本来就是主包），而 `components/` 720K 一分不少 —— 因为组件本来就引用它们。
 
 **真正的收益只有两个**：
+
 1. 切 tab 不再有页面栈切换与转场动画（自定义底栏本来就在遮转场，这项收益有限）
 2. `src/custom-tab-bar/` 那 200 行原生代码可以删掉
 
@@ -36,22 +37,22 @@
 
 ### 1.1 编译器约束
 
-| 写法 | 结果 |
-| --- | --- |
-| `<component :is>` | ❌ 不支持 |
-| `<keep-alive>` | ❌ 不支持 |
-| `v-if` / `v-else` | ✅ → `wx:if` / `wx:else` |
-| `v-show` | ✅ → `data-c-h="{{!x}}"` |
+| 写法                     | 结果                               |
+| ------------------------ | ---------------------------------- |
+| `<component :is>`        | ❌ 不支持                          |
+| `<keep-alive>`           | ❌ 不支持                          |
+| `v-if` / `v-else`        | ✅ → `wx:if` / `wx:else`           |
+| `v-show`                 | ✅ → `data-c-h="{{!x}}"`           |
 | `v-if` + `v-show` 同元素 | ✅ → `wx:if` + `data-c-h` 同一节点 |
 
 ### 1.2 四个 tab 页的钩子与页面级配置
 
-| 页面 | 钩子 | 页面级配置（`pages.json`） |
-| --- | --- | --- |
-| `pages/data/index` | `onLoad` `onReady` `onShow` `onPageScroll` `onPullDownRefresh` `onShareAppMessage` | `enablePullDownRefresh: true` |
-| `pages/fishing/index` | `onLoad` `onReady` `onShow` `onShareAppMessage` | `disableScroll: true` |
-| `pages/records/index` | `onPageShow` | — |
-| `pages/mine/index` | `onLoad` `onPageShow` `onShareAppMessage` | — |
+| 页面                  | 钩子                                                                               | 页面级配置（`pages.json`）    |
+| --------------------- | ---------------------------------------------------------------------------------- | ----------------------------- |
+| `pages/data/index`    | `onLoad` `onReady` `onShow` `onPageScroll` `onPullDownRefresh` `onShareAppMessage` | `enablePullDownRefresh: true` |
+| `pages/fishing/index` | `onLoad` `onReady` `onShow` `onShareAppMessage`                                    | `disableScroll: true`         |
+| `pages/records/index` | `onPageShow`                                                                       | —                             |
+| `pages/mine/index`    | `onLoad` `onPageShow` `onShareAppMessage`                                          | —                             |
 
 **已确认的钩子归属**（运行时 `vendor.js`）：
 
@@ -73,16 +74,16 @@ function ui(e, t, n = Yi, r = !1) {
 
 ### 1.3 跨层能力清单（组件化的真正工作量）
 
-| # | 能力 | 涉及页面 | 复杂度 |
-| --- | --- | --- | --- |
-| A | canvas 画布节点 | data（TideGauge/TideChart/MetricChart→LineChart） | **高** |
-| B | 原生 `<map>` | fishing | **高** |
-| C | 页面级钩子 | data / fishing / records / mine | 中 |
-| D | 跨页返回（`switchTab`） | 5 处调用点 | 中 |
-| E | 分享（`onShareAppMessage` + `open-type="share"`） | data / fishing / mine | 中 |
-| F | `onPageScroll` 滚动位置 | data | 低 |
-| G | 下拉刷新 | data | 低 |
-| H | `disableScroll`（钓点页禁滚） | fishing | 低 |
+| #   | 能力                                              | 涉及页面                                          | 复杂度 |
+| --- | ------------------------------------------------- | ------------------------------------------------- | ------ |
+| A   | canvas 画布节点                                   | data（TideGauge/TideChart/MetricChart→LineChart） | **高** |
+| B   | 原生 `<map>`                                      | fishing                                           | **高** |
+| C   | 页面级钩子                                        | data / fishing / records / mine                   | 中     |
+| D   | 跨页返回（`switchTab`）                           | 5 处调用点                                        | 中     |
+| E   | 分享（`onShareAppMessage` + `open-type="share"`） | data / fishing / mine                             | 中     |
+| F   | `onPageScroll` 滚动位置                           | data                                              | 低     |
+| G   | 下拉刷新                                          | data                                              | 低     |
+| H   | `disableScroll`（钓点页禁滚）                     | fishing                                           | 低     |
 
 ---
 
@@ -110,15 +111,16 @@ src/stores/tabNav.ts                  ← 当前 tab（供跨页返回用）
 
 一个 view 组件被切走时，它的 DOM 与画布节点会怎样？
 
-| view 内容特征 | 归类 | 手段 |
-| --- | --- | --- |
-| 含原生 `<map>` | **`v-if`**（独占层级） | fishing |
-| 含 canvas | `v-if` | data |
-| 纯视图 + 轻状态 | `v-show`（保状态） | records, mine |
+| view 内容特征   | 归类                   | 手段          |
+| --------------- | ---------------------- | ------------- |
+| 含原生 `<map>`  | **`v-if`**（独占层级） | fishing       |
+| 含 canvas       | `v-if`                 | data          |
+| 纯视图 + 轻状态 | `v-show`（保状态）     | records, mine |
 
 **本项目建议：data 与 fishing 用 `v-if`，records 与 mine 用 `v-show`。**
 
 理由：
+
 - data 有 4 块 canvas，`v-show` 隐藏时画布节点是否被回收**官方无明确定义** —— 这正是 iPhone 闪退的根源，赌不得
 - fishing 有原生 map，`v-show` 隐藏**不保证解除层级遮挡**
 - records / mine 是纯视图，`v-show` 保留状态（记录页的月份选择、我的页的滚动位置）是实打实的体验收益，且无 canvas / map
@@ -190,14 +192,15 @@ export const useTabNavStore = defineStore('tabNav', () => {
 
 **每个 view 的取数时机改造**：
 
-| view | 现在 | 改后 |
-| --- | --- | --- |
-| DataView | `onShow` → 取数 | `watch(() => props.active)` → 取数（`immediate: true`） |
-| FishingView | `onShow` → 取数 | 同上 |
-| RecordsView | `onPageShow` → 取数 | 同上 |
-| MineView | `onPageShow` → 取数 | 同上 |
+| view        | 现在                | 改后                                                    |
+| ----------- | ------------------- | ------------------------------------------------------- |
+| DataView    | `onShow` → 取数     | `watch(() => props.active)` → 取数（`immediate: true`） |
+| FishingView | `onShow` → 取数     | 同上                                                    |
+| RecordsView | `onPageShow` → 取数 | 同上                                                    |
+| MineView    | `onPageShow` → 取数 | 同上                                                    |
 
 ⚠️ **`watch` 的 `immediate: true` 与「切回来就取数」要区分**：
+
 - `immediate: true` → 首次挂载取一次（等价于现在的 `onReady`）
 - 切回来取数 → `watch` 非 immediate 分支
 
@@ -207,13 +210,13 @@ export const useTabNavStore = defineStore('tabNav', () => {
 
 移除 `tabBar` 后 `uni.switchTab` 对非 tab 页无效。5 处调用：
 
-| 文件 | 目标 | 场景 |
-| --- | --- | --- |
+| 文件                                | 目标                   | 场景               |
+| ----------------------------------- | ---------------------- | ------------------ |
 | `pages/record/detail/index.vue:341` | `/pages/records/index` | 深链打开时无上一页 |
-| `pages/record/create/index.vue:839` | `/pages/records/index` | 同上 |
-| `pages/spot-detail/index.vue:441` | `/pages/fishing/index` | 同上 |
-| `pages/spot-create/index.vue:783` | `/pages/fishing/index` | 同上 |
-| `pages/spot-feedback/index.vue:269` | `/pages/fishing/index` | 同上 |
+| `pages/record/create/index.vue:839` | `/pages/records/index` | 同上               |
+| `pages/spot-detail/index.vue:441`   | `/pages/fishing/index` | 同上               |
+| `pages/spot-create/index.vue:783`   | `/pages/fishing/index` | 同上               |
+| `pages/spot-feedback/index.vue:269` | `/pages/fishing/index` | 同上               |
 
 **方案**：改成「设置 store 的 active → `navigateBack` 或 `reLaunch`」。
 
@@ -221,7 +224,7 @@ export const useTabNavStore = defineStore('tabNav', () => {
 // utils/tabNav.ts（新增）
 export function goToTab(tab: TabKey) {
   useTabNavStore().switchTo(tab);
-  uni.reLaunch({ url: '/pages/home/index' });   // 从二级页回到容器页
+  uni.reLaunch({ url: '/pages/home/index' }); // 从二级页回到容器页
 }
 ```
 
@@ -232,7 +235,7 @@ function goBack(): void {
   uni.navigateBack({
     delta: 1,
     fail: () => {
-      goToTab('records');   // 没有上一页 → 重开容器页
+      goToTab('records'); // 没有上一页 → 重开容器页
     },
   });
 }
@@ -328,12 +331,14 @@ onShareAppMessage(() => SHARE_CARDS[tabStore.active.value] ?? SHARE_CARDS.data);
 ## 5. 验收标准
 
 ### 构建期
+
 - [ ] `pnpm build -p mp-weixin` 通过
 - [ ] `pnpm check:compat` 通过（WXSS 选择器约束）
 - [ ] `pnpm type-check` 通过
 - [ ] 产物中无 `<component :is>` / `keep-alive`
 
 ### 功能
+
 - [ ] 四个 tab 切换正常，选中态与底栏一致
 - [ ] 切 tab 不重复取数（看网络面板）
 - [ ] 切 tab 保留 records / mine 的页面状态
@@ -342,6 +347,7 @@ onShareAppMessage(() => SHARE_CARDS[tabStore.active.value] ?? SHARE_CARDS.data);
 - [ ] 5 处「返回上一页」兜底生效
 
 ### 真机专项（开发者工具测不出来）
+
 - [ ] **iPhone**：反复切 tab 20+ 次不闪退（canvas）
 - [ ] **iPhone**：钓点页 ↔ 其他页来回切，map 无残留遮挡
 - [ ] **iPhone**：钓点页拖动地图不被页面滚动抢走
@@ -351,31 +357,31 @@ onShareAppMessage(() => SHARE_CARDS[tabStore.active.value] ?? SHARE_CARDS.data);
 
 ## 6. 风险登记
 
-| 风险 | 等级 | 应对 |
-| --- | --- | --- |
-| canvas 死节点 → 原生闪退 | **高** | 步骤 1 单独先做，真机验证不过就不继续 |
-| map 视角丢失 / 残留遮挡 | **高** | fishing 强制 `v-if`；视角提到 store |
-| 页面滚动与 map 手势冲突 | **中** | `disableScroll` 无法按 tab 切，需真机验证 |
-| 4 页共享滚动上下文 | **中** | data 的滚动动画降级 |
-| 下拉刷新全局生效 | **中** | 按 `active` 拦截 |
-| 分享路径失效 | **中** | 步骤 4 统一改 |
-| 包体无收益（动机不成立） | — | 见第 0 节，先确认动机 |
+| 风险                     | 等级   | 应对                                      |
+| ------------------------ | ------ | ----------------------------------------- |
+| canvas 死节点 → 原生闪退 | **高** | 步骤 1 单独先做，真机验证不过就不继续     |
+| map 视角丢失 / 残留遮挡  | **高** | fishing 强制 `v-if`；视角提到 store       |
+| 页面滚动与 map 手势冲突  | **中** | `disableScroll` 无法按 tab 切，需真机验证 |
+| 4 页共享滚动上下文       | **中** | data 的滚动动画降级                       |
+| 下拉刷新全局生效         | **中** | 按 `active` 拦截                          |
+| 分享路径失效             | **中** | 步骤 4 统一改                             |
+| 包体无收益（动机不成立） | —      | 见第 0 节，先确认动机                     |
 
 ---
 
 ## 7. 与路线 B 的对比结论
 
-| 维度 | 路线 A（单页容器） | 路线 B（底栏换 Vue 组件） |
-| --- | --- | --- |
-| 跨层能力搬迁 | 8 项全做 | **0 项** |
-| 画布闪退风险 | 上升 | 不变（现有防护有效） |
-| map 层级风险 | 上升 | 不变 |
-| `switchTab` 改写 | 5 处 | 0 处 |
-| 分享路径改写 | 必须 | 不必须 |
-| 包体收益 | 0 | 0 |
-| 删 `custom-tab-bar` 200 行 | ✅ | ✅ |
-| 切 tab 转场 | 无 | 有（原生 switchTab） |
-| 页面状态保留 | records/mine 可保留 | 原生 tab 页本来就保留 |
+| 维度                       | 路线 A（单页容器）  | 路线 B（底栏换 Vue 组件） |
+| -------------------------- | ------------------- | ------------------------- |
+| 跨层能力搬迁               | 8 项全做            | **0 项**                  |
+| 画布闪退风险               | 上升                | 不变（现有防护有效）      |
+| map 层级风险               | 上升                | 不变                      |
+| `switchTab` 改写           | 5 处                | 0 处                      |
+| 分享路径改写               | 必须                | 不必须                    |
+| 包体收益                   | 0                   | 0                         |
+| 删 `custom-tab-bar` 200 行 | ✅                  | ✅                        |
+| 切 tab 转场                | 无                  | 有（原生 switchTab）      |
+| 页面状态保留               | records/mine 可保留 | 原生 tab 页本来就保留     |
 
 **若动机是「删掉 custom-tab-bar 的复杂度」→ 路线 B。**
 **若动机是「切 tab 不能有转场动画 / 想做共享元素动效」→ 路线 A。**

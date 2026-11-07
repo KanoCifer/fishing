@@ -81,12 +81,7 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import SnapSheet from '@/components/SnapSheet/SnapSheet.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import {
-  ABOUT_ENTRIES,
-  ABOUT_NOTICE,
-  APP_FOOTER,
-  PRIVACY_POLICY_DOC,
-} from '@/constants/about';
+import { ABOUT_ENTRIES, ABOUT_NOTICE, APP_FOOTER, PRIVACY_POLICY_DOC } from '@/constants/about';
 import type { AboutDoc as AboutDocItem, AboutLink, PrivacyContractEntry } from '@/constants/about';
 import { enterDelay } from '@/utils/motion';
 import { openPrivacyContract } from '@/utils/privacy';
@@ -140,9 +135,7 @@ const entryByKey = new Map(ABOUT_ENTRIES.map((entry) => [entry.key, entry]));
  * 它不进协议区 —— 那一行叫「隐私政策」，点开走的是微信官方那份；
  * 本地全文只在官方那份弹不出来时兜底，但它得能被查到。
  */
-const docEntries = ABOUT_ENTRIES.filter(
-  (entry): entry is AboutDocItem => entry.kind === 'doc',
-);
+const docEntries = ABOUT_ENTRIES.filter((entry): entry is AboutDocItem => entry.kind === 'doc');
 
 const docByKey = new Map<string, AboutDocItem>([
   ...docEntries.map((doc): [string, AboutDocItem] => [doc.key, doc]),

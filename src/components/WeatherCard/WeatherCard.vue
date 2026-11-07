@@ -58,7 +58,6 @@
     </text>
 
     <text v-else-if="!tiles.length && !skeletonVisible" class="weather__empty">暂无天气数据，刷新可重试</text>
-
   </view>
 </template>
 

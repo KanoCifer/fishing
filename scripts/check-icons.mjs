@@ -125,7 +125,20 @@ if (offenders.length === 0) {
 }
 
 for (const item of offenders) {
-  console.error('  ' + item.where + ':' + item.line + '  icon(' + item.name + ', ' + (item.color ?? '...') + ')  ← 缺 ' + item.name + '__' + (item.color ?? '*'));
+  console.error(
+    '  ' +
+      item.where +
+      ':' +
+      item.line +
+      '  icon(' +
+      item.name +
+      ', ' +
+      (item.color ?? '...') +
+      ')  ← 缺 ' +
+      item.name +
+      '__' +
+      (item.color ?? '*'),
+  );
 }
 
 console.error('');

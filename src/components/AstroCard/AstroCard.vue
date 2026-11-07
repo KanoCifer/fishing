@@ -1,18 +1,4 @@
 <template>
-  <!--
-    日照与月相 —— 一张卡先回答「还能下多久水」。
-
-    为什么是倒计时：钓鱼是**跟日照过不去**的活。33 度的晴天下午两点
-    和清早六点，鱼口完全是两回事 —— 但「晴 / 33°」这个读数里没有这句话，
-    只有「今天几点天黑、几点月落」里有。所以这张卡把最上面让给倒计时，
-    日出日落的时刻、月相这些退成证据。
-
-    底下那条 24 小时轨道按真实比例排，不做视觉上的匀分：
-    匀分出来的时间轴会骗人 —— 6 月和 12 月的白昼长度差一倍，
-    一条等长的暖色带在这两幅图里完全不是同一件事。
-    暖色是白昼，冷色是夜钓窗口（天黑且月亮在天上的那几段），
-    圆点标着「现在」。
-  -->
   <view class="astro">
     <view class="astro__head">
       <view class="astro__head-left">
@@ -41,10 +27,7 @@
           :class="{ 'astro__target--active': target.key === activeKey }"
           @tap="selectTarget(target.key)"
         >
-          <text
-            class="astro__target-text"
-            :class="{ 'astro__target-text--active': target.key === activeKey }"
-          >
+          <text class="astro__target-text" :class="{ 'astro__target-text--active': target.key === activeKey }">
             {{ target.label }}
           </text>
         </view>
@@ -159,7 +142,7 @@ const day = computed<WeatherDay | null>(() => {
 const tomorrow = computed<WeatherDay | null>(() => {
   const rows = astroDays.value;
   const index = day.value ? rows.indexOf(day.value) : -1;
-  return index >= 0 ? rows[index + 1] ?? null : null;
+  return index >= 0 ? (rows[index + 1] ?? null) : null;
 });
 
 const dateLabel = computed(() => (day.value?.fxDate ? shortDate(day.value.fxDate) : ''));

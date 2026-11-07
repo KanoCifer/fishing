@@ -274,9 +274,7 @@ function normalizeHour(item: WeatherHourlyV1): WeatherHourly {
   };
 }
 
-function normalizeWeatherHourly(
-  input: WeatherHourlyBlockV1 | WeatherHourlyV1[] | null | undefined,
-): WeatherHourly[] {
+function normalizeWeatherHourly(input: WeatherHourlyBlockV1 | WeatherHourlyV1[] | null | undefined): WeatherHourly[] {
   return hourlyEntries(input).map(normalizeHour);
 }
 

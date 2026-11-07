@@ -288,11 +288,7 @@ export function createCanvasLayer(options: CanvasLayerOptions): CanvasLayer {
  * @param redraw 层作废了：重新取节点、重画（怎么 init 由调用方决定）
  * @param keep 层没作废（节点还在）：也要做的事。补一帧最终态这类。
  */
-export function useCanvasPageShow(
-  layers: CanvasLayer[],
-  redraw: () => void,
-  keep?: () => void,
-): void {
+export function useCanvasPageShow(layers: CanvasLayer[], redraw: () => void, keep?: () => void): void {
   onShow(() => {
     // 只有已经拿到 ctx 的层才有死画布的风险。还没拿到节点的层不用管：
     // 那一轮取节点本来就是在页面显示之后做的，拿到的就是新节点。

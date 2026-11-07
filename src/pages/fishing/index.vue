@@ -70,9 +70,7 @@ const focusedLat = ref(MAP_CENTER[1]);
  * 地图上已经有标记就是可用状态：后台那次刷新没成，用户不需要知道。
  * 什么都没有的时候，「这一片真的没有钓点」和「没取到」才分不清。
  */
-const spotsFailed = computed(
-  () => spotStore.markers.length === 0 && spotStore.spotsError !== '',
-);
+const spotsFailed = computed(() => spotStore.markers.length === 0 && spotStore.spotsError !== '');
 
 /**
  * 重试取钓点。force：不管新鲜窗口 —— 用户点了就是现在要。

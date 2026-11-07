@@ -20,15 +20,7 @@
 
 import { WEATHER_ICON_FALLBACK, WEATHER_ICONS, type WeatherIconSlug } from '@/constants/weatherIcons';
 import type { WeatherDay } from '@/types/fishing';
-import type {
-  ForecastDay,
-  Label,
-  Level,
-  PressureLabel,
-  PressureTone,
-  Tone,
-  WeatherGroup,
-} from '@/types/view';
+import type { ForecastDay, Label, Level, PressureLabel, PressureTone, Tone, WeatherGroup } from '@/types/view';
 
 import { toFiniteNumber } from './number';
 import { rainLevelOf } from './precip';
@@ -91,9 +83,7 @@ const WEATHER_CODE_RANGES: ReadonlyArray<readonly [number, number, WeatherIconSl
  * 和风明确说过天气现象与图标会持续新增 —— 新码来得比图标快，
  * 所以这一层必须自己兜住。
  */
-function lookupWeatherCode(
-  icon: string | undefined | null,
-): { slug: WeatherIconSlug; group: WeatherGroup } | null {
+function lookupWeatherCode(icon: string | undefined | null): { slug: WeatherIconSlug; group: WeatherGroup } | null {
   const n = Number(icon);
   if (!Number.isInteger(n)) return null;
 

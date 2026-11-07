@@ -33,7 +33,6 @@
         "navigationBarTextStyle": "white",
         "componentFramework": "glass-easel",
         "glassEaselWebview": true
-
       }
     }
   ],

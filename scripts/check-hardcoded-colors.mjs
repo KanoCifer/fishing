@@ -153,9 +153,7 @@ async function collect(dir) {
  * 注释里的色值不算 —— 注释里写「与 $fish-ink 对齐」是给人看的。
  */
 function colorsIn(source) {
-  const stripped = source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*$/, '');
+  const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/, '');
 
   const hits = [];
 
@@ -188,9 +186,7 @@ function scanFile(rel, source) {
    * 逐行剥会漏掉多行块注释的中间几行 —— 那几行里的色值是注释里的说明文字，
    * 不是代码。所以这里先把块注释的内容清空（只留换行），行号对得上。
    */
-  const stripped = source
-    .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ''))
-    .split('\n');
+  const stripped = source.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, '')).split('\n');
 
   const offenders = [];
   let exempt = false;

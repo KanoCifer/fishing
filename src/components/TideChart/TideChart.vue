@@ -633,7 +633,7 @@ function resetTop(): void {
  * 曲线是动态层的事，等完全进入视口再说。
  */
 async function initBase(): Promise<void> {
-  if (!await baseLayer.init()) return;
+  if (!(await baseLayer.init())) return;
 
   // 静态层先画好：动态层就绪时直接叠上去
   computeGeom();
@@ -645,7 +645,7 @@ async function initBase(): Promise<void> {
  */
 async function initTop(): Promise<void> {
   if (!showTop.value) return;
-  if (!await topLayer.init()) return;
+  if (!(await topLayer.init())) return;
 
   scheduleSettleRedraw();
 

@@ -121,7 +121,10 @@ function ensureTide(): void {
 
 onMounted(ensureTide);
 
-watch(() => [conditionsStore.tideData, conditionsStore.tideStation, conditionsStore.nearestStationResolved], ensureTide);
+watch(
+  () => [conditionsStore.tideData, conditionsStore.tideStation, conditionsStore.nearestStationResolved],
+  ensureTide,
+);
 </script>
 
 <style lang="scss" scoped>

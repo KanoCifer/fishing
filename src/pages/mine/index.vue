@@ -423,8 +423,8 @@ function onLogout() {
   bottom: 0;
   left: 0;
   background-image:
-    linear-gradient(180deg, rgba(9, 24, 40, 0.5) 0%, rgba(9, 24, 40, 0) 26%), /* color-allow: 压在头图照片上的压暗层 */
-    linear-gradient(0deg, rgba(9, 24, 40, 0.58) 0%, rgba(9, 24, 40, 0) 46%);
+    linear-gradient(180deg, rgba(9, 24, 40, 0.5) 0%, rgba(9, 24, 40, 0) 26%),
+    /* color-allow: 压在头图照片上的压暗层 */ linear-gradient(0deg, rgba(9, 24, 40, 0.58) 0%, rgba(9, 24, 40, 0) 46%);
 }
 
 .mine__fade {

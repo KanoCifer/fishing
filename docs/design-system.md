@@ -14,13 +14,13 @@
 
 同一个设计值在仓库里只该有一份。哪一份是原件，取决于**谁读得到它**：
 
-| 载体 | 原件 | 别人怎么用 |
-| --- | --- | --- |
-| 页面层（WXSS） | `src/styles/tokens/_color.scss` 写字面量或 `var(--fish-*)`；深浅两套在 `src/styles/theme.scss` | 直接用 `$fish-xxx` |
-| canvas | `src/utils/chartPalette.ts` | canvas 2d 不解析 var()，只能手写；SCSS 侧**不抄** |
-| 原生底栏 | `src/custom-tab-bar/index.wxss` | 原生组件不经 uni-app 编译，拿不到 SCSS 令牌 |
-| 图标 | `scripts/gen-icons.mjs` | 色值烤进 data URI，改色只改那一处 |
-| 分享出去的富文本 / 海报 | `src/constants/markdown-style.ts`、`src/pages/spot-detail/poster.ts` | 固定浅色，不随本机主题变 |
+| 载体                    | 原件                                                                                           | 别人怎么用                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 页面层（WXSS）          | `src/styles/tokens/_color.scss` 写字面量或 `var(--fish-*)`；深浅两套在 `src/styles/theme.scss` | 直接用 `$fish-xxx`                                |
+| canvas                  | `src/utils/chartPalette.ts`                                                                    | canvas 2d 不解析 var()，只能手写；SCSS 侧**不抄** |
+| 原生底栏                | `src/custom-tab-bar/index.wxss`                                                                | 原生组件不经 uni-app 编译，拿不到 SCSS 令牌       |
+| 图标                    | `scripts/gen-icons.mjs`                                                                        | 色值烤进 data URI，改色只改那一处                 |
+| 分享出去的富文本 / 海报 | `src/constants/markdown-style.ts`、`src/pages/spot-detail/poster.ts`                           | 固定浅色，不随本机主题变                          |
 
 **要抄就注明抄的是哪一份**（在旁边写 `= $fish-xxx`），**反过来那一侧不该有的副本要删掉** ——
 留着只会让人以为改那里就能改到别处。

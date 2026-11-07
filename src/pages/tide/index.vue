@@ -148,14 +148,7 @@ import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { icon } from '@/constants/icons';
 import { useConditionsStore } from '@/stores/conditions';
-import {
-  formatCompactDate,
-  fxHourKey,
-  localHourKey,
-  parseFxTime,
-  shortDate,
-  weekdayCn,
-} from '@/utils/date';
+import { formatCompactDate, fxHourKey, localHourKey, parseFxTime, shortDate, weekdayCn } from '@/utils/date';
 import { deriveTideNow, highestHighTide, lowestLowTide, nextTideEvent, tideRange } from '@/utils/tide';
 
 const conditionsStore = useConditionsStore();

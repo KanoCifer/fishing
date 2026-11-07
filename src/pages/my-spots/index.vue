@@ -238,9 +238,7 @@ const counts = computed<Record<MySpotsFilter, number>>(() => {
  */
 const shown = computed<FishingSpot[]>(() => {
   const spots =
-    filter.value === 'all'
-      ? spotStore.mySpots
-      : spotStore.mySpots.filter((spot) => statusOf(spot) === filter.value);
+    filter.value === 'all' ? spotStore.mySpots : spotStore.mySpots.filter((spot) => statusOf(spot) === filter.value);
 
   return [...spots].sort((a, b) => STATUS_WEIGHT[statusOf(a)] - STATUS_WEIGHT[statusOf(b)]);
 });

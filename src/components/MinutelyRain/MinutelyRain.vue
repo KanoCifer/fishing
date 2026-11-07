@@ -56,12 +56,7 @@
         @touchend="onTouchEnd"
         @touchcancel="onTouchCancel"
       >
-        <view
-          v-for="line in refLines"
-          :key="line.pct"
-          class="minutely__refline"
-          :style="{ bottom: line.pct + '%' }"
-        />
+        <view v-for="line in refLines" :key="line.pct" class="minutely__refline" :style="{ bottom: line.pct + '%' }" />
 
         <!--
           游标：竖着的一根细线，落在被读到的那一格上。

@@ -111,9 +111,7 @@ function inlineTokens(tokens: MarkedToken[]): RichTextNode[] {
       case 'link':
         // rich-text 屏蔽节点内所有事件，链接点不动。href 仍写上，
         // 长按复制时至少能拿到地址
-        out.push(
-          element('a', inlineTokens(token.tokens ?? []), { href: token.href ?? '' }, s.a),
-        );
+        out.push(element('a', inlineTokens(token.tokens ?? []), { href: token.href ?? '' }, s.a));
         break;
 
       case 'checkbox':
@@ -162,9 +160,7 @@ function blockTokens(tokens: MarkedToken[]): RichTextNode[] {
         out.push(
           element(
             tag,
-            (token.items ?? []).map((item) =>
-              element('li', inlineTokens(item.tokens ?? []), undefined, s.li),
-            ),
+            (token.items ?? []).map((item) => element('li', inlineTokens(item.tokens ?? []), undefined, s.li)),
             undefined,
             s[tag],
           ),
@@ -187,15 +183,12 @@ function blockTokens(tokens: MarkedToken[]): RichTextNode[] {
         const headerCells = token.header ?? [];
         const rows = token.rows ?? [];
 
-        const thead = element(
-          'thead',
-          [
-            element(
-              'tr',
-              headerCells.map((cell) => element('th', inlineTokens(cell.tokens ?? []), undefined, s.th)),
-            ),
-          ],
-        );
+        const thead = element('thead', [
+          element(
+            'tr',
+            headerCells.map((cell) => element('th', inlineTokens(cell.tokens ?? []), undefined, s.th)),
+          ),
+        ]);
         const tbody = element(
           'tbody',
           rows.map((row) =>

@@ -290,10 +290,7 @@ export const useConditionsStore = defineStore('conditions', () => {
      * 没挑过才去定位（定位要弹权限窗，不该白弹一次）。
      */
     const target =
-      locationStore.manualLocation ??
-      (await locationStore.locateUser()) ??
-      locationStore.userLocation ??
-      MAP_CENTER;
+      locationStore.manualLocation ?? (await locationStore.locateUser()) ?? locationStore.userLocation ?? MAP_CENTER;
 
     if (indexData.value && indexLocation.value === locationKey(target)) return;
 
@@ -398,10 +395,7 @@ export const useConditionsStore = defineStore('conditions', () => {
   async function ensureMinutely(): Promise<void> {
     // 与指数那一路同一口径：用户挑过地点就按那个地点取
     const target =
-      locationStore.manualLocation ??
-      (await locationStore.locateUser()) ??
-      locationStore.userLocation ??
-      MAP_CENTER;
+      locationStore.manualLocation ?? (await locationStore.locateUser()) ?? locationStore.userLocation ?? MAP_CENTER;
     const key = locationKey(target);
 
     const fresh = Date.now() - minutelyFetchedAt.value <= MINUTELY_TTL;

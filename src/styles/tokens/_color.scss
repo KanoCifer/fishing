@@ -230,12 +230,7 @@ $fish-overlay: var(--fish-overlay, rgba(255, 255, 255, 0.86));
  */
 $fish-dock-fade: var(
   --fish-dock-fade,
-  linear-gradient(
-    180deg,
-    rgba(242, 242, 247, 0) 0%,
-    rgba(242, 242, 247, 0.94) 46%,
-    rgba(242, 242, 247, 0.97) 100%
-  )
+  linear-gradient(180deg, rgba(242, 242, 247, 0) 0%, rgba(242, 242, 247, 0.94) 46%, rgba(242, 242, 247, 0.97) 100%)
 );
 
 /**
@@ -305,10 +300,9 @@ $fish-page-base-fade: var(--fish-page-base-fade, rgba(243, 244, 249, 0));
  *
  * 所以这里写成「var(蓝调), 底色」：蓝调在变量里翻，底色永远是最后一层。
  */
-$fish-page-bg: var(
-  --fish-page-glow,
-  radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%)
-), $fish-page-base;
+$fish-page-bg:
+  var(--fish-page-glow, radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%)),
+  $fish-page-base;
 
 /* ── 图表与 canvas ──
    这一组的拥有者是 src/utils/chartPalette.ts —— canvas 2d 不解析 SCSS 变量，

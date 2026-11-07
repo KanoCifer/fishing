@@ -69,7 +69,9 @@ const locationStore = useLocationStore();
 
 const loading = computed(() => locationStore.locating || conditionsStore.weatherLoading);
 
-const settled = computed(() => !loading.value && (conditionsStore.indexData !== null || conditionsStore.weatherError !== ''));
+const settled = computed(
+  () => !loading.value && (conditionsStore.indexData !== null || conditionsStore.weatherError !== ''),
+);
 
 const emptyText = computed(() => {
   if (conditionsStore.weatherError) return '逐时预报暂时取不到，其余天气数据不受影响';

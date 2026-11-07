@@ -16,13 +16,13 @@ types 与 constants 是叶子：utils 可以依赖它们，它们不反过来依
 
 ## store
 
-| store | 管什么 |
-| --- | --- |
-| `useLocationStore` | 定位：userLocation / manualLocation / 授权状态 / locateUser |
-| `useConditionsStore` | 渔况：鱼口概率、天气、分钟降水、潮汐 |
-| `useSpotStore` | 钓点：markers、mySpots、selectedMarker |
-| `useSessionStore` | 登录态 |
-| `useFishingLogStore` | 钓鱼日志 |
+| store                | 管什么                                                      |
+| -------------------- | ----------------------------------------------------------- |
+| `useLocationStore`   | 定位：userLocation / manualLocation / 授权状态 / locateUser |
+| `useConditionsStore` | 渔况：鱼口概率、天气、分钟降水、潮汐                        |
+| `useSpotStore`       | 钓点：markers、mySpots、selectedMarker                      |
+| `useSessionStore`    | 登录态                                                      |
+| `useFishingLogStore` | 钓鱼日志                                                    |
 
 依赖方向只有一条：conditions → location。spots 不依赖别的 store。
 组件读 store 不互相 import；页面负责编排。

@@ -317,7 +317,7 @@ function onRemove(): void {
     content: RECORD_DETAIL.removeConfirmHint,
     confirmText: RECORD_DETAIL.removeConfirmAction,
     cancelText: RECORD_DETAIL.cancel,
-    confirmColor: '#ff3b30', /* color-allow: 系统弹窗的按钮色，由系统自己适配深浅 */
+    confirmColor: '#ff3b30' /* color-allow: 系统弹窗的按钮色，由系统自己适配深浅 */,
     success: async (res) => {
       if (!res.confirm) return;
 
