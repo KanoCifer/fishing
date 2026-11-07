@@ -67,7 +67,7 @@ const LIGHT: ChartPalette = {
   gridFaint: 'rgba(60, 60, 67, 0.08)',
   axis: 'rgba(60, 60, 67, 0.18)', // $fish-border-40
   nowLine: 'rgba(60, 60, 67, 0.32)', // $fish-border
-  tide: '#0f66d6', // $fish-tide
+  tide: '#007aff', // $fish-tide
   series: ['#007aff', '#ff3b30', '#ffcc00', '#34c759', '#af52de'],
   ringTrack: 'rgba(120, 120, 128, 0.16)', // $fish-surface
   ringFill: '#0f66d6', // $fish-accent
@@ -82,8 +82,6 @@ const LIGHT: ChartPalette = {
 };
 
 /**
- * 深色。
- *
  * 发丝线与网格从「黑 29% 透明度」翻成「白 16% 上下」——
  * 深色面上的线要靠反白才看得见，靠黑只会比背景更黑。
  * 文字档与令牌层的深色段一致（正文白、次级 #b8bcc4、辅助 #8e939c）。

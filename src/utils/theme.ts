@@ -33,13 +33,12 @@ declare const wx: {
 /** 当前主题。读它的地方（模板、canvas 绘制）会自动跟着变 */
 export const themeMode = ref<ThemeMode>('light');
 
-/** 当前是不是深色 */
 export function isDarkTheme(): boolean {
   return themeMode.value === 'dark';
 }
 
 /** 写主题。只有两处会写：启动时读一次系统值，之后由系统事件驱动 */
-export function setThemeMode(next: ThemeMode): void {
+function setThemeMode(next: ThemeMode): void {
   if (themeMode.value === next) return;
   themeMode.value = next;
 }

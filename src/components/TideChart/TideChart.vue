@@ -42,6 +42,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type CurveSegment } from '@/utils/curve';
+import { tideTrendOfDelta } from '@/utils/tide';
 import { CANVAS_FONT_STACK, setCanvasFont, withAlpha } from '@/utils/canvas';
 import { chartPalette } from '@/utils/chartPalette';
 import { themeMode } from '@/utils/theme';
@@ -261,9 +262,10 @@ const trend = computed<{ text: string; tone: 'ok' | 'accent' | 'default' } | nul
   if (reference === null) return null;
 
   const delta = current - reference;
-  // 半厘米之内当作平潮：逐时数据的零头不值得为它换一个状态
-  if (Math.abs(delta) < 0.005) return { text: '平潮', tone: 'default' };
-  return delta > 0 ? { text: '涨潮中', tone: 'ok' } : { text: '退潮中', tone: 'accent' };
+  // 平潮的判定走 utils/tide —— 卡片与曲线说的是同一件事
+  const direction = tideTrendOfDelta(delta);
+  if (direction === 'flat') return { text: '平潮', tone: 'default' };
+  return direction === 'rising' ? { text: '涨潮中', tone: 'ok' } : { text: '退潮中', tone: 'accent' };
 });
 
 /**

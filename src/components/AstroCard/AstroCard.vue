@@ -114,11 +114,11 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { icon } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { durationBetween, minutesOfDay, shortDate } from '@/utils/date';
 import { moonPhaseIconUri } from '@/utils/weather';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 const sunMoonIcon = computed(() => icon('sun-moon', 'ink'));
 
@@ -126,7 +126,7 @@ const sunMoonIcon = computed(() => icon('sun-moon', 'ink'));
 const DAY_MINUTES = 24 * 60;
 
 /** 当天的日预报 */
-const day = computed(() => mapStore.forecasts[0] ?? null);
+const day = computed(() => conditionsStore.forecasts[0] ?? null);
 
 const dateLabel = computed(() => (day.value?.fxDate ? shortDate(day.value.fxDate) : ''));
 
@@ -240,9 +240,9 @@ const civilText = computed(() => {
 });
 
 const emptyText = computed(() => {
-  if (mapStore.weatherLoading) return '加载中…';
-  if (mapStore.weatherError) return '日照数据暂时取不到，刷新可重试';
-  return mapStore.forecasts.length ? '暂无日照数据，刷新可重试' : '暂无预报数据，刷新可重试';
+  if (conditionsStore.weatherLoading) return '加载中…';
+  if (conditionsStore.weatherError) return '日照数据暂时取不到，刷新可重试';
+  return conditionsStore.forecasts.length ? '暂无日照数据，刷新可重试' : '暂无预报数据，刷新可重试';
 });
 </script>
 

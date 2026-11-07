@@ -57,20 +57,20 @@
 import { computed, onMounted, watch } from 'vue';
 
 import { icon } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 import TideChart from '../TideChart/TideChart.vue';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 /** 详情页入口 */
 const DETAIL_URL = '/pages/tide/index';
 
 const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
 const wavesIcon = computed(() => icon('waves', 'ink'));
-const hourly = computed(() => mapStore.homeTideData?.tideHourly ?? []);
+const hourly = computed(() => conditionsStore.homeTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */
 const hasHourly = computed(() => hourly.value.length > 0);
@@ -96,11 +96,11 @@ const nowIndex = computed(() => {
 
 /** 站名 + 日期。取不到站名时先不写站名，别让卡片顶着一个空标签 */
 const entryText = computed(() => {
-  const spot = mapStore.homeTideSpotName || mapStore.tideStation?.name || '';
+  const spot = conditionsStore.homeTideSpotName || conditionsStore.tideStation?.name || '';
   return spot ? `${spot} · 今日` : '今日';
 });
 
-const loading = computed(() => (mapStore.indexLoading || mapStore.homeTideLoading) && !hasHourly.value);
+const loading = computed(() => (conditionsStore.indexLoading || conditionsStore.homeTideLoading) && !hasHourly.value);
 
 function openDetail(): void {
   uni.navigateTo({ url: DETAIL_URL });
@@ -116,12 +116,12 @@ function openDetail(): void {
  * 才能把卡片从「没有潮汐」换成「这片水的潮汐」。
  */
 function ensureTide(): void {
-  void mapStore.ensureHomeTide();
+  void conditionsStore.ensureHomeTide();
 }
 
 onMounted(ensureTide);
 
-watch(() => [mapStore.tideData, mapStore.tideStation, mapStore.nearestStationResolved], ensureTide);
+watch(() => [conditionsStore.tideData, conditionsStore.tideStation, conditionsStore.nearestStationResolved], ensureTide);
 </script>
 
 <style lang="scss" scoped>

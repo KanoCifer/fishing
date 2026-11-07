@@ -14,10 +14,9 @@ import type { ComponentInternalInstance } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 
 import { createSelectorQuery } from './selectorQuery';
+import { easeOutCubic } from './motion';
 
 /**
- * canvas 2d 节点。
- *
  * `fields({ node: true })` 返回的节点没有官方类型，按用到的成员局部声明，不要 any。
  */
 export interface CanvasNode2D {
@@ -69,8 +68,6 @@ export interface CanvasLayerOptions {
 }
 
 /**
- * 一层画布。
- *
  * 一层只管四件事：节点、ctx、就绪与否、重试。
  * 谁该在就绪之后画 —— 那是组件的事，由组件自己 await init()。
  */
@@ -103,8 +100,6 @@ export interface CanvasLayer {
 }
 
 /**
- * 创建一层画布。
- *
  * 取节点的时机由调用方决定（init()），重试节奏由这一层统一管：
  * 同一页多个图各自重试、各自计数，互不干扰。
  */
@@ -120,8 +115,6 @@ export function createCanvasLayer(options: CanvasLayerOptions): CanvasLayer {
   let retryIndex = 0;
   let retryTimer = 0;
   /**
-   * init() 的等待者。
-   *
    * 同一时刻只承诺一次结果：并发调 init() 拿到的是同一个 Promise，
    * 节点到手后所有等待者一起 resolve。
    */
@@ -366,7 +359,7 @@ export function createEntryAnimator(options: {
       const tick = () => {
         const t = Math.min(1, (Date.now() - start) / duration);
         // easeOutCubic，末尾减速，比线性自然
-        animator.progress = 1 - Math.pow(1 - t, 3);
+        animator.progress = easeOutCubic(t);
         options.onFrame(animator.progress);
         if (t < 1) {
           rafId = node.requestAnimationFrame(tick);

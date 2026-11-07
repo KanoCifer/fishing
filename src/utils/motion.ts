@@ -10,8 +10,6 @@
  */
 
 /**
- * 步长。
- *
  * 30~80ms 是「看得出先后」和「等起来烦」之间的窗口：低于 30ms 两项几乎同时到，
  * 顺序感没了；高于 80ms 读起来就像在逐条播放，一屏内容要等很久才齐。
  * 取中段 60ms。
@@ -31,8 +29,6 @@ const STEP = 60;
 const CAP = 8;
 
 /**
- * 第 index 项的入场延迟（毫秒）。
- *
  * 给 JS 侧的时序用 —— 数字滚动要和它那一行同时开始（见 createCountUp 的用法）。
  * 行内样式那边要的是带单位的字符串，所以那边用 enterDelay。
  */
@@ -51,8 +47,6 @@ export function enterDelay(index: number): string {
 }
 
 /**
- * 入场样式的行内绑定（延迟 + 动画名）。
- *
  * CSS 动画同名跑完就是跑完了：二次进入这一页，它停在终态，不会自己再播一遍。
  * 重播只有一个办法 —— 把 animation-name 摘掉再挂回。
  *
@@ -70,7 +64,7 @@ export function enterStyle(index: number, show: boolean): Record<string, string>
   };
 }
 
-export function startAnimation(callback: (progress: number) => void, duration: number) {
+function startAnimation(callback: (progress: number) => void, duration: number) {
   // 小程序 / App 环境，使用定时器方案保证兼容性
   const start = Date.now();
   let timerId: number;
@@ -86,8 +80,6 @@ export function startAnimation(callback: (progress: number) => void, duration: n
 }
 
 /**
- * 数字滚动的时长。
- *
  * 与 $fish-dur-slow（800ms）同一档：数字滚完的那一刻，这一行也刚好坐到位，
  * 读起来是「一次落位」，不是两件事各演各的。
  *
@@ -97,8 +89,6 @@ export function startAnimation(callback: (progress: number) => void, duration: n
 export const COUNT_UP_DURATION = 800;
 
 /**
- * 交叉淡入的时长（毫秒）。
- *
  * 与 $fish-dur-cross（160ms）同一档：两处都是「同一位置换内容」。
  *
  * ⚠️ 这里手写 160 而不是引用 SCSS 的变量：JS 读不到 Sass 变量。

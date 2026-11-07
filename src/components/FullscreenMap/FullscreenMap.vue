@@ -46,7 +46,7 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
 import type { MapMarkerItem } from '@/composables/useMapMarkers';
 import { icon } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useLocationStore } from '@/stores/location';
 
 /**
  * 底图的两个开关。
@@ -154,14 +154,14 @@ const traffic = ref(props.traffic);
 /**
  * 坐标由 store 统一持有。
  *
- * 全应用只调一次 uni.getLocation（见 useFishingMapStore 的 locateUser）：
+ * 全应用只调一次 uni.getLocation（见 useLocationStore 的 locateUser）：
  * 地图的定位键和天气取数用的是同一份坐标，两边各调一次会弹两次权限窗，
  * 也会拿到两个略有差异的点。
  */
-const mapStore = useFishingMapStore();
+const locationStore = useLocationStore();
 
 /** 定位中。转圈状态也用 store 那一份，两处不必各记一个 */
-const locating = computed(() => mapStore.locating);
+const locating = computed(() => locationStore.locating);
 
 /**
  * 定位失败 / 权限被拒。
@@ -171,7 +171,7 @@ const locating = computed(() => mapStore.locating);
  * 之所以要分成两个状态：被拒答的是「用户明确拒绝了，去设置页才有用」，
  * 失败答的是「这次没成，再试一次可能就成了」。两者的下一步完全不同。
  */
-const permissionDenied = computed(() => mapStore.locationDenied);
+const permissionDenied = computed(() => locationStore.locationDenied);
 
 /**
  * 定位键当前该不该换成「定位已关」的图标。
@@ -179,7 +179,7 @@ const permissionDenied = computed(() => mapStore.locationDenied);
  * 被拒和其他失败都算「按了没用」，图标上一视同仁；
  * 差别在点击之后走哪条路 —— 被拒去设置页，其他直接重试。
  */
-const locateFailed = computed(() => permissionDenied.value || mapStore.locationError !== '');
+const locateFailed = computed(() => permissionDenied.value || locationStore.locationError !== '');
 
 /**
  * 卫星键的图标。
@@ -310,7 +310,7 @@ watch(
  * 用户可能已经换了个位置。
  */
 async function locate(force = false): Promise<void> {
-  const location = await mapStore.locateUser(force);
+  const location = await locationStore.locateUser(force);
   if (!location) return;
 
   const [lng, lat] = location;
@@ -332,12 +332,12 @@ function openLocationSetting() {
       if (res.authSetting?.['scope.userLocation']) {
         void locate(true);
       } else {
-        mapStore.markLocationDenied();
+        locationStore.markLocationDenied();
       }
     },
     fail: () => {
       // 用户没走完设置流程，退回手动重试
-      mapStore.markLocationDenied();
+      locationStore.markLocationDenied();
     },
   });
 }

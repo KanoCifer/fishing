@@ -63,8 +63,6 @@ function toBase64(input: string): string {
 export type SvgEncoding = 'base64' | 'percent';
 
 /**
- * 把 SVG 源码转成 data URL。
- *
  * 传进来的必须是完整 SVG 源码（含 <svg> 根标签），不是 SVG 片段。
  *
  * @param svg SVG 源码
@@ -79,27 +77,4 @@ export function svgToDataUrl(svg: string, encoding: SvgEncoding = 'base64'): str
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
   return `data:image/svg+xml;base64,${toBase64(svg)}`;
-}
-
-/**
- * 把 SVG 里的 currentColor 换成具体色值。
- *
- * currentColor 在 <image> 里不成立 —— SVG 是独立文档，取不到外层的 color，
- * 结果就是渲染成黑色或直接不渲染。这里显式烤死颜色。
- *
- * @param svg SVG 源码
- * @param color 颜色值，如 '#0f66d6'
- */
-export function applySvgColor(svg: string, color: string): string {
-  return svg.replace(/currentColor/g, color);
-}
-
-/**
- * 去掉 SVG 的 width / height 属性，让尺寸交给 CSS。
- *
- * 同一份图标要同时用在小尺寸和大尺寸时，烤死的尺寸会让其中一边糊掉。
- * 去掉后 SVG 用 viewBox 自适应，缩放由外层控制。
- */
-export function stripSvgSize(svg: string): string {
-  return svg.replace(/\s(width|height)="[^"]*"/g, '');
 }

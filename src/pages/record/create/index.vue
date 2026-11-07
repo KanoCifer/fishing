@@ -241,20 +241,22 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import RecordCatchEditor from '@/components/RecordCatchEditor/RecordCatchEditor.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { loginErrorMessage } from '@/api/auth';
+import { loginErrorMessage } from '@/utils/error';
 import { fishingApi } from '@/api/fishing';
 import { FISHING_FEEDBACK } from '@/constants/feedback';
 import { icon } from '@/constants/icons';
 import { RECORD_CREATE, RECORD_METHODS } from '@/constants/record';
 import { UPLOADING_BLOCK } from '@/constants/upload';
+import { useConditionsStore } from '@/stores/conditions';
 import { useFishingLogStore } from '@/stores/fishingLog';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import { buildFishingFeedbackPayload, deriveFishingIndexLevel, deriveTideMeta } from '@/utils/feedback';
 import { logDateKey } from '@/utils/date';
 import { toErrorMessage } from '@/utils/error';
 import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 import type { FishingFeedbackLevel } from '@/types/fishing';
 import type { FishingLogCatch, FishingLogWeather } from '@/types/record';
 
@@ -281,7 +283,8 @@ const { windowHeight } = useViewport();
 
 const session = useSessionStore();
 const logStore = useFishingLogStore();
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
+const spotStore = useSpotStore();
 
 /**
  * 页面标题。
@@ -411,7 +414,7 @@ function currentTime(): string {
  */
 const placeText = computed(() => {
   if (picked.value) return picked.value.name;
-  return mapStore.selectedMarker?.extraData?.name ?? '';
+  return spotStore.selectedMarker?.extraData?.name ?? '';
 });
 
 /**
@@ -420,7 +423,7 @@ const placeText = computed(() => {
  * 反馈没有「选点」这一步 —— 游客报的是「我这儿今天的鱼口」，
  * 地点就用当前定位那份地名，定位不到就说钓鱼地点。
  */
-const guestPlace = computed(() => mapStore.locationName || placeText.value || '钓鱼地点');
+const guestPlace = computed(() => conditionsStore.locationName || placeText.value || '钓鱼地点');
 
 /**
  * 当前鱼口概率。一句话告诉用户「你在给哪一条鱼打分」。
@@ -428,7 +431,7 @@ const guestPlace = computed(() => mapStore.locationName || placeText.value || '�
  * 没有数据就说没有 —— 报一个猜出来的分数，比不报更坏。
  */
 const indexSummary = computed(() => {
-  const data = mapStore.indexData;
+  const data = conditionsStore.indexData;
   if (!data) return '当前鱼口概率未知';
   return `当前鱼口概率 ${data.fishing_index}（${data.level}）`;
 });
@@ -467,7 +470,7 @@ const methodsSummary = computed(() => {
 const weatherSummary = computed(() => {
   if (!hasWeather.value) return '';
 
-  const condition = mapStore.liveWeather?.text?.trim() ?? '';
+  const condition = conditionsStore.liveWeather?.text?.trim() ?? '';
   const temperature = withUnit(weather.value.temperature, '');
   if (!temperature) return condition;
 
@@ -507,7 +510,7 @@ function pickLocation(): void {
       // 用户主动取消是正常操作，不该弹一个「失败」把气氛搞砸
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: locationPickFailed, icon: 'none' });
+      showToast(locationPickFailed);
     },
   });
 }
@@ -563,8 +566,8 @@ function withUnit(value: number | undefined, unit: string, digits = 1): string {
  * 两边口径不同的话，以后没法把「渔获」和「天气」横向比对。
  */
 function fillWeather(): void {
-  const live = mapStore.liveWeather;
-  const tide = deriveTideMeta(mapStore.tideData);
+  const live = conditionsStore.liveWeather;
+  const tide = deriveTideMeta(conditionsStore.tideData);
 
   weather.value = {
     temperature: toNumber(live?.temp),
@@ -572,7 +575,7 @@ function fillWeather(): void {
     pressure: toNumber(live?.pressure),
     wind_speed: toNumber(live?.windSpeed),
     precipitation: toNumber(live?.precip),
-    indices: deriveFishingIndexLevel(mapStore.weatherIndices),
+    indices: deriveFishingIndexLevel(conditionsStore.weatherIndices),
     tide_level: tide.level,
     tide_type: tide.type,
     tide_range: tide.range,
@@ -594,10 +597,10 @@ function toNumber(value: unknown): number | undefined {
 /** 取当前天气。取不到就空着 —— 天气不是这条记录的必需品 */
 async function fetchWeather(): Promise<void> {
   try {
-    await mapStore.ensureWeatherAndFishing();
+    await conditionsStore.ensureWeatherAndFishing();
     fillWeather();
   } catch {
-    uni.showToast({ title: '天气取不到，可以先不记', icon: 'none' });
+    showToast('天气取不到，可以先不记');
   }
 }
 
@@ -674,7 +677,7 @@ function collectLocation(): {
     };
   }
 
-  const spot = mapStore.selectedMarker;
+  const spot = spotStore.selectedMarker;
   if (spot?.extraData) {
     return {
       location_id: spot.extraData.id,
@@ -726,18 +729,18 @@ async function submit(withCatch: boolean): Promise<void> {
   if (submitting.value) return;
 
   if (uploading.value) {
-    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
+    showToast(UPLOADING_BLOCK);
     return;
   }
 
   if (withCatch && !catches.value.length) {
-    uni.showToast({ title: RECORD_CREATE.noCatchToast, icon: 'none' });
+    showToast(RECORD_CREATE.noCatchToast);
     return;
   }
 
   const chosen = effectiveLevel.value;
   if (!chosen) {
-    uni.showToast({ title: FISHING_FEEDBACK.noLevelToast, icon: 'none' });
+    showToast(FISHING_FEEDBACK.noLevelToast);
     return;
   }
 
@@ -772,15 +775,15 @@ async function submit(withCatch: boolean): Promise<void> {
         locationId: location.location_id,
         locationName: location.location_name,
       });
-      uni.showToast({ title: RECORD_CREATE.savedToast, icon: 'none' });
+      showToast(RECORD_CREATE.savedToast);
     } catch {
-      uni.showToast({ title: FISHING_FEEDBACK.recordOnlyToast, icon: 'none' });
+      showToast(FISHING_FEEDBACK.recordOnlyToast);
     }
 
     setTimeout(goBack, 600);
   } catch (err) {
     submitting.value = false;
-    uni.showToast({ title: toErrorMessage(err, '保存失败，请稍后重试'), icon: 'none' });
+    showToast(toErrorMessage(err, '保存失败，请稍后重试'));
   }
 }
 
@@ -804,7 +807,7 @@ async function onSubmitFeedback(): Promise<void> {
 
   const chosen = effectiveLevel.value;
   if (!chosen) {
-    uni.showToast({ title: FISHING_FEEDBACK.noLevelToast, icon: 'none' });
+    showToast(FISHING_FEEDBACK.noLevelToast);
     return;
   }
 
@@ -814,20 +817,20 @@ async function onSubmitFeedback(): Promise<void> {
     await submitFeedback({
       level: chosen,
       fishingTime: new Date().toISOString(),
-      locationId: mapStore.selectedMarker?.extraData?.id,
+      locationId: spotStore.selectedMarker?.extraData?.id,
       locationName: guestPlace.value,
     });
 
     // 结果只以 toast 呈现：两秒后连它一起消失，页面也退了。
     // 那一刻屏幕上什么都不剩，给一次震动把「提交成了」这件事留下来。
     haptic('medium');
-    uni.showToast({ title: FISHING_FEEDBACK.submittedToast, icon: 'success' });
+    showToast(FISHING_FEEDBACK.submittedToast, { icon: 'success' });
     setTimeout(goBack, 600);
   } catch (err) {
     submitting.value = false;
     // 失败与成功必须能盲听区分：失败是重的一下
     haptic('heavy');
-    uni.showToast({ title: toErrorMessage(err, '提交反馈失败，请重试'), icon: 'none' });
+    showToast(toErrorMessage(err, '提交反馈失败，请重试'));
   }
 }
 
@@ -846,7 +849,7 @@ async function onLogin(): Promise<void> {
   try {
     await session.login();
   } catch (err) {
-    uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
+    showToast(loginErrorMessage(err));
   }
 }
 

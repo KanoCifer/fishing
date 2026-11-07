@@ -4,13 +4,13 @@
 
     <view class="data__content">
       <VerdictBar
-        v-if="mapStore.indexData"
+        v-if="conditionsStore.indexData"
         :visible="barVisible"
         :score="score"
         :level="level"
         :tone="tone"
         :place="placeName"
-        :busy="mapStore.indexLoading || mapStore.locating"
+        :busy="conditionsStore.indexLoading || locationStore.locating"
         @refresh="onRefresh"
         @analysis="openAnalysis"
       />
@@ -79,13 +79,16 @@ import { SHARE_CARDS } from '@/constants/share';
 import { HERO_PICK_FAILED } from '@/constants/weatherHero';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
+import { useLocationStore } from '@/stores/location';
 import { useSessionStore } from '@/stores/session';
 import { enterStyle } from '@/utils/motion';
 import { enableShareMenu } from '@/utils/share';
+import { showToast } from '@/utils/toast';
 import { levelTone } from '@/utils/weather';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
+const locationStore = useLocationStore();
 const session = useSessionStore();
 const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
@@ -105,14 +108,14 @@ onPageScroll((event) => {
 });
 /* ── 结论条上的那几个值 ──────────────────────────────────────────────── */
 
-const score = computed(() => mapStore.indexData?.fishing_index ?? 0);
-const level = computed(() => mapStore.indexData?.level ?? '');
-const tone = computed(() => levelTone(mapStore.indexData?.level));
-const placeName = computed(() => mapStore.locationName || '钓鱼地点');
+const score = computed(() => conditionsStore.indexData?.fishing_index ?? 0);
+const level = computed(() => conditionsStore.indexData?.level ?? '');
+const tone = computed(() => levelTone(conditionsStore.indexData?.level));
+const placeName = computed(() => conditionsStore.locationName || '钓鱼地点');
 
 function onRefresh() {
-  if (mapStore.indexLoading) return;
-  void mapStore.refreshIndexData();
+  if (conditionsStore.indexLoading) return;
+  void conditionsStore.refreshIndexData();
 }
 
 /**
@@ -126,13 +129,13 @@ function onPickPlace() {
     success: (res) => {
       // 经度在前：location 要的是 [lng, lat]，写反了不会报错，
       // 只会落到地球另一侧
-      void mapStore.pickManualLocation([res.longitude, res.latitude]);
+      void conditionsStore.pickManualLocation([res.longitude, res.latitude]);
     },
     fail: (err) => {
       // 用户主动取消是正常操作，不该弹一个「失败」把气氛搞砸
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: HERO_PICK_FAILED, icon: 'none' });
+      showToast(HERO_PICK_FAILED);
     },
   });
 }
@@ -170,8 +173,8 @@ onReady(() => {
   ready = true;
 
   setTimeout(() => {
-    void mapStore.ensureWeatherAndFishing();
-    void mapStore.ensureMinutely();
+    void conditionsStore.ensureWeatherAndFishing();
+    void conditionsStore.ensureMinutely();
 
     /*
      * 恢复会话。
@@ -204,8 +207,8 @@ onShow(() => {
   }, 50);
 
   if (!ready) return;
-  void mapStore.ensureWeatherAndFishing();
-  void mapStore.ensureMinutely();
+  void conditionsStore.ensureWeatherAndFishing();
+  void conditionsStore.ensureMinutely();
 });
 
 /**

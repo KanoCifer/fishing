@@ -118,7 +118,7 @@ import { computed, ref, watch } from 'vue';
 
 import { AI_MODELS } from '@/api/ai';
 import { useFishingAnalysis } from '@/composables/useFishingAnalysis';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { formatDateTime, formatTimeOfDay } from '@/utils/date';
 import { icon } from '@/constants/icons';
 import type { WeatherAnalysisPayload } from '@/types/fishing';
@@ -147,7 +147,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 const { status, summary, reasoning, errorMessage, start, stop } = useFishingAnalysis();
 
 const sparklesIcon = computed(() => icon('sparkles', 'blue600'));
@@ -200,9 +200,9 @@ const chipLabel = computed(() => {
 
 /** 有没有足够的数据能给出建议 */
 const hasData = computed(() => {
-  const live = mapStore.liveWeather;
-  const forecasts = mapStore.forecasts;
-  const tide = mapStore.tideData;
+  const live = conditionsStore.liveWeather;
+  const forecasts = conditionsStore.forecasts;
+  const tide = conditionsStore.tideData;
   return Boolean(live || (forecasts && forecasts.length > 0) || tide);
 });
 
@@ -215,8 +215,8 @@ const actionLabel = computed(() => {
   return '获取建议';
 });
 
-const weatherUpdated = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime));
-const tideUpdated = computed(() => formatTimeOfDay(mapStore.tideData?.updateTime));
+const weatherUpdated = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.obsTime));
+const tideUpdated = computed(() => formatTimeOfDay(conditionsStore.tideData?.updateTime));
 
 /**
  * 脚注：模型 + 两个时间戳，挤成一行。
@@ -247,13 +247,13 @@ const footText = computed(() => {
  * 和上面三项重复。整份送等于同样的数据发两遍，模型那边的上下文也白占。
  */
 const payload = computed<WeatherAnalysisPayload>(() => {
-  const index = mapStore.indexData;
+  const index = conditionsStore.indexData;
 
   return {
-    liveWeather: mapStore.liveWeather,
-    forecasts: mapStore.forecasts,
-    tideData: mapStore.tideData,
-    weatherIndices: mapStore.weatherIndices,
+    liveWeather: conditionsStore.liveWeather,
+    forecasts: conditionsStore.forecasts,
+    tideData: conditionsStore.tideData,
+    weatherIndices: conditionsStore.weatherIndices,
     fishingIndex: index
       ? {
           fishing_index: index.fishing_index,
@@ -263,8 +263,8 @@ const payload = computed<WeatherAnalysisPayload>(() => {
           feature_breakdown: index.feature_breakdown,
         }
       : undefined,
-    locationName: mapStore.locationName || '钓鱼地点',
-    tideSpotName: mapStore.panelTideSpotName,
+    locationName: conditionsStore.locationName || '钓鱼地点',
+    tideSpotName: conditionsStore.panelTideSpotName,
     generatedAt: formatDateTime(),
   };
 });

@@ -115,6 +115,7 @@ import { openAlbumSetting, saveImageToAlbum } from '../../album';
 import { toCanvasSource } from '../../canvasImage';
 import { CARD_CROP, drawPoster, type PosterImage, type PosterSpot } from '../../poster';
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { showToast } from '@/utils/toast';
 
 const props = defineProps<{
   /** 浮层是否打开 */
@@ -432,18 +433,18 @@ async function onSave(): Promise<void> {
   uni.hideLoading();
 
   if (result.ok) {
-    uni.showToast({ title: sheet.saved, icon: 'success' });
+    showToast(sheet.saved, { icon: 'success' });
     return;
   }
 
   if (result.reason === 'denied') {
     // 用户明确拒绝过：微信不会再弹授权窗，只能去设置页
-    uni.showToast({ title: sheet.needAlbumAuth, icon: 'none' });
+    showToast(sheet.needAlbumAuth);
     openAlbumSetting();
     return;
   }
 
-  uni.showToast({ title: sheet.saveFailed, icon: 'none' });
+  showToast(sheet.saveFailed);
 }
 
 /* ── 生命周期 ────────────────────────────────────────────────────────── */

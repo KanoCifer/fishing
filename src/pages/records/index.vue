@@ -159,10 +159,11 @@ import {
   RECORD_TODAY,
   RECORD_TRIPS,
 } from '@/constants/record';
-import { loginErrorMessage } from '@/api/auth';
+import { loginErrorMessage } from '@/utils/error';
 import { useFishingLogStore } from '@/stores/fishingLog';
 import { useSessionStore } from '@/stores/session';
 import { logDateKey, logMonthKey } from '@/utils/date';
+import { showToast } from '@/utils/toast';
 
 /** 可用窗口高度（px）。页面最小高度用它，见 useViewport */
 const { windowHeight } = useViewport();
@@ -343,7 +344,7 @@ async function onLogin(): Promise<void> {
     await session.login();
     await logStore.refresh();
   } catch (err) {
-    uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
+    showToast(loginErrorMessage(err));
   }
 }
 </script>

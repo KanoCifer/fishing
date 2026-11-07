@@ -15,6 +15,7 @@ import { defineStore } from 'pinia';
 
 import { fishingLogApi } from '@/api/record';
 import { logMonthKey } from '@/utils/date';
+import { createSingleFlight } from '@/utils/singleFlight';
 import type { CreateFishingLogPayload, FishingLog, FishingLogStats } from '@/types/record';
 
 /** 某一天在日历上的状态 */
@@ -89,10 +90,30 @@ export const useFishingLogStore = defineStore('fishingLog', () => {
   /**
    * 并发守卫。
    *
-   * 同一个 in-flight 请求只发一次：连点两次翻月，后一次拿到的响应可能更早到，
+   * 同一个在飞请求只发一次：连点两次翻月，后一次拿到的响应可能更早到，
    * 两个响应互相覆盖，月份标题与格子内容会对不上。
+   *
+   * key 就是月份 —— 换了月份就是另一轮，旧的响应回来时会被丢掉。
+   * 这一条以前靠一个 `inflight` 变量守不住：翻月时新请求直接覆盖了那个指针，
+   * 守卫等于没有；而且先发的那条一结束就把指针清掉，
+   * 后发的那条还在飞却已经没人守了。
    */
-  let inflight: Promise<void> | null = null;
+  const monthFlight = createSingleFlight();
+
+  /** 取某个月的记录。key 是月份 */
+  async function loadMonth(key: string): Promise<void> {
+    loading.value = true;
+    try {
+      const result = await fishingLogApi.list(key);
+      // 回来的时候月份已经被翻走了 —— 这份数据不是当前月份要的，丢掉
+      if (month.value !== key) return;
+      logs.value = result ?? [];
+    } catch {
+      logs.value = [];
+    } finally {
+      if (monthFlight.isCurrent(key)) loading.value = false;
+    }
+  }
 
   /**
    * 取某月的记录。
@@ -102,25 +123,19 @@ export const useFishingLogStore = defineStore('fishingLog', () => {
    */
   async function fetchMonth(target?: string, options?: { force?: boolean }): Promise<void> {
     const key = target ?? month.value;
-    if (inflight && !options?.force) return inflight;
 
-    inflight = (async (): Promise<void> => {
-      loading.value = true;
-      try {
-        const result = await fishingLogApi.list(key);
-        // 回来的时候月份已经被翻走了 —— 这份数据不是当前月份要的，丢掉
-        if (month.value !== key) return;
-        logs.value = result ?? [];
-      } catch {
-        logs.value = [];
-      } finally {
-        loading.value = false;
-      }
-    })().finally(() => {
-      inflight = null;
-    });
+    if (options?.force) {
+      await monthFlight.restart(key, () => loadMonth(key));
+      return;
+    }
 
-    return inflight;
+    // 同一月份在飞：等那一条，不发第二条
+    if (monthFlight.busy && monthFlight.latestKey === key) {
+      await monthFlight.run(key, () => loadMonth(key));
+      return;
+    }
+
+    await monthFlight.run(key, () => loadMonth(key));
   }
 
   /** 取统计。跨月的量只能由服务端算 */
@@ -141,17 +156,13 @@ export const useFishingLogStore = defineStore('fishingLog', () => {
   /** 把月份切到 target 并取数 */
   async function switchMonth(target: string): Promise<void> {
     month.value = target;
-    await fetchMonth(target, { force: true });
+    // 不带 force：守卫按月份 key 认人，同一个月份在飞就等那一条，
+    // 换月份才是新一轮（旧的响应会被 isCurrent 丢掉）。
+    await fetchMonth(target);
   }
 
   /* ── 写 ────────────────────────────────────────────────────────────────── */
 
-  /**
-   * 新建一条记录。
-   *
-   * 建完立刻把当月数据重取一遍 —— 服务端的统计（连续天数、总天数）
-   * 会跟着变，而统计是跨月的量，前端算不出来，只能重取。
-   */
   /**
    * 新建一条记录。
    *

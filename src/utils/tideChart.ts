@@ -72,7 +72,7 @@ export interface PlotGeom {
  * 这一步只管「数据大概在什么范围」；刻度怎么落在整数上由 axisScale 决定 ——
  * 两者分开，是为了这里不必关心标签好不好看。
  */
-export function niceBounds(values: number[]): { min: number; max: number } {
+function niceBounds(values: number[]): { min: number; max: number } {
   if (!values.length) return { min: 0, max: 1 };
 
   let lo = Math.min(...values);
@@ -140,7 +140,7 @@ export function parseHeight(value: number | string | null | undefined): number |
  * 顺带记下「位置 → 原始下标」：剔掉脏点之后位置与原始下标不再一一对应，
  * 而时间刻度、当前时刻、选中点都是按原始下标给的，不记这一笔就没法对回去。
  */
-export function cleanPoints(
+function cleanPoints(
   points: ReadonlyArray<{ height: number | string }>,
 ): { values: number[]; sourceIndex: number[] } {
   const values: number[] = [];

@@ -47,14 +47,14 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { toFeatureTiles } from '@/types/fishing';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
-const tiles = computed(() => toFeatureTiles(mapStore.indexData?.feature_breakdown));
+const tiles = computed(() => toFeatureTiles(conditionsStore.indexData?.feature_breakdown));
 
-const loading = computed(() => mapStore.indexLoading);
+const loading = computed(() => conditionsStore.indexLoading);
 
 const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成数据，刷新可重试'));
 </script>

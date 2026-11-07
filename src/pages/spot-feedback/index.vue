@@ -85,6 +85,7 @@ import { useSessionStore } from '@/stores/session';
 import { fishingSpotFeeLabel, type FishingSpot, type FishingSpotFeedbackPayload } from '@/types/fishing';
 import { toErrorMessage } from '@/utils/error';
 import { haptic } from '@/utils/haptics';
+import { showToast } from '@/utils/toast';
 
 const session = useSessionStore();
 
@@ -184,7 +185,7 @@ async function enter(): Promise<void> {
 onLoad((options) => {
   const id = options?.id;
   if (!id) {
-    uni.showToast({ title: errors.spotMissing, icon: 'none' });
+    showToast(errors.spotMissing);
     setTimeout(goBack, NAVIGATE_DELAY_MS);
     return;
   }
@@ -205,7 +206,7 @@ async function onLogin(): Promise<void> {
     await session.login();
     await loadSpot();
   } catch {
-    uni.showToast({ title: errors.loginFailed, icon: 'none' });
+    showToast(errors.loginFailed);
   }
 }
 
@@ -226,12 +227,12 @@ async function onSubmit(payload: FishingSpotFeedbackPayload): Promise<void> {
      */
     // 确认只靠一条两秒的 toast，两秒后页面就退回去了 —— 震一下把结果留下来
     haptic('medium');
-    uni.showToast({ title: SPOT_FEEDBACK_SUBMITTED, icon: 'none', duration: 2000 });
+    showToast(SPOT_FEEDBACK_SUBMITTED, { duration: 2000 });
     setTimeout(goBack, NAVIGATE_DELAY_MS);
   } catch (err) {
     submitting.value = false;
     haptic('heavy');
-    uni.showToast({ title: errorCopy(err), icon: 'none' });
+    showToast(errorCopy(err));
   }
 }
 

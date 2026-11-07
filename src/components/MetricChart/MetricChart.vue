@@ -59,10 +59,10 @@
  */
 import { computed, ref } from 'vue';
 
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { parseFxTime } from '@/utils/date';
 import { chartPalette } from '@/utils/chartPalette';
-import { num } from '@/utils/weather';
+import { toFiniteNumber } from '@/utils/number';
 
 import LineChart from '../LineChart/LineChart.vue';
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
@@ -101,7 +101,7 @@ function metricColor(key: Metric['key']): string {
   return tone.metricWind;
 }
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 const metric = ref<Metric['key']>('windSpeed');
 
@@ -109,9 +109,9 @@ const active = computed(() => METRICS.find((m) => m.key === metric.value) ?? MET
 
 /** 逐时数据先筛脏值：降水字段偶尔是空串，直接 Number() 会得到 0，把曲线拽到底 */
 const hours = computed(() =>
-  mapStore.weatherHourly
+  conditionsStore.weatherHourly
     .slice(0, 24)
-    .map((hour) => ({ fxTime: hour.fxTime, value: num(hour[metric.value]) }))
+    .map((hour) => ({ fxTime: hour.fxTime, value: toFiniteNumber(hour[metric.value]) }))
     .filter((row): row is { fxTime: string; value: number } => row.value !== null),
 );
 
@@ -125,7 +125,7 @@ const series = computed(() =>
 
 const hasData = computed(() => hours.value.length > 0);
 
-const loading = computed(() => mapStore.weatherLoading);
+const loading = computed(() => conditionsStore.weatherLoading);
 
 /**
  * 取值域：按 step 向上/下取整，并各留 margin 的余量。返回 null 表示交给 LineChart 自己取整。

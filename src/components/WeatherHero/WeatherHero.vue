@@ -88,10 +88,12 @@ import {
   heroSky,
   type HeroSky,
 } from '@/constants/weatherHero';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
+import { useLocationStore } from '@/stores/location';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
 import { isDarkTheme } from '@/utils/theme';
-import { num, weatherGroup, weatherIconUri } from '@/utils/weather';
+import { toFiniteNumber } from '@/utils/number';
+import { weatherGroup, weatherIconUri } from '@/utils/weather';
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
@@ -104,7 +106,8 @@ const emit = defineEmits<{
   analysis: [];
 }>();
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
+const locationStore = useLocationStore();
 
 /** px。顶行要落在胶囊按钮那一行上，还得给它左侧让出位置 */
 const { capsuleTop, capsuleInsetRight } = useNavMetrics();
@@ -112,7 +115,7 @@ const { capsuleTop, capsuleInsetRight } = useNavMetrics();
 /* ── 天色 ──────────────────────────────────────────────────────────────── */
 
 /** 当前天气落在哪一组外观上（十种，见 utils/weather） */
-const group = computed(() => weatherGroup(mapStore.liveWeather?.icon));
+const group = computed(() => weatherGroup(conditionsStore.liveWeather?.icon));
 
 /**
  * 当前天色。头图只有四种。
@@ -135,12 +138,12 @@ const imageUrl = computed(() => heroImageUrlBySky(sky.value));
 /* ── 实时天气 ──────────────────────────────────────────────────────────── */
 
 /** 实况。整块没有 → 右上角不画读数 */
-const live = computed(() => mapStore.liveWeather);
+const live = computed(() => conditionsStore.liveWeather);
 
 /** 当前温度。有值才画 */
 const temp = computed(() => {
   const raw = live.value?.temp ?? '';
-  return num(raw) === null ? null : raw;
+  return toFiniteNumber(raw) === null ? null : raw;
 });
 
 /** 天气现象：上游给的原文 */
@@ -148,7 +151,7 @@ const cond = computed(() => live.value?.text || '');
 
 /** 体感温度 */
 const feels = computed(() => {
-  const value = num(live.value?.feelsLike);
+  const value = toFiniteNumber(live.value?.feelsLike);
   return value === null ? null : String(value);
 });
 
@@ -160,9 +163,9 @@ const hasLive = computed(() => Boolean(live.value));
 
 /* ── 顶行 ──────────────────────────────────────────────────────────────── */
 
-const placeName = computed(() => mapStore.locationName || '钓鱼地点');
+const placeName = computed(() => conditionsStore.locationName || '钓鱼地点');
 
-const busy = computed(() => mapStore.indexLoading || mapStore.locating);
+const busy = computed(() => conditionsStore.indexLoading || locationStore.locating);
 
 /**
  * 顶行的位置与避让。
@@ -178,7 +181,7 @@ const topRowStyle = computed(() => ({
 /* ── 分数 ──────────────────────────────────────────────────────────────── */
 
 const score = computed(() => {
-  const value = mapStore.indexData?.fishing_index ?? 0;
+  const value = conditionsStore.indexData?.fishing_index ?? 0;
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, value));
 });
@@ -284,12 +287,12 @@ function onPickPlace() {
 
 function onRefresh() {
   // 定位那一段也算「正在忙」：图标已经在转了，这时候再按就是并发第二轮取数
-  if (mapStore.indexLoading || mapStore.locating) return;
-  void mapStore.refreshIndexData();
+  if (conditionsStore.indexLoading || locationStore.locating) return;
+  void conditionsStore.refreshIndexData();
 }
 
 watch(
-  () => mapStore.indexData?.fishing_index,
+  () => conditionsStore.indexData?.fishing_index,
   (next) => {
     if (next == null) return;
     countUp.to(next); // 800ms easeOutCubic，utils/motion.ts:97

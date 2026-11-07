@@ -12,15 +12,15 @@
           <scroll-view class="tide__segmented" scroll-x :show-scrollbar="false">
             <view class="tide__segmented-track">
               <view
-                v-for="opt in mapStore.tideStations"
+                v-for="opt in conditionsStore.tideStations"
                 :key="opt.code"
                 class="tide__segment"
-                :class="{ 'tide__segment--active': mapStore.activeHarbor === opt.code }"
-                @tap="mapStore.setSelectedHarbor(opt.code)"
+                :class="{ 'tide__segment--active': conditionsStore.activeHarbor === opt.code }"
+                @tap="conditionsStore.setSelectedHarbor(opt.code)"
               >
                 <text
                   class="tide__segment-text"
-                  :class="{ 'tide__segment-text--active': mapStore.activeHarbor === opt.code }"
+                  :class="{ 'tide__segment-text--active': conditionsStore.activeHarbor === opt.code }"
                 >
                   {{ opt.name }}
                 </text>
@@ -75,7 +75,7 @@
             <TideChart :points="chartPoints" :labels="chartLabels" :now-index="nowIndex" :show-head="false" />
           </view>
 
-          <SkeletonCard v-else-if="mapStore.tideLoading" has-chart />
+          <SkeletonCard v-else-if="conditionsStore.tideLoading" has-chart />
 
           <text v-else class="tide__empty">这一天没有潮汐数据</text>
 
@@ -135,7 +135,7 @@
  * 港口与日期由用户挑，曲线之外还有当天的最高/最低与全部潮时。
  *
  * 数据走 store 的面板潮汐（panelTideData）：港口和日期的切换由 store 发请求，
- * 页面只负责把选择画出来。理由见 stores/fishingMap 的 fetchPanelTide。
+ * 页面只负责把选择画出来。理由见 stores/conditions 的 fetchPanelTide。
  */
 import { computed, onMounted, ref } from 'vue';
 import { onPageScroll } from '@dcloudio/uni-app';
@@ -147,7 +147,7 @@ import TideChart from '@/components/TideChart/TideChart.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { icon } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import {
   formatCompactDate,
   fxHourKey,
@@ -158,7 +158,7 @@ import {
 } from '@/utils/date';
 import { deriveTideNow, highestHighTide, lowestLowTide, nextTideEvent, tideRange } from '@/utils/tide';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { navBarBottom } = useNavMetrics();
@@ -195,7 +195,7 @@ const dateRange = computed(() => {
 
 /** picker 的当前值。store 里存的是 `YYYYMMDD`，这里换成 picker 要的 `YYYY-MM-DD` */
 const pickerValue = computed(() => {
-  const value = mapStore.selectedDate;
+  const value = conditionsStore.selectedDate;
   if (!value || value.length < 8) return dateRange.value.start;
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 });
@@ -206,14 +206,14 @@ const dateLabel = computed(() => `${shortDate(pickerValue.value)} ${weekdayCn(pi
 function onDateChange(event: { detail: { value: string } }): void {
   const picked = event.detail.value;
   if (!picked) return;
-  mapStore.setSelectedDate(picked.replace(/-/g, ''));
+  conditionsStore.setSelectedDate(picked.replace(/-/g, ''));
 }
 
 /** 日期行右边的小箭头。它是「这里能改」的唯一提示 */
 const chevronIcon = computed(() => icon('chevron-down', 'muted60'));
-const tide = computed(() => mapStore.panelTideData);
+const tide = computed(() => conditionsStore.panelTideData);
 
-const spotName = computed(() => mapStore.panelTideSpotName || mapStore.activeHarbor);
+const spotName = computed(() => conditionsStore.panelTideSpotName || conditionsStore.activeHarbor);
 
 const hourly = computed(() => tide.value?.tideHourly ?? []);
 
@@ -262,7 +262,7 @@ const highHeight = computed(() => (high.value ? high.value.height.toFixed(2) : '
 const lowHeight = computed(() => (low.value ? low.value.height.toFixed(2) : '--'));
 
 /** 看的是今天就说「今日」，别的日子说「当日」 */
-const isToday = computed(() => mapStore.selectedDate === formatCompactDate());
+const isToday = computed(() => conditionsStore.selectedDate === formatCompactDate());
 const highLabel = computed(() => (isToday.value ? '今日高潮' : '当日高潮'));
 const lowLabel = computed(() => (isToday.value ? '今日低潮' : '当日低潮'));
 
@@ -319,12 +319,12 @@ onMounted(() => {
    *
    * 数据页首屏已经取过一次时这里是空转（store 按坐标缓存）。
    */
-  if (!mapStore.nearestStationResolved) {
-    void mapStore.ensureWeatherAndFishing();
+  if (!conditionsStore.nearestStationResolved) {
+    void conditionsStore.ensureWeatherAndFishing();
   }
 
-  if (mapStore.panelTideData) return;
-  void mapStore.fetchPanelTide();
+  if (conditionsStore.panelTideData) return;
+  void conditionsStore.fetchPanelTide();
 });
 
 /** 潮时表逐行 */

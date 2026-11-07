@@ -7,6 +7,7 @@
  * - 其余端点路径、参数格式、返回形状一律照抄后端契约，不做"顺手优化"
  */
 
+import { locationKey } from '@/utils/geo';
 import { request, withSession } from './client';
 import type {
   CreateFishingSpotPayload,
@@ -17,25 +18,12 @@ import type {
   FishingSpotFeedback,
   FishingSpotFeedbackPayload,
   FishingStats,
+  LngLat,
   MinutelyResponse,
   TideApiEnvelope,
   TideData,
   UpdateFishingSpotPayload,
 } from '@/types/fishing';
-
-/** 经度在前，和源项目保持一致 —— 写反了会定位到地球另一侧，但不报错 */
-export type LngLat = [number, number];
-
-/**
- * 查询参数用的坐标串。
- *
- * 保留两位小数是后端的约定（也是刻意的位置模糊），不要为了"更精确"改成 toFixed(6)：
- * 后端按两位小数做缓存和降级，位数变了缓存全部 miss。
- */
-function toLocationParam(location: LngLat): string {
-  const [lng, lat] = location;
-  return `${lng.toFixed(2)},${lat.toFixed(2)}`;
-}
 
 // ---------------------------------------------------------------------------
 // 鱼口概率 / 天气 / 潮汐
@@ -56,7 +44,7 @@ export const fishingApi = {
     return request<FishingIndexData>({
       url: 'v2/fishing/index',
       params: {
-        location: toLocationParam(location),
+        location: locationKey(location),
         enriched: String(enriched),
       },
     });
@@ -117,7 +105,7 @@ export const fishingApi = {
   getMinutely(location: LngLat): Promise<MinutelyResponse> {
     return request<MinutelyResponse>({
       url: 'v3/weather/minutely',
-      params: { location: toLocationParam(location) },
+      params: { location: locationKey(location) },
     });
   },
 };

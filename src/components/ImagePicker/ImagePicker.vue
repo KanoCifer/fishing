@@ -54,6 +54,7 @@ import { icon } from '@/constants/icons';
 import { SPOT_PHOTO_MAX } from '@/constants/spot-form';
 import { UPLOADING_TEXT, UPLOAD_PICK_FAILED } from '@/constants/upload';
 import { toErrorMessage } from '@/utils/error';
+import { showToast } from '@/utils/toast';
 
 /** 正在上传的一张 */
 interface PendingUpload {
@@ -133,7 +134,7 @@ function choose() {
       // 用户主动取消是正常操作，不该弹一个「失败」
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: UPLOAD_PICK_FAILED, icon: 'none' });
+      showToast(UPLOAD_PICK_FAILED);
     },
   });
 }
@@ -171,10 +172,7 @@ async function uploadOne(item: PendingUpload, file: UniNamespace.MediaFile): Pro
     committed.value = [...committed.value, result.filename];
     emit('change', [...committed.value]);
   } catch (err) {
-    uni.showToast({
-      title: toErrorMessage(err, '照片上传失败，请重试'),
-      icon: 'none',
-    });
+    showToast(toErrorMessage(err, '照片上传失败，请重试'));
   }
 }
 

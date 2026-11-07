@@ -36,6 +36,24 @@ export function nextHighTideItem(tide: TideData | null | undefined): TideTableIt
 export type TideTrend = 'rising' | 'falling' | 'flat';
 
 /**
+ * 平潮阈值 —— 相邻两小时的潮高差小于这个值（米）就当平的。
+ *
+ * 5 毫米在这个尺度上是平的：逐时数据的零头不值得为它换一个状态。
+ *
+ * 这条线只此一处：潮汐卡写的涨落与曲线顶部标的涨落说的是同一件事，
+ * 两处各写一个数，卡片写「平潮」而曲线标着「涨潮中」，读的人得自己判断该信哪个。
+ */
+const FLAT_DELTA_M = 0.005;
+
+/**
+ * 涨落方向。delta 是相邻两小时的潮高差（米，正为涨）。
+ */
+export function tideTrendOfDelta(delta: number): TideTrend {
+  if (Math.abs(delta) < FLAT_DELTA_M) return 'flat';
+  return delta > 0 ? 'rising' : 'falling';
+}
+
+/**
  * 这份潮汐覆盖的日期（`YYYYMMDD`）。取不到时给空串。
  *
  * 上游按**站点当地日期**返回一天的逐时潮高，后端 full 端点取的是站点当地今天。
@@ -66,9 +84,7 @@ export function tideTrend(tide: TideData | null | undefined): TideTrend | null {
   if (hourly.length < 2) return null;
 
   const diff = hourly[hourly.length - 1] - hourly[hourly.length - 2];
-  // 小于 1cm 的波动在这个尺度上就是平的，别让界面跟着抖
-  if (Math.abs(diff) < 0.01) return 'flat';
-  return diff > 0 ? 'rising' : 'falling';
+  return tideTrendOfDelta(diff);
 }
 
 /**
@@ -230,14 +246,5 @@ export function deriveTideNow(tide: TideData | null | undefined): TideNow | null
    * 曲线在这一刻标的就是这个数：卡片写 1.42、曲线标 1.48，
    * 同一件事说了两遍还不一样，比少写一个数更糟。
    */
-  return { level: current, rate, trend: trendOf(rate) };
-}
-
-/**
- * 涨落方向。速率小于 0.5cm/h 视为平潮 —— 与 TideChart 的阈值一致，
- * 在这个尺度上那点波动是平的，让界面跟着抖没有意义。
- */
-function trendOf(rate: number): TideTrend {
-  if (Math.abs(rate) < 0.005) return 'flat';
-  return rate > 0 ? 'rising' : 'falling';
+  return { level: current, rate, trend: tideTrendOfDelta(rate) };
 }

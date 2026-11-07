@@ -25,7 +25,7 @@
  * - daily                            → 拆 daytime / nighttime 两段
  */
 
-import { parseFxTime } from '@/utils/date';
+import { minutesOfDay, parseFxTime } from '@/utils/date';
 import type {
   MinutelyForecast,
   MinutelyResponse,
@@ -160,12 +160,10 @@ const COMPASS_16 = [
 ] as const;
 
 /**
- * 风向 → 中文。
- *
  * 上游给的是 16 方位代码（'nne'），视图模型要中文（'北偏东北风'）。
  * 代码缺失时按角度反推 —— 上游偶尔只给角度不给代码。
  */
-export function windCompassToChinese(compass?: string, degree?: number): string {
+function windCompassToChinese(compass?: string, degree?: number): string {
   const code = (compass ?? '').trim().toLowerCase();
   if (code && WIND_COMPASS_CN[code]) return WIND_COMPASS_CN[code] ?? '';
 
@@ -191,12 +189,10 @@ const MOON_PHASE_CN: Readonly<Record<string, string>> = {
 };
 
 /**
- * 月相 → 中文。
- *
  * 上游给代码（'waxing-gibbous'），视图模型要中文（'盈凸月'）。
  * 认不出的代码原样返回 —— 宁可给个英文代码，也别让月相那一格空着。
  */
-export function moonPhaseToChinese(phase?: string): string {
+function moonPhaseToChinese(phase?: string): string {
   const code = (phase ?? '').trim();
   if (!code) return '';
   return MOON_PHASE_CN[code.toLowerCase()] ?? code;
@@ -206,10 +202,7 @@ export function moonPhaseToChinese(phase?: string): string {
 // 实时天气
 // ---------------------------------------------------------------------------
 
-/**
- * 新版 current 块 → 视图模型。
- */
-export function normalizeWeatherCurrent(block: WeatherCurrentV1 | null | undefined): WeatherNow | null {
+function normalizeWeatherCurrent(block: WeatherCurrentV1 | null | undefined): WeatherNow | null {
   if (!block) return null;
 
   const condition = block.condition;
@@ -281,8 +274,7 @@ function normalizeHour(item: WeatherHourlyV1): WeatherHourly {
   };
 }
 
-/** 新版逐时块 → 视图模型数组 */
-export function normalizeWeatherHourly(
+function normalizeWeatherHourly(
   input: WeatherHourlyBlockV1 | WeatherHourlyV1[] | null | undefined,
 ): WeatherHourly[] {
   return hourlyEntries(input).map(normalizeHour);
@@ -424,11 +416,9 @@ function dailyEntries(input: WeatherDailyBlockV1 | WeatherDayV1[] | null | undef
 }
 
 /**
- * 新版日预报 → 视图模型数组。
- *
  * `hours` 是同一次响应里的逐时条目，气压和能见度要从那里取（见 `aggregateDayMetrics`）。
  */
-export function normalizeWeatherDaily(
+function normalizeWeatherDaily(
   input: WeatherDailyBlockV1 | WeatherDayV1[] | null | undefined,
   hours: WeatherHourlyV1[] = [],
 ): WeatherDay[] {
@@ -452,8 +442,6 @@ function strField(value: unknown): string {
 }
 
 /**
- * 生活指数 → 视图模型数组。
- *
  * 和风生活指数至今只有 v7（`/v7/indices/1d`），没跟着天气接口换代 ——
  * 所以这一块的字段本来就是扁平的，与视图模型 `WeatherIndex` 一一对应，
  * 不像天气三块那样要换算。这里只做两件事：值统一成字符串、空条目丢掉。
@@ -511,8 +499,8 @@ export function normalizeWeatherPayload(input: {
   daily?: WeatherDailyBlockV1 | WeatherDayV1[] | null;
 }): NormalizedWeather {
   const rawHours = hourlyEntries(input.hourly);
-  const hourly = rawHours.map(normalizeHour);
-  const daily = dailyEntries(input.daily).map((day) => normalizeDay(day, rawHours));
+  const hourly = normalizeWeatherHourly(input.hourly);
+  const daily = normalizeWeatherDaily(input.daily, rawHours);
   const now = normalizeWeatherCurrent(input.current);
 
   return { now, hourly, daily };
@@ -523,20 +511,6 @@ export function normalizeWeatherPayload(input: {
 // ---------------------------------------------------------------------------
 
 /**
- * "HH:mm" → 当天第几分钟。认不出来给 null。
- */
-function minutesOfDay(hhmm: string): number | null {
-  const matched = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
-  if (!matched) return null;
-  const hour = Number(matched[1]);
-  const minute = Number(matched[2]);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-  return hour * 60 + minute;
-}
-
-/**
- * 分钟级降水 → 视图模型。
- *
  * 这一份做两件事：把 `fxTime` 截成 `HH:mm`，以及算出每格**相对第一格**
  * 差多少分钟（`offset`）。
  *

@@ -131,7 +131,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import type { MinutelyBucket } from '@/types/fishing';
 import {
   buildMinutelyCurtain,
@@ -147,15 +147,15 @@ import { svgToDataUrl } from '@/utils/svg';
 
 const rainBowDataUrl = computed(() => svgToDataUrl(rainBowSvg));
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 const instance = getCurrentInstance()!;
 /** 柱阵的节点 id。同一页里这张卡可能不止一份，id 得唯一 */
 const bandId = `minutely-band-${Math.random().toString(36).slice(2, 8)}`;
 
-const points = computed(() => mapStore.minutelyForecast?.points ?? []);
+const points = computed(() => conditionsStore.minutelyForecast?.points ?? []);
 
-const summary = computed(() => mapStore.minutelyForecast?.summary ?? '');
+const summary = computed(() => conditionsStore.minutelyForecast?.summary ?? '');
 
 /** 换算成「雨幕」的窗口模型。取数在 store，换算在 utils，这里只管画 */
 const curtain = computed(() => buildMinutelyCurtain(points.value));
@@ -171,7 +171,7 @@ const legendLevels = PRECIP_LEGEND_LEVELS;
  */
 const hasData = computed(() => curtain.value.buckets.some((bucket) => bucket.value !== null));
 
-const loading = computed(() => mapStore.minutelyLoading);
+const loading = computed(() => conditionsStore.minutelyLoading);
 
 /** 窗口内累计降水。格式化在脚本里做，模板里只写数 */
 const totalText = computed(() => curtain.value.total.toFixed(2));
@@ -201,7 +201,7 @@ const refLines = PRECIP_REF_PCTS.map((pct) => ({ pct }));
  * 空态文案分两种：取不到（多为境外坐标，上游没覆盖）和拿到了但没数据。
  */
 const emptyText = computed(() =>
-  mapStore.minutelyError ? '分钟降水暂时取不到，其余天气数据不受影响' : '这个窗口内没有降水记录',
+  conditionsStore.minutelyError ? '分钟降水暂时取不到，其余天气数据不受影响' : '这个窗口内没有降水记录',
 );
 
 /** 选中的格子序号。没选中时为 null */
@@ -214,7 +214,7 @@ const selected = ref<number | null>(null);
  * 留着旧下标，读数会指在一格不相干的数据上。
  */
 watch(
-  () => mapStore.minutelyForecast,
+  () => conditionsStore.minutelyForecast,
   () => {
     selected.value = null;
   },

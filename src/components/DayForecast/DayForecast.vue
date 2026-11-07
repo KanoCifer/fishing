@@ -80,12 +80,14 @@ import { computed } from 'vue';
 import { useCrossFade } from '@/composables/useCrossFade';
 import { icon } from '@/constants/icons';
 import { tempGradient } from '@/constants/weatherTemp';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
+import { useLocationStore } from '@/stores/location';
 import { weekdayCn } from '@/utils/date';
-import type { ForecastDay } from '@/utils/weather';
+import type { ForecastDay } from '@/types/view';
 import { forecastDays, weatherIconUri } from '@/utils/weather';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
+const locationStore = useLocationStore();
 
 const calendarIcon = computed(() => icon('calendar-days', 'ink'));
 
@@ -95,7 +97,7 @@ const calendarIcon = computed(() => icon('calendar-days', 'ink'));
  * 挑出高低温都有值的日，脏数据整条丢掉，不占一行 —— 口径在 utils/weather，
  * 「今天」只有这一个出处。
  */
-const days = computed(() => forecastDays(mapStore.forecasts));
+const days = computed(() => forecastDays(conditionsStore.forecasts));
 
 /**
  * 全部行共用的温度量程。
@@ -222,7 +224,7 @@ const title = computed(() => `未来 ${days.value.length} 天`);
  *
  * 有数据时刷新不算加载 —— 已有读数换成骨架，读的人会以为数据没了。
  */
-const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
+const loading = computed(() => locationStore.locating || conditionsStore.weatherLoading);
 
 /**
  * 骨架与实数据交叉淡入。
@@ -241,7 +243,7 @@ const { skeletonVisible } = useCrossFade({
  * 有一份旧预报就按那份的行数摆（刷新时正是这种情况），数据到了行数不变；
  * 什么都没有时按一周 7 行摆 —— 冷启动那一次无从得知行数。
  */
-const skeletonRows = computed(() => mapStore.forecasts.length || 7);
+const skeletonRows = computed(() => conditionsStore.forecasts.length || 7);
 
 /**
  * 空态与出错时说同一句话的不同版本。
@@ -251,9 +253,9 @@ const skeletonRows = computed(() => mapStore.forecasts.length || 7);
  * 这里只说清「这一块没取到」，免得让人以为整页都废了。
  */
 const emptyText = computed(() => {
-  if (mapStore.weatherError) return '预报暂时取不到，刷新可重试';
+  if (conditionsStore.weatherError) return '预报暂时取不到，刷新可重试';
 
-  return mapStore.forecasts.length ? '预报数据不完整，刷新可重试' : '暂无预报数据，刷新可重试';
+  return conditionsStore.forecasts.length ? '预报数据不完整，刷新可重试' : '暂无预报数据，刷新可重试';
 });
 </script>
 

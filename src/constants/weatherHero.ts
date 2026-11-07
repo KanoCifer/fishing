@@ -9,7 +9,7 @@
  */
 
 import { ENV } from '@/config/env';
-import type { WeatherGroup } from '@/utils/weather';
+import type { WeatherGroup } from '@/types/view';
 
 /** 地点标签选点失败时的说法 */
 export const HERO_PICK_FAILED = '选点失败，请重试';

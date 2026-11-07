@@ -41,7 +41,7 @@ export interface CurveSegment {
  * 单调插值保证曲线在相邻两点之间不越过极值：极值处切线压平，
  * 其余地方用两侧斜率的加权调和平均，最后再统一限幅。
  */
-export function monotoneTangents(points: CurvePoint[]): number[] {
+function monotoneTangents(points: CurvePoint[]): number[] {
   const n = points.length;
   if (n < 2) return points.map(() => 0);
 
@@ -152,8 +152,6 @@ export function buildPolyline(points: CurvePoint[]): CurveSegment[] {
 }
 
 /**
- * 动画头所在的 x。
- *
  * cut 是「点下标的小数形式」：3 表示画到第 4 个点，3.4 表示画到第 4 个点
  * 的 40%。采样点等距，所以头部就在那两点之间按比例插出来的位置。
  *
@@ -172,7 +170,7 @@ export function headX(points: CurvePoint[], cut: number): number {
  *
  * t=0 给原段，t=1 给一个退化段（起点终点重合）。
  */
-export function splitSegment(segment: CurveSegment, t: number): CurveSegment {
+function splitSegment(segment: CurveSegment, t: number): CurveSegment {
   const u = 1 - t;
   const ax = u * segment.x0 + t * segment.cx1;
   const ay = u * segment.y0 + t * segment.cy1;

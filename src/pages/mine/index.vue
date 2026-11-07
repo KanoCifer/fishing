@@ -98,12 +98,13 @@ import { MINE_CTA, MINE_HERO, MINE_LOGOUT } from '@/constants/mine';
 import { SHARE_CARDS } from '@/constants/share';
 import { MY_SPOTS_ENTRY } from '@/constants/my-spots';
 import { icon } from '@/constants/icons';
-import { loginErrorMessage } from '@/api/auth';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { loginErrorMessage } from '@/utils/error';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import { toErrorMessage } from '@/utils/error';
 import { enterDelay } from '@/utils/motion';
 import { enableShareMenu } from '@/utils/share';
+import { showToast } from '@/utils/toast';
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
 const { statusBarHeight } = useNavMetrics();
@@ -120,7 +121,7 @@ const heroHeight = statusBarHeight + uni.upx2px(520);
 const { windowHeight } = useViewport();
 
 const session = useSessionStore();
-const mapStore = useFishingMapStore();
+const spotStore = useSpotStore();
 
 const aboutEntry = ABOUT_ENTRY;
 const contact = CONTACT;
@@ -224,11 +225,11 @@ function openMySpots() {
 /**
  * 拉我提交的钓点。
  *
- * 这一页要的只是一个数量，所以取不到就当没有（silent）——
+ * 这一页要的只是一个数量，所以取不到就当没有 ——
  * 不必为一个附属信息弹一个 toast 把用户打断。
  */
 async function loadMySpots(): Promise<void> {
-  await mapStore.fetchMySpots({ silent: true });
+  await spotStore.fetchMySpots();
   spotsLoaded.value = true;
 }
 
@@ -292,10 +293,10 @@ onPageShow(async () => {
 async function onLogin() {
   try {
     await session.login();
-    uni.showToast({ title: '登录成功', icon: 'success' });
+    showToast('登录成功', { icon: 'success' });
     await loadMySpots();
   } catch (err) {
-    uni.showToast({ title: loginErrorMessage(err), icon: 'none' });
+    showToast(loginErrorMessage(err));
   }
 }
 
@@ -310,9 +311,9 @@ async function onLogin() {
 async function onChooseAvatar(tempPath: string) {
   try {
     await session.uploadAvatar(tempPath);
-    uni.showToast({ title: '头像已更新', icon: 'success' });
+    showToast('头像已更新', { icon: 'success' });
   } catch (err) {
-    uni.showToast({ title: toErrorMessage(err, '头像上传失败，可稍后重试'), icon: 'none' });
+    showToast(toErrorMessage(err, '头像上传失败，可稍后重试'));
   }
 }
 
@@ -330,9 +331,9 @@ async function onSaveNickname(nickname: string) {
   try {
     await session.saveNickname(nickname);
     closeProfile();
-    uni.showToast({ title: '昵称已保存', icon: 'success' });
+    showToast('昵称已保存', { icon: 'success' });
   } catch (err) {
-    uni.showToast({ title: toErrorMessage(err, '保存失败，请重试'), icon: 'none' });
+    showToast(toErrorMessage(err, '保存失败，请重试'));
   } finally {
     savingNickname.value = false;
   }
@@ -355,9 +356,9 @@ function onLogout() {
       await session.logout();
       // 钓点是上一个账号的数据：留着的话，登出之后这一页
       // 还会显示着别人的条数。
-      mapStore.clearMySpots();
+      spotStore.clearMySpots();
       spotsLoaded.value = false;
-      uni.showToast({ title: '已退出登录', icon: 'none' });
+      showToast('已退出登录');
     },
   });
 }

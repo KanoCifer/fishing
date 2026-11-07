@@ -17,7 +17,7 @@
       </view>
 
       <!-- 一条都没有 -->
-      <view v-else-if="!mapStore.mySpots.length && !mapStore.mySpotsLoading" class="sect sect--first">
+      <view v-else-if="!spotStore.mySpots.length && !spotStore.mySpotsLoading" class="sect sect--first">
         <view class="my-spots__empty">
           <text class="my-spots__empty-title">{{ empty.title }}</text>
           <text class="my-spots__empty-hint">{{ empty.hint }}</text>
@@ -143,7 +143,7 @@ import {
 } from '@/constants/my-spots';
 import { mediaUrl } from '@/api/upload';
 import { icon } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import {
   FISHING_SPOT_STATUS_LABELS,
@@ -152,8 +152,9 @@ import {
   type FishingSpotStatus,
 } from '@/types/fishing';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 
-const mapStore = useFishingMapStore();
+const spotStore = useSpotStore();
 const session = useSessionStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -218,7 +219,7 @@ function statusTone(status?: FishingSpotStatus): 'default' | 'accent' | 'ok' | '
  * 「全部」是总数，不是三档之和 —— 待办那一栏的用户心里只有总数。
  */
 const counts = computed<Record<MySpotsFilter, number>>(() => {
-  const all = mapStore.mySpots;
+  const all = spotStore.mySpots;
   const by = (status: FishingSpotStatus): number => all.filter((spot) => statusOf(spot) === status).length;
 
   return {
@@ -238,8 +239,8 @@ const counts = computed<Record<MySpotsFilter, number>>(() => {
 const shown = computed<FishingSpot[]>(() => {
   const spots =
     filter.value === 'all'
-      ? mapStore.mySpots
-      : mapStore.mySpots.filter((spot) => statusOf(spot) === filter.value);
+      ? spotStore.mySpots
+      : spotStore.mySpots.filter((spot) => statusOf(spot) === filter.value);
 
   return [...spots].sort((a, b) => STATUS_WEIGHT[statusOf(a)] - STATUS_WEIGHT[statusOf(b)]);
 });
@@ -317,9 +318,12 @@ function openEdit(id: string): void {
 async function onLogin(): Promise<void> {
   try {
     await session.login();
-    await mapStore.fetchMySpots();
+    await spotStore.fetchMySpots();
+    if (spotStore.mySpotsError) {
+      showToast(spotStore.mySpotsError);
+    }
   } catch {
-    uni.showToast({ title: '登录失败，请重试', icon: 'none' });
+    showToast('登录失败，请重试');
   }
 }
 
@@ -332,7 +336,10 @@ async function onLogin(): Promise<void> {
 onPageShow(async () => {
   await session.restore();
   if (session.loggedIn) {
-    await mapStore.fetchMySpots();
+    await spotStore.fetchMySpots();
+    if (spotStore.mySpotsError) {
+      showToast(spotStore.mySpotsError);
+    }
   }
 });
 </script>

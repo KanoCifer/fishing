@@ -27,7 +27,7 @@
 import { computed } from 'vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { icon } from '@/constants/icons';
-import type { Tone } from '@/utils/weather';
+import type { Tone } from '@/types/view';
 
 withDefaults(
   defineProps<{

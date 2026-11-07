@@ -145,6 +145,7 @@ import { useFishingLogStore } from '@/stores/fishingLog';
 import { formatLocalTimeOfDay } from '@/utils/date';
 import { toErrorMessage } from '@/utils/error';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 import type { FishingLog, FishingLogWeather } from '@/types/record';
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -295,7 +296,7 @@ async function load(id: string): Promise<void> {
     log.value = await fishingLogApi.get(id);
   } catch (err) {
     log.value = null;
-    uni.showToast({ title: toErrorMessage(err, '载入失败'), icon: 'none' });
+    showToast(toErrorMessage(err, '载入失败'));
   } finally {
     ready.value = true;
   }
@@ -323,11 +324,11 @@ function onRemove(): void {
       removing.value = true;
       try {
         await logStore.remove(log.value!.log_id);
-        uni.showToast({ title: RECORD_DETAIL.removedToast, icon: 'none' });
+        showToast(RECORD_DETAIL.removedToast);
         setTimeout(goBack, 600);
       } catch (err) {
         removing.value = false;
-        uni.showToast({ title: toErrorMessage(err, '删除失败，请稍后重试'), icon: 'none' });
+        showToast(toErrorMessage(err, '删除失败，请稍后重试'));
       }
     },
   });

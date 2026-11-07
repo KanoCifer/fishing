@@ -94,21 +94,3 @@ export function mixColor(from: string, to: string, t: number): string {
   const channel = (i: number) => Math.round(a[i] + (b[i] - a[i]) * k);
   return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
 }
-
-/**
- * 在色阶上取色。
- *
- * 色阶的每一档落在量程的一个位置上，t 是量程上的比例（0–1）：
- * t = 0 取第一档，t = 1 取最后一档，中间按档数均分。
- *
- * 两档之间按 RGB 线性插值 —— 红→黄→绿这条路在 RGB 里正好经过橙与黄绿，
- * 不用绕 HSV 那一圈。
- */
-export function rampColor(stops: readonly string[], t: number): string {
-  if (stops.length === 0) return 'transparent';
-  if (stops.length === 1) return stops[0];
-
-  const scaled = Math.min(1, Math.max(0, t)) * (stops.length - 1);
-  const index = Math.min(stops.length - 2, Math.floor(scaled));
-  return mixColor(stops[index], stops[index + 1], scaled - index);
-}

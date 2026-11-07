@@ -108,17 +108,18 @@ import { SHARE_TITLES, SHARE_WXACODE } from './share';
 import { mediaUrl } from '@/api/upload';
 import { icon } from '@/constants/icons';
 import { SPOT_FEEDBACK_ENTRY } from '@/constants/spot-feedback';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useLocationStore } from '@/stores/location';
 import { useSessionStore } from '@/stores/session';
 import { useSpotDetailStore } from './store';
 import { enterDelay } from '@/utils/motion';
 import { enableShareMenu } from '@/utils/share';
+import { showToast } from '@/utils/toast';
 import type { PosterSpot } from './poster';
 import { buildConditionCells, buildSpotVerdict, distanceKm, formatDistance } from './spot-conditions';
 import { fishingSpotKindLabel } from '@/types/fishing';
 
 const detailStore = useSpotDetailStore();
-const mapStore = useFishingMapStore();
+const locationStore = useLocationStore();
 const session = useSessionStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -323,7 +324,7 @@ function retryConditions(): void {
  */
 const distanceLabel = computed(() => {
   const current = spot.value;
-  const user = mapStore.userLocation;
+  const user = locationStore.userLocation;
   if (!current || !user) return formatDistance(null);
   return formatDistance(distanceKm(user, current.location));
 });
@@ -398,7 +399,7 @@ onShareAppMessage(() => ({
 onLoad((options) => {
   const id = options?.id;
   if (!id) {
-    uni.showToast({ title: '钓点不存在', icon: 'none' });
+    showToast('钓点不存在');
     return;
   }
 
@@ -428,7 +429,7 @@ onLoad((options) => {
    * 微信在用户拒绝之后不会再弹权限窗，反复调只是反复失败。
    * 从地图页点进来时，那边多半已经问过一轮了。
    */
-  void mapStore.locateUser();
+  void locationStore.locateUser();
 });
 
 /**
@@ -471,7 +472,7 @@ function openNavigation() {
     fail: () => {
       // 正常不会走到这里（不涉及任何权限），但万一是环境不支持，
       // 给个说法比按钮点了没反应强
-      uni.showToast({ title: '无法打开地图', icon: 'none' });
+      showToast('无法打开地图');
     },
   });
 }

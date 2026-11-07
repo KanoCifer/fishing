@@ -186,6 +186,7 @@ import {
 import { UPLOADING_BLOCK } from '@/constants/upload';
 import type { FishingSpotFeeType, FishingSpotFeedbackPayload, FishingSpotFeedbackType } from '@/types/fishing';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 
 const props = withDefaults(
   defineProps<{
@@ -370,7 +371,7 @@ function pickLocation() {
       // 只有真的出错（没授权、环境不支持）才提示。
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: errors.pickFailed, icon: 'none' });
+      showToast(errors.pickFailed);
     },
   });
 }
@@ -443,7 +444,7 @@ function submit() {
 
   // 图没传完就提交，那几张会静默丢掉 —— 用户在界面上明明看见了它们
   if (uploading.value) {
-    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
+    showToast(UPLOADING_BLOCK);
     return;
   }
 

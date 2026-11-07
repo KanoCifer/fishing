@@ -167,6 +167,7 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import ImagePicker from '@/components/ImagePicker/ImagePicker.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
+import { fishingSpotApi } from '@/api/fishing';
 import {
   SPOT_EDIT_LEDE,
   SPOT_EDIT_LOADING,
@@ -189,7 +190,7 @@ import {
   SPOT_SUITABLE_OPTIONS,
 } from '@/constants/spot-form';
 import { UPLOADING_BLOCK } from '@/constants/upload';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import {
   FISHING_SPOT_CAR_LABELS,
@@ -208,8 +209,9 @@ import {
 import { toErrorMessage } from '@/utils/error';
 import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 
-const mapStore = useFishingMapStore();
+const spotStore = useSpotStore();
 const session = useSessionStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -396,7 +398,7 @@ async function load(): Promise<void> {
   loading.value = true;
   loadFailed.value = false;
   try {
-    const spot = await mapStore.fetchSpot(spotId.value);
+    const spot = await fishingSpotApi.getByIdWithSession(spotId.value);
     original.value = spot;
     hydrate(spot);
   } catch {
@@ -442,7 +444,7 @@ function pickLocation() {
     fail: (err) => {
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: SPOT_FORM_PICK_FAILED, icon: 'none' });
+      showToast(SPOT_FORM_PICK_FAILED);
     },
   });
 }
@@ -500,11 +502,11 @@ async function submit() {
   validated.value = true;
 
   if (missingLabels.value.length) {
-    uni.showToast({ title: SPOT_FORM_MISSING.toast(missingLabels.value), icon: 'none' });
+    showToast(SPOT_FORM_MISSING.toast(missingLabels.value));
     return;
   }
   if (photoUploading.value) {
-    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
+    showToast(UPLOADING_BLOCK);
     return;
   }
 
@@ -550,7 +552,7 @@ async function submit() {
       payload.fee_amount = parsedFeeAmount();
     }
 
-    await mapStore.updateSpot(spotId.value, payload);
+    await spotStore.updateSpot(spotId.value, payload);
 
     const saved = SPOT_EDIT_SAVED[before];
     uni.showModal({
@@ -566,10 +568,7 @@ async function submit() {
   } catch (err) {
     // 保存成功弹模态框，确认留在屏幕上；失败才需要一条不看屏幕也知道的信号
     haptic('heavy');
-    uni.showToast({
-      title: toErrorMessage(err, SPOT_EDIT_SAVE_FAILED),
-      icon: 'none',
-    });
+    showToast(toErrorMessage(err, SPOT_EDIT_SAVE_FAILED));
   } finally {
     submitting.value = false;
   }

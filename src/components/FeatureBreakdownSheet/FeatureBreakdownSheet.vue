@@ -25,7 +25,7 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { toFeatureTiles } from '@/types/fishing';
 
 import FeatureBreakdown from '../FeatureBreakdown/FeatureBreakdown.vue';
@@ -43,7 +43,7 @@ const emit = defineEmits<{ close: [] }>();
  */
 const SNAP_POINTS = [50, 85];
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 /**
  * 头部那句「N 项」。
@@ -51,7 +51,7 @@ const mapStore = useFishingMapStore();
  * 与 FeatureBreakdown 取的是同一份数据、同一个归一化函数（toFeatureTiles），
  * 两边各调一次是同一件事算两遍，但省掉一条把条数往外传的口子。
  */
-const tileCount = computed(() => toFeatureTiles(mapStore.indexData?.feature_breakdown).length);
+const tileCount = computed(() => toFeatureTiles(conditionsStore.indexData?.feature_breakdown).length);
 </script>
 
 <style lang="scss" scoped>

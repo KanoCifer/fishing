@@ -50,8 +50,6 @@ interface MarkedToken {
 }
 
 /**
- * 拼一个元素节点。
- *
  * attrs 里只放受信任的属性：rich-text 的全局支持是 class 与 style，
  * 不支持 id。
  */
@@ -72,8 +70,6 @@ function text(value: string): RichTextNode {
 }
 
 /**
- * 转行内 token。
- *
  * marked 的行内 token 是一条扁平序列，靠 type 区分语义。
  * 未识别的 type 按纯文本处理 —— 宁可少一点样式，也不要吞掉内容。
  */
@@ -138,7 +134,6 @@ function inlineTokens(tokens: MarkedToken[]): RichTextNode[] {
   return out;
 }
 
-/** 转块级 token。 */
 function blockTokens(tokens: MarkedToken[]): RichTextNode[] {
   const out: RichTextNode[] = [];
   const s = markdownTagStylePx();
@@ -229,8 +224,6 @@ function blockTokens(tokens: MarkedToken[]): RichTextNode[] {
 }
 
 /**
- * HTML 实体还原。
- *
  * marked 的 code token 内容是转义过的（&amp; &lt; &gt; &#39;），
  * rich-text 的文本节点直接显示字面量，所以要先转回来。
  * 只认这五个 —— Markdown 里真正会出现的就这些。

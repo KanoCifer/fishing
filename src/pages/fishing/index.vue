@@ -21,11 +21,11 @@
       <view v-if="spotsFailed" class="spots-error">
         <view class="spots-error__text">
           <text class="spots-error__title">钓点没加载出来</text>
-          <text class="spots-error__reason">{{ mapStore.spotsError }}</text>
+          <text class="spots-error__reason">{{ spotStore.spotsError }}</text>
         </view>
         <view
           class="spots-error__retry"
-          :class="{ 'spots-error__retry--busy': mapStore.spotsLoading }"
+          :class="{ 'spots-error__retry--busy': spotStore.spotsLoading }"
           @tap="retrySpots"
         >
           <text class="spots-error__retry-text">重试</text>
@@ -47,18 +47,19 @@ import { useMapMarkers } from '@/composables/useMapMarkers';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { SHARE_CARDS } from '@/constants/share';
-import { MAP_CENTER, useFishingMapStore } from '@/stores/fishingMap';
+import { MAP_CENTER } from '@/stores/location';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import { enableShareMenu } from '@/utils/share';
 
 const nav = useNavMetrics();
-const mapStore = useFishingMapStore();
+const spotStore = useSpotStore();
 const session = useSessionStore();
 
 /** 可用窗口高度（px）。地图铺满的高度就是它，理由见 useViewport */
 const { windowHeight } = useViewport();
 
-const { markerItems, resolveMarker } = useMapMarkers(() => mapStore.markers);
+const { markerItems, resolveMarker } = useMapMarkers(() => spotStore.markers);
 
 const focusedLng = ref(MAP_CENTER[0]);
 const focusedLat = ref(MAP_CENTER[1]);
@@ -70,15 +71,15 @@ const focusedLat = ref(MAP_CENTER[1]);
  * 什么都没有的时候，「这一片真的没有钓点」和「没取到」才分不清。
  */
 const spotsFailed = computed(
-  () => mapStore.markers.length === 0 && mapStore.spotsError !== '',
+  () => spotStore.markers.length === 0 && spotStore.spotsError !== '',
 );
 
 /**
  * 重试取钓点。force：不管新鲜窗口 —— 用户点了就是现在要。
  */
 function retrySpots() {
-  if (mapStore.spotsLoading) return;
-  void mapStore.fetchSpots({ force: true });
+  if (spotStore.spotsLoading) return;
+  void spotStore.fetchSpots({ force: true });
 }
 
 /**
@@ -91,7 +92,7 @@ function onMarkerTap(payload: { markerId: number }) {
   const marker = resolveMarker(payload.markerId);
   if (!marker) return;
 
-  mapStore.setSelectedMarker(marker);
+  spotStore.setSelectedMarker(marker);
 
   const [lng, lat] = marker.position;
   focusedLng.value = lng;
@@ -165,7 +166,7 @@ onReady(() => {
   ready = true;
 
   setTimeout(() => {
-    void mapStore.fetchSpots();
+    void spotStore.fetchSpots();
 
     /*
      * 恢复会话。
@@ -192,7 +193,7 @@ onReady(() => {
  */
 onShow(() => {
   if (!ready) return;
-  void mapStore.fetchSpots();
+  void spotStore.fetchSpots();
 });
 </script>
 

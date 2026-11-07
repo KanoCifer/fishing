@@ -158,18 +158,6 @@ export function shortDate(fxDate: string): string {
 }
 
 /**
- * 把带时区的时间串压成「月-日 时:分」。
- *
- * 和 parseFxTime 用同一套切法，不 new Date() —— 理由见那个函数的注释：
- * 换算成本地时区后，开发者工具和真机可能给出不同的读数。
- */
-export function formatMoment(value: string | null | undefined): string {
-  const parsed = parseFxTime(value ?? '');
-  if (!parsed) return '';
-  return `${parsed.date} ${parsed.time}`;
-}
-
-/**
  * 只取「HH:mm」。
  *
  * 给「这份数据是什么时候的」这类落款用：脚注要回答的是「几点钟更新的」，
@@ -177,7 +165,7 @@ export function formatMoment(value: string | null | undefined): string {
  * 再写一遍是噪音。数据可能来自昨天（缓存的潮汐表），但对用户来说
  * 「10:31 更新」已经够用。
  *
- * 同样只切字符串不 new Date()，理由与 formatMoment 一致。
+ * 同样只切字符串不 new Date()，理由与 parseFxTime 一致。
  */
 export function formatTimeOfDay(value: string | null | undefined): string {
   const parsed = parseFxTime(value ?? '');

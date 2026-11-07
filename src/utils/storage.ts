@@ -8,8 +8,8 @@
  * 读出来的是同一个字符串，问的还是宿主里同一块存储。
  *
  * 所以这里给每个 key 留一份内存副本：第一次读真的落下去，之后都从副本取；
- * 写和删同时更新副本。副本和 Storage 不会不同步 ——
- * 因为**所有**写入都必须走这个模块，项目里没有第二处直写 Storage 的地方。
+ * 写和删同时更新副本。**这份副本是这一轮会话里的唯一真源** ——
+ * 别的模块不再各自留一份 token 副本，值只存在这里。
  *
  * 同一份道理，useViewport / useNavMetrics 也是「算一次就缓存」：
  * 尺寸在一次启动内不变，存储在一次进程内也不该被反复读。
@@ -26,6 +26,19 @@
  * key 当成原型属性处理，Map 不会。
  */
 const cache = new Map<string, unknown>();
+
+/**
+ * 每个 key 的「写入代数」。
+ *
+ * 用途：异步读回来的值可能晚于一次同步写 —— 写进去会把新值盖成旧值。
+ * 记下这个 key 被动过几次，异步读只在代数没变过时才落副本。
+ */
+const generations = new Map<string, number>();
+
+/** 记一次「这个 key 的值动过了」 */
+function bumpGeneration(key: string): void {
+  generations.set(key, (generations.get(key) ?? 0) + 1);
+}
 
 /**
  * 读一个 key。
@@ -46,8 +59,23 @@ export function readStorage<T = unknown>(key: string): T {
     value = undefined;
   }
 
+  // 同步读也算一次「读」：此刻在飞的异步读不能覆盖它
+  bumpGeneration(key);
   cache.set(key, value);
   return value as T;
+}
+
+/**
+ * 只读内存副本，不碰宿主。
+ *
+ * 用途：拼请求头这类**启动链路上**要用的值 —— 不能为它同步读一次 Storage
+ * （同步 API 会阻塞 JS 线程，微信体检会数首屏前的同步调用次数）。
+ * 拿不到就是拿不到，宁可给空串。
+ *
+ * 与 readStorage 的区别就这一条：不落下去读。
+ */
+export function peekStorage<T = unknown>(key: string): T | undefined {
+  return cache.get(key) as T | undefined;
 }
 
 /**
@@ -65,11 +93,12 @@ export function readStorage<T = unknown>(key: string): T {
  * 「没有」这一种情况。key 不存在时微信回的是空字符串，不是 undefined，
  * 调用点按 falsy 判就够。
  *
- * 这个函数**不写内存副本**：异步读回来的值可能晚于一次同步写，
- * 写进去会把新值盖成旧值。要缓存就用同步版的 readStorage，
- * 或者让调用方自己持有（见 api/client.ts 的 token 内存副本）。
+ * 读回来后会落进内存副本，但**只在期间没人动过这个 key 时**才落 ——
+ * 异步读可能晚于一次写入，落进去就把新值盖成旧值。
  */
 export function readStorageAsync<T = unknown>(key: string): Promise<T | undefined> {
+  const startedAt = generations.get(key) ?? 0;
+
   return new Promise<T | undefined>((resolve) => {
     try {
       uni.getStorage({
@@ -80,38 +109,50 @@ export function readStorageAsync<T = unknown>(key: string): Promise<T | undefine
     } catch {
       resolve(undefined);
     }
+  }).then((value) => {
+    if ((generations.get(key) ?? 0) === startedAt) {
+      cache.set(key, value);
+    }
+    return value;
   });
 }
 
 /**
- * 写一个 key。返回是否真的写进去了。
+ * 写一个 key。返回是否真的写进了宿主存储。
  *
- * 只有宿主写成功才更新缓存 —— 写失败时 Storage 里还是旧值，
- * 副本也该是旧值，两边才是一致的。
+ * 内存副本**无论宿主写成功与否都会更新** —— 副本是这一轮会话的唯一真源，
+ * 宿主写失败只说明「这次没落盘」（重启后会读回旧值），
+ * 不说明「这一轮的值不算数」：登录刚成功时写失败的话，
+ * 这一轮所有请求都不带 Authorization，用户会以为自己登了个寂寞。
  */
 export function writeStorage(key: string, value: unknown): boolean {
+  bumpGeneration(key);
+  cache.set(key, value);
+
   try {
     uni.setStorageSync(key, value);
   } catch {
     return false;
   }
 
-  cache.set(key, value);
   return true;
 }
 
 /**
- * 删一个 key。返回是否真的删掉了。
+ * 删一个 key。返回是否真的从宿主存储里删掉了。
  *
- * 删除失败就留着副本 —— Storage 里那个值还在，副本跟着它走。
+ * 副本一律删掉，理由同 writeStorage：用户这一轮已经「退出了」，
+ * 留着副本就等于一枚已经作废的 token 还在发请求。
  */
 export function removeStorage(key: string): boolean {
+  bumpGeneration(key);
+  cache.delete(key);
+
   try {
     uni.removeStorageSync(key);
   } catch {
     return false;
   }
 
-  cache.delete(key);
   return true;
 }

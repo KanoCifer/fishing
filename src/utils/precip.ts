@@ -9,33 +9,53 @@
  * 编了一段并不存在的连续性（雨是断续的）。所以换算只出柱高，不出控制点。
  */
 
-import type { MinutelyBucket, MinutelyCurtain, MinutelyPoint, MinutelyTick, PrecipLevel } from '@/types/fishing';
 import { WEATHER_ICONS, type WeatherIconSlug } from '@/constants/weatherIcons';
+import type { MinutelyBucket, MinutelyCurtain, MinutelyPoint, MinutelyTick, PrecipLevel } from '@/types/fishing';
+import type { Tone } from '@/types/view';
 
-import { num } from './weather';
+import { toFiniteNumber } from './number';
 
 /**
- * 雨强分档。
+ * 雨强分档 —— 1 小时雨强（mm/h）的唯一一份阈值表。
  *
  * 口径是**1 小时雨强**的通用分档：≤2.5 小雨 / 2.5~8 中雨 / 8~16 大雨 /
  * ≥16 暴雨（毫米/小时）。
  *
- * 上游量的是 5 分钟累计量，所以阈值除以 12 —— 5 分钟下的量乘 12 才是
- * 等效的一小时雨强。表里的 from 因此是 0.21 / 0.67 / 1.33 这样的数，
- * 不是 2.5 / 8 / 16。
+ * `from` 是该档的下限（含）。小雨从 0 起，但 0 本身不是雨 ——
+ * 「这一格测到 0」单独归 none（见 precipLevelOf）。
+ *
+ * 这张表是雨强口径的唯一真源：实况卡（utils/weather 的 precipLevel）
+ * 与分钟降水图说的是同一件事，两处各写一遍阈值迟早对不上。
  */
-const LEVELS: ReadonlyArray<{ key: PrecipLevel; label: string; from: number }> = [
-  { key: 'light', label: '小雨', from: 0 },
-  { key: 'medium', label: '中雨', from: 2.5 / 12 },
-  { key: 'heavy', label: '大雨', from: 8 / 12 },
-  { key: 'storm', label: '暴雨', from: 16 / 12 },
+const RAIN_LEVELS: ReadonlyArray<{
+  key: Exclude<PrecipLevel, 'none'>;
+  label: string;
+  /** 1 小时雨强（mm/h）的下限，含 */
+  from: number;
+  tone: Tone;
+}> = [
+  { key: 'light', label: '小雨', from: 0, tone: 'muted' },
+  { key: 'medium', label: '中雨', from: 2.5, tone: 'warning' },
+  { key: 'heavy', label: '大雨', from: 8, tone: 'warning' },
+  { key: 'storm', label: '暴雨', from: 16, tone: 'destructive' },
 ];
 
-/** 大雨的下限（毫米/5 分钟）。图上 50% 那条档位线就是它 */
-const heavyFrom = LEVELS.find((level) => level.key === 'heavy')?.from ?? 0;
+/**
+ * 1 小时雨强（mm/h）落在哪一档。
+ *
+ * 0 与负数不算雨，给 null —— 调用方自己决定「无降水」怎么写。
+ */
+export function rainLevelOf(intensity: number): { label: string; tone: Tone } | null {
+  if (!Number.isFinite(intensity) || intensity <= 0) return null;
 
-/** 'none'（无降水）单独处理：它不是一个阈值，是「这一格测到 0」 */
-const NONE_LABEL = '无降水';
+  let hit: (typeof RAIN_LEVELS)[number] | undefined;
+  for (const level of RAIN_LEVELS) {
+    if (intensity >= level.from) hit = level;
+  }
+  if (!hit) return null;
+
+  return { label: hit.label, tone: hit.tone };
+}
 
 /**
  * 每格覆盖的分钟数。
@@ -44,6 +64,29 @@ const NONE_LABEL = '无降水';
  * 免得格数与跨度各写一个 5。
  */
 const BUCKET_MINUTES = 5;
+
+/**
+ * 折算成 1 小时雨强要乘的倍数。
+ *
+ * 上游量的是 5 分钟累计量，乘 12 才是等效的一小时雨强。
+ * 表里的 from 因此是 0.21 / 0.67 / 1.33 这样的数，不是 2.5 / 8 / 16。
+ */
+const HOUR_SCALE = 60 / BUCKET_MINUTES;
+
+/**
+ * 5 分钟量纲下的档位线。阈值由上面那张表折算而来，不另写一份数。
+ */
+const LEVELS: ReadonlyArray<{ key: PrecipLevel; label: string; from: number }> = RAIN_LEVELS.map((level) => ({
+  key: level.key,
+  label: level.label,
+  from: level.from / HOUR_SCALE,
+}));
+
+/** 大雨的下限（毫米/5 分钟）。图上 50% 那条档位线就是它 */
+const heavyFrom = LEVELS.find((level) => level.key === 'heavy')?.from ?? 0;
+
+/** 'none'（无降水）单独处理：它不是一个阈值，是「这一格测到 0」 */
+const NONE_LABEL = '无降水';
 
 /**
  * 柱高量程的上沿：暴雨的下限（1 小时 16 毫米 → 5 分钟 1.333 毫米）。
@@ -55,11 +98,8 @@ const BUCKET_MINUTES = 5;
  * 上沿取暴雨下限而不是大雨下限：这样每一档雨强在图上占一段互不重叠的高度区间
  * （小雨 ≤16%、中雨 ≤50%、大雨 ≤100%），高度和颜色说的是同一件事，
  * 不会出现一根中雨柱顶到顶。
- *
- * 和上面那张档位表是同一套口径（表里 storm.from = 16/12），
- * 改档位阈值时这里要一起改。
  */
-const SCALE_MAX_5MIN = 16 / 12;
+const SCALE_MAX_5MIN = (RAIN_LEVELS.find((level) => level.key === 'storm')?.from ?? 16) / HOUR_SCALE;
 
 /**
  * 图上那两条横向参考线（占绘图区高度的百分比）。
@@ -121,7 +161,7 @@ export const PRECIP_LEGEND_LEVELS: ReadonlyArray<{ key: PrecipLevel; label: stri
 }));
 
 /** 一个数值落在哪一档。null（没有数据）不参与分档 */
-export function precipLevelOf(value: number | null): PrecipLevel | null {
+function precipLevelOf(value: number | null): PrecipLevel | null {
   if (value === null) return null;
   if (value <= 0) return 'none';
 
@@ -132,7 +172,6 @@ export function precipLevelOf(value: number | null): PrecipLevel | null {
   return hit;
 }
 
-/** 档位 → 档位名 */
 export function precipLevelLabel(level: PrecipLevel): string {
   if (level === 'none') return NONE_LABEL;
   return LEVELS.find((item) => item.key === level)?.label ?? '';
@@ -159,7 +198,7 @@ const TICK_STEP = 30;
  */
 export function buildMinutelyCurtain(points: MinutelyPoint[]): MinutelyCurtain {
   const buckets: MinutelyBucket[] = points.map((point, index) => {
-    const value = num(point.precip);
+    const value = toFiniteNumber(point.precip);
     return {
       index,
       offset: point.offset,

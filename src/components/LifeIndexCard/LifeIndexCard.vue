@@ -45,10 +45,10 @@
  */
 import { computed } from 'vue';
 
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { indexCategoryTone } from '@/utils/weather';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 /**
  * 只留有名字和档位的条目。
@@ -58,7 +58,7 @@ const mapStore = useFishingMapStore();
  * 就不是「垂钓指数」了。空壳条目（没名字也没档位）更不能占位。
  */
 const entries = computed(() =>
-  mapStore.weatherIndices
+  conditionsStore.weatherIndices
     .filter((item) => item.name && item.category)
     .map((item) => ({
       name: item.name,
@@ -81,8 +81,8 @@ const title = computed(() =>
 );
 
 const emptyText = computed(() => {
-  if (mapStore.weatherLoading) return '加载中…';
-  if (mapStore.weatherError) return '官方指数暂时取不到，刷新可重试';
+  if (conditionsStore.weatherLoading) return '加载中…';
+  if (conditionsStore.weatherError) return '官方指数暂时取不到，刷新可重试';
   return '暂无官方指数数据';
 });
 </script>

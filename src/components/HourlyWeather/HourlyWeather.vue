@@ -58,24 +58,27 @@
 import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
+import { useLocationStore } from '@/stores/location';
 import { parseFxTime } from '@/utils/date';
-import { num, weatherIconUri } from '@/utils/weather';
+import { toFiniteNumber } from '@/utils/number';
+import { weatherIconUri } from '@/utils/weather';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
+const locationStore = useLocationStore();
 
-const loading = computed(() => mapStore.locating || mapStore.weatherLoading);
+const loading = computed(() => locationStore.locating || conditionsStore.weatherLoading);
 
-const settled = computed(() => !loading.value && (mapStore.indexData !== null || mapStore.weatherError !== ''));
+const settled = computed(() => !loading.value && (conditionsStore.indexData !== null || conditionsStore.weatherError !== ''));
 
 const emptyText = computed(() => {
-  if (mapStore.weatherError) return '逐时预报暂时取不到，其余天气数据不受影响';
+  if (conditionsStore.weatherError) return '逐时预报暂时取不到，其余天气数据不受影响';
   return '未来 24 小时没有逐时数据';
 });
 
 const hours = computed(() =>
-  mapStore.weatherHourly.slice(0, 24).map((hour) => {
-    const prob = num(hour.precipProbability);
+  conditionsStore.weatherHourly.slice(0, 24).map((hour) => {
+    const prob = toFiniteNumber(hour.precipProbability);
     return {
       fxTime: hour.fxTime,
       temp: hour.temp ?? '',

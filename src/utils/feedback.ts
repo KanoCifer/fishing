@@ -147,8 +147,6 @@ export function buildFishingFeedbackPayload(input: {
 }
 
 /**
- * 数字兜底。
- *
  * 用 `Number.isFinite` 而不是 `||`：0 对风速、降水、潮差都是合法值，
  * `||` 会把它们换成兜底值 —— 那等于往模型里塞一条假数据。
  */

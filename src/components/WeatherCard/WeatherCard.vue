@@ -53,8 +53,8 @@
       </view>
     </view>
 
-    <text v-if="mapStore.weatherError && !skeletonVisible" class="weather__error">
-      {{ mapStore.weatherError }}
+    <text v-if="conditionsStore.weatherError && !skeletonVisible" class="weather__error">
+      {{ conditionsStore.weatherError }}
     </text>
 
     <text v-else-if="!tiles.length && !skeletonVisible" class="weather__empty">暂无天气数据，刷新可重试</text>
@@ -67,24 +67,23 @@ import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
 import { icon, type IconName } from '@/constants/icons';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useConditionsStore } from '@/stores/conditions';
 import { formatTimeOfDay } from '@/utils/date';
+import { toFiniteNumber } from '@/utils/number';
 import {
   cloudLevel,
   dewLevel,
   humidityLevel,
-  num,
   precipLevel,
   precipTypeCn,
   pressureLevel,
   uvLevel,
   visibilityLevel,
   windLevel,
-  type Level,
-  type Tone,
 } from '@/utils/weather';
+import type { Tone } from '@/types/view';
 
-const mapStore = useFishingMapStore();
+const conditionsStore = useConditionsStore();
 
 /** 一格磁贴 */
 interface Tile {
@@ -107,7 +106,7 @@ function makeTile(t: {
   iconName: IconName;
   value: string;
   unit: string;
-  level: Level | null;
+  level: { label: string; tone?: Tone } | null;
   note?: string;
 }): Tile {
   return {
@@ -130,7 +129,7 @@ function makeTile(t: {
  * 免得模板渲染成 "NaN m/s"。
  */
 function toMs(value: string | undefined): number | null {
-  const kmh = num(value);
+  const kmh = toFiniteNumber(value);
   if (kmh === null) return null;
   return kmh / 3.6;
 }
@@ -142,12 +141,12 @@ function fmt(value: number | null): string {
 }
 
 const tiles = computed<Tile[]>(() => {
-  const live = mapStore.liveWeather;
+  const live = conditionsStore.liveWeather;
   if (!live) return [];
 
   const out: Tile[] = [];
 
-  const humidity = num(live.humidity);
+  const humidity = toFiniteNumber(live.humidity);
   out.push(
     makeTile({
       key: 'humidity',
@@ -159,7 +158,7 @@ const tiles = computed<Tile[]>(() => {
     }),
   );
 
-  const pressure = num(live.pressure);
+  const pressure = toFiniteNumber(live.pressure);
   out.push(
     makeTile({
       key: 'pressure',
@@ -171,7 +170,7 @@ const tiles = computed<Tile[]>(() => {
     }),
   );
 
-  const vis = num(live.vis);
+  const vis = toFiniteNumber(live.vis);
   out.push(
     makeTile({
       key: 'vis',
@@ -214,8 +213,8 @@ const tiles = computed<Tile[]>(() => {
   );
 
   // 降水：瞬时雨强当大数字，降水量与类型放副行
-  const intensity = num(live.precipIntensity);
-  const amount = num(live.precip);
+  const intensity = toFiniteNumber(live.precipIntensity);
+  const amount = toFiniteNumber(live.precip);
   const typeCn = precipTypeCn(live.precipType);
   const precipNote: string[] = [];
   if (typeCn && typeCn !== '无') precipNote.push(typeCn);
@@ -232,7 +231,7 @@ const tiles = computed<Tile[]>(() => {
     }),
   );
 
-  const cloud = num(live.cloud);
+  const cloud = toFiniteNumber(live.cloud);
   out.push(
     makeTile({
       key: 'cloud',
@@ -244,7 +243,7 @@ const tiles = computed<Tile[]>(() => {
     }),
   );
 
-  const uv = num(live.uvIndex);
+  const uv = toFiniteNumber(live.uvIndex);
   out.push(
     makeTile({
       key: 'uv',
@@ -256,7 +255,7 @@ const tiles = computed<Tile[]>(() => {
     }),
   );
 
-  const dew = num(live.dew);
+  const dew = toFiniteNumber(live.dew);
   out.push(
     makeTile({
       key: 'dew',
@@ -276,10 +275,10 @@ const tiles = computed<Tile[]>(() => {
  *
  * 出错时不画读数：拿旧读数顶一条报错，读的人不知道该信哪个。
  */
-const showTiles = computed(() => tiles.value.length > 0 && !mapStore.weatherError);
+const showTiles = computed(() => tiles.value.length > 0 && !conditionsStore.weatherError);
 
 /** 还在取数没有 */
-const loading = computed(() => mapStore.weatherLoading);
+const loading = computed(() => conditionsStore.weatherLoading);
 
 /**
  * 骨架与实读数交叉淡入。
@@ -293,7 +292,7 @@ const { skeletonVisible } = useCrossFade({
 });
 
 /** 落款：这批读数是什么时候的 */
-const updatedAt = computed(() => formatTimeOfDay(mapStore.liveWeather?.obsTime));
+const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.obsTime));
 </script>
 
 <style lang="scss" scoped>

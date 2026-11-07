@@ -69,7 +69,7 @@ export function finiteValues(series: ReadonlyArray<{ data: ReadonlyArray<number 
  * 只给下界时，上界跟着数据走。原先这里用 niceMax 把最大值向上取整，
  * 22~31℃ 的气温曲线会被顶到 0~50 轴的最上面两成 —— 七天的起伏看着像一条直线。
  */
-export function axisRequest(
+function axisRequest(
   series: ReadonlyArray<{ data: ReadonlyArray<number | null> }>,
   min?: number,
   max?: number,
@@ -97,14 +97,12 @@ export function measureText(ctx: CanvasRenderingContext2D, text: string, size: n
 }
 
 /**
- * 纵轴刻度。
- *
  * 传了 yTicks 就用它：等级线的位置本来就不等距，而且轴上不该出现具体数字。
  * 落在取值域外的刻度不画 —— 画出去就成了轴外的一条线。
  *
  * 不传就按 axisScale 的等距刻度来，标签是格式化后的数字。
  */
-export function buildTicks(
+function buildTicks(
   scale: AxisScale,
   yTicks?: ReadonlyArray<{ value: number; label: string }>,
 ): { value: number; label: string }[] {

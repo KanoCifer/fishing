@@ -227,7 +227,7 @@ import {
 } from '@/constants/spot-form';
 import { UPLOADING_BLOCK } from '@/constants/upload';
 import { SPOT_PUBLISH_CONFIRM, SPOT_PUBLISH_REPORT_DOC } from '@/constants/spot-publish';
-import { useFishingMapStore } from '@/stores/fishingMap';
+import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
 import {
   FISHING_SPOT_CAR_LABELS,
@@ -246,8 +246,9 @@ import { formatShortMoment } from '@/utils/date';
 import { toErrorMessage } from '@/utils/error';
 import { haptic } from '@/utils/haptics';
 import { enterDelay } from '@/utils/motion';
+import { showToast } from '@/utils/toast';
 
-const mapStore = useFishingMapStore();
+const spotStore = useSpotStore();
 const session = useSessionStore();
 
 /** px，来自运行时 API，不能用 rpx 代替（见 useNavMetrics 的注释） */
@@ -612,7 +613,7 @@ function pickLocation() {
       // 只有真的出错（没授权、环境不支持）才提示。
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      uni.showToast({ title: SPOT_FORM_PICK_FAILED, icon: 'none' });
+      showToast(SPOT_FORM_PICK_FAILED);
     },
   });
 }
@@ -712,12 +713,12 @@ async function submit() {
   // 缺哪几项一次说完。分三回报（先说位置、填完再说名称、再说类型），
   // 用户要来回三趟 —— 而分组卡上明明写着「还差 2 项」。
   if (missingLabels.value.length) {
-    uni.showToast({ title: SPOT_FORM_MISSING.toast(missingLabels.value), icon: 'none' });
+    showToast(SPOT_FORM_MISSING.toast(missingLabels.value));
     return;
   }
   // 照片没传完就提交，那几张会静默丢掉 —— 用户在界面上明明看见了它们
   if (photoUploading.value) {
-    uni.showToast({ title: UPLOADING_BLOCK, icon: 'none' });
+    showToast(UPLOADING_BLOCK);
     return;
   }
 
@@ -741,7 +742,7 @@ async function submit() {
       await session.login();
     }
 
-    await mapStore.createSpot({
+    await spotStore.createSpot({
       name: name.value.trim(),
       // location 是 [lng, lat]，经度在前
       location: [picked.lng, picked.lat],
@@ -789,7 +790,7 @@ async function submit() {
         // 草稿已经清掉了，再按一次提交就是重复建一条。
         // 旧版 Android 点蒙层关闭走的是 fail，那种不算失败，直接放过。
         if (String(err.errMsg ?? '').includes('cancel')) return;
-        uni.showToast({ title: SPOT_CREATE_SUBMITTED, icon: 'none' });
+        showToast(SPOT_CREATE_SUBMITTED);
         uni.redirectTo({ url: '/pages/my-spots/index' });
       },
     });
@@ -797,10 +798,7 @@ async function submit() {
     // 提交成功弹的是模态框，确认一直留在屏幕上，不需要再补一次震动；
     // 失败只有一条一闪而过的 toast，重的一下是为了让人不看屏幕也知道没成
     haptic('heavy');
-    uni.showToast({
-      title: toErrorMessage(err, '提交失败，请重试'),
-      icon: 'none',
-    });
+    showToast(toErrorMessage(err, '提交失败，请重试'));
   } finally {
     submitting.value = false;
   }

@@ -19,8 +19,6 @@
 import { ENV } from '@/config/env';
 
 /**
- * 弹窗文案。
- *
  * confirmText / cancelText **最多 4 个字符**，超了微信静默失败
  * （按钮变成默认文案，不报错）—— 见 docs/mp-weixin-platform.md。
  */
@@ -32,8 +30,6 @@ const UPDATE_MODAL = {
 } as const;
 
 /**
- * 挂上版本更新检测。
- *
  * 只在 App.onLaunch 调一次。
  */
 export function setupAppUpdate(): void {

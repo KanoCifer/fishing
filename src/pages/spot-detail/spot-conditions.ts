@@ -19,7 +19,9 @@
 
 import { parseFxTime } from '@/utils/date';
 import { nextHighTideItem, tideTrend } from '@/utils/tide';
-import { levelTone, levelVerdict, num, pressureLevel, type Tone } from '@/utils/weather';
+import { toFiniteNumber } from '@/utils/number';
+import { levelTone, levelVerdict, pressureLevel } from '@/utils/weather';
+import type { Tone } from '@/types/view';
 import type { FishingIndexData, TideData, WeatherNow } from '@/types/fishing';
 
 /** 钓况四格。key 固定，顺序即展示顺序 */
@@ -145,9 +147,9 @@ function waitText(hours: number | null): string {
  * 空着的格子会被读成「这个数据没有意义」，写清楚「暂无」才是同一件事。
  */
 export function buildConditionCells(now: WeatherNow | null, tide: TideData | null): SpotConditionCell[] {
-  const pressure = now ? num(now.pressure) : null;
-  const temp = now ? num(now.temp) : null;
-  const scale = now ? num(now.windScale) : null;
+  const pressure = now ? toFiniteNumber(now.pressure) : null;
+  const temp = now ? toFiniteNumber(now.temp) : null;
+  const scale = now ? toFiniteNumber(now.windScale) : null;
 
   const high = nextHighTideItem(tide);
   const trend = tideTrend(tide);

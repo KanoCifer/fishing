@@ -10,24 +10,14 @@ import { defineStore } from 'pinia';
 
 import { fishingApi, fishingSpotApi } from '@/api/fishing';
 import { toErrorMessage } from '@/utils/error';
+import { showToast } from '@/utils/toast';
 import { normalizeWeatherPayload } from '@/utils/weather-normalize';
 import type { FishingIndexData, FishingSpot, TideData, WeatherNow } from '@/types/fishing';
-
-/** toast 标题超长会被截成省略号，反而看不出是哪条错了 */
-const TOAST_TITLE_MAX = 14;
-
-function notifyError(message: string): void {
-  uni.showToast({
-    title: message.length > TOAST_TITLE_MAX ? `${message.slice(0, TOAST_TITLE_MAX)}…` : message,
-    icon: 'none',
-    duration: 2500,
-  });
-}
 
 export const useSpotDetailStore = defineStore('spotDetail', () => {
   /*
    * 下面四份是接口整份给回来的载荷，一律 shallowRef —— 理由与
-   * stores/fishingMap.ts 里那份一样：ref 会把每个字段、每个嵌套对象
+   * stores/conditions.ts 里那份一样：ref 会把每个字段、每个嵌套对象
    * 都套一层 Proxy（逐时预报那种结构是几千个），而载荷永远整份替换，
    * 没人原地改字段。省掉的是代理的分配与 GC 压力。
    *
@@ -127,7 +117,7 @@ export const useSpotDetailStore = defineStore('spotDetail', () => {
     } catch (err) {
       const message = toErrorMessage(err, '加载钓点失败');
       error.value = message;
-      notifyError(message);
+      showToast(message);
       loading.value = false;
       return;
     }

@@ -16,7 +16,7 @@
 
 import { ENV } from '@/config/env';
 import type { SessionTokens } from '@/types/auth';
-import { readStorageAsync, removeStorage, writeStorage } from '@/utils/storage';
+import { peekStorage, readStorageAsync, removeStorage, writeStorage } from '@/utils/storage';
 
 /** access token 在本地存储中的键 */
 const TOKEN_KEY = 'fishing_token';
@@ -28,15 +28,16 @@ const REFRESH_TOKEN_KEY = 'fishing_refresh_token';
 const DEFAULT_TIMEOUT = 10000;
 
 /**
- * token 的内存副本。
+ * token 是否已经从 Storage 读进内存。
  *
- * null = 还没从 Storage 读过；空串 = 读过、确实没有值。
- * 这两种状态必须分开 —— 把「还没读」当成「没有 token」，
+ * 「还没读」与「读过、确实没有」必须分开 —— 把「还没读」当成「没有 token」，
  * 第一次请求就会不带 Authorization 头，服务端回 401，
  * 而真正的 token 其实就躺在 Storage 里。
+ *
+ * 值本身不在本模块留副本：它住在 utils/storage 的内存副本里，
+ * 这里只记「读过了没有」这一个状态。
  */
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+let tokensLoaded = false;
 
 /**
  * 从 Storage 异步读那两枚 token 的那一次。
@@ -46,8 +47,8 @@ let refreshToken: string | null = null;
  * （App.onLaunch ~ 首屏渲染完成）一次同步 Storage 读都不该有。
  * 读回来晚几十毫秒没关系，请求本来就比这慢得多。
  *
- * 为什么还要留内存副本：读回来之后拼 header、刷新守卫、
- * 恢复会话都要用它，一条链上会读好几遍同一个值。
+ * 为什么读回内存：拼 header、刷新守卫、恢复会话都要用它，
+ * 一条链上会读好几遍同一个值。
  */
 let tokensLoading: Promise<void> | null = null;
 
@@ -58,17 +59,14 @@ let tokensLoading: Promise<void> | null = null;
  * 同一个 Promise 复用，读一次就够。
  */
 export function ensureTokensLoaded(): Promise<void> {
+  if (tokensLoaded) return Promise.resolve();
   if (!tokensLoading) {
     tokensLoading = Promise.all([readStorageAsync<string>(TOKEN_KEY), readStorageAsync<string>(REFRESH_TOKEN_KEY)])
-      .then(([access, refresh]) => {
-        // 读回来之前如果已经有人写过（登录 / 退出），以写的那份为准：
-        // 异步读到的可能是写入之前的旧值，盖回去等于把新会话弄丢。
-        if (accessToken === null) accessToken = typeof access === 'string' ? access : '';
-        if (refreshToken === null) refreshToken = typeof refresh === 'string' ? refresh : '';
+      .then(() => {
+        tokensLoaded = true;
       })
       .catch(() => {
-        if (accessToken === null) accessToken = '';
-        if (refreshToken === null) refreshToken = '';
+        tokensLoaded = true;
       });
   }
 
@@ -128,12 +126,10 @@ export class ApiError extends Error {
  * 这里返回空串 —— 需要真实值的调用点必须先 await `ensureTokensLoaded()`。
  */
 export function getToken(): string {
-  return accessToken ?? '';
+  return peekStorage<string>(TOKEN_KEY) ?? '';
 }
 
 export function setToken(token: string): void {
-  accessToken = token;
-
   if (token) {
     writeStorage(TOKEN_KEY, token);
   } else {
@@ -149,12 +145,10 @@ export function setToken(token: string): void {
  * 「body 优先、cookie 回退」，body 里必须带上它。
  */
 export function getRefreshToken(): string {
-  return refreshToken ?? '';
+  return peekStorage<string>(REFRESH_TOKEN_KEY) ?? '';
 }
 
 export function setRefreshToken(token: string): void {
-  refreshToken = token;
-
   if (token) {
     writeStorage(REFRESH_TOKEN_KEY, token);
   } else {
@@ -169,9 +163,6 @@ export function setRefreshToken(token: string): void {
  * 一枚可能已被服务端轮换掉的 refresh 去刷新，然后卡在「刷新失败」上。
  */
 export function clearSession(): void {
-  accessToken = '';
-  refreshToken = '';
-
   removeStorage(TOKEN_KEY);
   removeStorage(REFRESH_TOKEN_KEY);
 }
