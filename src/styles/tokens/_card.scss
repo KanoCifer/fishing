@@ -61,8 +61,15 @@ $fish-card-head-gap: $fish-space-label;
   margin-bottom: $fish-card-head-gap;
 }
 
-@mixin fish-card-title($level: body, $weight: 600) {
-  color: $fish-ink;
+/*
+ * 卡片标题。
+ *
+ * 颜色走 muted，不是 ink：标题是这一块的注脚，不是结论。
+ * 字号走 caption：标题不是结论，不该占正文的字阶。
+ * 跟 WeatherHero 的「今日鱼口概率」同一档 —— 那一行定的就是这个层级。
+ */
+@mixin fish-card-title($level: caption, $weight: 600) {
+  color: $fish-muted;
   @include fish-type($level, $weight);
 }
 

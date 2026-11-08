@@ -9,7 +9,7 @@
     （见 styles/theme.scss）。JS 那一半由页面 provideSurface('photo') 给，
     图标与 canvas 色板才知道自己压在照片上。
   -->
-  <view class="hero on-photo" :style="{ paddingTop: navBarBottom + 'px' }">
+  <view class="hero on-photo" :style="{ paddingTop: statusBarHeight + 'px' }">
     <!-- 地点行。整行可点：点开选点地图，换个地方看 -->
     <view class="hero__place" @tap="onPickPlace">
       <image class="hero__place-pin" :src="pinIcon" mode="widthFix" />
@@ -138,7 +138,7 @@ const emit = defineEmits<{
 const conditionsStore = useConditionsStore();
 
 /** px。运行时 API 的尺寸不能写 rpx（见 useNavMetrics 的说明） */
-const { navBarBottom } = useNavMetrics();
+const { statusBarHeight } = useNavMetrics();
 
 /**
  * 这一块压在什么上面。
@@ -359,8 +359,8 @@ const sparklesIcon = computed(() => icon('sparkles', 'onPhoto'));
 }
 
 .hero__place-pin {
-  width: 30rpx;
-  height: 30rpx;
+  width: 24rpx;
+  height: 24rpx;
   margin-right: 10rpx;
   flex-shrink: 0;
 }
@@ -370,8 +370,10 @@ const sparklesIcon = computed(() => icon('sparkles', 'onPhoto'));
   min-width: 0;
   overflow: hidden;
   color: $fish-ink;
-  @include fish-type(title, 500);
-
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.18);
   white-space: nowrap;
   text-overflow: ellipsis;
 }

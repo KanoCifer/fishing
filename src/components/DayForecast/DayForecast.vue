@@ -2,7 +2,12 @@
   <view class="days" :class="{ 'days--empty': !days.length && !loading }">
     <view class="days__head">
       <view v-if="days.length" class="days__head-left">
-        <image class="days__title-icon" :src="calendarIcon" mode="aspectFit" />
+        <image
+          class="days__title-icon"
+          :class="{ 'days__title-icon--dim': surface === 'photo' }"
+          :src="calendarIcon"
+          mode="aspectFit"
+        />
         <text class="days__title">{{ title }}</text>
       </view>
 
@@ -104,7 +109,7 @@ const surface = useSurface();
  * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
  */
 const calendarIcon = computed(() =>
-  surface === 'photo' ? icon('calendar-days', 'onPhoto') : icon('calendar-days', 'ink'),
+  surface === 'photo' ? icon('calendar-days', 'onPhoto') : icon('calendar-days', 'muted'),
 );
 
 /**
@@ -348,9 +353,15 @@ const emptyText = computed(() => {
   gap: 10rpx;
 }
 
+/* 尺寸走 badge 那一档：标题落到 caption 之后，图标不该比字还大 */
 .days__title-icon {
-  width: $fish-icon-title;
-  height: $fish-icon-title;
+  width: $fish-icon-badge;
+  height: $fish-icon-badge;
+}
+
+/* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
+.days__title-icon--dim {
+  opacity: 0.72;
 }
 
 /* 列表 */

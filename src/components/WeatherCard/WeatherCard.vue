@@ -18,7 +18,12 @@
             <view v-for="tile in tiles" :key="tile.key" class="weather__tile">
               <view class="weather__tile-head">
                 <text class="weather__tile-title">{{ tile.title }}</text>
-                <image class="weather__tile-icon" :src="tile.icon" mode="aspectFit" />
+                <image
+                  class="weather__tile-icon"
+                  :class="{ 'weather__tile-icon--dim': surface === 'photo' }"
+                  :src="tile.icon"
+                  mode="aspectFit"
+                />
               </view>
 
               <view class="weather__tile-value">
@@ -94,8 +99,8 @@ const conditionsStore = useConditionsStore();
  */
 const surface = useSurface();
 
-/** 图标色档：照片面上压白，普通页面上压深墨 */
-const iconTier = computed(() => (surface === 'photo' ? 'onPhoto' : 'ink'));
+/** 图标色档：照片面上压白（再由 CSS 压到 72%），普通页面上压 muted 档 */
+const iconTier = computed(() => (surface === 'photo' ? 'onPhoto' : 'muted'));
 
 /** 一格磁贴 */
 interface Tile {
@@ -371,9 +376,10 @@ const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.ob
   margin-bottom: 20rpx;
 }
 
+/* 与 WeatherHero 的「今日鱼口概率」同一档：标题是注脚，不抢读数 */
 .weather__title {
-  color: $fish-ink;
-  @include fish-type(body);
+  color: $fish-muted;
+  @include fish-type(caption);
 
   font-weight: 500;
 }
@@ -437,17 +443,22 @@ const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.ob
 }
 
 .weather__tile-title {
-  color: $fish-muted-60;
+  color: $fish-muted;
   @include fish-type(caption);
 
   font-weight: 500;
 }
 
-/* 图标是标识，不是状态信号 —— 所以统一用 ink 色 */
+/* 图标是标识，不是状态信号 —— 所以跟标题同一档 */
 .weather__tile-icon {
   width: $fish-icon-badge;
   height: $fish-icon-badge;
   flex-shrink: 0;
+}
+
+/* 照片面：压到 72%，与 muted 磁贴标题同档（见 Next24Hours 同名注释） */
+.weather__tile-icon--dim {
+  opacity: 0.72;
 }
 
 .weather__tile-value {

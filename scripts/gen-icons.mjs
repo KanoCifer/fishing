@@ -197,6 +197,12 @@ const ICONS = [
   { name: 'calendar-days', color: 'onPhoto', use: '「天气预报」卡标题（照片面）' },
   { name: 'sun-moon', color: 'onPhoto', use: '「日照与月相」卡标题（照片面）' },
   { name: 'waves', color: 'onPhoto', use: '「潮汐预报」卡标题（照片面）' },
+  // 这四枚标题图标在普通页面上要跟 muted 标题同一档（$fish-muted）。
+  // 照片面上它们压白，但白得比 muted 标题亮 —— 那时由 CSS 的 opacity 压到 72%。
+  { name: 'clock', color: 'muted', use: '「未来 24 小时」卡标题（普通面）' },
+  { name: 'calendar-days', color: 'muted', use: '「天气预报」卡标题（普通面）' },
+  { name: 'sun-moon', color: 'muted', use: '「日照与月相」卡标题（普通面）' },
+  { name: 'waves', color: 'muted', use: '「潮汐预报」卡标题（普通面）' },
   { name: 'chevron-right', color: 'onPhoto', use: '「潮汐预报」卡入口箭头（照片面）' },
   // 实况读数磁贴。照片面上这九枚图标压深墨就糊进照片了，一律压白。
   { name: 'gauge', color: 'onPhoto', use: '实况读数 · 气压（照片面）' },
@@ -208,6 +214,17 @@ const ICONS = [
   { name: 'cloud', color: 'onPhoto', use: '实况读数 · 云量（照片面）' },
   { name: 'sun', color: 'onPhoto', use: '实况读数 · 紫外线（照片面）' },
   { name: 'thermometer', color: 'onPhoto', use: '实况读数 · 露点（照片面）' },
+  // 实况读数九枚磁贴图标：普通面上跟 muted 磁贴标题同一档；
+  // 照片面上压白，再由 CSS 的 opacity 压到 72%（理由见上面四枚标题图标）。
+  { name: 'gauge', color: 'muted', use: '实况读数 · 气压（普通面）' },
+  { name: 'droplet', color: 'muted', use: '实况读数 · 相对湿度（普通面）' },
+  { name: 'eye', color: 'muted', use: '实况读数 · 能见度（普通面）' },
+  { name: 'compass', color: 'muted', use: '实况读数 · 风（普通面）' },
+  { name: 'wind', color: 'muted', use: '实况读数 · 阵风（普通面）' },
+  { name: 'umbrella', color: 'muted', use: '实况读数 · 降水（普通面）' },
+  { name: 'cloud', color: 'muted', use: '实况读数 · 云量（普通面）' },
+  { name: 'sun', color: 'muted', use: '实况读数 · 紫外线（普通面）' },
+  { name: 'thermometer', color: 'muted', use: '实况读数 · 露点（普通面）' },
 ];
 
 /**

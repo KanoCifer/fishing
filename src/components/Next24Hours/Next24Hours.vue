@@ -2,7 +2,12 @@
   <view class="next24">
     <view class="next24__head">
       <view class="next24__head-left">
-        <image class="next24__title-icon" :src="clockIcon" mode="aspectFit" />
+        <image
+          class="next24__title-icon"
+          :class="{ 'next24__title-icon--dim': surface === 'photo' }"
+          :src="clockIcon"
+          mode="aspectFit"
+        />
         <text class="next24__title">未来 24 小时</text>
       </view>
 
@@ -48,7 +53,9 @@ const surface = useSurface();
  * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
  * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
  */
-const clockIcon = computed(() => (surface === 'photo' ? icon('clock', 'onPhoto') : icon('clock', 'ink')));
+const clockIcon = computed(() =>
+  surface === 'photo' ? icon('clock', 'onPhoto') : icon('clock', 'muted'),
+);
 </script>
 
 <style lang="scss" scoped>
@@ -67,10 +74,25 @@ const clockIcon = computed(() => (surface === 'photo' ? icon('clock', 'onPhoto')
   gap: 10rpx;
 }
 
-/* 图标跟标题文字同色（ink），底边贴着文字基线 */
+/*
+ * 图标跟标题文字同色，底边贴着文字基线。
+ *
+ * 尺寸走 badge 那一档：标题落到 caption 之后，40rpx 的图标比字还大，
+ * 反过来成了这一行里最重的东西。
+ */
 .next24__title-icon {
-  width: $fish-icon-title;
-  height: $fish-icon-title;
+  width: $fish-icon-badge;
+  height: $fish-icon-badge;
+}
+
+/*
+ * 照片面：图标压到 72% —— 与 muted 标题同一档。
+ *
+ * 图标的色值烤在 data URI 里，CSS 变量改不动它，只能用 opacity 压。
+ * 白 72% 正是照片面上 --fish-muted 的值，压完之后图标与标题同档。
+ */
+.next24__title-icon--dim {
+  opacity: 0.72;
 }
 
 .next24__title {

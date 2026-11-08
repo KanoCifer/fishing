@@ -2,7 +2,12 @@
   <view class="astro">
     <view class="astro__head">
       <view class="astro__head-left">
-        <image class="astro__title-icon" :src="sunMoonIcon" mode="aspectFit" />
+        <image
+          class="astro__title-icon"
+          :class="{ 'astro__title-icon--dim': surface === 'photo' }"
+          :src="sunMoonIcon"
+          mode="aspectFit"
+        />
         <text class="astro__title">日照与月相</text>
       </view>
       <text class="astro__meta">{{ dateLabel }}</text>
@@ -93,7 +98,9 @@ const surface = useSurface();
  * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
  * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
  */
-const sunMoonIcon = computed(() => (surface === 'photo' ? icon('sun-moon', 'onPhoto') : icon('sun-moon', 'ink')));
+const sunMoonIcon = computed(() =>
+  surface === 'photo' ? icon('sun-moon', 'onPhoto') : icon('sun-moon', 'muted'),
+);
 
 /** 一天 1440 分钟。轨道与倒计时共用这把尺子 */
 const DAY_MINUTES = 24 * 60;
@@ -563,9 +570,15 @@ const emptyText = computed(() => {
   gap: 10rpx;
 }
 
+/* 尺寸走 badge 那一档：标题落到 caption 之后，图标不该比字还大 */
 .astro__title-icon {
-  width: $fish-icon-title;
-  height: $fish-icon-title;
+  width: $fish-icon-badge;
+  height: $fish-icon-badge;
+}
+
+/* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
+.astro__title-icon--dim {
+  opacity: 0.72;
 }
 
 .astro__body {

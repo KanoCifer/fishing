@@ -9,7 +9,12 @@
     -->
     <view class="tide-card__head">
       <view class="tide-card__head-left">
-        <image class="tide-card__title-icon" :src="wavesIcon" mode="aspectFit" />
+        <image
+          class="tide-card__title-icon"
+          :class="{ 'tide-card__title-icon--dim': surface === 'photo' }"
+          :src="wavesIcon"
+          mode="aspectFit"
+        />
         <text class="tide-card__title">潮汐预报</text>
       </view>
 
@@ -81,7 +86,9 @@ const surface = useSurface();
 const chevronIcon = computed(() =>
   surface === 'photo' ? icon('chevron-right', 'onPhoto') : icon('chevron-right', 'muted60'),
 );
-const wavesIcon = computed(() => (surface === 'photo' ? icon('waves', 'onPhoto') : icon('waves', 'ink')));
+const wavesIcon = computed(() =>
+  surface === 'photo' ? icon('waves', 'onPhoto') : icon('waves', 'muted'),
+);
 const hourly = computed(() => conditionsStore.homeTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */
@@ -173,9 +180,15 @@ watch(
   gap: 10rpx;
 }
 
+/* 尺寸走 badge 那一档：标题落到 caption 之后，图标不该比字还大 */
 .tide-card__title-icon {
-  width: $fish-icon-title;
-  height: $fish-icon-title;
+  width: $fish-icon-badge;
+  height: $fish-icon-badge;
+}
+
+/* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
+.tide-card__title-icon--dim {
+  opacity: 0.72;
 }
 
 .tide-card__entry {
