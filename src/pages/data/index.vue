@@ -1,10 +1,12 @@
 <template>
   <view class="data" :style="{ minHeight: windowHeight + 'px' }">
     <PageBackdrop />
+    <WeatherBackdrop />
 
     <view class="data__content">
       <VerdictBar
         v-if="conditionsStore.indexData"
+        class="on-photo"
         :visible="barVisible"
         :score="score"
         :level="level"
@@ -22,34 +24,42 @@
         @analysis="openAnalysis"
       />
 
-      <view class="sect sect__first">
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
+      <!--
+        天气页的卡片不做入场落位。
+
+        令牌层 .sect__card 上那条 fish-enter 是 opacity 动画，而 opacity 动画
+        会让祖先成为 backdrop root —— 后代的 backdrop-filter 只能采样它内部的
+        背景。天气页整页是照片，照片在卡片祖先外面，底断了就糊不了。
+        覆盖写在下面的样式里，理由同那里。
+      -->
+      <view class="sect sect__first on-photo">
+        <view class="sect__card">
           <Next24Hours />
         </view>
-        <view class="sect__card" :style="enterStyle(2, showAnim)">
+        <view class="sect__card">
           <MinutelyRain />
         </view>
-        <view class="sect__card" :style="enterStyle(3, showAnim)">
+        <view class="sect__card">
           <DayForecast />
         </view>
       </view>
 
-      <view class="sect">
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
+      <view class="sect on-photo">
+        <view class="sect__card">
           <AstroCard />
         </view>
-        <view class="sect__card" :style="enterStyle(2, showAnim)">
+        <view class="sect__card">
           <TideCard />
         </view>
       </view>
 
-      <view class="sect">
-        <view class="sect__card" :style="enterStyle(1, showAnim)">
+      <view class="sect on-photo">
+        <view class="sect__card">
           <WeatherCard />
         </view>
       </view>
 
-      <text class="data__foot">数据来自和风天气 · 渔碌服务端</text>
+      <text class="data__foot on-photo">数据来自和风天气 · 渔碌服务端</text>
 
       <!-- AI 建议 -->
       <FishingAnalysisSheet :open="analysisOpen" @close="analysisOpen = false" />
@@ -73,16 +83,17 @@ import Next24Hours from '@/components/Next24Hours/Next24Hours.vue';
 import PageBackdrop from '@/components/PageBackdrop/PageBackdrop.vue';
 import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
+import WeatherBackdrop from '@/components/WeatherBackdrop/WeatherBackdrop.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { SHARE_CARDS } from '@/constants/share';
 import { HERO_PICK_FAILED } from '@/constants/weatherHero';
+import { provideSurface } from '@/composables/useSurface';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { useConditionsStore } from '@/stores/conditions';
 import { useLocationStore } from '@/stores/location';
 import { useSessionStore } from '@/stores/session';
-import { enterStyle } from '@/utils/motion';
 import { enableShareMenu } from '@/utils/share';
 import { showToast } from '@/utils/toast';
 import { levelTone } from '@/utils/weather';
@@ -92,6 +103,18 @@ const locationStore = useLocationStore();
 const session = useSessionStore();
 const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
+/**
+ * 这一页整页是一层天色，卡片浮在上面 —— 这一块走「照片面」那一套令牌。
+ *
+ * 照片面有**两半**，缺一不可：
+ *   · CSS —— 模板里给这几块挂 .on-photo，那一组令牌（深玻璃 + 白字）整体翻过去；
+ *   · JS  —— 这里 provideSurface('photo')，图标与 canvas 色板知道自己压在照片上。
+ *
+ * 少写一半的后果很具体：只有 CSS 那一半，图标是烤进 data URI 的深墨，
+ * 糊进照片里；只有 JS 那一半，卡上的字是浅色档的深色，压在深玻璃上读不出来。
+ */
+provideSurface('photo');
+
 const analysisOpen = ref(false);
 const breakdownOpen = ref(false);
 const showAnim = ref(false);
@@ -263,6 +286,26 @@ function openBreakdown() {
 
 .sect {
   @include fish-section;
+}
+
+/*
+ * 天气页的卡片没有入场动画。
+ *
+ * .sect__card 上那条 fish-enter（令牌层 _layout.scss）是 opacity 0 → 1。
+ * CSS 有一条 backdrop-root 规则：祖先上只要有一个在生效的 opacity 动画，
+ * 它就成了 backdrop root —— 后代的 backdrop-filter 只能采样它**内部**的背景。
+ *
+ * 天气页整页是照片，照片在卡片祖先**外面**，祖先内部是空的 ——
+ * 卡片那层玻璃从一开始就没有底可糊，糊的是一片空。
+ * 动画跑完、opacity 停在 1，那个效果节点还在，背板依旧断着。
+ *
+ * 所以这里把动画整个按回去：opacity 与 transform 都落终态。
+ * 多写一层 .data 是为了压过令牌层展开出来的那条（同为 scoped 时靠特异性取胜）。
+ */
+.data .sect .sect__card {
+  opacity: 1;
+  transform: none;
+  animation: none;
 }
 
 /* 落款 */

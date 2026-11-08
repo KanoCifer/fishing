@@ -56,7 +56,7 @@ const ALLOW = [
   },
   {
     file: 'src/utils/chartPalette.ts',
-    why: 'canvas 色板。canvas 2d 不解析 var()，深浅两套只能手写',
+    why: 'canvas 色板。canvas 2d 不解析 var()，浅色/深色/照片面三套只能手写',
   },
   {
     file: 'src/constants/icons.ts',
@@ -104,11 +104,11 @@ const ALLOW = [
   },
   {
     file: 'src/components/WeatherHero/WeatherHero.vue',
-    why: '头图的天空配色与压暗层 —— 那是「此刻的天气」，不是界面底色',
+    why: '头图仪表的轨道色（压在深色面上）。那是「此刻的天气」，不是界面底色',
   },
   {
     file: 'src/constants/weatherHero.ts',
-    why: '头图量表的色阶。与头图同理由',
+    why: '头图量表的色阶与十一档天色渐变。与头图同理由',
   },
   {
     file: 'src/constants/weatherTemp.ts',

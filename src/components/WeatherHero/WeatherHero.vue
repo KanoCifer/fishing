@@ -1,13 +1,5 @@
 <template>
-  <view class="hero" :class="skyClass" :data-weather="group">
-    <view class="hero__bg" :style="{ backgroundImage: skyGradient }" />
-
-    <image class="hero__img" :src="imageUrl" mode="aspectFill" />
-
-    <view class="hero__scrim" />
-
-    <view class="hero__fade" />
-
+  <view class="hero" :class="backdropClass">
     <!-- 顶行：地点标签 / 刷新 -->
     <view class="hero__top" :style="topRowStyle">
       <!-- 地点标签：玻璃胶囊 + 实心图钉 + 地点名 + 展开箭头 -->
@@ -79,22 +71,14 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import TideGauge from '@/components/TideGauge/TideGauge.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { useWeatherBackdrop } from '@/composables/useWeatherBackdrop';
 import { icon } from '@/constants/icons';
-import {
-  HERO_GAUGE_SIZE,
-  HERO_GAUGE_STOPS,
-  HERO_SKY_GRADIENTS,
-  HERO_GAUGE_STROKE,
-  heroImageUrlBySky,
-  heroSky,
-  type HeroSky,
-} from '@/constants/weatherHero';
+import { HERO_GAUGE_SIZE, HERO_GAUGE_STOPS, HERO_GAUGE_STROKE } from '@/constants/weatherHero';
 import { useConditionsStore } from '@/stores/conditions';
 import { useLocationStore } from '@/stores/location';
 import { createCountUp, enterDelayMs, enterStyle } from '@/utils/motion';
-import { isDarkTheme } from '@/utils/theme';
 import { toFiniteNumber } from '@/utils/number';
-import { weatherGroup, weatherIconUri } from '@/utils/weather';
+import { weatherIconUri } from '@/utils/weather';
 
 const props = withDefaults(defineProps<{ showAnim?: boolean }>(), { showAnim: true });
 
@@ -115,27 +99,16 @@ const { capsuleTop, capsuleInsetRight } = useNavMetrics();
 
 /* ── 天色 ──────────────────────────────────────────────────────────────── */
 
-/** 当前天气落在哪一组外观上（十种，见 utils/weather） */
-const group = computed(() => weatherGroup(conditionsStore.liveWeather?.icon));
-
 /**
- * 当前天色。头图只有四种。
+ * 当前是哪一组天。
  *
- * **夜间模式下恒为 night。**
- *
- * 头图是整屏最大的一块面 —— 一张浅色的照片压在深色页面上，
- * 整页的观感就被它拉浅，深色模式等于白做。所以深色下图片与兜底渐变
- * 一起走夜的那一套（hero--night 的渐变是深色的，图片加载的那一瞬也不会闪白）。
- *
- * 读的是主题真值，不是系统的 prefers-color-scheme —— 那边只管 WXSS，
- * 这里要的是「现在是不是深色」这个判断，好让图片与渐变一起翻。
+ * 天色本身由页面级的 WeatherBackdrop 铺（它要盖住整页），
+ * 这里只拿档位 —— 拼成 class 修饰符，是「按天色切样式」的接缝
+ * （WXSS 不认属性名选择器，切样式只能走 class，见 mp-weixin-platform.md）。
  */
-const sky = computed<HeroSky>(() => (isDarkTheme() ? 'night' : heroSky(group.value)));
+const { backdrop } = useWeatherBackdrop();
 
-const skyClass = computed(() => `hero--${sky.value}`);
-
-const imageUrl = computed(() => heroImageUrlBySky(sky.value));
-const skyGradient = computed(() => HERO_SKY_GRADIENTS[sky.value]);
+const backdropClass = computed(() => `hero--${backdrop.value}`);
 
 /* ── 实时天气 ──────────────────────────────────────────────────────────── */
 
@@ -309,44 +282,19 @@ watch(
   overflow: hidden;
 }
 
-/* 兜底天色。渐变本身在 constants/weatherHero.ts —— 与天色映射、图片地址同属一处 */
-.hero__bg {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.hero__img {
-  position: absolute;
-  top: 0;
-  left: -1133rpx;
-  width: 1888rpx;
-  height: 800rpx;
-
-  @include fish-enter-media;
-}
-
-.hero__scrim {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-image: linear-gradient(180deg, rgba(6, 20, 34, 0.3) 0%, rgba(6, 20, 34, 0) 100%);
-}
+/*
+ * 顶部读数区不再另铺压暗层。
+ *
+ * 原来有一道：照片钉在视口上，天空那一段往往很亮，白字压在上面读不出来。
+ * 现在底下是那段天色渐变，顶部本来就是深的（十一档都压过，见
+ * constants/weatherHero.ts 的 HERO_BACKDROP_GRADIENTS）—— 白字读数
+ * 直接压着它就立得住。
+ *
+ * 再铺一道等于压两次：渐变自己的深浅被压暗层盖掉一半，
+ * 顶部糊成一片死黑，而渐变下面那截亮色反倒突兀。
+ */
 
 /* ── 顶行 ──────────────────────────────────────────────────────────────── */
-
-.hero__fade {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 90rpx;
-  background-image: linear-gradient(0deg, $fish-page-base 0%, $fish-page-base-fade 100%);
-}
 
 .hero__top {
   position: absolute;

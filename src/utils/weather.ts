@@ -45,7 +45,7 @@ const WEATHER_CODE_RANGES: ReadonlyArray<readonly [number, number, WeatherIconSl
   [100, 100, 'clear-day', 'sunny'], // 晴（昼）
   [101, 101, 'cloudy', 'cloudy'], // 多云
   [102, 103, 'partly-cloudy-day', 'cloudy'], // 少云 / 晴间多云
-  [104, 104, 'overcast', 'cloudy'], // 阴
+  [104, 104, 'overcast', 'overcast'], // 阴
   [150, 150, 'clear-night', 'night'], // 晴（夜）
   [151, 151, 'cloudy', 'night'], // 多云（夜）
   [152, 153, 'partly-cloudy-night', 'night'], // 少云 / 晴间多云（夜）

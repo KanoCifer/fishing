@@ -45,16 +45,19 @@ export interface Label {
 }
 
 /**
- * 天气外观组 —— 六十多个码在界面上只表现十种「看天」的印象，
+ * 天气外观组 —— 六十多个码在界面上只表现十一种「看天」的印象，
  * 同一组共用一套天色。
  *
- * 组名同时是**样式的一部分**：头图组件（WeatherHero）拿它换算天色
- * （heroSky()，见 constants/weatherHero.ts），再拼成 class 修饰符
- * （hero--rain），组件样式里同名的那条规则给出那套画面。
+ * 组名同时是**样式的一部分**：背景层（WeatherBackdrop）拿它换算背景天色
+ * （见 constants/weatherHero.ts），再拼成 class 修饰符（hero--rain）。
+ *
+ * 多云与阴分开：阴天（104）是压得很实的一整片灰，和多云的「蓝天 +
+ * 几朵白云」不是一种天色，合在一档就是拿多云那张去说阴天。
  */
 export type WeatherGroup =
   | 'sunny'
   | 'cloudy'
+  | 'overcast'
   | 'night'
   | 'rain'
   | 'snow'

@@ -75,6 +75,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { icon } from '@/constants/icons';
+import { useSurface } from '@/composables/useSurface';
 import { useConditionsStore } from '@/stores/conditions';
 import type { WeatherDay } from '@/types/fishing';
 import { minutesOfDay, shortDate } from '@/utils/date';
@@ -83,7 +84,16 @@ import { moonPhaseIconUri } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
 
-const sunMoonIcon = computed(() => icon('sun-moon', 'ink'));
+/**
+ * 这一块压在什么上面。照片面上图标要压白（见 utils/theme 的图标说明）。
+ */
+const surface = useSurface();
+
+/*
+ * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
+ * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
+ */
+const sunMoonIcon = computed(() => (surface === 'photo' ? icon('sun-moon', 'onPhoto') : icon('sun-moon', 'ink')));
 
 /** 一天 1440 分钟。轨道与倒计时共用这把尺子 */
 const DAY_MINUTES = 24 * 60;

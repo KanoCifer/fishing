@@ -167,7 +167,7 @@ $fish-card-glass: var(--fish-card-glass, rgba(249, 249, 253, 0.85));
  * 它是**玻璃本身**，不是压在玻璃上的浅色块 —— 深色下要跟着变成半透明深，
  * 否则深色页面顶上会留一条浅灰横带。
  */
-$fish-glass-strong: var(--fish-glass-strong, rgba(255, 255, 255, 0.6));
+$fish-glass-strong: var(--fish-glass-strong, rgba(255, 255, 255, 0.82));
 $fish-glass-edge: var(--fish-glass-edge, inset 0 1rpx 0 rgba(255, 255, 255, 0.85)); // 顶边高光
 
 /**
@@ -181,7 +181,7 @@ $fish-glass-edge: var(--fish-glass-edge, inset 0 1rpx 0 rgba(255, 255, 255, 0.85
  * 深色玻璃的轮廓靠面的明度差（卡片面比页面底亮一档），
  * 描边只留一道几乎看不见的弱白。
  */
-$fish-glass-stroke: var(--fish-glass-stroke, rgba(255, 255, 255, 0.92));
+$fish-glass-stroke: var(--fish-glass-stroke, rgba(255, 255, 255, 0.18));
 $fish-blur: 20px;
 
 /**
@@ -334,12 +334,15 @@ $fish-tide-ink: var(--fish-tide-ink, #007aff);
 
    alpha 从 0.42 起跳：这张卡压在玻璃面上（浅底），再淡的那档几乎看不见，
    相邻两档也拉不开距离。四档要彼此可分，起点就得抬。
-   这一族跟着卡片的材质走 —— 卡片哪天换回深色面，抬 alpha 这件事就要重做。 */
-$fish-rain-none: rgba(120, 120, 128, 0.28); // 测到 0：不是雨，是「这一格没有雨」
-$fish-rain-light: rgba($fish-tide, 0.42);
-$fish-rain-medium: rgba($fish-tide, 0.58);
-$fish-rain-heavy: rgba($fish-tide, 0.82);
-$fish-rain-storm: $fish-tide;
+
+   这一族跟着卡片的材质走 —— 卡片哪天换回深色面，抬 alpha 这件事就要重做。
+   所以它走 CSS 变量：照片面上那张卡是深玻璃，同一套 alpha 压上去更暗，
+   那一档要再抬（见 theme.scss 的 .on-photo）。 */
+$fish-rain-none: var(--fish-rain-none, rgba(120, 120, 128, 0.28)); // 测到 0：不是雨，是「这一格没有雨」
+$fish-rain-light: var(--fish-rain-light, rgba(0, 122, 255, 0.42));
+$fish-rain-medium: var(--fish-rain-medium, rgba(0, 122, 255, 0.58));
+$fish-rain-heavy: var(--fish-rain-heavy, rgba(0, 122, 255, 0.82));
+$fish-rain-storm: var(--fish-rain-storm, #007aff);
 
 /* ── 分钟级降水的干态底面 ──
    整段没有降水时，给那条平线铺的一层淡蓝。
@@ -347,7 +350,10 @@ $fish-rain-storm: $fish-tide;
    为什么要有这层面：没有雨的时候图上只剩一条线，线浮在白卡上
    像一张没画完的图 —— 一块极淡的蓝把它托住，它才读成「这一段的雨幕是平的」。
    为什么是从上往下淡出的：跟页面底的渐变同一手笔，两处是同一片天光。 */
-$fish-rain-flat: linear-gradient(180deg, rgba($fish-tide, 0.1) 0%, rgba($fish-tide, 0.02) 100%);
+$fish-rain-flat: var(
+  --fish-rain-flat,
+  linear-gradient(180deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.02) 100%)
+);
 
 /* ── 图上的游标 ──
    图表里「现在读到哪一格」的那根竖线。

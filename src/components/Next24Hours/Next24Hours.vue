@@ -29,6 +29,7 @@
 import { ref, computed } from 'vue';
 
 import { icon } from '@/constants/icons';
+import { useSurface } from '@/composables/useSurface';
 
 import HourlyWeather from '../HourlyWeather/HourlyWeather.vue';
 import MetricChart from '../MetricChart/MetricChart.vue';
@@ -38,7 +39,16 @@ type Mode = 'hours' | 'chart';
 
 const mode = ref<Mode>('hours');
 
-const clockIcon = computed(() => icon('clock', 'ink'));
+/**
+ * 这一块压在什么上面。照片面上图标要压白（见 utils/theme 的图标说明）。
+ */
+const surface = useSurface();
+
+/*
+ * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
+ * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
+ */
+const clockIcon = computed(() => (surface === 'photo' ? icon('clock', 'onPhoto') : icon('clock', 'ink')));
 </script>
 
 <style lang="scss" scoped>
@@ -92,8 +102,15 @@ const clockIcon = computed(() => icon('clock', 'ink'));
   @include fish-press-dim;
 }
 
+/*
+ * 选中块。
+ *
+ * 底色走令牌：普通页面上是页面底色（一块浮在轨道上的白），
+ * 照片面上换成更亮的半透明白 —— iOS 的 segmented control 在深色材质上
+ * 就是「轨道半透明 + 选中块更亮」。
+ */
 .next24__item--active {
-  background-color: $fish-page;
+  background-color: var(--fish-segment-active);
   /* 选中块压出轨道用的那层投影。0.08 就够，再重就变成灰色描边了 */
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }

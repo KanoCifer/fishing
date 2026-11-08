@@ -27,6 +27,10 @@ const COLORS = {
   success: '#34c759', // $fish-success
   destructive: '#ff3b30', // $fish-destructive
   onAccent: '#ffffff', // $fish-on-accent
+  // 照片面：压在整页照片上的图标一律压白。
+  // 这一档与主题无关 —— 深浅主题下照片的明度不同，但「深玻璃上的白图标」
+  // 这个关系不变，所以浅色与深色两份取同一个值。
+  onPhoto: '#ffffff',
 };
 
 /**
@@ -56,6 +60,8 @@ const COLORS_DARK = {
   success: '#3ddc84', // --fish-success-ink
   destructive: '#ff6961', // --fish-destructive-ink
   onAccent: '#ffffff',
+  // 照片面：与浅色同一份白（理由见 COLORS 的注释）
+  onPhoto: '#ffffff',
 };
 
 /**
@@ -177,6 +183,27 @@ const ICONS = [
   // 底部「记一笔」是实心主色按钮，加号压在它上面，得是白的。
   // 不烤这一档的话 icon() 会退回 muted，灰加号压在蓝底上像画错了。
   { name: 'plus', color: 'onAccent', use: '记录页底部「记一笔」按钮' },
+  // —— 照片面 ——
+  // 天气页整页是照片，卡片是深玻璃，图标一律压白。
+  //
+  // 为什么不用 onAccent 那一档：那一档的语义是「压在实心块上的白」，
+  // 这里是「压在照片上的白」—— 底不同，将来玻璃面的色要调，这一档得跟着调。
+  // 语义分开的代价是多烤一份图标，换的是「改玻璃面色时不用回来改图标」。
+  { name: 'clock', color: 'onPhoto', use: '「未来 24 小时」卡标题（照片面）' },
+  { name: 'calendar-days', color: 'onPhoto', use: '「天气预报」卡标题（照片面）' },
+  { name: 'sun-moon', color: 'onPhoto', use: '「日照与月相」卡标题（照片面）' },
+  { name: 'waves', color: 'onPhoto', use: '「潮汐预报」卡标题（照片面）' },
+  { name: 'chevron-right', color: 'onPhoto', use: '「潮汐预报」卡入口箭头（照片面）' },
+  // 实况读数磁贴。照片面上这九枚图标压深墨就糊进照片了，一律压白。
+  { name: 'gauge', color: 'onPhoto', use: '实况读数 · 气压（照片面）' },
+  { name: 'droplet', color: 'onPhoto', use: '实况读数 · 相对湿度（照片面）' },
+  { name: 'eye', color: 'onPhoto', use: '实况读数 · 能见度（照片面）' },
+  { name: 'compass', color: 'onPhoto', use: '实况读数 · 风（照片面）' },
+  { name: 'wind', color: 'onPhoto', use: '实况读数 · 阵风（照片面）' },
+  { name: 'umbrella', color: 'onPhoto', use: '实况读数 · 降水（照片面）' },
+  { name: 'cloud', color: 'onPhoto', use: '实况读数 · 云量（照片面）' },
+  { name: 'sun', color: 'onPhoto', use: '实况读数 · 紫外线（照片面）' },
+  { name: 'thermometer', color: 'onPhoto', use: '实况读数 · 露点（照片面）' },
 ];
 
 /**

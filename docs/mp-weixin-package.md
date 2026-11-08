@@ -4,7 +4,7 @@
 
 ## 主包与分包
 
-- 主包上限 2MB，静态图直接进包；三个 tab 页在主包，五个非 tab 页各一个分包（about / my-spots / spot-create / spot-detail / spot-edit）。
+- 主包上限 2MB，静态图直接进包；三个 tab 页在主包，五个非 tab 页各一个分包（about / my-spots / spot-create / spot-detail / spot-edit）。实测主包 956KB —— 还剩近 1MB，但那是留给代码的，别拿它去装满幅图。
 - 分包 root 就是页面目录，`path` 写 `index`，页面 URL 与分包前一致；分包能引用主包的一切，主包引用不了分包。
 - 产物由脚本生成、**不手改**：`pnpm assets` + `npx oxfmt`；`wxacode.jpg`→`wxacode.png` 进 spot-detail 分包。
 - `.DS_Store` 会被 uni 抄进代码包，`pnpm build` 末尾跑 `scripts/clean-dist.mjs`。
@@ -19,7 +19,9 @@
 ## 静态资源
 
 - 占位插画与应用 logo 各只露一面 → 出 `scripts/assets/cdn/` 上传 `VITE_CDN_BASE_URL`；⚠️ `cdn.kanocifer.chat` 必须配 **downloadFile 合法域名**，否则 `<image>` 与海报 `canvas.createImage()` 拿不到图。
-- ⚠️ 头图四张 21:9 横幅（3168×1344）也走 CDN，压进主包顶到 99%，**文件名带版本号**（`hero-sunny-v2.jpg`）；图没上传不是白板是那片天色。
+- 天气页背景是**渐变**（`HERO_BACKDROP_GRADIENTS`），不是图：十一档天色各一段，纯 CSS，没有网络请求，也不占代码包。原来那十一张竖版满幅天空照片（CDN 上的与 `scripts/assets/weather/` 里的源图）连同 `scripts/optimize-assets.py` 里那批 job 一并撤下了。
+- 背景是**一段天色**：没有地平线、没有山、没有水 —— 天气页说的是「此刻这片天」，不是「某个地方的那张风景照」。
+- 十一档共用一套骨架（178deg、六个色标、色标位置相同），深色在上、亮色在下 —— 换档换的是颜色，不是结构。
 
 ## 真机兼容
 
@@ -45,6 +47,14 @@
 
 - WXSS 不支持新特性时那条声明被**直接丢掉**，静默失效：`@property` 注册（Safari 16.4/Chromium 85，流光每 3 秒跳一下）、flex `gap`（14.5/84）、`inset: 0` 简写（14.1/87）。
 - 躲法：`gap`→用 margin；`inset: 0`→四边分别写（尤其 `z-index: -1` 装饰层）；`@property`→注册不了退成两段关键帧。
+
+### backdrop-filter 的代价按元素面积算
+
+- iOS 上是 CoreAnimation 的模糊，便宜；安卓（X5/Chromium）上是真的一遍模糊采样，**按元素面积收费**。
+- 天气页整页是一层天色，每张卡各自糊自己底下那一块：六张卡 + 九块磁贴就是十五份模糊。磁贴那一档因此比卡面小（照片面上 `--fish-blur-tile` 14px，`--fish-blur` 24px）—— 九块小的叠起来比一块大的更贵。
+- 一条硬规则：**同一块底不要糊两次。** 卡里再套一张玻璃面（卡中卡），里面那张糊的是外面那张已经糊过的结果，视觉收益为零，开销翻倍。所以卡片内部的元素（磁贴、分段轨道）只给面色与描边，不给模糊。
+- 骨架层不给模糊：它自己带 opacity 过渡，过渡期间它是 backdrop root，磁贴采样不到照片，blur 根本没生效过 —— 等它不淡出直接被摘掉，模糊也只剩一层壳。占位块不需要。
+- 祖先上不能挂 opacity 入场动画（见 `docs/design-system.md`「动效」里 backdrop-root 那条）：背景在卡片祖先外面，祖先内部是空的，底断了糊的就是一片空。
 
 ### WXSS 编译器认不出的选择器：整页空白
 

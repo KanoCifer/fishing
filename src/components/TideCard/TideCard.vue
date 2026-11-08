@@ -57,6 +57,7 @@
 import { computed, onMounted, watch } from 'vue';
 
 import { icon } from '@/constants/icons';
+import { useSurface } from '@/composables/useSurface';
 import { useConditionsStore } from '@/stores/conditions';
 import { fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
 
@@ -68,8 +69,19 @@ const conditionsStore = useConditionsStore();
 /** 详情页入口 */
 const DETAIL_URL = '/pages/tide/index';
 
-const chevronIcon = computed(() => icon('chevron-right', 'muted60'));
-const wavesIcon = computed(() => icon('waves', 'ink'));
+/**
+ * 这一块压在什么上面。照片面上图标要压白（见 utils/theme 的图标说明）。
+ */
+const surface = useSurface();
+
+/*
+ * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
+ * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
+ */
+const chevronIcon = computed(() =>
+  surface === 'photo' ? icon('chevron-right', 'onPhoto') : icon('chevron-right', 'muted60'),
+);
+const wavesIcon = computed(() => (surface === 'photo' ? icon('waves', 'onPhoto') : icon('waves', 'ink')));
 const hourly = computed(() => conditionsStore.homeTideData?.tideHourly ?? []);
 
 /** 至少要有一条数值可用的逐时记录才画曲线 */

@@ -7,7 +7,7 @@
 - `src/uni.scss` **只有一行** `@use '@/styles/tokens/_index.scss' as *;` —— **不能再有变量声明**。
 - 数值来源：**iOS App 设计速查表**（SF Pro）。字阶、文字色、间距、图标尺寸、按钮规格都从那里来。
 - 令牌按关注点分文件：`color / type / space / control / depth / material / motion / layout / card`。
-- **深浅两套值在 `src/styles/theme.scss`**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。两套值集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻。
+- **值在 `src/styles/theme.scss` 分三套**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。浅色与深色两套集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻；**第三套是照片面**（`.on-photo`），给压在整页天色上的那几块用，它不随主题翻。
 - **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
 
 ### 一个值一个出处
@@ -31,6 +31,8 @@
 
 卡片这一层的 mixin 在 `_card.scss`：`fish-card`、`fish-list-card`、`fish-card-head`、`fish-card-title`、`fish-card-meta`。
 
+`fish-card` 带 `backdrop-filter: blur(var(--fish-blur)) saturate(var(--fish-saturate))` —— 天气页的卡片压在整页天色上，要糊掉底下那一层。半径与饱和度都是令牌，照片面那一套把它们调过（见下面「材质与深度」）。代价是祖先不能挂 opacity 动画，见「动效」里 backdrop-root 那条。
+
 ## 材质与深度
 
 - **圆角是轮廓，阴影是厚度**；**层次靠面，不靠描边**
@@ -38,6 +40,12 @@
   所以只留一个 mixin，面色由调用方给 —— 写成两个 mixin 就是把同一段外壳抄两遍。
 - **深色面** `fish-deep-face`：不透明的深色面，浅色的东西浮在它上面。深色面不随主题变，
   所以它那族色值是固定色。
+- **照片面** `.on-photo`：压在整页天色上的那几块玻璃，改用**深色半透明玻璃 + 白字**
+  （iOS 天气卡就是这个关系）。它不随主题翻：深浅主题下照片的明度不同，
+  但「深玻璃上的白字」这个关系不变 —— 玻璃那一层已经保证了底色够深。
+  一套照片面要挂**两半**：CSS 看 `.on-photo` 这个类，JS（图标与 canvas 色板）看
+  `composables/useSurface.ts` 的上下文。少一半的后果很具体：图标是深墨，糊进照片里；
+  或者卡片上的字压不住照片。
 
 ## 排版
 
@@ -76,6 +84,8 @@
 - **交叉淡入**（同一位置换内容）：两态叠在同一个格子里，旧态淡出、新态淡入，160ms `$fish-dur-cross`、位移 4rpx。mixin `fish-cross-in`（新态，挂载即播）与 `fish-cross-out`（旧态，类一切就淡）；骨架摘除时机在 `composables/useCrossFade`。
   这条时长在 JS 侧也有一份（`utils/motion.ts` 的 `CROSS_FADE_DURATION`）—— **两个数必须一样**：旧态要等淡完才摘，两个数不等就等于在淡完之前把骨架摘了，中间露出卡片底色。
 
+- **opacity 动画会掐断 `backdrop-filter`。** CSS 的 backdrop-root 规则：祖先上只要有 `opacity < 1`，或一个在生效的 opacity 动画，它就成了 backdrop root —— 后代的 `backdrop-filter` 只能采样它**内部**的背景当底。整页背景上的卡片因此不能挂 opacity 入场动画：背景在卡片祖先外面，祖先内部是空的，底断了糊的就是一片空。天气页（`pages/data`）的卡片入场动画整个去掉，`WeatherCard` 的交叉淡入只由骨架层承担。
+
 ### 动画定义放哪
 
 - **变量和 mixin** → `src/styles/tokens/`；**`@keyframes` 和 `@property`** → `App.vue` 的 `<style>`（全局一份）。流光的 `--fish-flow-angle` 必须是注册过的 `@property <angle>`。
@@ -86,14 +96,17 @@
 
 ## 页面骨架
 
-| 页面                       | 骨架                         |
-| -------------------------- | ---------------------------- |
-| 数据、我的、关于、我的钓点 | 环境色底 + 分区版式 + 玻璃卡 |
-| 钓点创建、钓点编辑         | 环境色底 + 表单流            |
-| 钓点详情                   | 照片压顶 + 底栏浮在内容上    |
-| 记录                       | 满幅头图 + 玻璃卡 + 横滑条   |
+| 页面                 | 骨架                             |
+| -------------------- | -------------------------------- |
+| 天气（数据）         | 满幅天色背景 + 分区版式 + 玻璃卡 |
+| 我的、关于、我的钓点 | 环境色底 + 分区版式 + 玻璃卡     |
+| 钓点创建、钓点编辑   | 环境色底 + 表单流                |
+| 钓点详情             | 照片压顶 + 底栏浮在内容上        |
+| 记录                 | 满幅头图 + 玻璃卡 + 横滑条       |
 
 **新页面照抄这几页的骨架** —— 漏改一处就「一页冷、一页暖」。环境色底**不放全局 `page`**（还要给 tabBar 切换与地图边缘兜底）。
+
+**压在整页背景上的卡片面另有一档**：照片面那套令牌里，卡面是 42% 的深蓝玻璃（`--fish-card-glass`），不是 85% 的白 —— 85% 的白压在天色上就是一块白板，天色等于白铺。天气页给这几块挂 `.on-photo`，其余页面不受影响。
 
 - **首屏定高**：概览取 `windowHeight`，**不用 `100vh`**（`100vh` 是屏幕高，会多出一截可滚动范围）。自定义底栏是浮层、`windowHeight` 里含它 —— tab 页的底部用 `fish-tabbar-inset` 让开。**钓点详情**：一屏定内容，头图 280pt，描述限两行，结论前置。**记录页**：满幅头图 + 日历索引。**我的页**：身份卡 + 两组出口。
 - **分区**：左右缩进 32rpx，分区之间 `$fish-space-section`，同段内两张卡之间 `$fish-space-card`，标签到它下面那组内容 `$fish-space-label`；分区间距由页面给，组件不再自带 margin-top。
@@ -116,8 +129,12 @@
 
 图标是 `scripts/gen-icons.mjs` 生成的数据 URI；WXML 不认 `<svg>`，`currentColor` 不继承，颜色必须在生成时烤死。
 
-那八个语义档（ink / muted / muted60 / blue / blue600 / success / destructive / onAccent）
+那九个语义档（ink / muted / muted60 / blue / blue600 / success / destructive / onAccent / onPhoto）
 的取值必须与令牌层的对应档位相等 —— 图标色是令牌层的复制品，复制品变了就是漂移。
+
+`onPhoto` 是照片面那一档：压在整页照片上的图标一律压白。它与 `onAccent` 分开 ——
+`onAccent` 的语义是「压在实心块上的白」，这里是「压在照片上的白」，
+将来玻璃面的色要调，两边得各调各的。
 
 **但不是同名**：深色下图标是图形，品牌蓝取 `--fish-blue-600`（亮档）而不是填充档，
 success / destructive 取的是 `--fish-success-ink` / `--fish-destructive-ink`。
@@ -150,9 +167,10 @@ success / destructive 取的是 `--fish-success-ink` / `--fish-destructive-ink`�
 7. **拖拽全在逻辑层。** 改：真要更跟手迁到 WXS；先不做。
 8. **降级开关盖不住浮层自己的关键帧。** `$fish-motion` 置 false 后页面不演了，`SnapSheet` 的面板关键帧没跟着关。改：关键帧与退场时长挂到 `$fish-motion` 下。
 9. **降级开关盖不住数字滚动。** 概览的分数是滚出来的（`utils/motion.ts` 的 `createCountUp`）；`$fish-motion` 置 false 后页面不演了数字还在演。改：开关搬到 SCSS 与 JS 都读得到的地方；代价是构建链改造，先不做。
-10. **雨强那族在深色下读不出来。** `$fish-rain-*` 是 `rgba($fish-tide, α)`，而 `rgba()` 不吃 `var()` —— 它们只能是固定色。深色下那张卡是深色玻璃面，alpha 阶梯是照浅底调的，压上去几乎看不见。改：给深色各出一套（浅 8 档 / 深 8 档），这是一次视觉调校，不在重构里做。
+10. **雨强那族在深色主题下读不出来。** `$fish-rain-*` 已改成走 CSS 变量（`var(--fish-rain-*)`），照片面有一套自己的 alpha（深玻璃上要抬）；但**深色主题下**那一套仍是照浅底调的 alpha，压在深色玻璃上几乎看不见。改：给深色主题也出一套 —— 这是一次视觉调校，不在重构里做。
 11. **折线图的系列色有一档在白卡上读不出来。** `chartPalette.series[2]` 浅色是 systemYellow，白底上约 1.6:1，低于「有意义图形 3:1」那条线。改：换一个在白卡上够 3:1 的黄 —— 这是配色决定，不是重构能定的。
 12. **品牌蓝的填充档在深色面上偏暗。** `$fish-blue`（#0f66d6）不能随主题翻 —— 实心块上压的是白字，翻成亮蓝会让白字掉到 2.82:1。但它自己压在深色卡上时只有 3.2:1（canvas 的值弧与图标那两处为此用了亮蓝）。改：把「实心块 + 白字」与「压在深色面上的图形」拆成两档 —— 这是把一个档位拆成两个的决定，不在重构里做。
+13. **天气页的卡片没有入场动效。** 有意的取舍：卡片压在整页背景上，入场落位里的 opacity 动画会掐断卡片那层的 `backdrop-filter`（见「动效」里 backdrop-root 那条）。改：若还要落位，只能做不带 opacity 的位移版本。
 
 ## 参考
 

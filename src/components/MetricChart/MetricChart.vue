@@ -62,6 +62,7 @@ import { computed, ref } from 'vue';
 import { useConditionsStore } from '@/stores/conditions';
 import { parseFxTime } from '@/utils/date';
 import { chartPalette } from '@/utils/chartPalette';
+import { useSurface } from '@/composables/useSurface';
 import { toFiniteNumber } from '@/utils/number';
 
 import LineChart from '../LineChart/LineChart.vue';
@@ -89,13 +90,18 @@ const METRICS: ReadonlyArray<Metric> = [
 ];
 
 /**
+ * 这一块压在什么上面。照片面走自己那套色板（见 utils/chartPalette）。
+ */
+const surface = useSurface();
+
+/**
  * 指标图的系列色。
  *
  * canvas 读不了 SCSS 变量与 CSS 变量，取色走 utils/chartPalette，
- * 深浅两套都在那儿 —— 与 _color.scss 的同名令牌保持一致。
+ * 三套都在那儿 —— 与 _color.scss 的同名令牌保持一致。
  */
 function metricColor(key: Metric['key']): string {
-  const tone = chartPalette();
+  const tone = chartPalette(surface);
   if (key === 'temp') return tone.metricTemp;
   if (key === 'precip') return tone.metricPrecip;
   return tone.metricWind;
@@ -194,8 +200,15 @@ const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时
   @include fish-press-dim;
 }
 
+/*
+ * 选中块。
+ *
+ * 底色走令牌：普通页面上是页面底色（一块浮在轨道上的白），
+ * 照片面上换成更亮的半透明白 —— iOS 的 segmented control 在深色材质上
+ * 就是「轨道半透明 + 选中块更亮」，不是选中块变白。
+ */
 .metric__item--active {
-  background-color: $fish-page;
+  background-color: var(--fish-segment-active);
   /* 选中块压出轨道用的那层投影。0.08 就够，再重就变成灰色描边了 */
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08); /* color-allow: 阴影在深色下本来就失效，层次靠面 */
 }

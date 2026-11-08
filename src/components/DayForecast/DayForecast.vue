@@ -36,6 +36,9 @@
               <view class="days__segment" :style="segmentStyle(day, i)">
                 <view class="days__segment-fill" :style="segmentFillStyle(day)" />
               </view>
+
+              <!-- 当前温度点。只在「今天」那一行画 -->
+              <view v-if="i === 0 && nowPct !== null" class="days__now" :style="{ left: nowPct + '%' }" />
             </view>
 
             <text class="days__prob">{{ probText(day) }}</text>
@@ -79,17 +82,30 @@ import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
 import { icon } from '@/constants/icons';
+import { useSurface } from '@/composables/useSurface';
 import { tempGradient } from '@/constants/weatherTemp';
 import { useConditionsStore } from '@/stores/conditions';
 import { useLocationStore } from '@/stores/location';
 import { weekdayCn } from '@/utils/date';
+import { toFiniteNumber } from '@/utils/number';
 import type { ForecastDay } from '@/types/view';
 import { forecastDays, weatherIconUri } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
 const locationStore = useLocationStore();
 
-const calendarIcon = computed(() => icon('calendar-days', 'ink'));
+/**
+ * 这一块压在什么上面。照片面上图标要压白（见 utils/theme 的图标说明）。
+ */
+const surface = useSurface();
+
+/*
+ * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
+ * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
+ */
+const calendarIcon = computed(() =>
+  surface === 'photo' ? icon('calendar-days', 'onPhoto') : icon('calendar-days', 'ink'),
+);
 
 /**
  * 有效的预报日。
@@ -120,6 +136,30 @@ const scale = computed(() => {
   }
 
   return { lo, hi, span: Math.max(hi - lo, 1) };
+});
+
+/**
+ * 当前温度在量程里的位置（占轨道宽的百分比）。
+ *
+ * iOS 的多日预报在「今天」那一行的温度条上点一个白点，标出此刻多少度 ——
+ * 那一截是今天的最低到最高，读者得知道自己现在站在哪一段上。
+ *
+ * 取实况的当前温度（liveWeather.temp）。取不到就不画这个点：
+ * 一个位置不对的点比没有点更坏。
+ *
+ * 落在量程之外也不画：点跑到轨道外面去，读起来是「量程算错了」。
+ */
+const nowPct = computed<number | null>(() => {
+  const s = scale.value;
+  if (!s) return null;
+
+  const temp = toFiniteNumber(conditionsStore.liveWeather?.temp);
+  if (temp === null) return null;
+
+  const pct = ((temp - s.lo) / s.span) * 100;
+  if (pct < 0 || pct > 100) return null;
+
+  return pct;
 });
 
 /**
@@ -415,7 +455,7 @@ const emptyText = computed(() => {
 
 /* 最低温：灰一档，它是背景 */
 .days__temp--min {
-  color: $fish-muted;
+  color: $fish-muted-60;
   @include numeric(500);
 }
 
@@ -423,6 +463,36 @@ const emptyText = computed(() => {
 .days__temp--max {
   color: $fish-ink;
   @include numeric;
+}
+
+/*
+ * 行间的发丝线。
+ *
+ * 几行同样的版式并排摆着，没有分隔就只是一列数字 —— 读不出哪一行到哪一行结束。
+ * 用内阴影画而不是边框：边框会让行高多出 1rpx，逐行累加，最后一行就出格了。
+ */
+.days__row + .days__row {
+  box-shadow: inset 0 1rpx 0 $fish-border-40;
+}
+
+/*
+ * 当前温度点。
+ *
+ * 白点压在渐变截上：它标的是「此刻多少度」，跟左右两列数字是同一件事，
+ * 所以颜色跟正文一致（照片面上是白）。
+ *
+ * 点比条粗：条是 6pt，点是 8pt —— iOS 上那个点就是比条粗一圈，
+ * 细了就成了一根划痕。
+ */
+.days__now {
+  position: absolute;
+  top: 50%;
+  width: 16rpx;
+  height: 16rpx;
+  margin-left: -8rpx;
+  border-radius: 50%;
+  background-color: $fish-ink;
+  transform: translateY(-50%);
 }
 
 /*

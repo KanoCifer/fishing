@@ -66,6 +66,7 @@ import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
 import { icon, type IconName } from '@/constants/icons';
+import { useSurface } from '@/composables/useSurface';
 import { useConditionsStore } from '@/stores/conditions';
 import { formatTimeOfDay } from '@/utils/date';
 import { toFiniteNumber } from '@/utils/number';
@@ -83,6 +84,18 @@ import {
 import type { Tone } from '@/types/view';
 
 const conditionsStore = useConditionsStore();
+
+/**
+ * 这一块压在什么上面。
+ *
+ * 这一张卡有两处用：天气页（压在整页照片上）与记录详情页（普通页面）。
+ * 两处的磁贴底不一样，图标色也就必须跟着走 ——
+ * 图标是烤进 data URI 的，CSS 变量改不动它（见 utils/theme 的说明）。
+ */
+const surface = useSurface();
+
+/** 图标色档：照片面上压白，普通页面上压深墨 */
+const iconTier = computed(() => (surface === 'photo' ? 'onPhoto' : 'ink'));
 
 /** 一格磁贴 */
 interface Tile {
@@ -111,7 +124,7 @@ function makeTile(t: {
   return {
     key: t.key,
     title: t.title,
-    icon: icon(t.iconName, 'ink'),
+    icon: icon(t.iconName, iconTier.value),
     value: t.value,
     unit: t.unit,
     level: t.level?.label ?? '--',
@@ -317,10 +330,21 @@ const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.ob
   display: grid;
 }
 
-/* 实读数：读到就淡入落位 */
+/*
+ * 实读数。
+ *
+ * 这里**不挂**交叉淡入：那条是 opacity 动画，会掐断磁贴的 backdrop-filter。
+ * CSS 有一条 backdrop-root 规则 —— 祖先上只要有一个在生效的 opacity 动画，
+ * 它就成了 backdrop root，后代的 backdrop-filter 只能采样它**内部**的背景。
+ *
+ * 磁贴的底是页面底下那张整页照片，照片在 .weather 的祖先**外面** ——
+ * 祖先一旦成了 backdrop root，磁贴就只采样得到祖先内部的背景，糊的是一片空。
+ *
+ * 交叉淡入的观感由骨架层承担：数据到了，骨架淡出 160ms，读数从底下透出来。
+ * 读数一直都在，只是先前被不透明的骨架盖着。
+ */
 .weather__content {
   grid-area: 1 / 1;
-  @include fish-cross-in;
 }
 
 /*
@@ -371,10 +395,39 @@ const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.ob
   gap: 16rpx;
 }
 
+/*
+ * 磁贴。
+ *
+ * 九块磁贴各糊一次 backdrop-filter，代价是九份 —— 所以半径比卡面小一档
+ * （--fish-blur-tile）。照片面上这一档是 14px：再大就白糊了，
+ * 底本来就是照片，糊的是那 42% 透上来的光。
+ *
+ * 底现在是天色渐变（照片层已撤下），但这一层的关系没变：
+ * 底下是「一张压着整个页面的面」，糊的是透上来的光。
+ *
+ * 这几块是「卡里的块」，不再各带一层影 —— 九块小影叠在一张大卡上，
+ * 读起来是九张浮起来的贴纸，不是九格读数。
+ */
 .weather__tile {
   box-sizing: border-box;
   padding: 24rpx 26rpx 22rpx;
-  @include fish-glass($fish-radius-card);
+  border: 0.5px solid var(--fish-glass-stroke);
+  border-radius: $fish-radius-card;
+  background-color: var(--fish-card-glass);
+  backdrop-filter: blur(var(--fish-blur-tile, 12px)) saturate(var(--fish-saturate, 1.8));
+  -webkit-backdrop-filter: blur(var(--fish-blur-tile, 12px)) saturate(var(--fish-saturate, 1.8));
+}
+
+/*
+ * 骨架磁贴。
+ *
+ * 不给模糊。骨架层自己带 opacity 过渡（淡出）—— 过渡期间它是 backdrop root，
+ * 磁贴采样不到照片，blur 根本没生效过；等它不淡出直接被摘掉，模糊也只剩
+ * 一层壳。九块模糊在低端安卓上是纯开销，占位块不需要。
+ */
+.weather__tile--skeleton {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .weather__tile-head {

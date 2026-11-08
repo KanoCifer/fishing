@@ -7,17 +7,19 @@
 - **页面层**靠 `@media (prefers-color-scheme: dark)` + CSS 变量。令牌名不变，实现从字面量换成 `var(--fish-ink, #000000)`，深浅两套值集中在 `src/styles/theme.scss` → 770 处调用点一行没改。
 - **canvas 与图标**靠 JS 侧的主题值。canvas 2d 不解析 `var()`，图标的色值烤在 data URI 里，两边都拿不到 CSS 变量。
 
+**照片面不是主题的第三档，是另一个维度。** 同一屏里压在整页背景上的那几块玻璃自己换一套（深玻璃 + 白字），见 `theme.scss` 的 `.on-photo`。深浅主题下背景的明度不同，但这一套不翻 —— 它要的是「无论底下是什么，白字都读得清」。
+
 触发方式只有一种：**跟随系统**。不做应用内手动切换 —— 手动切换要靠 JS 往根节点注入 class，首屏会闪一次白，而本项目第一屏就是天气页。
 
 ## 落地清单
 
 | 文件                                 | 做什么                                                                                |
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| `src/styles/theme.scss`              | 深浅两套 CSS 变量。作用域 `page, .page`                                               |
+| `src/styles/theme.scss`              | 深浅两套 CSS 变量（作用域 `page, .page`）+ 照片面一套（作用域 `.on-photo`）           |
 | `src/styles/tokens/_color.scss`      | B 组令牌换成 `var()`；新增 `$fish-page-base-fade`、`$fish-map-panel`、`$fish-overlay` |
 | `src/App.vue`                        | 全局 style 引入 theme.scss；`onLaunch` 里 `initTheme()`                               |
 | `src/utils/theme.ts`                 | 主题真值（模块级 ref）+ `wx.onThemeChange` 监听                                       |
-| `src/utils/chartPalette.ts`          | canvas 色板，深浅两套。**canvas 色的原件**，SCSS 侧不抄                               |
+| `src/utils/chartPalette.ts`          | canvas 色板，浅色 / 深色 / 照片面三套。**canvas 色的原件**，SCSS 侧不抄               |
 | `src/manifest.json`                  | `mp-weixin` 加 `darkmode: true` 与 `themeLocation: "theme.json"`                      |
 | `src/theme.json`                     | 原生 UI 的深浅两套（窗口底色、下拉刷新文字色）                                        |
 | `src/pages.json`                     | `globalStyle` 改用 `@变量` 引用 theme.json                                            |
@@ -33,6 +35,8 @@
 | A 固定色     | `on-accent`、`on-dark`、`deep-*`、`sun`/`sun-soft`、语义实色、`gradient`、`rain-*`、`tide`、`guide`、`blue-on-dark`、`scrim`、`blue`（填充档）                                                                                                                                                                                                                            | SCSS 字面量（`_color.scss`）                                                                 | 否       |
 | B 表面与文字 | `ink`、`muted`、`muted-60`、`page`、`grouped`、`card-face`、`surface`、`fill`、`border`、`border-40`、`faint`、`glass`、`card-glass`、`glass-strong`、`glass-edge`、`glass-stroke`、`page-base`、`page-glow`（页面底那圈蓝调，令牌是 `$fish-page-bg`）、`dock-fade`、各 `tint`、各 `*-ink`、`photo-placeholder`、`map-panel`、`overlay`、`blue-600`（文字档）、`tide-ink` | CSS 变量（`theme.scss`）                                                                     | 是       |
 | C 图表与图标 | canvas 的网格线、基线、游标、坐标文字、系列色、量表色阶；图标的 8 个语义色档                                                                                                                                                                                                                                                                                              | **JS 主题值**（`chartPalette.ts` / `gen-icons.mjs` / `constants/weatherHero.ts` 的量表色阶） | 是       |
+
+**还有第三个维度：表面。** 同一组令牌在两种底上取值不同：页面底（浅 / 深两套）与照片面（`.on-photo` 一套）。照片面那套的原件同样在 `theme.scss`，它不随主题翻，所以只写一份。
 
 C 组的原件在 JS 侧，**SCSS 侧不抄**。抄一份只会让人以为改那里就能改到 canvas ——
 canvas 2d 不解析 SCSS 变量与 CSS 变量，它只认那份 TS 里的字面量。
@@ -60,27 +64,39 @@ $fish-ink: var(--fish-ink, #000000); // 原来：#000000
 
 材质那一族在深色下各自要翻：玻璃面从半透明白改成半透明深，浮在内容之上的玻璃条（顶栏、导航条、提交条）跟着改成半透明深，顶边高光从白 85% 降到白 14%，**外圈那道描边从白 92% 降到白 8%** —— 浅色下这圈白几乎看不见，它起的作用是「玻璃边缘不糊进背景」；深色下白 92% 压在一张深色卡上就是一圈亮白框。
 
-## 头图：夜间模式下恒为夜
+## 背景天色：夜间模式下恒为夜
 
-天气页的头图是整屏最大的一块面 —— 一张浅色的照片压在深色页面上，整页的观感就被它拉浅，深色模式等于白做。
+天气页的背景是整屏最大的一块面 —— 一段浅色的天压在深色页面上，整页的观感就被它拉浅，深色模式等于白做。
 
-所以深色下 `sky` 恒为 `night`：图片换成 `hero-night-v2.jpg`，兜底渐变也跟着走 `hero--night`（那张渐变本来就是深色的，图片加载的那一瞬不会闪白）。图片与渐变永远同源，不会出现「夜图配晴色渐变」的错配。
+所以深色下背景档位恒为 `night`（判据在 `src/composables/useWeatherBackdrop.ts`）：走 `HERO_BACKDROP_GRADIENTS.night` 那一段（它本来就是深色的）。
 
-读的是 `src/utils/theme.ts` 的主题真值，不是系统的 `prefers-color-scheme` —— 那边只管 WXSS，这里要的是「现在是不是深色」这个判断，好让图片与渐变一起翻。
+读的是 `src/utils/theme.ts` 的主题真值，不是系统的 `prefers-color-scheme` —— 那边只管 WXSS，这里要的是「现在是不是深色」这个判断，好让天色一起翻。
 
-图片在 CDN 上（`hero-night-v2.jpg` 已在 CDN，`scripts/optimize-assets.py` 里那四条 job 之一），换图不用动代码包。
+顶部读数区（状态栏、胶囊、仪表、当前温度）压在背景上。白字读数不需要另铺压暗层 —— 十一档天色顶部本来就是深的（见 `constants/weatherHero.ts` 的 `HERO_BACKDROP_GRADIENTS`），深色下走 night 那档更压得住。原来那道压暗层是给照片准备的：照片的天空亮不亮是猜的，压一层兜底。渐变的天色深浅是定死的，再压等于压两次，顶部糊成死黑。
+
+背景是渐变，不是图：没有网络请求，也没有换图时的闪烁。那十一张满幅天空照片与它们的压缩 job 一并撤下了 —— 照片层要回来时从 `constants/weatherHero.ts` 的 `HERO_BACKDROP_GRADIENTS` 重新配。
+
+## 照片面
+
+天气页整页是一层天色，卡片浮在上面。那几块卡不能用页面底的那套：浅色卡压在天色上白得刺眼，深色卡在亮天色上糊进画面，而深色字压在天色上基本读不出来。
+
+所以照片面是**深色半透明玻璃 + 白字** —— iOS 天气卡就是这个关系。玻璃色取深蓝（42%）而不是深灰：底是天空，深蓝压上去还是天的一部分，深灰压上去就是一块脏补丁。
+
+**照片面有挂两半。** CSS 那一半是 `.on-photo` 这个类（`theme.scss` 里那组变量覆盖）；JS 那一半是 `composables/useSurface.ts` 的 `provideSurface('photo')` —— 图标色烤在 data URI 里、canvas 不读 CSS 变量，这两样只能靠上下文知道「你在照片上」。
+
+少写一半的后果很具体：只有 CSS 那一半，图标是烤死的深墨，糊进照片里；只有 JS 那一半，卡上的字是浅色档的深墨，压在深玻璃上读不出来。
 
 ## 五个硬骨头的处理
 
 ### canvas 不解析 CSS 变量
 
-色板集中在 `src/utils/chartPalette.ts`，深浅两套。canvas 侧从那里取，取色时机是**绘制时** —— 模块顶层缓存会把颜色锁死在首次取到的那一套。
+色板集中在 `src/utils/chartPalette.ts`，浅色 / 深色 / 照片面三套。canvas 侧从那里取，取色时机是**绘制时** —— 模块顶层缓存会把颜色锁死在首次取到的那一套。
 
 主题变了要重画：TideChart、LineChart、RecordRing 各挂一个 `watch(themeMode)`，重画走的是「作废画布层 → 重新取节点 → 再画」那条路（`useCanvasPageShow`）。往死 ctx 上画是原生崩溃，不是 JS 异常。
 
 ### 图标颜色烤死在 data URI
 
-图标清单写的是语义档（ink / muted / muted60 / blue / blue600 / success / destructive / onAccent），不是具体色值 —— 这一条是深色模式能零改动铺开的前提。
+图标清单写的是语义档（ink / muted / muted60 / blue / blue600 / success / destructive / onAccent / onPhoto），不是具体色值 —— 这一条是深色模式能零改动铺开的前提。
 
 `gen-icons.mjs` 为每个语义档产出浅深两份，键如 `map-pin__ink` 与 `map-pin__ink--dark`。`icon()` 内部按当前主题选档，200 多处调用点零改动。
 
@@ -129,7 +145,7 @@ $fish-ink: var(--fish-ink, #000000); // 原来：#000000
 ## 门禁
 
 - `pnpm check:colors` —— 扫源码，令牌层之外的硬编码色值一律失败。确属固定色的（压在照片上的层、阴影、图表语义色、系统弹窗色）在行尾标 `/* color-allow: 理由 */`。
-- `pnpm check:icons` —— 图标配色档位必须存在。深浅两套都要齐：`--dark` 后缀的键算在检查范围内。
+- `pnpm check:icons` —— 图标配色档位必须存在。深浅两套都要齐：`--dark` 后缀的键算在检查范围内；照片面那一档（`onPhoto`）浅深同值，两个键都要有。
 
 ## 参考
 

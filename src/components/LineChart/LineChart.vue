@@ -90,6 +90,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } 
 import { buildCurve, buildPolyline, clipCurve, type CurvePoint, type CurveSegment } from '@/utils/curve';
 import { CANVAS_FONT_STACK, withAlpha } from '@/utils/canvas';
 import { chartPalette } from '@/utils/chartPalette';
+import { useSurface } from '@/composables/useSurface';
 import { themeMode } from '@/utils/theme';
 import {
   GUTTER_GAP,
@@ -242,12 +243,17 @@ const baseCanvasId = `line-chart-base-${uid}`;
  * 同样是 canvas 硬编码，改主题时要和令牌层 _color.scss 的 $fish-* 一起看。
  */
 /**
- * 系列色。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()。
+ * 这一块压在什么上面。照片面走自己那套色板（见 utils/chartPalette）。
+ */
+const surface = useSurface();
+
+/**
+ * 系列色。三套（浅色 / 深色 / 照片面）由 utils/chartPalette 给 —— canvas 不解析 var()。
  *
  * 按序号取，序号越界就绕回去。
  */
 function seriesColor(index: number): string {
-  const series = chartPalette().series;
+  const series = chartPalette(surface).series;
   return series[index % series.length];
 }
 
@@ -263,10 +269,10 @@ function seriesColor(index: number): string {
  * 图就框成了一个盒子，那是报表软件的做法。
  */
 /**
- * 色板。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()，
- * 只能手写两份（见 utils/canvas.ts 的说明）。
+ * 色板。三套（浅色 / 深色 / 照片面）由 utils/chartPalette 给 —— canvas 不解析 var()，
+ * 只能手写三份（见 utils/canvas.ts 的说明）。
  */
-const tone = () => chartPalette();
+const tone = () => chartPalette(surface);
 
 /**
  * 画布的 CSS 尺寸（px）。

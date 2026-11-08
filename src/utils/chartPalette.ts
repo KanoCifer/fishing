@@ -1,5 +1,5 @@
 /**
- * canvas 的色板 —— 深浅两套。
+ * canvas 的色板 —— 浅色 / 深色 / 照片面三套。
  *
  * canvas 2d 不解析 SCSS 变量，也不解析 CSS 变量，只认 rgb/hex。
  * 所以 canvas 那些色值的**唯一出处就是这份文件** —— 令牌层不抄它们
@@ -14,11 +14,16 @@
  * canvas 侧如果各写各的，三份色板迟早漂移 —— 同一张卡上的文字和曲线
  * 一个深一个浅，看起来就是「画错了」。
  *
+ * 三套的区别：浅色与深色是**主题**（页面底翻不翻），照片面是**表面**
+ * （同一屏里压在照片上的那几块，底不同）。照片面那套不随主题翻。
+ *
  * 取色时机：**绘制时**取一次，不要在模块顶层缓存。
  * 主题变了要重画，重画时自然取到新的一份。
  */
 
 import { isDarkTheme } from './theme';
+
+import type { Surface } from '@/composables/useSurface';
 
 export interface ChartPalette {
   /** 纵轴刻度文字。= $fish-muted / --fish-muted */
@@ -155,11 +160,57 @@ const DARK: ChartPalette = {
 };
 
 /**
- * 当前主题的色板。
+ * 照片面。
+ *
+ * 压在整页照片上的那几张图：底是深玻璃，不是页面底。
+ * 所以这一套既不是浅色也不是深色 —— 它跟着**表面**走，不跟主题走：
+ * 深浅主题下照片的明度不同，但「深底上的字」这个关系不变。
+ *
+ * 逐档对应 theme.scss 的 .on-photo：
+ *   yText  = 白 72%  · xText = 白 52%
+ *   曲线与系列色是亮档 —— 它们要压在照片透上来的光上，深色读不出来。
+ */
+const PHOTO: ChartPalette = {
+  yText: 'rgba(255, 255, 255, 0.72)',
+  xText: 'rgba(255, 255, 255, 0.52)',
+  // 网格与基线：深底上要靠反白才看得见
+  grid: 'rgba(255, 255, 255, 0.12)',
+  gridFaint: 'rgba(255, 255, 255, 0.08)',
+  axis: 'rgba(255, 255, 255, 0.22)',
+  nowLine: 'rgba(255, 255, 255, 0.4)',
+  tide: '#8fd0ff', // = --fish-tide-ink（照片面）
+  series: ['#8fd0ff', '#ff9f99', '#ffd60a', '#7fe3a5', '#c9a7f0'],
+  ringTrack: 'rgba(255, 255, 255, 0.16)',
+  ringFill: '#4c9bff',
+  metricTemp: '#ff9f99',
+  metricPrecip: '#8fd0ff',
+  metricWind: '#7fdcea',
+  /**
+   * 数值标注的描边 halo 与选中点的底圈。
+   *
+   * 照片面上玻璃是半透明的，「等于卡片面色」这一条做不到 ——
+   * 底下是照片，没有一个固定的面色可以等。
+   * 这里取一块接近玻璃复合结果的深色：描边压在字上读不出「洞」就够了，
+   * 底下那层照片的光透上来时，这一圈把字托住。
+   */
+  halo: 'rgba(12, 24, 42, 0.85)',
+  markerRing: 'rgba(12, 24, 42, 0.85)',
+  // 弧形表压深色面，深色面不随主题变 —— 这三项两套同值
+  gaugeTrack: 'rgba(255, 255, 255, 0.14)',
+  gaugeFrom: '#4f8cff',
+  gaugeTo: '#82d4ff',
+};
+
+/**
+ * 当前这一块的色板。
  *
  * 绘制时调用一次。模块顶层不要缓存 —— 缓存了就锁死在首次取到的那一套，
  * 主题切换后画出来的还是旧颜色。
+ *
+ * @param surface 这一块压在什么上面。照片面走自己那一套，不看主题。
  */
-export function chartPalette(): ChartPalette {
+export function chartPalette(surface: Surface = 'default'): ChartPalette {
+  if (surface === 'photo') return PHOTO;
+
   return isDarkTheme() ? DARK : LIGHT;
 }

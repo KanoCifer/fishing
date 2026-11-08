@@ -33,6 +33,9 @@ $fish-card-head-gap: $fish-space-label;
 @mixin fish-card($padding: $fish-card-padding) {
   padding: $padding;
   @include fish-glass($fish-radius-mid, $fish-card-glass);
+
+  /* 模糊走材质层那一个 mixin —— 半径与饱和度都是令牌，不在这里写死 */
+  @include fish-glass-blur;
 }
 
 /**

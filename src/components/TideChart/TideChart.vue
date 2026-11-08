@@ -45,6 +45,7 @@ import { buildCurve, buildPolyline, clipCurve, headX, type CurvePoint, type Curv
 import { tideTrendOfDelta } from '@/utils/tide';
 import { CANVAS_FONT_STACK, setCanvasFont, withAlpha } from '@/utils/canvas';
 import { chartPalette } from '@/utils/chartPalette';
+import { useSurface } from '@/composables/useSurface';
 import { themeMode } from '@/utils/theme';
 import {
   X_LABEL_SIZE,
@@ -202,10 +203,15 @@ let pointGap = 0;
  * 只靠虚线与实线（底边）区分层次。
  */
 /**
- * 色板。深浅两套由 utils/chartPalette 给 —— canvas 不解析 var()，
- * 只能手写两份（见 utils/canvas.ts 的说明）。
+ * 这一块压在什么上面。照片面走自己那套色板（见 utils/chartPalette）。
  */
-const tone = () => chartPalette();
+const surface = useSurface();
+
+/**
+ * 色板。三套（浅色 / 深色 / 照片面）由 utils/chartPalette 给 —— canvas 不解析 var()，
+ * 只能手写三份（见 utils/canvas.ts 的说明）。
+ */
+const tone = () => chartPalette(surface);
 
 /** 网格虚线的节奏 */
 const GRID_DASH = [4, 4];

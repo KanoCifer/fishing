@@ -16,14 +16,13 @@
   border-radius: $radius;
   background-color: $background;
 
-  box-shadow: $smooth-shadow-xs, $fish-glass-edge;
-  /* 描边：一圈发丝，是玻璃的轮廓线，没有它半透明底会糊进背景 */
-  border: 2rpx solid $fish-glass-stroke;
+  // border: 0.5px solid $fish-glass-stroke;
+  // box-shadow: var(--fish-card-shadow, #{$fish-card-shadow}), $fish-glass-edge;
 }
 
 @mixin fish-glass-blur {
-  backdrop-filter: blur($fish-blur) saturate(1.8);
-  -webkit-backdrop-filter: blur($fish-blur) saturate(1.8);
+  backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, 1.8));
+  -webkit-backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, 1.8));
 }
 
 @mixin fish-deep-face($radius: $fish-radius-mid) {

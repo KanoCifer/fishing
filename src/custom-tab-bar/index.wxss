@@ -40,7 +40,7 @@
   padding-bottom: env(safe-area-inset-bottom);
 
   /* = $fish-glass-strong / --fish-glass-strong */
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.3);
   /* = $fish-blur */
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
