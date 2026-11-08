@@ -1,4 +1,4 @@
-<view class="tabbar {{surface === 'photo' ? 'tabbar--photo' : ''}}">
+<view class="tabbar">
   <view class="tabbar__row">
     <view
       wx:for="{{list}}"

@@ -1,46 +1,3 @@
-/*
- * 自定义 tabBar —— 「分段」形态。
- *
- * 结构（见 index.wxml）：
- *   .tabbar        贴底通栏
- *     .tabbar__row   一行五格
- *       .tabbar__item  一格（导航格或动作键）
- *         .tabbar__cell   导航格，选中时整块被药丸托住
- *         .tabbar__action 动作键（记一笔），圆键自己就是标签
- *
- * 分层的理由（两条都不是洁癖，是小程序的实际限制）：
- *
- * 1. 入场动画挂在 .tabbar__cell / .tabbar__action 上，按压回弹挂在
- *    .tabbar__item 上 —— 两者都是 transform，但落在不同元素上。
- *    同一元素上 animation 的 transform 会盖掉 :active 的回弹。
- *
- * 2. 动画不挂在 .tabbar 根节点上 —— 组件宿主节点不吃动画。
- *
- * 长度单位：1px（375pt 机型）= 2rpx。
- *
- * ── 为什么这份 WXSS 要自己抄一遍令牌 ──
- *
- * 原生自定义 tabBar 不经 uni-app 编译，拿不到 SCSS 令牌，
- * 也继承不到 page 上的 CSS 变量。所以这里只能手写。
- *
- * 手写不等于各写各的：下面每一处值都在注释里注明它对应令牌层的哪一个，
- * 那边改了这里要跟着改。反过来，令牌层也不抄这一份 ——
- * 两边各有一份、彼此不引用，那才是真漂移。
- *
- * ── 材质两档 ──
- *
- * 底栏浮在页面上，材质得跟它压着的那张面走：
- *
- *   · 照片面（--tb-*-deep）：天气页整页是一层天色，底栏压在它上面，
- *     恒为深玻璃 —— 半透明白压在天色上就是一块灰斑，天色等于白铺。
- *     深色系统下其余页面也用这一档。
- *   · 页面底（--tb-*-light）：跟系统主题走。
- *
- * 两档各写一份字面量，下面各处的 var() 只做引用 —— 一份字面量两处引用，
- * 两处字面量就是两份漂移。这些变量定义在 .tabbar 自己身上，
- * 所以取值不依赖外部作用域（继承得到的值在这里用不上）。
- */
-
 .tabbar {
   /* ── 深玻璃那一档 ────────────────────────────────────────────
      照片面与深色系统共用这一份。值取自令牌层的深色段：
@@ -49,7 +6,7 @@
      = 深色档选中药丸 rgba(76, 155, 255, 0.18)
      = --fish-muted-60（深色）
      = --fish-blue-600（深色档） */
-  --tb-bg-deep: rgba(10, 26, 48, .55);
+  --tb-bg-deep: rgba(25, 25, 25, 0.32);
   --tb-edge-deep: rgba(255, 255, 255, 0.14);
   --tb-pill-deep: rgba(76, 155, 255, 0.18);
   --tb-label-deep: #8e939c;
@@ -209,62 +166,6 @@
   height: 38rpx;
 }
 
-/*
- * 照片面（天气页）—— 恒为深玻璃，不跟系统主题走。
- *
- * 这一块必须放在深色媒体查询**之前**：媒体查询里的 .tabbar 与这里的
- * .tabbar--photo 同为 0,1,0，同优先级下后写的赢。深色系统下两者给的
- * 是同一档，谁赢都一样；浅色系统下媒体查询不生效，照片面这一档留下。
- *
- * 图标换档靠的是特异性：.tabbar--photo .tabbar__icon--dark 是 0,2,0，
- * 压得住媒体查询里的 0,1,0 —— 位置不讲究。
- *
- * 为什么照片面要压深色：天气页整页是一层天色，半透明白压上去就是一块
- * 灰斑；深色系统的底栏也是深玻璃。两处用同一档，天气页在浅色系统下
- * 与深色系统下才是同一个产品。
- */
-.tabbar--photo {
-  background-color: var(--tb-bg-deep);
-  box-shadow: inset 0 1rpx 0 var(--tb-edge-deep);
-}
-
-.tabbar--photo .tabbar__cell--on {
-  background-color: var(--tb-pill-deep);
-}
-
-.tabbar--photo .tabbar__label {
-  color: var(--tb-label-deep);
-}
-
-.tabbar--photo .tabbar__label--on {
-  color: var(--tb-label-on-deep);
-}
-
-.tabbar--photo .tabbar__icon--light {
-  display: none;
-}
-
-.tabbar--photo .tabbar__icon--dark {
-  display: block;
-}
-
-/*
- * 深色。
- *
- * 这个块必须放在文件末尾。
- *
- * 同优先级下后写的赢：媒体查询里的 display:block 要是被前面那条
- * .tabbar__icon--dark{display:none} 盖回去，两枚图标会同时消失
- * —— 深色模式下底栏一个图标都不剩。
- *
- *
- * 底色从半透明白改成半透明深：底栏浮在内容之上，深色下再压一层白
- * 会把下面的深色内容压出一块灰斑。顶边高光同步反转 —— 深色面上
- * 压白线才是「浮起来」的那道边。
- *
- * 图标两态的色值与 scripts/tabbar-icons.py 里烤进 PNG 的那两个一致：
- * 未选中 #8e939c、选中 #4c9bff。
- */
 @media (prefers-color-scheme: dark) {
   .tabbar {
     background-color: var(--tb-bg-deep);
