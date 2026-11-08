@@ -4,7 +4,7 @@
  *
  * 为什么需要这道门禁：
  *
- * 夜间模式是靠**一处**翻色实现的 —— src/styles/theme.scss 里的两套 CSS 变量，
+ * 夜间模式是靠**一处**翻色实现的 —— src/styles/theme/_surfaces.scss 里的三套值，
  * 令牌层的 `$fish-ink` 之类的名字在 770 处调用点里一个都没改。
  *
  * 这件事成立的前提是：所有颜色都从令牌层取。
@@ -35,8 +35,8 @@ const SRC = join(ROOT, 'src');
  */
 const ALLOW = [
   {
-    file: 'src/styles/theme.scss',
-    why: '深浅两套令牌值就在这儿 —— 它就是那一份',
+    file: 'src/styles/theme/_surfaces.scss',
+    why: '三套令牌值就在这儿 —— 它就是那一份',
   },
   {
     file: 'src/styles/tokens/_color.scss',
@@ -47,11 +47,7 @@ const ALLOW = [
     why: '阴影令牌。阴影在深色下本来就失效，靠面的明度差分层',
   },
   {
-    file: 'src/styles/tokens/_material.scss',
-    why: '材质 mixin 里压深色面的固定高光（深色面本来就不随主题变）',
-  },
-  {
-    file: 'src/styles/tokens/_motion.scss',
+    file: 'src/styles/mixins/_motion.scss',
     why: '流光按钮的渐变色，品牌固定色',
   },
   {
@@ -81,6 +77,10 @@ const ALLOW = [
   {
     file: 'src/custom-tab-bar/index.wxss',
     why: '自定义底栏是原生组件，不经 uni-app 编译，拿不到 SCSS 令牌。它自带一套深色值',
+  },
+  {
+    file: 'src/components/WeatherHero/WeatherHero.vue',
+    why: '压在照片上的压暗层与深玻璃面（照片不随主题变）',
   },
   {
     file: 'src/components/RecordHero/RecordHero.vue',

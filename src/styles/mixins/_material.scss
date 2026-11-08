@@ -1,0 +1,29 @@
+// 材质 mixin。
+//
+// 两个玻璃面（面板底、卡面）只有面色不同，外形、阴影、描边完全一样 ——
+// 所以只留一个 mixin，面色由调用方给。写成两个就是同一段外壳抄两遍。
+@use '../tokens/color' as *;
+@use '../tokens/depth' as *;
+@use '../tokens/material' as *;
+
+@mixin fish-glass($radius: $fish-radius-mid, $background: $fish-glass) {
+  border-radius: $radius;
+  background-color: $background;
+}
+
+@mixin fish-glass-blur {
+  backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, #{$fish-saturate}));
+  -webkit-backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, #{$fish-saturate}));
+}
+
+@mixin fish-deep-face($radius: $fish-radius-mid) {
+  border-radius: $radius;
+  background-color: $fish-deep-base;
+  background-image:
+    radial-gradient(circle at 18% 0%, $fish-deep-glow, transparent 58%),
+    radial-gradient(circle at 92% 108%, $fish-deep-glow-2, transparent 60%),
+    linear-gradient(180deg, $fish-deep-top 0%, $fish-deep-bottom 100%);
+  box-shadow:
+    $shadow-deep,
+    inset 0 1rpx 0 $fish-deep-inset;
+}

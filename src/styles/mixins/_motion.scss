@@ -1,0 +1,256 @@
+// 动效 mixin。
+//
+// 内容「落位」，不是内容「表演」。这一层解决的是骨架屏换成实数据时
+// 内容整块硬切过去的那一下。
+//
+// 只动 transform 和 opacity：这两条在小程序里走合成，不触发布局重排。
+// 换成 top / height 的话，一屏四个分区一起动的时候，每个兄弟节点都要跟着重排一次。
+//
+// 幅度刻意压得很小：16rpx（8pt）+ 500ms 读作「本来就在这」，
+// 幅度再大就读作「飞进来了」。
+//
+// ── 降级为什么不是 @media (prefers-reduced-motion) ──
+//
+// mp-weixin 的 WXSS 没有开放这个媒体特性，逻辑层也没有对应的系统 API ——
+// 小程序端拿不到系统级的「减弱动态效果」。写一条不生效的媒体查询进去
+// 只会造成「已经处理过了」的错觉。所以开关在 $fish-motion，编译期生效。
+//
+// keyframes 本体在 App.vue（全局一份），理由见那里顶部的注释。
+@use '../tokens/color' as *;
+@use '../tokens/depth' as *;
+@use '../tokens/motion' as *;
+
+// 按下反馈。
+//
+// iOS 的按钮是手指落下就开始缩，抬手才回弹 —— 等 click 再反应就是「假」的。
+// mp-weixin 的 :active 正好在 touchstart 触发，能做到同一件事。
+//
+// 按下 100ms、回弹 260ms：靠两条 transition 的时长差实现。:active 上写的
+// transition 决定「进入按下」的时长，基态上写的决定「抬手回弹」的时长，
+// 所以这里必须两处都写，只写一条就会按下和回弹一样快，手感立刻变塑料。
+@mixin fish-press($scale: 0.96) {
+  transition: transform $fish-dur-press $fish-spring;
+
+  &:active {
+    transform: scale($scale);
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+// 分段控件 / 选项组的按下反馈。
+//
+// iOS 的 segmented control 按下时是变暗不是缩小 —— 缩小会让整排的选中块
+// 位置跳一下，读起来像换了一项。调透明度才是它真正的行为。
+@mixin fish-press-dim {
+  transition: opacity $fish-dur-press $fish-spring;
+
+  &:active {
+    opacity: 0.6;
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+// 流光按钮 —— 外壳（负责「光」）。
+//
+// 外壳只做三件事：定义 --fish-flow、给光晕当定位锚点、驱动旋转。
+// 它自己不能带 transform —— 理由见 fish-flow-face 的注释。
+@mixin fish-flow($blur: 8px) {
+  --fish-flow: conic-gradient(from var(--fish-flow-angle), #4f8cff, #b06ab3, #ff5f6d, #ff9f43, #3ccf6e, #4f8cff);
+
+  position: relative;
+  border-radius: $fish-radius-pill;
+  animation: fish-flow-spin 3s linear infinite;
+
+  /*
+  * 外发光。z-index -1 让它垫在按钮底下。
+  *
+  * border-radius 必须写 inherit（不是 inherits —— 那个不是合法值，整条声明会被
+  * 丢掉），否则光晕是个方角矩形，和药丸形的按钮对不上。
+  */
+  &::before {
+    content: '';
+    position: absolute;
+
+    /*
+     * 四边分别写，不用 inset: 0 简写。
+     *
+     * 简写在 Safari 14.1 以下被整条丢掉（docs/mp-weixin-package.md 有记录），
+     * 一丢就没了定位锚点，光晕会跑到按钮里某个奇怪的位置上去。
+     */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: inherit;
+    background: var(--fish-flow);
+    filter: blur($blur);
+    z-index: -1;
+  }
+}
+
+// 流光按钮 —— 内层（负责「面」与手感）。
+//
+// ── 为什么流光按钮要拆成两层 ──
+//
+// transform 会让元素创建层叠上下文。层叠上下文一旦建立，
+// 里面的 z-index: -1 伪元素就不再相对外层定位，而是相对自己 ——
+// 于是 ::before 的光晕从「垫在按钮底下」翻成「画在按钮底色之上」。
+// 按下时按钮缩一下，白色面就没了，整颗按钮糊成一团流光。
+//
+// 修法不是「把 transform 挪到内层」就完事 —— 那样光晕仍然被内层的
+// 层叠上下文困住，只是白色面保住了，光晕照样在按钮内部抢位置。
+//
+// 真正干净的做法是让 transform 落在一个困不住光晕的层上：
+// - 外壳（fish-flow）持渐变与光晕，不带 transform
+// - 内层（fish-flow-face）持面色与描边环，带 transform
+//
+// 代价：光晕不跟着一起缩（它在外壳上，不在内层里）。按下只缩 3%，
+// 差 2px 出头，看不出来；换来的是白色面一直在、光晕不糊、blur 不外溢。
+//
+// ── 为什么面色必须写成 linear-gradient ──
+//
+// 多层 background 简写里，颜色只能出现在最后一层。写在非末层整条声明作废 ——
+// 按钮会变成全透明，只剩光晕透上来。所以面色是 linear-gradient(同色, 同色)：
+// 它是图片层，不是颜色层。
+//
+// 描边环靠 border: 3px solid transparent +
+// background: <面色> padding-box, var(--fish-flow) border-box 实现。
+//
+// 调用方也别在这个 @include 之后再写声明（fish-press 同理）——
+// 两个 mixin 里都有嵌套规则，声明排在嵌套规则之后会触发
+// Sass 的 mixed-decls 弃用警告。要加声明就写在 @include 之前。
+@mixin fish-flow-face($face: linear-gradient($fish-page, $fish-page), $scale: 0.97, $width: 3px) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  border: $width solid transparent;
+  border-radius: $fish-radius-pill;
+  background:
+    #{$face} padding-box,
+    var(--fish-flow) border-box;
+
+  transition: transform $fish-dur-press $fish-spring;
+
+  &:active {
+    transform: scale($scale);
+    transition-duration: $fish-dur-fast;
+  }
+}
+
+// 入场。$delay 由调用方按序号给（见 utils/motion.ts 的 enterDelay），
+// 时长和曲线沿用 $fish-dur-base / $fish-ease-out ——
+// 「出场是缓入、入场是缓出」是同一套约定。
+//
+// 初始状态（opacity: 0 + 缩到 0.95）写在这个 mixin 里，不靠 fill-mode 撑：
+// 「这个元素先不在、再落位」是它自己的性质。
+//
+// 代价：动画必须挂在同一个节点上。组件宿主节点不吃动画
+// （见 docs/mp-weixin-platform.md），那种写法会让内容永久停在 opacity: 0 —— 隐形。
+//
+// fill-mode 仍然用 both：延迟期间元素停在 from 的状态（不可见），
+// 若用 none，延迟的那几百毫秒里它是完全可见的，然后突然又从 0 开始淡入 ——
+// 闪一下再重来。
+@mixin fish-enter($delay: 0ms) {
+  @if $fish-motion {
+    opacity: 0;
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
+    animation: fish-enter $fish-dur-slow $fish-ease-out $delay both;
+  }
+}
+
+// 入场关键帧的帧内容。
+//
+// 单独一个 mixin 是因为 @keyframes 只能写在全局样式里（App.vue），
+// 而帧里的值要从令牌层拿。初始状态必须与 from 帧完全一致，
+// 否则动画起手那一帧会跳一下。
+@mixin fish-enter-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-enter-y) translateZ(0) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0) scale(1);
+  }
+}
+
+// 浮层内内容的落位。
+//
+// 与 fish-enter 同源，但两处不一样：
+// - 幅度小（$fish-enter-sheet-y），面板本身已经在滑，内容再大幅上移就是两层位移叠在一起；
+// - 不缩放。面板入场末尾自己带一点缩放过冲，里面再来一层缩放，
+//   文字会被放大缩小地重新光栅化一遍。
+//
+// 延迟由调用方给（utils/motion 的 enterDelay），这里不写死。
+// 延迟走行内 animation-delay，类里这条 animation 的 0s 会被它盖掉。
+@mixin fish-enter-sheet {
+  @if $fish-motion {
+    opacity: 0;
+    transform: translateY($fish-enter-sheet-y) translateZ(0);
+    animation: fish-enter-sheet $fish-dur-base $fish-ease-out both;
+  }
+}
+
+// 浮层内落位的帧内容。@keyframes 只能写在全局样式里，
+// 帧里的值要从令牌层拿。初始状态必须与 from 帧完全一致。
+@mixin fish-enter-sheet-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-enter-sheet-y) translateZ(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+// 头图显形。
+//
+// 头图是整页第一眼的东西，入场时它不该「淡入」—— 淡入一张照片读作
+// 「图片加载出来了」，而它要做的是「照片落到位」。所以这里动的是 scale：
+// 从 1.06 收到 1，读作镜头往后退了一点，照片自己站到了它的位置上。
+@mixin fish-enter-media {
+  @if $fish-motion {
+    opacity: 0;
+    animation: fish-enter-media $fish-dur-slow $fish-ease-out both;
+  }
+}
+
+// 新态进场。
+//
+// 挂载即播，所以用 animation 而不是 transition：transition 需要
+// 「先在隐藏态，再切到显示态」，而内容是随数据一到就挂上来的，
+// 中间没有那个隐藏态。
+@mixin fish-cross-in {
+  @if $fish-motion {
+    animation: fish-cross-in $fish-dur-cross $fish-ease-out both;
+  }
+}
+
+// 旧态淡出。
+//
+// 旧态不能立刻摘：摘的那一刻新态还在淡入，中间会露出底色。
+// 所以旧态留在 DOM 里，类一切就淡，淡完再摘 —— 摘的时机在
+// composables/useCrossFade 里（JS 读不到 Sass 变量，时长两处一起改）。
+@mixin fish-cross-out {
+  @if $fish-motion {
+    transition: opacity $fish-dur-cross $fish-ease-out;
+  }
+}
+
+// 交叉淡入的帧内容。@keyframes 只能写在全局样式里，
+// 帧里的值要从令牌层拿。
+@mixin fish-cross-in-frames {
+  from {
+    opacity: 0;
+    transform: translateY($fish-cross-y);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

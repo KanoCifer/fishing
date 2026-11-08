@@ -1,272 +1,53 @@
 /*
- * 主题真值 —— 三套令牌值。
+ * 主题真值 —— 把三套值发成 CSS 变量。
  *
- * 这个文件只放**会随主题或表面变**的那些值。固定色（品牌蓝实色、语义实色、
- * 深色面）留在 tokens/_color.scss 里当字面量；canvas 的色在
- * src/utils/chartPalette.ts —— canvas 不读这里的变量。
+ * 值在 theme/_surfaces.scss（唯一出处）；这个文件只负责发出去。
  *
- * 为什么变量定义在这里、而不是组件里：
- * 令牌层是唯一的取值出处（见 src/styles/tokens/_color.scss）。
- * 组件只写 $fish-ink 这样的名字，实际取值由 _color.scss 里那句
- * `var(--fish-ink, #000000)` 解析 —— 值在这里翻，组件一行不用改。
+ * 为什么变量定义在这里、而不是组件里：令牌层是唯一的取值出处。
+ * 组件只写 $fish-ink 这样的名字，实际取值由 tokens/_color.scss 里那句
+ * `themed('fish-ink')` 解析 —— 值在这里翻，组件一行不用改。
  *
  * 为什么选择器是 `page, .page`：
  * 小程序没有 :root（页面根不是 document，是 page 节点）。
  * .page 是给不在 page 作用域里的内容准备的兜底类
  * （自定义底栏这类原生组件、根 portal 渲染出来的东西）。
  *
- * 为什么每个变量都带兜底值：
- * 变量没被解析到时退回浅色 —— 界面难看，但读得出来。
- * 反过来（只写变量不写兜底）会得到透明文字与透明背景，整屏读不出来。
+ * 深色不是把浅色反过来。深色有自己的表面关系：页面底接近纯黑，卡片面抬高一档，
+ * 玻璃面从半透明白改成半透明深，发丝线从黑 29% 透明度改成白 16%。
+ * 层次靠面，不靠描边 —— 与设计系统一致。
  *
- * ── 三套，不是两套 ──
- *
- *   1. 浅色（page, .page）
- *   2. 深色（@media prefers-color-scheme: dark）
- *   3. 照片面（.on-photo）
- *
- * 深色是**整页底色**翻过来。照片面是另一件事：**同一屏里**压在照片上的
- * 那几块玻璃自己变深，页面底不变。天气的照片可能很亮也可能很暗，
- * 这一套要的是「无论底下是什么，白字都读得清」，所以它不随主题翻。
- *
- * 照片面由页面挂一个 .on-photo 类启用（见 src/pages/data/index.vue）。
- * 那一类里只有「这一块压在照片上」这一件事，没有别的开关。
- *
- * ── 这个文件是页面层那些值的唯一出处 ──
- *
- * 随主题变的颜色，只有这一份。令牌层写成 var(--fish-*, 兜底值)，
- * 兜底值就是下面浅色那一行 —— 浅色段与兜底值必须一样，
- * 页面层一次翻完，深浅两套也永远不会各写各的。
+ * 深色段的对比度按 WCAG 校验（正文 ≥4.5:1，图形 ≥3:1），基准面是卡片面 #16181d：
+ *   正文 #ffffff 17.76:1 · 次级 #b8bcc4 9.33:1 · 辅助 #8e939c 5.75:1
+ *   品牌蓝 #4c9bff 6.29:1 · 成功 #3ddc84 9.95:1
+ *   警告 #ffb340 9.96:1 · 危险 #ff6961 6.30:1
+ * 发丝线与填充装饰层只有 1.2:1 到 1.6:1 —— 它们不承担可读性，靠面的明度差分层。
  *
  * canvas 不读这里的变量（canvas 2d 不解析 var()），
  * 原生底栏也不读（它不经 uni-app 编译，继承不到 page 上的变量），
  * 那两边各有各的出处，见 src/utils/chartPalette.ts 与 src/custom-tab-bar/。
  *
- * 深色不是把浅色反过来。深色有自己的表面关系：
- * 页面底接近纯黑，卡片面抬高一档，玻璃面从半透明白改成半透明深，
- * 发丝线从黑 29% 透明度改成白 16%。层次靠面，不靠描边 —— 与设计系统一致。
- *
  * 由 App.vue 的全局 style 引入，全局只此一份。
  */
+@use 'theme/surfaces' as theme;
 
 page,
 .page {
-  /* ── 文字三阶 ── */
-  --fish-ink: #000000;
-  --fish-muted: #3f3f45;
-  --fish-muted-60: #666666;
-
-  /* ── 表面 ── */
-  --fish-page: rgba(245, 248, 253, 1);
-  --fish-grouped: #e2e8f8;
-  --fish-card-face: #ffffff;
-  --fish-surface: rgba(120, 120, 128, 0.16);
-  --fish-fill: rgba(120, 120, 128, 0.12);
-  --fish-faint: rgba(120, 120, 128, 0.3);
-  --fish-photo-placeholder: #dfe6ea;
-  --fish-map-panel: rgba(255, 255, 255, 0.88);
-  --fish-overlay: rgba(255, 255, 255, 0.86);
-
-  /* ── 分隔线 ── */
-  --fish-border: rgba(60, 60, 67, 0.29);
-  --fish-border-40: rgba(60, 60, 67, 0.18);
-
-  /* ── 材质 ── */
-  --fish-glass: rgba(255, 255, 255, 0.8);
-  --fish-card-glass: rgba(249, 249, 253, 0.85);
-  --fish-glass-strong: rgba(255, 255, 255, 0.82);
-  --fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.85);
-  --fish-glass-stroke: rgba(255, 255, 255, 0.18);
-
-  /* 卡片的投影。分层的第一手段是面，这一层影只是把卡抬离页面底 */
-  --fish-card-shadow: 0 2rpx 10rpx rgba(16, 24, 40, 0.06);
-
-  /* 玻璃的模糊半径与饱和度 */
-  --fish-blur: 20px;
-  --fish-saturate: 1.8;
-
-  /* 磁贴那一层的模糊。九块磁贴各糊一次，代价是九份，所以比卡面小一档 */
-  --fish-blur-tile: 12px;
-
-  /* 分段控件的选中块。默认就是页面底色 —— 选中块是「浮」在轨道上的一层 */
-  --fish-segment-active: var(--fish-page);
-
-  /* ── 页面底 ── */
-  --fish-page-base: #f3f4f9;
-  --fish-page-base-fade: rgba(243, 244, 249, 0);
-  /* 页面底上那圈蓝调。底色不在这层里 —— 见 tokens/_color.scss 的 $fish-page-bg */
-  --fish-page-glow: radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%);
-  --fish-dock-fade: linear-gradient(
-    180deg,
-    rgba(242, 242, 247, 0) 0%,
-    rgba(242, 242, 247, 0.94) 46%,
-    rgba(242, 242, 247, 0.97) 100%
-  );
-
-  /* ── 淡底 ── */
-  --fish-accent-tint: rgba(15, 102, 214, 0.12);
-  --fish-cal-catch: rgba(15, 102, 214, 0.22);
-  --fish-cal-checkin: rgba(120, 120, 128, 0.12);
-  --fish-tone-tint: rgba(52, 199, 89, 0.14);
-  --fish-warning-tint: rgba(255, 149, 0, 0.14);
-  --fish-destructive-tint: rgba(255, 59, 48, 0.14);
-
-  /* ── 语义文字 ── */
-  --fish-blue-600: #0062cc;
-  --fish-success-ink: #1d7a38;
-  --fish-warning-ink: #9a5b00;
-  --fish-destructive-ink: #c92a20;
-
-  /* ── 潮位读数（跟 canvas 的潮位曲线同色）── */
-  --fish-tide-ink: #007aff;
-
-  /* ── 分钟级降水的雨强分档 ──
-     这一族跟着卡片的材质走：卡片是深玻璃时，同一套 alpha 压上去要抬（见 .on-photo） */
-  --fish-rain-none: rgba(120, 120, 128, 0.28);
-  --fish-rain-light: rgba(0, 122, 255, 0.42);
-  --fish-rain-medium: rgba(0, 122, 255, 0.58);
-  --fish-rain-heavy: rgba(0, 122, 255, 0.82);
-  --fish-rain-storm: #007aff;
-  --fish-rain-flat: linear-gradient(180deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.02) 100%);
+  @each $name, $value in theme.$light {
+    --#{$name}: #{$value};
+  }
 }
 
-/*
- * 深色。
- *
- * 对比度按 WCAG 校验（正文 ≥4.5:1，图形 ≥3:1），
- * 基准面是卡片面 #16181d：
- *   正文 #ffffff 17.76:1 · 次级 #b8bcc4 9.33:1 · 辅助 #8e939c 5.75:1
- *   品牌蓝 #4c9bff 6.29:1 · 成功 #3ddc84 9.95:1
- *   警告 #ffb340 9.96:1 · 危险 #ff6961 6.30:1
- *
- * 发丝线与填充装饰层只有 1.2:1 到 1.6:1 —— 它们不承担可读性，
- * 靠面的明度差分层。
- */
 @media (prefers-color-scheme: dark) {
   page,
   .page {
-    /* ── 文字三阶 ── */
-    --fish-ink: #ffffff;
-    --fish-muted: #b8bcc4;
-    --fish-muted-60: #8e939c;
-
-    /* ── 表面 ── */
-    --fish-page: #121519;
-    --fish-grouped: #0b0d11;
-    --fish-card-face: #16181d;
-    --fish-surface: rgba(120, 120, 128, 0.24);
-    --fish-fill: rgba(120, 120, 128, 0.2);
-    --fish-faint: rgba(120, 120, 128, 0.4);
-    --fish-photo-placeholder: #2a2f36;
-    --fish-map-panel: rgba(22, 24, 29, 0.86);
-    --fish-overlay: rgba(18, 21, 25, 0.86);
-
-    /* ── 分隔线 ── */
-    --fish-border: rgba(255, 255, 255, 0.16);
-    --fish-border-40: rgba(255, 255, 255, 0.1);
-
-    /* ── 材质 ── */
-    --fish-glass: rgba(28, 30, 36, 0.8);
-    --fish-card-glass: rgba(24, 26, 32, 0.86);
-    /*
-     * 玻璃条本身，不是压在玻璃上的浅色块。
-     *
-     * 这一族有五处用法，全是浮在内容之上的条（顶栏、导航条、提交条）。
-     * 浅色下是半透明白，深色下就是半透明深 —— 拿白 14% 去叠，
-     * 会在深色页面顶上留一条浅灰横带。
-     */
-    --fish-glass-strong: rgba(28, 30, 36, 0.82);
-    --fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.14);
-    --fish-glass-stroke: rgba(255, 255, 255, 0.08);
-
-    /* 深色下卡与底本来就靠明度差分层，影只需要托住下沿 */
-    --fish-card-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.35);
-
-    /* ── 页面底 ── */
-    --fish-page-base: #0b0d11;
-    --fish-page-base-fade: rgba(11, 13, 17, 0);
-    /* 页面底上那圈蓝调。深色下是深蓝调，不是浅色那一圈 */
-    --fish-page-glow: radial-gradient(118% 44% at 50% -12%, rgba(30, 64, 110, 0.55) 0%, rgba(30, 64, 110, 0) 62%);
-    --fish-dock-fade: linear-gradient(
-      180deg,
-      rgba(11, 13, 17, 0) 0%,
-      rgba(11, 13, 17, 0.94) 46%,
-      rgba(11, 13, 17, 0.97) 100%
-    );
-
-    /* ── 淡底 ── */
-    --fish-accent-tint: rgba(76, 155, 255, 0.18);
-    --fish-cal-catch: rgba(76, 155, 255, 0.28);
-    --fish-cal-checkin: rgba(120, 120, 128, 0.2);
-    --fish-tone-tint: rgba(61, 220, 132, 0.18);
-    --fish-warning-tint: rgba(255, 179, 64, 0.18);
-    --fish-destructive-tint: rgba(255, 105, 97, 0.18);
-
-    /* ── 语义文字 ── */
-    --fish-blue-600: #4c9bff;
-    --fish-success-ink: #3ddc84;
-    --fish-warning-ink: #ffb340;
-    --fish-destructive-ink: #ff6961;
-
-    /* 潮位读数：跟 canvas 的潮位曲线同色 */
-    --fish-tide-ink: #4c9bff;
+    @each $name, $value in theme.$dark {
+      --#{$name}: #{$value};
+    }
   }
 }
 
 .on-photo {
-  /* ── 文字三阶：白 / 白 72% / 白 52% ──
-     层次靠透明度，不靠色相 —— 三档都是白，靠明度差分前后。 */
-  --fish-ink: #ffffff;
-  --fish-muted: rgba(255, 255, 255, 0.72);
-  --fish-muted-60: rgba(255, 255, 255, 0.52);
-
-  /* ── 语义文字：都翻到亮档 ──
-     浅色档（#1d7a38 那一族）是给白底压的，压在深玻璃上会黑得看不见。 */
-  --fish-blue-600: #a8ccff;
-  --fish-success-ink: #7fe3a5;
-  --fish-warning-ink: #ffd08a;
-  --fish-destructive-ink: #ff9f99;
-  --fish-tide-ink: #8fd0ff;
-
-  /* ── 表面 ──
-     卡面就是那块玻璃：42% 的深蓝压在照片上，糊过之后照片还透得出来。 */
-  --fish-card-face: rgba(12, 28, 54, 0.14);
-  --fish-card-glass: rgba(12, 28, 54, 0.14);
-
-  /* 填充与轨道：白 12~14%。深底上要靠「比底亮」才看得出是条轨道 */
-  --fish-surface: rgba(255, 255, 255, 0.14);
-  --fish-fill: rgba(255, 255, 255, 0.12);
-  --fish-faint: rgba(255, 255, 255, 0.3);
-
-  /* 淡底（选中胶囊那种）：白 18% —— 亮过轨道一档，才读得出「选中了」 */
-  --fish-accent-tint: rgba(255, 255, 255, 0.18);
-
-  /* ── 分隔线 ── */
-  --fish-border: rgba(255, 255, 255, 0.22);
-  --fish-border-40: rgba(255, 255, 255, 0.1);
-
-  --fish-glass-stroke: rgba(255, 255, 255, 0.18);
-  --fish-glass-edge: inset 0 1rpx 0 rgba(255, 255, 255, 0.22);
-  --fish-card-shadow: 0 18rpx 44rpx rgba(4, 12, 26, 0.24);
-
-  --fish-blur: 20px;
-  --fish-saturate: 1.8;
-
-  /* 九块磁贴各糊一次，代价是九份 —— 比卡面小一档 */
-  --fish-blur-tile: 14px;
-
-  /* 分段控件：半透明轨道 + 更亮的选中块 */
-  --fish-segment-active: rgba(255, 255, 255, 0.26);
-
-  /* 浮在内容之上的条（顶栏那条结论条）：比卡面更实一点 ——
-     它上面有字，而且常常压在照片最亮的那一段上 */
-  --fish-glass-strong: rgba(12, 28, 54, 0.14);
-
-  /* ── 雨强那族：深玻璃上要抬 alpha，四档才拉得开 ── */
-  --fish-rain-none: rgba(180, 188, 200, 0.14);
-  --fish-rain-light: rgba(10, 132, 255, 0.62);
-  --fish-rain-medium: rgba(10, 132, 255, 0.76);
-  --fish-rain-heavy: rgba(10, 132, 255, 0.9);
-  --fish-rain-storm: #0a84ff;
-  --fish-rain-flat: linear-gradient(180deg, rgba(10, 132, 255, 0.16) 0%, rgba(10, 132, 255, 0.04) 100%);
+  @each $name, $value in theme.$photo {
+    --#{$name}: #{$value};
+  }
 }

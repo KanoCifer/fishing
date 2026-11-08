@@ -1,79 +1,10 @@
-// 卡片
-@use 'color' as *;
-@use 'depth' as *;
-@use 'type' as *;
-@use 'material' as *;
+// 卡片参数。
 @use 'space' as *;
 
-/**
- * 卡内留白。
- *
- * 28rpx = 14pt。这是「内容到卡边」的间距，比分区之间的 40rpx 紧，
- * 比控件内部的留白松 —— 卡片是浮在页面上的一整块，
- * 它的边到内容的距离不该跟页面里区块之间的距离是同一档。
- */
+// 卡内留白。28rpx = 14pt，比分区之间紧，比控件内部松 ——
+// 卡片是浮在页面上的一整块，它的边到内容的距离不该跟区块之间的距离同档。
 $fish-card-padding: 28rpx;
 
-/**
- * 标题行与内容之间的距离。
- *
- * 24rpx = 12pt —— 就是「标签与它下面那组内容之间」那一档
- * （$fish-space-label）。两者是同一件事：标签离内容多远，
- * 所以只留一个出处，分区眉标到卡片、卡片标题到内容共用它。
- */
+// 标题行与内容之间的距离。24rpx = 12pt，就是「标签与它下面那组内容之间」那一档
+// （$fish-space-label）：两者是同一件事，只留一个出处。
 $fish-card-head-gap: $fish-space-label;
-
-/**
- * 卡片外壳。
- *
- * 玻璃面 + 卡内留白。材质在 _material.scss，留白在卡片这一层，
- * 两件事捆在一起才是「一张卡」—— 只有玻璃面没有留白的是面板，
- * 只有留白没有玻璃面的不是这套东西。
- */
-@mixin fish-card($padding: $fish-card-padding) {
-  padding: $padding;
-  @include fish-glass($fish-radius-mid, $fish-card-glass);
-
-  /* 模糊走材质层那一个 mixin —— 半径与饱和度都是令牌，不在这里写死 */
-  @include fish-glass-blur;
-}
-
-/**
- * 装着一组列表行的卡片。
- *
- * 横向留白交给行自己给（$fish-list-pad-x），卡片不再带 ——
- * 行是满宽的，内容在行里内缩 20pt，标题行用同一档内缩，
- * 于是整张卡里的内容都对齐在同一条竖线上。
- *
- * 纵向留白仍由卡片给：卡片的上下沿是「这一块的边界」，
- * 不是某一行的高度。
- */
-@mixin fish-list-card($padding-top: $fish-card-padding, $padding-bottom: $fish-card-padding) {
-  @include fish-card(0);
-  padding-top: $padding-top;
-  padding-bottom: $padding-bottom;
-}
-
-@mixin fish-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: $fish-card-head-gap;
-}
-
-/*
- * 卡片标题。
- *
- * 颜色走 muted，不是 ink：标题是这一块的注脚，不是结论。
- * 字号走 caption：标题不是结论，不该占正文的字阶。
- * 跟 WeatherHero 的「今日鱼口概率」同一档 —— 那一行定的就是这个层级。
- */
-@mixin fish-card-title($level: caption, $weight: 600) {
-  color: $fish-muted;
-  @include fish-type($level, $weight);
-}
-
-@mixin fish-card-meta($level: caption, $color: $fish-muted-60) {
-  color: $color;
-  @include fish-type($level);
-}

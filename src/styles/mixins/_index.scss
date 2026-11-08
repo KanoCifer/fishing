@@ -1,0 +1,7 @@
+// mixin 层：只有复用片段，没有值。值在 ../tokens。
+@forward 'type';
+@forward 'material';
+@forward 'card';
+@forward 'control';
+@forward 'layout';
+@forward 'motion';

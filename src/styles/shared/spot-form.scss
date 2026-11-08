@@ -13,7 +13,7 @@
 // 样式文件（.vue 的 style 块）前面，被 @use 拉进来的独立 scss 文件
 // 是另一个编译单元，拿不到那些变量。
 // ===========================================================================
-@use '@/styles/tokens/_index.scss' as *;
+@use '@/styles/_index.scss' as *;
 
 .spot-form {
   position: relative;

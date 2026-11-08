@@ -1,40 +1,18 @@
-// ===========================================================================
-// 颜色
+// 颜色。
 //
-// ── 谁拥有哪个值 ──
-//
-// 一个色值在一个仓库里只该有一个出处。这些令牌分四组，
-// 各自的拥有者不同；别的载体（canvas 色板、图标脚本、原生底栏）要用同一个值，
-// 从对应那一组取，不要另写一份 —— 另写一份就是下一次漂移。
-//
-//   1. 固定色          本文件，字面量。深浅两套同值，不随主题变。
-//   2. 随主题变的色    本文件写成 var(--fish-*)，两套值集中在 src/styles/theme.scss。
-//   3. canvas 的色     src/utils/chartPalette.ts。canvas 2d 不解析 var()，
-//                      也不解析 SCSS 变量 —— 这一组的拥有者是那份 TS。
-//   4. 两边都要的色    本文件是拥有者，另一边照抄并在旁边注明出处。
-//
-// 第 3 组在本文件里**没有副本**。以前这里留着 $fish-grid / $fish-temp /
-// $fish-wind-ink / $fish-gauge-* 当「锚点」，注释写着「canvas 侧硬编码，要手工保持一致」——
-// 但那些值 SCSS 一处也用不到，抄在这里只会让人以为改这里就能改到 canvas。
-// ===========================================================================
+// 四类，各有拥有者：
+//   1. 固定色        本文件，字面量，深浅同值。
+//   2. 随主题变的色  本文件用 themed()，三套值在 ../theme/_surfaces.scss。
+//   3. canvas 的色   src/utils/chartPalette.ts —— canvas 2d 不解析 var()。
+//   4. 两边都要的色  本文件是拥有者，另一边照抄并注明出处。
+@use '../theme/surfaces' as *;
 
-/**
- * 品牌蓝。两档，**两档不能一起翻**。
- *
- * 填充档（$fish-blue，实心块）与文字档（$fish-blue-600，等级词、说明文字）分开，
- * 因为浅色下两者需要的明度相反：文字档要更深（#0062cc）才读得清，
- * 填充档是品牌本色（#0f66d6）。
- *
- * 深色下只有文字档翻（#4c9bff），填充档留在 #0f66d6 ——
- * 实心块上压的是白字（$fish-on-accent）：白字压 #0f66d6 是 5.40:1，
- * 压 #4c9bff 掉到 2.82:1，翻上去就把按钮上的字读不出来了。
- *
- * 代价是：填充档压在**深色面**上（不是白字压它，是它自己压着深色卡）时偏暗，
- * 3.2:1 刚够「有意义图形 3:1」。canvas 的值弧与图标那一档在深色下用了亮蓝，
- * 那两处是图形不是实心块 —— 见 chartPalette.ts 与 gen-icons.mjs 的注释。
- */
+/* ── 品牌色 ── */
+
+// 填充档与文字档不能一起翻：浅色下文字档要更深才读得清；
+// 深色下只翻文字档 —— 实心块上压的是白字，翻成亮蓝读不出来。
 $fish-blue: #0f66d6;
-$fish-blue-600: var(--fish-blue-600, #0062cc); // 文字专用（等级词、说明文字）+ 按下态
+$fish-blue-600: themed('fish-blue-600');
 $fish-accent: $fish-blue;
 
 $fish-gradient: linear-gradient(135deg, #1a6ee0 0%, #0f66d6 55%, #1a4fa0 100%);
@@ -43,335 +21,164 @@ $fish-gradient: linear-gradient(135deg, #1a6ee0 0%, #0f66d6 55%, #1a4fa0 100%);
 $fish-success: #34c759; // systemGreen
 $fish-destructive: #ff3b30; // systemRed
 
-$fish-success-ink: var(--fish-success-ink, #1d7a38);
+$fish-success-ink: themed('fish-success-ink');
+$fish-warning-ink: themed('fish-warning-ink');
+$fish-destructive-ink: themed('fish-destructive-ink');
 
-$fish-warning-ink: var(--fish-warning-ink, #9a5b00);
-$fish-destructive-ink: var(--fish-destructive-ink, #c92a20);
+/* ── 图表语义色：不随主题翻 ── */
 
-/**
- * 日照色。
- *
- * 只给日照时间轴用：白昼那一段是暖色的，夜是冷色的。
- * 这两个值跟品牌蓝不搭，但「日=暖、夜=冷」是全世界的直觉 ——
- * 为了合群把时间轴染成蓝色，读的人得先翻译一遍才知道哪段是白天。
- */
+// 日照时间轴：白昼暖、夜冷 —— 这条直觉通用，染成蓝的读的人得先翻译一遍。
 $fish-sun: #ff9500;
 $fish-sun-soft: #ffd60a;
 
-/**
- * 月色。
- *
- * 夜钓窗口那条带用 —— 与月相图标（Meteocons）里那轮月亮的颜色同一个值。
- * 图标是烤进 data URI 的色（见 constants/weatherIcons.ts），窗口是块面，
- * 两者指着同一件事，不该是两个蓝。
- *
- * 跟 $fish-sun 一样是图表语义色：它讲的是「这一段是夜」，不随主题翻。
- */
+// 夜钓窗口那条带，与月相图标里那轮月亮同一个值。
 $fish-moon: #72b9d5;
 
-/**
- * 取 systemOrange 而不是 systemYellow。
- *
- * systemYellow(#ffcc00) 在白底上对比度约 1.6:1，是纯粹的填充色；
- * 而 warning 在这个项目里三处都当文字色用（钓鱼等级、气压状态、星级），
- * 直接拿 Yellow 会让「一般」这两个字消失在白卡片上。
- */
+// systemOrange 而不是 systemYellow：Yellow 在白底上约 1.6:1，是纯填充色，
+// 而 warning 在本项目里三处都当文字色用。
 $fish-warning: #ff9500;
 
 /* ── 文字：iOS 的 label 三阶 ── */
-/**
- * 弱化的两档不再用 iOS 的半透明灰。
- *
- * secondaryLabel 压白底只有 3.4:1、tertiaryLabel 只有 1.7:1 ——
- * iOS 那两档是给「一眼扫过去」用的，而这两档在本项目里都是要读的正文：
- * 分区眉标、表单标签、落款、占位符。1.7:1 那一档在白卡片上基本等于没画。
- *
- * 换成实色灰，层级靠明度差保住（21:1 → 10.5:1 → 5.7:1），
- * 而最弱的那一档在页面最暖的那块底色上仍有 5.1:1。
- *
- * 最弱那一档取速查表里的 subtle（#666666）：白底上 5.7:1，
- * 页面底（#e2e8f8）上 5.1:1，都过 4.5:1 那条线。
- */
-$fish-ink: var(--fish-ink, #000000); // label —— 速查表的 default
-$fish-muted: var(--fish-muted, #3f3f45); // secondaryLabel —— 中间那一档，速查表未覆盖
-$fish-muted-60: var(--fish-muted-60, #666666); // tertiaryLabel —— 速查表的 subtle
 
-/**
- * 极淡的灰填充。
- *
- * 抓握条、状态点、打字点这类**不是文字**的东西用这一档。
- * 它跟 $fish-muted-60 分开，是因为后者要当文字用 ——
- * 文字得压到 4.5:1 才读得清；填充块不需要读得清，它要的是「淡」。
- */
-$fish-faint: var(--fish-faint, rgba(120, 120, 128, 0.3));
+// 弱化的两档不用 iOS 的半透明灰：secondaryLabel 压白底 3.4:1、tertiaryLabel 1.7:1，
+// 而这两档在本项目里都是要读的正文。换成实色灰后层级靠明度差保住
+// （21:1 → 10.5:1 → 5.7:1）。
+$fish-ink: themed('fish-ink');
+$fish-muted: themed('fish-muted');
+$fish-muted-60: themed('fish-muted-60');
+
+// 极淡的灰填充，给抓握条、状态点这类不是文字的东西用。
+// 与 muted-60 分开是因为后者要当文字用，得压到 4.5:1。
+$fish-faint: themed('fish-faint');
 
 /* ── 实心块上的文字色 ── */
 
-/**
- * 压在品牌蓝填充块上的文字色。
- *
- * 主按钮、选中态的胶囊、已选中的选项 —— 底是实心的，字只能反过来。
- * 这一档以前散在十二处各写一个 #ffffff：值是对的，但**没有出处**，
- * 品牌色一改就得挨个找。
- */
+// 压在品牌蓝填充块上的文字色。
 $fish-on-accent: #ffffff;
 
-/**
- * 压在深色面上的文字色。
- *
- * 深色导航栏、照片压暗、遮罩 —— 值与上面那档一样都是白的，
- * 但**不是同一件事**：蓝底上的白字和近黑底上的白字，对比度的余量不同。
- * 照片那一头尤其吃紧 —— 逆光的水面能把白字吃掉，所以头图上方要单独压一层
- * （见 $fish-photo-scrim），那是给这块面保证一个下限对比度，
- * 不是给照片加个滤镜。
- *
- * 拆成两个令牌，是为了让「改一个不影响另一个」：
- * 品牌色调亮时该压深的是这一档，不是上一档。
- */
+// 压在深色面上的文字色。照片那一头尤其吃紧 —— 逆光的水面能把白字吃掉。
 $fish-on-dark: #ffffff;
 
 /* ── 表面 ── */
-$fish-page: var(--fish-page, rgba(245, 248, 253, 1)); // 卡片 / 面板底，systemBackground
-$fish-grouped: var(--fish-grouped, #e2e8f8); // 页面底，systemGroupedBackground
+$fish-page: themed('fish-page');
+$fish-grouped: themed('fish-grouped');
 
-/**
- * 白卡的面色。
- *
- * $fish-page 是「面板底」，偏蓝的米白 —— 它压在**深色面**上是对的，
- * 压在浅蓝的页面底（$fish-page-bg 底下那层 #f3f4f9）上只差两三个色阶，
- * 卡片就分不出层。
- *
- * iOS 的分组列表是纯白卡压 #F2F2F7 的底，靠的就是那十几级的亮度差。
- * 「我的」页的白卡照这个来，所以另立这一档。
- */
-$fish-card-face: var(--fish-card-face, #ffffff);
-$fish-surface: var(--fish-surface, rgba(120, 120, 128, 0.16)); // secondarySystemFill：骨架块、chip
-$fish-fill: var(--fish-fill, rgba(120, 120, 128, 0.12)); // tertiarySystemFill：segmented 轨道
+// 白卡的面色。页面底偏蓝的米白压在浅蓝的页面底上只差两三个色阶，卡片就分不出层；
+// iOS 的分组列表是纯白卡压 #F2F2F7 的底，靠的就是那十几级的亮度差。
+$fish-card-face: themed('fish-card-face');
+$fish-surface: themed('fish-surface');
+$fish-fill: themed('fish-fill');
 
 /* ── 分隔线 ── */
-/* separator。用 1rpx 而不是 2rpx：2rpx 在 375pt 机型上正好 1pt，是 iOS 发丝线的三倍厚，
-   「重描边」正是这套观感里最刺眼的一处。mp-weixin 下 1rpx 稳定渲染出 1 物理像素。 */
-$fish-border: var(--fish-border, rgba(60, 60, 67, 0.29));
-$fish-border-40: var(--fish-border-40, rgba(60, 60, 67, 0.18)); // 分组内部的浅一档线
+// 1rpx 而不是 2rpx：2rpx 在 375pt 机型上正好 1pt，是 iOS 发丝线的三倍厚。
+$fish-border: themed('fish-border');
+$fish-border-40: themed('fish-border-40');
 
-/* ── 材质（浮在原生 map 之上时使用）──
-   没有 backdrop-filter：map 是原生组件，模糊它要重采样整屏纹理，
-   代价高且掉帧。半透明实色 + 底边一道高光，同样能读出「一层浮起来的材质」。 */
+/* ── 材质 ── */
+// 浮在原生 map 之上的这一层没有 backdrop-filter：map 是原生组件，
+// 模糊它要重采样整屏纹理，代价高且掉帧。
 $fish-scrim: rgba(0, 0, 0, 0.4); // 模态遮罩
 
-$fish-glass: var(--fish-glass, rgba(255, 255, 255, 0.8));
-$fish-card-glass: var(--fish-card-glass, rgba(249, 249, 253, 0.85));
-/**
- * 浮在内容之上的那层玻璃（顶栏、导航条、提交条）。
- *
- * 它是**玻璃本身**，不是压在玻璃上的浅色块 —— 深色下要跟着变成半透明深，
- * 否则深色页面顶上会留一条浅灰横带。
- */
-$fish-glass-strong: var(--fish-glass-strong, rgba(255, 255, 255, 0.82));
-$fish-glass-edge: var(--fish-glass-edge, inset 0 1rpx 0 rgba(255, 255, 255, 0.85)); // 顶边高光
+$fish-glass: themed('fish-glass');
+$fish-card-glass: themed('fish-card-glass');
 
-/**
- * 玻璃面外圈那道描边。
- *
- * 浅色下这一圈是白的（92%），压在浅色页面底上几乎看不见 ——
- * 它起的作用不是「看得见」，是「玻璃的边缘不糊进背景」。
- * 玻璃面是半透明的，没有这道描边，边缘会跟底色连成一片。
- *
- * 深色下必须翻：白 92% 压在一张深色卡上，就是一圈亮白框。
- * 深色玻璃的轮廓靠面的明度差（卡片面比页面底亮一档），
- * 描边只留一道几乎看不见的弱白。
- */
-$fish-glass-stroke: var(--fish-glass-stroke, rgba(255, 255, 255, 0.18));
-$fish-blur: 20px;
+// 浮在内容之上的那层玻璃（顶栏、导航条、提交条）。它是玻璃本身，
+// 不是压在玻璃上的浅色块 —— 深色下要跟着变成半透明深，
+// 否则深色页面顶上会留一条浅灰横带。
+$fish-glass-strong: themed('fish-glass-strong');
+$fish-glass-edge: themed('fish-glass-edge'); // 顶边高光
 
-/**
- * 头图顶部的压暗。
- *
- * 白字压在照片上能不能读清，取决于照片本身有多亮 —— 逆光的水面能把白字吃掉。
- * 所以不是「给照片加个滤镜」，是给导航栏那一块保证一个下限对比度。
- */
+// 玻璃面外圈那道描边。浅色下这一圈是白的，起的作用不是「看得见」，
+// 是「玻璃的边缘不糊进背景」—— 玻璃面是半透明的，没有这道描边边缘会跟底色连成一片。
+// 深色下必须翻，否则就是一圈亮白框。
+$fish-glass-stroke: themed('fish-glass-stroke');
+
+// 头图顶部的压暗。不是给照片加滤镜，是给导航栏那一块保证一个下限对比度 ——
+// 逆光的水面能把白字吃掉。
 $fish-photo-scrim: linear-gradient(180deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0) 100%);
 
-/**
- * 头图缺图时的底色。
- *
- * 一张冷灰蓝，占位插画是浅色的、1:1 的，底不能跟插画撞在一起 ——
- * 底比插画深一档，插画才「坐」在上面而不是浮在同色里。
- *
- * 不用 $fish-grouped（页面底的浅灰）：那一档是给内容页的，
- * 头图这一屏压着照片，底色跟着内容页走会读成「这一屏还没加载完」。
- */
-$fish-photo-placeholder: var(--fish-photo-placeholder, #dfe6ea);
+// 头图缺图时的底色。冷灰蓝，比浅色插画深一档，插画才「坐」在上面而不是浮在同色里。
+$fish-photo-placeholder: themed('fish-photo-placeholder');
 
-/**
- * 浮在原生 map 上的那一块白面（地图工具条）。
- *
- * 单独一个令牌，是因为这一块压在地图上，而**地图不随系统主题变** ——
- * 原生组件的底图在小程序里只有浅色一份。
- *
- * 深色下这一块要跟着翻成深面：里面的图标是 ink 档，深色下是白的，
- * 白图标压在白面上就看不见了。深面压在浅色地图上反而读得清。
- */
-$fish-map-panel: var(--fish-map-panel, rgba(255, 255, 255, 0.88));
+// 浮在原生 map 上的那块白面（地图工具条）。地图不随系统主题变，
+// 而深色下里面的图标是白字，压在白面上就看不见了。
+$fish-map-panel: themed('fish-map-panel');
 
-/**
- * 铺满一屏的浅色遮罩（分享浮层等）。
- *
- * 独立一个令牌，是因为它不是「面」也不是「文字」，是**盖在页面上的那一层** ——
- * 深色下它得跟着页面一起变暗，否则深色页面会被一层白膜罩住。
- */
-$fish-overlay: var(--fish-overlay, rgba(255, 255, 255, 0.86));
+// 铺满一屏的浅色遮罩（分享浮层等）。它不是「面」也不是「文字」，
+// 是盖在页面上的那一层 —— 深色下它得跟着页面一起变暗。
+$fish-overlay: themed('fish-overlay');
 
-/**
- * 底栏的渐隐。
- *
- * 底栏是浮在内容之上的，内容要从它底下滚过去。实心底色会在内容上切一刀，
- * 渐隐则让内容「沉进去」—— 跟头图那头的压暗是同一种手法，两头呼应。
- */
-$fish-dock-fade: var(
-  --fish-dock-fade,
-  linear-gradient(180deg, rgba(242, 242, 247, 0) 0%, rgba(242, 242, 247, 0.94) 46%, rgba(242, 242, 247, 0.97) 100%)
-);
+// 底栏的渐隐。底栏浮在内容之上，实心底色会在内容上切一刀，渐隐则让内容「沉进去」。
+$fish-dock-fade: themed('fish-dock-fade');
 
-/**
- * 品牌蓝的淡底。
- *
- * 选中态的底色 —— 地图工具条上「卫星 / 路况」这类开关打开时，
- * 底上要有一块颜色把它托起来，光靠图标换色太轻，按钮看着像没开。
- *
- * 淡底而不是实底：工具条本身是半透明白面，实心的蓝块会把这一列压成一条色带，
- * 工具条读起来就不像「浮在地图上的一排按键」了。
- */
-$fish-accent-tint: var(--fish-accent-tint, rgba(15, 102, 214, 0.12));
-/** 属主头像的底色。品牌蓝的淡一档 */
-$fish-avatar-tint: $fish-accent-tint;
+/* ── 淡底 ── */
 
-/* ── 日历格子 ──
-   一天的状态用**背景色深浅**表达：偏深的蓝底是钓到鱼的，浅灰底是只打了卡的。
-   两档差在明度与色相上，不是同一档色的两个透明度 —— 后者在日历这种
-   大面积平铺的场合读不出来，「都是淡蓝」就分不出哪档更重。 */
-$fish-cal-catch: var(--fish-cal-catch, rgba(15, 102, 214, 0.22)); // 钓到鱼
-$fish-cal-checkin: var(--fish-cal-checkin, rgba(120, 120, 128, 0.12)); // 只打卡
+// 品牌蓝的淡底。淡底而不是实底：工具条本身是半透明白面，
+// 实心的蓝块会把这一列压成一条色带，读起来就不像「浮在地图上的一排按键」。
+$fish-accent-tint: themed('fish-accent-tint');
+$fish-avatar-tint: $fish-accent-tint; // 属主头像的底色
 
-/**
- * 徽标的三档淡底。
- *
- * 徽标一律「淡底 + 深字」—— 徽标只有 12pt 大，深底白字在这尺寸上
- * 过不了 4.5:1 的对比度，小字容不下那种对比度。
- * 文字色在上面的语义色段里已经压深过（$fish-success-ink / $fish-warning-ink /
- * $fish-destructive-ink），这里配的是它们的淡底。
- */
-$fish-tone-tint: var(--fish-tone-tint, rgba(52, 199, 89, 0.14));
-$fish-warning-tint: var(--fish-warning-tint, rgba(255, 149, 0, 0.14));
-$fish-destructive-tint: var(--fish-destructive-tint, rgba(255, 59, 48, 0.14));
+// 日历格子：一天的状态用背景色深浅表达。
+// 两档差在明度与色相上，不是同一档色的两个透明度 ——
+// 后者在日历这种大面积平铺的场合读不出来。
+$fish-cal-catch: themed('fish-cal-catch');
+$fish-cal-checkin: themed('fish-cal-checkin');
 
-/**
- * 页面底色。
- *
- * $fish-page-bg 的底那一层：上面那圈蓝调是渐变的亮端，淡出之后剩下的就是它。
- * 单独立一个令牌，是因为别处要拿它当**渐变的终点**——
- * 天气页头图的底边要化进页面底色，接的就是这个值
- * （接 $fish-grouped 会留一条细缝：那是 .data 的底，被 backdrop 盖住了）。
- */
-$fish-page-base: var(--fish-page-base, #f3f4f9);
+// 徽标一律「淡底 + 深字」：徽标只有 12pt 大，深底白字在这个尺寸上过不了 4.5:1。
+$fish-tone-tint: themed('fish-tone-tint');
+$fish-warning-tint: themed('fish-warning-tint');
+$fish-destructive-tint: themed('fish-destructive-tint');
 
-/**
- * 页面底色的透明档。
- *
- * 单独一个令牌，是因为渐变的终点要写成 `rgba($fish-page-base, 0)` ——
- * 那个写法在令牌变成 CSS 变量之后编译不过（rgba() 不吃 var()）。
- */
-$fish-page-base-fade: var(--fish-page-base-fade, rgba(243, 244, 249, 0));
+/* ── 页面底 ── */
 
-/**
- * 页面底色。底下是 $fish-page-base，上面盖一圈淡蓝调。
- *
- * 那圈蓝调走 var(--fish-page-glow)：深色下要跟着翻 ——
- * theme.scss 的深色段有一份 rgba(30, 64, 110, 0.55) 的深蓝调。
- * 以前这里写的是字面量，深色那段就永远读不到，
- * 结果深色页面顶上压着一条浅蓝光晕（rgba(203, 231, 255, 0.9)），
- * 只有底下那层底色翻了。
- *
- * ⚠️ 变量里**只放蓝调那一层**，底色留在外面。
- *
- * background 简写里颜色只能出现在**最后一层**。如果把底色也塞进变量的值里，
- * 替换后就是「蓝调、底色、底色」三层 —— 颜色落在中间层，整条声明作废，
- * 页面底直接透明。
- *
- * 所以这里写成「var(蓝调), 底色」：蓝调在变量里翻，底色永远是最后一层。
- */
-$fish-page-bg:
-  var(--fish-page-glow, radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, 0.9) 0%, rgba(203, 231, 255, 0) 62%)),
-  $fish-page-base;
+// $fish-page-bg 的底那一层：上面那圈蓝调是渐变的亮端，淡出之后剩下的就是它。
+// 单独一个令牌，是因为别处要拿它当渐变的终点。
+$fish-page-base: themed('fish-page-base');
 
-/* ── 图表与 canvas ──
-   这一组的拥有者是 src/utils/chartPalette.ts —— canvas 2d 不解析 SCSS 变量，
-   也不解析 CSS 变量，深浅两套只能手写在那份 TS 里。
-   本文件不抄它们：抄一份只会让人以为改这里就能改到 canvas。 */
+// 页面底色的透明档。渐变的终点要写成 rgba($fish-page-base, 0) ——
+// 那个写法在令牌变成 CSS 变量之后编译不过（rgba() 不吃 var()）。
+$fish-page-base-fade: themed('fish-page-base-fade');
 
-/**
- * 潮蓝。固定档 —— 降水那族雨强柱要用它做底，rgba() 不吃 var()。
- */
+$fish-page-glow: themed('fish-page-glow');
+
+// 页面底色。底下是 $fish-page-base，上面盖一圈淡蓝调。
+//
+// ⚠️ 变量里只放蓝调那一层，底色留在外面。
+// background 简写里颜色只能出现在最后一层：把底色也塞进变量，替换后就是
+// 「蓝调、底色、底色」三层，颜色落在中间层，整条声明作废，页面底直接透明。
+$fish-page-bg: $fish-page-glow, $fish-page-base;
+
+/* ── 潮位 ── */
+
+// 潮蓝。固定档 —— 降水那族雨强柱要用它做底，rgba() 不吃 var()。
 $fish-tide: #007aff;
 
-/**
- * 潮位读数的颜色。
- *
- * 跟 canvas 里那条潮位曲线同色 —— 图上那条线与旁边的数字是同一件事，
- * 一个数不该有两种蓝。深色下曲线是 #4c9bff，这个数也得是 #4c9bff。
- */
-$fish-tide-ink: var(--fish-tide-ink, #007aff);
+// 潮位读数的颜色。跟 canvas 里那条潮位曲线同色 —— 图上那条线与旁边的数字是同一件事。
+$fish-tide-ink: themed('fish-tide-ink');
 
-/* ── 分钟级降水的雨强分档 ──
-   降水蓝就是 $fish-tide，四档之间只差明度，不引入第二个色相。
+/* ── 分钟级降水的雨强分档 ── */
+// 降水蓝就是 $fish-tide，四档之间只差明度，不引入第二个色相：
+// 那条语义色阶表达的是「好不好」，雨强表达的是「大不大」，两套颜色会互相干扰。
+//
+// alpha 从 0.42 起跳：这张卡压在玻璃面上，再淡的那档几乎看不见。
+$fish-rain-none: themed('fish-rain-none');
+$fish-rain-light: themed('fish-rain-light');
+$fish-rain-medium: themed('fish-rain-medium');
+$fish-rain-heavy: themed('fish-rain-heavy');
+$fish-rain-storm: themed('fish-rain-storm');
 
-   为什么不用那套语义色阶（绿→蓝→橙→红）：那条色阶表达的是「好不好」，
-   雨强表达的是「大不大」。两件事都在天气这一屏里出现，共用一套颜色
-   的结果是渔碌的等级色和降水的档位色互相干扰。
+// 整段没有降水时，给那条平线铺的一层淡蓝。
+// 没有雨的时候图上只剩一条线，线浮在白卡上像一张没画完的图。
+$fish-rain-flat: themed('fish-rain-flat');
 
-   为什么不画四个不同的蓝：雨幕这张图里，颜色只承载**档位**，
-   柱高承载雨量。颜色不需要跨越色相去讲大小，只需要彼此可分。
-
-   alpha 从 0.42 起跳：这张卡压在玻璃面上（浅底），再淡的那档几乎看不见，
-   相邻两档也拉不开距离。四档要彼此可分，起点就得抬。
-
-   这一族跟着卡片的材质走 —— 卡片哪天换回深色面，抬 alpha 这件事就要重做。
-   所以它走 CSS 变量：照片面上那张卡是深玻璃，同一套 alpha 压上去更暗，
-   那一档要再抬（见 theme.scss 的 .on-photo）。 */
-$fish-rain-none: var(--fish-rain-none, rgba(120, 120, 128, 0.28)); // 测到 0：不是雨，是「这一格没有雨」
-$fish-rain-light: var(--fish-rain-light, rgba(0, 122, 255, 0.42));
-$fish-rain-medium: var(--fish-rain-medium, rgba(0, 122, 255, 0.58));
-$fish-rain-heavy: var(--fish-rain-heavy, rgba(0, 122, 255, 0.82));
-$fish-rain-storm: var(--fish-rain-storm, #007aff);
-
-/* ── 分钟级降水的干态底面 ──
-   整段没有降水时，给那条平线铺的一层淡蓝。
-
-   为什么要有这层面：没有雨的时候图上只剩一条线，线浮在白卡上
-   像一张没画完的图 —— 一块极淡的蓝把它托住，它才读成「这一段的雨幕是平的」。
-   为什么是从上往下淡出的：跟页面底的渐变同一手笔，两处是同一片天光。 */
-$fish-rain-flat: var(
-  --fish-rain-flat,
-  linear-gradient(180deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.02) 100%)
-);
-
-/* ── 图上的游标 ──
-   图表里「现在读到哪一格」的那根竖线。
-
-   alpha 跟雨幕那族同档（0.42）：这张卡压在玻璃面上，再淡就找不着了。
-   颜色用品牌蓝而不是中性灰：它标的是「读数指的是这一格」，
-   跟雨强的颜色不是一回事，用灰反而会跟「没数据」的虚线框混。 */
+/* ── 图上的游标 ── */
+// 「现在读到哪一格」的那根竖线。用品牌蓝而不是中性灰：
+// 它标的是「读数指的是这一格」，用灰反而会跟「没数据」的虚线框混。
 $fish-guide: rgba(15, 102, 214, 0.42);
 
-/* ── 深色面 ──
-   不透明的深色面：整块沉进页面底色里，浅色的东西浮在它上面。
-   现在只有一处用：记一笔页的「当时的天气」（读数）。
-
-   面底不透明：那一块上压的是五个读数，白字压深底比灰字压浅底更稳。
-
-   分钟降水卡原来也是深色面（雨强四档在浅底上分不开），
-   现在改回玻璃面 —— 四档靠抬 alpha 拉开，见上面那一族。
-   深色面因此只剩一处用，也不再需要「独占一张卡位」这条约束。 */
+/* ── 深色面 ── */
+// 不透明的深色面：整块沉进页面底色里，浅色的东西浮在它上面。
+// 深色面不随主题变，这一族是固定色。
 $fish-deep-base: #0d1c2c; // 面底
 $fish-deep-top: #16304a; // 面顶（线性渐变的亮端）
 $fish-deep-bottom: #0b1724; // 面底（线性渐变的暗端）
@@ -379,15 +186,8 @@ $fish-deep-glow: rgba(0, 122, 255, 0.42); // 左上光晕
 $fish-deep-glow-2: rgba(0, 122, 255, 0.16); // 右下光晕
 $fish-deep-hairline: rgba(255, 255, 255, 0.14); // 深色面上的发丝线
 $fish-deep-muted: rgba(255, 255, 255, 0.55); // 深色面上的次级文字
+$fish-deep-inset: rgba(255, 255, 255, 0.1); // 深色面上沿的 1rpx 高光
 
-/**
- * 深色面上的蓝。
- *
- * 深色锚面上要读得清的那一档蓝。深色面本身是深蓝，
- * 浅色那一档品牌蓝压上去没有对比度。
- *
- * canvas 侧弧形表的值弧也用这个蓝（chartPalette.gaugeFrom）——
- * 同一个弧形表在数据页是 canvas 画的、在记录页是 WXSS 画的，
- * 同一件东西不能有两种蓝。
- */
+// 深色锚面上要读得清的那一档蓝。canvas 侧弧形表的值弧也用这个蓝 ——
+// 同一个弧形表在数据页是 canvas 画的、在记录页是 WXSS 画的，同一件东西不能有两种蓝。
 $fish-blue-on-dark: #4f8cff;

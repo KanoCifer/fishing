@@ -1,34 +1,12 @@
-// ===========================================================================
-// 字阶
+// 字阶。
 //
-// 三档正文级字阶，数值取自 iOS App 设计速查表（SF Pro）：
-//
-//   18/22  标题级   18pt / 行高 22pt / Medium
-//   16/20  正文级   16pt / 行高 20pt / Regular
-//   14/18  辅助级   14pt / 行高 18pt / Regular
-//
-// 1pt = 2rpx，所以下面每个 rpx 值后面括号里是 pt 值。
-// **字号与行高是一套**，速查表给的就是成对值：只改字号不改行高，
-// 正是「Material 味」的来源 —— 所以两者一起收在这里，谁也拆不开。
-//
-// 字重只有两档：Regular 400 与 Medium 500 —— 速查表里 SF Pro
-// 给的就是这两档。标题靠 Medium 与 Regular 拉开，不靠更重的字重；
-// 再往上加一档（600/700）只会让「重点」这件事失去标准。
-//
-// display 是第四档，不在速查表范围内：它是主角数字（分数、温度），
-// 不是文字 —— 数字要靠更重的字重才立得住，单独一档，见下面。
-//
-// 为什么只有这几档：四级以上，每多一级的实际差别都落回字重和颜色上，
-// 剩下的都是新的微调决策，组件之间对不齐的概率反而上升。
-//
-//   display 这一屏最大的字：主角数字、页面主标题
-//   title   标题级：卡片标题、分区标题
-//   body    文本级：正文、说明、强调
-//   caption 辅助级：元信息、注脚、落款
-// ===========================================================================
+// 数值取自 iOS App 设计速查表（SF Pro），1pt = 2rpx。
+// 字号与行高成对，只改字号不改行高正是「Material 味」的来源。
+// 字重只有 400 / 500 两档；display 是第四档 —— 它是主角数字，不是文字，
+// 数字要靠更重的字重才立得住。
 $fish-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
 
-$fish-type: (
+$fish-type-scale: (
   display: (
     size: 64rpx, // 32pt
     weight: 700,
@@ -54,25 +32,3 @@ $fish-type: (
     leading: 1.286, // 14pt × 1.286 = 18pt
   ),
 );
-
-// 字重是字阶之外唯一可调的一维。
-// 需要「正文尺寸但加重」时写 fish-type(body, 500)，
-// 不要为此另开一级字号 —— 那正是字阶失控的开始。
-@mixin fish-type($role, $weight: null) {
-  $t: map-get($fish-type, $role);
-
-  @if $t == null {
-    @error '未知的字阶：#{$role}。可选：#{map-keys($fish-type)}';
-  }
-
-  font-size: map-get($t, size);
-  font-weight: if($weight == null, map-get($t, weight), $weight);
-  letter-spacing: map-get($t, tracking);
-  line-height: map-get($t, leading);
-}
-
-@mixin numeric($font-weight: 700) {
-  font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
-  font-weight: $font-weight;
-}

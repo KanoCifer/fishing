@@ -1,0 +1,8 @@
+// 样式层的唯一入口。令牌（值）与 mixin（复用片段）各在一层，这里汇成一层。
+//
+// 用 @forward 而不是 @use：@use 只在引用方的命名空间里留一份，
+// 组件里就得写 tokens.$fish-blue 这种带前缀的写法；
+// @forward 把成员透传出去，引用方 @use 这一层 as * 之后，
+// 令牌与 mixin 都是平铺的全局名 —— 组件里直接写 $fish-blue。
+@forward 'tokens';
+@forward 'mixins';

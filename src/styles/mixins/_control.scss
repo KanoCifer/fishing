@@ -1,0 +1,27 @@
+// 控件 mixin。
+@use '../tokens/control' as *;
+@use '../tokens/space' as *;
+
+@mixin fish-button($height: $fish-btn-height) {
+  min-height: $height;
+  padding-right: $fish-btn-pad-x;
+  padding-left: $fish-btn-pad-x;
+}
+
+// 文字不直接贴在按钮的留白上：它自己裹一层 4pt 的横向留白，
+// 于是文字到按钮边缘是 16 + 4 = 20pt。
+@mixin fish-button-label {
+  padding-right: $fish-btn-text-pad-x;
+  padding-left: $fish-btn-text-pad-x;
+}
+
+// 图标与文字之间不留缝：图标是文字的一部分，不是并排的另一件东西。
+// 留了缝就读成「一句话」加「一个图标」，按钮也就散了。
+@mixin fish-button-content {
+  display: flex;
+  align-items: center;
+}
+
+@mixin fish-list-row {
+  padding: $fish-list-pad-y $fish-list-pad-x;
+}

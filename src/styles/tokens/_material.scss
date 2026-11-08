@@ -1,38 +1,5 @@
-// 材质：玻璃面
-@use 'color' as *;
-@use 'depth' as *;
-
-/**
- * 玻璃面。
- *
- * 两个玻璃面只有面色不同 —— 面板底（$fish-glass）与卡面（$fish-card-glass）——
- * 外形、阴影、描边完全一样。所以这里只留一个 mixin，面色由调用方给：
- * 写成两个 mixin 就是把同一段外壳抄两遍，改材质要记得改两处。
- *
- * @param $radius 圆角
- * @param $background 面色
- */
-@mixin fish-glass($radius: $fish-radius-mid, $background: $fish-glass) {
-  border-radius: $radius;
-  background-color: $background;
-
-  // border: 0.5px solid $fish-glass-stroke;
-  // box-shadow: var(--fish-card-shadow, #{$fish-card-shadow}), $fish-glass-edge;
-}
-
-@mixin fish-glass-blur {
-  backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, 1.8));
-  -webkit-backdrop-filter: blur(var(--fish-blur, #{$fish-blur})) saturate(var(--fish-saturate, 1.8));
-}
-
-@mixin fish-deep-face($radius: $fish-radius-mid) {
-  border-radius: $radius;
-  background-color: $fish-deep-base;
-  background-image:
-    radial-gradient(circle at 18% 0%, $fish-deep-glow, transparent 58%),
-    radial-gradient(circle at 92% 108%, $fish-deep-glow-2, transparent 60%),
-    linear-gradient(180deg, $fish-deep-top 0%, $fish-deep-bottom 100%);
-  box-shadow:
-    $shadow-deep,
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.1);
-}
+// 材质参数。
+//
+// 玻璃面的形状参数。mixin 在 ../mixins/_material.scss。
+$fish-blur: 20px; // 玻璃面的模糊半径
+$fish-saturate: 1.8; // 模糊的同时提饱和

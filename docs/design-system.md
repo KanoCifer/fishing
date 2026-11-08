@@ -1,13 +1,13 @@
 # 设计系统
 
-界面是**材质系统**加**动效系统**，落在小程序的能力边界内：没有弹簧引擎、没有 `backdrop-filter` 保证、没有 `prefers-reduced-motion`。真源 `src/styles/tokens/` —— 哪些值归哪个文件管，见下面「一个值一个出处」。
+界面是**材质系统**加**动效系统**，落在小程序的能力边界内：没有弹簧引擎、没有 `backdrop-filter` 保证、没有 `prefers-reduced-motion`。真源 `src/styles/`：值在 `tokens/`，mixin 在 `mixins/`，统一从 `src/styles/_index.scss` 进。哪些值归哪个文件管，见下面「一个值一个出处」。
 
 ## 令牌
 
-- `src/uni.scss` **只有一行** `@use '@/styles/tokens/_index.scss' as *;` —— **不能再有变量声明**。
+- `src/uni.scss` **只有一行** `@use '@/styles/_index.scss' as *;` —— **不能再有变量声明**。
 - 数值来源：**iOS App 设计速查表**（SF Pro）。字阶、文字色、间距、图标尺寸、按钮规格都从那里来。
-- 令牌按关注点分文件：`color / type / space / control / depth / material / motion / layout / card`。
-- **值在 `src/styles/theme.scss` 分三套**：随主题变的那族令牌在 `_color.scss` 里写成 `var(--fish-ink, #000000)`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。浅色与深色两套集中在 theme.scss 的 `page, .page` 作用域里，靠 `@media (prefers-color-scheme: dark)` 翻；**第三套是照片面**（`.on-photo`），给压在整页天色上的那几块用，它不随主题翻。
+- 值在 `src/styles/tokens/`（`color / type / space / depth / material / motion / control / layout / card`），mixin 在 `src/styles/mixins/`（`type / material / card / control / layout / motion`）。两层不越界：令牌层不写 mixin，mixin 层不写值。
+- **值分三套**：`src/styles/theme/_surfaces.scss` 是唯一出处。随主题变的那族令牌在 `tokens/_color.scss` 里写成 `themed('fish-ink')`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。三套值由 `src/styles/theme.scss` 发成 CSS 变量：浅色在 `page, .page` 作用域，靠 `@media (prefers-color-scheme: dark)` 翻深色；**第三套是照片面**（`.on-photo`），给压在整页天色上的那几块用，它不随主题翻。
 - **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
 
 ### 一个值一个出处
@@ -16,7 +16,7 @@
 
 | 载体                    | 原件                                                                                           | 别人怎么用                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| 页面层（WXSS）          | `src/styles/tokens/_color.scss` 写字面量或 `var(--fish-*)`；深浅两套在 `src/styles/theme.scss` | 直接用 `$fish-xxx`                                |
+| 页面层（WXSS）          | `src/styles/tokens/_color.scss` 写字面量或 `themed()`；三套值在 `src/styles/theme/_surfaces.scss` | 直接用 `$fish-xxx`                              |
 | canvas                  | `src/utils/chartPalette.ts`                                                                    | canvas 2d 不解析 var()，只能手写；SCSS 侧**不抄** |
 | 原生底栏                | `src/custom-tab-bar/index.wxss`                                                                | 原生组件不经 uni-app 编译，拿不到 SCSS 令牌       |
 | 图标                    | `scripts/gen-icons.mjs`                                                                        | 色值烤进 data URI，改色只改那一处                 |
@@ -29,7 +29,7 @@
 
 ## 卡片
 
-卡片这一层的 mixin 在 `_card.scss`：`fish-card`、`fish-list-card`、`fish-card-head`、`fish-card-title`、`fish-card-meta`。
+卡片这一层的 mixin 在 `mixins/_card.scss`：`fish-card`、`fish-list-card`、`fish-card-head`、`fish-card-title`、`fish-card-meta`。
 
 `fish-card` 带 `backdrop-filter: blur(var(--fish-blur)) saturate(var(--fish-saturate))` —— 天气页的卡片压在整页天色上，要糊掉底下那一层。半径与饱和度都是令牌，照片面那一套把它们调过（见下面「材质与深度」）。代价是祖先不能挂 opacity 动画，见「动效」里 backdrop-root 那条。
 
@@ -62,7 +62,6 @@
 - **图标**：图标按**它旁边的字**配，不按统一档位套 ——
   导航图标 24pt（`$fish-icon-nav`，导航栏里那些）、
   图标键里的图形 20pt（`$fish-icon-key`）、
-  标题行的前置图标 20pt（`$fish-icon-title`）、
   列表行的前置图标 28pt（`$fish-icon-list`，速查表里的列表图标）、
   徽标图标 16pt（`$fish-icon-badge`）。
   判据：图标比它标的字大，读的人先看见图标，「这一段叫什么」反而成了第二眼的事。
@@ -88,7 +87,7 @@
 
 ### 动画定义放哪
 
-- **变量和 mixin** → `src/styles/tokens/`；**`@keyframes` 和 `@property`** → `App.vue` 的 `<style>`（全局一份）。流光的 `--fish-flow-angle` 必须是注册过的 `@property <angle>`。
+- **变量** → `src/styles/tokens/`；**mixin** → `src/styles/mixins/`；**`@keyframes` 和 `@property`** → `App.vue` 的 `<style>`（全局一份）。流光的 `--fish-flow-angle` 必须是注册过的 `@property <angle>`。
 
 ## 手势与浮层
 

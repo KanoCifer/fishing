@@ -1,0 +1,25 @@
+// 字阶 mixin。
+//
+// 字重是字阶之外唯一可调的一维：需要「正文尺寸但加重」写 fish-type(body, 500)，
+// 不要为此另开一级字号 —— 那正是字阶失控的开始。
+@use 'sass:map';
+@use '../tokens/type' as *;
+
+@mixin fish-type($role, $weight: null) {
+  $t: map.get($fish-type-scale, $role);
+
+  @if $t == null {
+    @error '未知的字阶：#{$role}。可选：#{map.keys($fish-type-scale)}';
+  }
+
+  font-size: map.get($t, size);
+  font-weight: if($weight == null, map.get($t, weight), $weight);
+  letter-spacing: map.get($t, tracking);
+  line-height: map.get($t, leading);
+}
+
+@mixin numeric($font-weight: 700) {
+  font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: $font-weight;
+}

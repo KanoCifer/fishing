@@ -4,7 +4,7 @@
 
 两条腿并行，各管一段：
 
-- **页面层**靠 `@media (prefers-color-scheme: dark)` + CSS 变量。令牌名不变，实现从字面量换成 `var(--fish-ink, #000000)`，深浅两套值集中在 `src/styles/theme.scss` → 770 处调用点一行没改。
+- **页面层**靠 `@media (prefers-color-scheme: dark)` + CSS 变量。令牌名不变，实现从字面量换成 `var(--fish-ink, #000000)`，深浅两套值集中在 `src/styles/theme/_surfaces.scss` → 770 处调用点一行没改。
 - **canvas 与图标**靠 JS 侧的主题值。canvas 2d 不解析 `var()`，图标的色值烤在 data URI 里，两边都拿不到 CSS 变量。
 
 **照片面不是主题的第三档，是另一个维度。** 同一屏里压在整页背景上的那几块玻璃自己换一套（深玻璃 + 白字），见 `theme.scss` 的 `.on-photo`。深浅主题下背景的明度不同，但这一套不翻 —— 它要的是「无论底下是什么，白字都读得清」。
@@ -15,8 +15,9 @@
 
 | 文件                                 | 做什么                                                                                |
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| `src/styles/theme.scss`              | 深浅两套 CSS 变量（作用域 `page, .page`）+ 照片面一套（作用域 `.on-photo`）           |
-| `src/styles/tokens/_color.scss`      | B 组令牌换成 `var()`；新增 `$fish-page-base-fade`、`$fish-map-panel`、`$fish-overlay` |
+| `src/styles/theme/_surfaces.scss`    | 三套令牌值（浅色 / 深色 / 照片面），唯一出处                                           |
+| `src/styles/theme.scss`              | 把那三套值发成 CSS 变量（作用域 `page, .page` + `.on-photo`）                          |
+| `src/styles/tokens/_color.scss`      | B 组令牌换成 `themed()`；新增 `$fish-page-base-fade`、`$fish-map-panel`、`$fish-overlay` |
 | `src/App.vue`                        | 全局 style 引入 theme.scss；`onLaunch` 里 `initTheme()`                               |
 | `src/utils/theme.ts`                 | 主题真值（模块级 ref）+ `wx.onThemeChange` 监听                                       |
 | `src/utils/chartPalette.ts`          | canvas 色板，浅色 / 深色 / 照片面三套。**canvas 色的原件**，SCSS 侧不抄               |
@@ -45,10 +46,10 @@ canvas 2d 不解析 SCSS 变量与 CSS 变量，它只认那份 TS 里的字面�
 
 ```scss
 // _color.scss
-$fish-ink: var(--fish-ink, #000000); // 原来：#000000
+$fish-ink: themed('fish-ink'); // 原来：#000000
 ```
 
-兜底值必须写：变量作用域万一没生效，退回当前浅色值，界面难看但读得出来。反过来（只写变量不写兜底）会得到透明文字与透明背景。
+兜底值必须写：变量作用域万一没生效，退回当前浅色值，界面难看但读得出来。反过来（只写变量不写兜底）会得到透明文字与透明背景。兜底值取自 `theme/_surfaces.scss` 的浅色那一档 —— 兜底与主题值同源，不另写一份。
 
 选择器用 `page, .page`，不用 `:root` —— 小程序没有 `:root`（页面根不是 document，是 page 节点）。
 
@@ -56,7 +57,7 @@ $fish-ink: var(--fish-ink, #000000); // 原来：#000000
 
 深色不是把浅色反过来。深色有自己的表面关系：页面底接近纯黑，卡片面抬高一档，玻璃面从「半透明白」改成「半透明深」，发丝线从黑 29% 透明度改成白 16%。
 
-**两套值与它们的对度校验都记在 `src/styles/theme.scss` 的注释里** —— 那是这些值的原件。
+**两套值与它们的对度校验都记在 `src/styles/theme.scss` 与 `src/styles/theme/_surfaces.scss` 的注释里** —— 那是这些值的原件。
 这个文档不再抄一份：抄一份，theme.scss 改了这里就成了陈旧数据。
 
 一句话记住：发丝线与填充装饰层只有 1.2:1 到 1.6:1 —— 它们不承担可读性，

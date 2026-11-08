@@ -1,0 +1,140 @@
+@use 'sass:map';
+
+// 三套主题的值 —— 浅色、深色、照片面。
+//
+// 值是**字符串**：一字不改地发出去。写字符串而不是让 Sass 解析再序列化，
+// 是因为序列化会把 rgba(245, 248, 253, 1) 归一成 rgb(245, 248, 253)、
+// 把 0.16 写成 .16 —— 那就不是这一份值了。
+//
+// 浅色是基础面：深色与照片面只写自己与浅色不同的那几档。
+// 值在这里是唯一出处：theme.scss 把它们发成 CSS 变量，
+// 令牌层（../tokens/_color.scss）拿浅色那一档做 var() 的兜底 —— 两边不会各写各的。
+//
+// 照片面（.on-photo）是同一屏里压在照片上的那几块玻璃自己变深，页面底不变：
+// 它不随主题翻。天气的照片可能很亮也可能很暗，这一套要的是
+// 「无论底下是什么，白字都读得清」。
+//
+// 1pt = 2rpx。
+
+
+$light: (
+  'fish-ink': '#000000',
+  'fish-muted': '#3f3f45',
+  'fish-muted-60': '#666666',
+  'fish-page': 'rgb(245, 248, 253)',
+  'fish-grouped': '#e2e8f8',
+  'fish-card-face': '#ffffff',
+  'fish-surface': 'rgba(120, 120, 128, .16)',
+  'fish-fill': 'rgba(120, 120, 128, .12)',
+  'fish-faint': 'rgba(120, 120, 128, .3)',
+  'fish-photo-placeholder': '#dfe6ea',
+  'fish-map-panel': 'rgba(255, 255, 255, .88)',
+  'fish-overlay': 'rgba(255, 255, 255, .86)',
+  'fish-border': 'rgba(60, 60, 67, .29)',
+  'fish-border-40': 'rgba(60, 60, 67, .18)',
+  'fish-glass': 'rgba(255, 255, 255, .8)',
+  'fish-card-glass': 'rgba(249, 249, 253, .85)',
+  'fish-glass-strong': 'rgba(255, 255, 255, .82)',
+  'fish-glass-edge': 'inset 0 1rpx 0 rgba(255, 255, 255, .85)',
+  'fish-glass-stroke': 'rgba(255, 255, 255, .18)',
+  'fish-blur': '20px',
+  'fish-saturate': '1.8',
+  'fish-blur-tile': '12px',
+  'fish-segment-active': 'var(--fish-page)',
+  'fish-page-base': '#f3f4f9',
+  'fish-page-base-fade': 'rgba(243, 244, 249, 0)',
+  'fish-page-glow': 'radial-gradient(118% 44% at 50% -12%, rgba(203, 231, 255, .9) 0%, rgba(203, 231, 255, 0) 62%)',
+  'fish-dock-fade': 'linear-gradient(180deg, rgba(242, 242, 247, 0) 0%, rgba(242, 242, 247, .94) 46%, rgba(242, 242, 247, .97) 100%)',
+  'fish-accent-tint': 'rgba(15, 102, 214, .12)',
+  'fish-cal-catch': 'rgba(15, 102, 214, .22)',
+  'fish-cal-checkin': 'rgba(120, 120, 128, .12)',
+  'fish-tone-tint': 'rgba(52, 199, 89, .14)',
+  'fish-warning-tint': 'rgba(255, 149, 0, .14)',
+  'fish-destructive-tint': 'rgba(255, 59, 48, .14)',
+  'fish-blue-600': '#0062cc',
+  'fish-success-ink': '#1d7a38',
+  'fish-warning-ink': '#9a5b00',
+  'fish-destructive-ink': '#c92a20',
+  'fish-tide-ink': '#007aff',
+  'fish-rain-none': 'rgba(120, 120, 128, .28)',
+  'fish-rain-light': 'rgba(0, 122, 255, .42)',
+  'fish-rain-medium': 'rgba(0, 122, 255, .58)',
+  'fish-rain-heavy': 'rgba(0, 122, 255, .82)',
+  'fish-rain-storm': '#007aff',
+  'fish-rain-flat': 'linear-gradient(180deg, rgba(0, 122, 255, .1) 0%, rgba(0, 122, 255, .02) 100%)',
+);
+
+$dark: (
+  'fish-ink': '#ffffff',
+  'fish-muted': '#b8bcc4',
+  'fish-muted-60': '#8e939c',
+  'fish-page': '#121519',
+  'fish-grouped': '#0b0d11',
+  'fish-card-face': '#16181d',
+  'fish-surface': 'rgba(120, 120, 128, .24)',
+  'fish-fill': 'rgba(120, 120, 128, .2)',
+  'fish-faint': 'rgba(120, 120, 128, .4)',
+  'fish-photo-placeholder': '#2a2f36',
+  'fish-map-panel': 'rgba(22, 24, 29, .86)',
+  'fish-overlay': 'rgba(18, 21, 25, .86)',
+  'fish-border': 'rgba(255, 255, 255, .16)',
+  'fish-border-40': 'rgba(255, 255, 255, .1)',
+  'fish-glass': 'rgba(28, 30, 36, .8)',
+  'fish-card-glass': 'rgba(24, 26, 32, .86)',
+  'fish-glass-strong': 'rgba(28, 30, 36, .82)',
+  'fish-glass-edge': 'inset 0 1rpx 0 rgba(255, 255, 255, .14)',
+  'fish-glass-stroke': 'rgba(255, 255, 255, .08)',
+  'fish-page-base': '#0b0d11',
+  'fish-page-base-fade': 'rgba(11, 13, 17, 0)',
+  'fish-page-glow': 'radial-gradient(118% 44% at 50% -12%, rgba(30, 64, 110, .55) 0%, rgba(30, 64, 110, 0) 62%)',
+  'fish-dock-fade': 'linear-gradient(180deg, rgba(11, 13, 17, 0) 0%, rgba(11, 13, 17, .94) 46%, rgba(11, 13, 17, .97) 100%)',
+  'fish-accent-tint': 'rgba(76, 155, 255, .18)',
+  'fish-cal-catch': 'rgba(76, 155, 255, .28)',
+  'fish-cal-checkin': 'rgba(120, 120, 128, .2)',
+  'fish-tone-tint': 'rgba(61, 220, 132, .18)',
+  'fish-warning-tint': 'rgba(255, 179, 64, .18)',
+  'fish-destructive-tint': 'rgba(255, 105, 97, .18)',
+  'fish-blue-600': '#4c9bff',
+  'fish-success-ink': '#3ddc84',
+  'fish-warning-ink': '#ffb340',
+  'fish-destructive-ink': '#ff6961',
+  'fish-tide-ink': '#4c9bff',
+);
+
+$photo: (
+  'fish-ink': '#ffffff',
+  'fish-muted': 'rgba(255, 255, 255, .72)',
+  'fish-muted-60': 'rgba(255, 255, 255, .52)',
+  'fish-blue-600': '#a8ccff',
+  'fish-success-ink': '#7fe3a5',
+  'fish-warning-ink': '#ffd08a',
+  'fish-destructive-ink': '#ff9f99',
+  'fish-tide-ink': '#8fd0ff',
+  'fish-card-face': 'rgba(12, 28, 54, .14)',
+  'fish-card-glass': 'rgba(12, 28, 54, .14)',
+  'fish-surface': 'rgba(255, 255, 255, .14)',
+  'fish-fill': 'rgba(255, 255, 255, .12)',
+  'fish-faint': 'rgba(255, 255, 255, .3)',
+  'fish-accent-tint': 'rgba(255, 255, 255, .18)',
+  'fish-border': 'rgba(255, 255, 255, .22)',
+  'fish-border-40': 'rgba(255, 255, 255, .1)',
+  'fish-glass-stroke': 'rgba(255, 255, 255, .18)',
+  'fish-glass-edge': 'inset 0 1rpx 0 rgba(255, 255, 255, .22)',
+  'fish-blur': '20px',
+  'fish-saturate': '1.8',
+  'fish-blur-tile': '14px',
+  'fish-segment-active': 'rgba(255, 255, 255, .26)',
+  'fish-glass-strong': 'rgba(12, 28, 54, .14)',
+  'fish-rain-none': 'rgba(180, 188, 200, .14)',
+  'fish-rain-light': 'rgba(10, 132, 255, .62)',
+  'fish-rain-medium': 'rgba(10, 132, 255, .76)',
+  'fish-rain-heavy': 'rgba(10, 132, 255, .9)',
+  'fish-rain-storm': '#0a84ff',
+  'fish-rain-flat': 'linear-gradient(180deg, rgba(10, 132, 255, .16) 0%, rgba(10, 132, 255, .04) 100%)',
+);
+
+// 随主题变的色：var(--fish-x, 浅色那一档的值)。
+// 兜底值让变量没被解析到时仍读得出来 —— 只写变量不写兜底会得到透明文字与透明背景。
+@function themed($name) {
+  @return var(--#{$name}, #{map.get($light, $name)});
+}
