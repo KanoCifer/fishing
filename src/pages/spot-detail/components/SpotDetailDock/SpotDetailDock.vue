@@ -81,6 +81,14 @@ const navIcon = computed(() => icon('navigation', 'onAccent'));
 .dock__cta {
   @include fish-button-content;
   justify-content: center;
+
+  /*
+   * border-box 不能省：小程序默认是 content-box，
+   * 满宽按钮再加左右 padding，盒子会比它的位置宽出 64rpx，
+   * 于是按钮往右溢出屏幕一截 —— 看着就是「按钮没居中」，
+   * 实际是按钮整体被推到了右边。
+   */
+  box-sizing: border-box;
   width: 100%;
   min-height: $fish-btn-height;
   padding: 0 $fish-btn-pad-x;
