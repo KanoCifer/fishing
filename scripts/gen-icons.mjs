@@ -105,9 +105,13 @@ const ICONS = [
   { name: 'rotate-cw', color: 'onAccent', use: '头图 · 刷新键' },
   // 刷新键压在一枚玻璃圆上，那枚圆是浅色的 —— 圆上的字得是深墨，白的压在白底上读不出来。
   { name: 'rotate-cw', color: 'ink', use: '头图 · 刷新键（玻璃圆上的深墨版）' },
-  { name: 'sparkles', color: 'onAccent', use: '头图 · 渔碌建议入口' },
+  // 渔碌建议入口。落在深玻璃卡上，压白 —— 蓝色压深玻璃读不出来。
+  { name: 'sparkles', color: 'onPhoto', use: '头图 · 鱼口概率卡底的渔碌建议' },
   { name: 'fish', color: 'onAccent', use: '头图 · 鱼口概率标记' },
   { name: 'chevron-right', color: 'onAccent', use: '头图 · 「看构成」箭头' },
+  // 地点行的展开箭头：压在照片上的白图标。原来那一档是灰的（muted60），
+  // 压在深色面上读不出来。
+  { name: 'chevron-down', color: 'onPhoto', use: '头图 · 地点行的展开箭头' },
   // —— 地图 toolbar ——
   // 卫星与路况是**两个独立开关**，各自要「开」与「关」两个色值：
   // 图标是颜色烤死的 data URI，状态只能靠换一份色值来表达。

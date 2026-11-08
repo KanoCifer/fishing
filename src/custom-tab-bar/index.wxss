@@ -26,10 +26,47 @@
  * 手写不等于各写各的：下面每一处值都在注释里注明它对应令牌层的哪一个，
  * 那边改了这里要跟着改。反过来，令牌层也不抄这一份 ——
  * 两边各有一份、彼此不引用，那才是真漂移。
+ *
+ * ── 材质两档 ──
+ *
+ * 底栏浮在页面上，材质得跟它压着的那张面走：
+ *
+ *   · 照片面（--tb-*-deep）：天气页整页是一层天色，底栏压在它上面，
+ *     恒为深玻璃 —— 半透明白压在天色上就是一块灰斑，天色等于白铺。
+ *     深色系统下其余页面也用这一档。
+ *   · 页面底（--tb-*-light）：跟系统主题走。
+ *
+ * 两档各写一份字面量，下面各处的 var() 只做引用 —— 一份字面量两处引用，
+ * 两处字面量就是两份漂移。这些变量定义在 .tabbar 自己身上，
+ * 所以取值不依赖外部作用域（继承得到的值在这里用不上）。
  */
 
-/* 贴底通栏。高度由内容撑出来，安全区是叠加的，不是被吃掉的 */
 .tabbar {
+  /* ── 深玻璃那一档 ────────────────────────────────────────────
+     照片面与深色系统共用这一份。值取自令牌层的深色段：
+     = --fish-glass-strong（深色）
+     = --fish-glass-edge（深色）
+     = 深色档选中药丸 rgba(76, 155, 255, 0.18)
+     = --fish-muted-60（深色）
+     = --fish-blue-600（深色档） */
+  --tb-bg-deep: rgba(10, 26, 48, .55);
+  --tb-edge-deep: rgba(255, 255, 255, 0.14);
+  --tb-pill-deep: rgba(76, 155, 255, 0.18);
+  --tb-label-deep: #8e939c;
+  --tb-label-on-deep: #4c9bff;
+
+  /* ── 页面底那一档 ────────────────────────────────────────────
+     = $fish-glass-strong / --fish-glass-strong
+     = $fish-border-40（浅色）—— 顶边是发丝线，不是高光
+     = 浅色档选中药丸 rgba(15, 102, 214, 0.12)
+     = $fish-muted-60
+     = $fish-blue */
+  --tb-bg-light: rgba(255, 255, 255, 0.3);
+  --tb-edge-light: rgba(60, 60, 67, 0.18);
+  --tb-pill-light: rgba(15, 102, 214, 0.12);
+  --tb-label-light: #666666;
+  --tb-label-on-light: #0f66d6;
+
   position: fixed;
   left: 0;
   right: 0;
@@ -39,13 +76,12 @@
   box-sizing: border-box;
   padding-bottom: env(safe-area-inset-bottom);
 
-  /* = $fish-glass-strong / --fish-glass-strong */
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--tb-bg-light);
   /* = $fish-blur */
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  /* = $fish-border-40（浅色）—— 顶边是发丝线，不是高光 */
-  box-shadow: inset 0 1rpx 0 rgba(60, 60, 67, 0.18);
+  /* 顶边是发丝线，不是高光 */
+  box-shadow: inset 0 1rpx 0 var(--tb-edge-light);
 }
 
 /* 一行五格 */
@@ -93,7 +129,7 @@
 }
 
 .tabbar__cell--on {
-  background-color: rgba(15, 102, 214, 0.12);
+  background-color: var(--tb-pill-light);
 }
 
 @keyframes tabbar-cell-in {
@@ -133,15 +169,15 @@
   margin-top: 2rpx;
   font-size: 20rpx;
   line-height: 24rpx;
-  /* = $fish-muted-60 —— 未选中这一档，图标烤进 PNG，用的是同一个值 */
-  color: #666666;
+  /* 未选中这一档，图标烤进 PNG，用的是同一个值 */
+  color: var(--tb-label-light);
 
   /* = $fish-ease-out */
   transition: color 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .tabbar__label--on {
-  color: #0f66d6;
+  color: var(--tb-label-on-light);
   font-weight: 500;
 }
 
@@ -174,6 +210,45 @@
 }
 
 /*
+ * 照片面（天气页）—— 恒为深玻璃，不跟系统主题走。
+ *
+ * 这一块必须放在深色媒体查询**之前**：媒体查询里的 .tabbar 与这里的
+ * .tabbar--photo 同为 0,1,0，同优先级下后写的赢。深色系统下两者给的
+ * 是同一档，谁赢都一样；浅色系统下媒体查询不生效，照片面这一档留下。
+ *
+ * 图标换档靠的是特异性：.tabbar--photo .tabbar__icon--dark 是 0,2,0，
+ * 压得住媒体查询里的 0,1,0 —— 位置不讲究。
+ *
+ * 为什么照片面要压深色：天气页整页是一层天色，半透明白压上去就是一块
+ * 灰斑；深色系统的底栏也是深玻璃。两处用同一档，天气页在浅色系统下
+ * 与深色系统下才是同一个产品。
+ */
+.tabbar--photo {
+  background-color: var(--tb-bg-deep);
+  box-shadow: inset 0 1rpx 0 var(--tb-edge-deep);
+}
+
+.tabbar--photo .tabbar__cell--on {
+  background-color: var(--tb-pill-deep);
+}
+
+.tabbar--photo .tabbar__label {
+  color: var(--tb-label-deep);
+}
+
+.tabbar--photo .tabbar__label--on {
+  color: var(--tb-label-on-deep);
+}
+
+.tabbar--photo .tabbar__icon--light {
+  display: none;
+}
+
+.tabbar--photo .tabbar__icon--dark {
+  display: block;
+}
+
+/*
  * 深色。
  *
  * 这个块必须放在文件末尾。
@@ -192,23 +267,20 @@
  */
 @media (prefers-color-scheme: dark) {
   .tabbar {
-    /* = --fish-glass-strong（深色） */
-    background-color: rgba(28, 30, 36, 0.82);
-    /* = --fish-glass-edge（深色） */
-    box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.14);
+    background-color: var(--tb-bg-deep);
+    box-shadow: inset 0 1rpx 0 var(--tb-edge-deep);
   }
 
   .tabbar__cell--on {
-    background-color: rgba(76, 155, 255, 0.18);
+    background-color: var(--tb-pill-deep);
   }
 
   .tabbar__label {
-    color: #8e939c;
+    color: var(--tb-label-deep);
   }
 
   .tabbar__label--on {
-    /* = --fish-blue-600（深色档） */
-    color: #4c9bff;
+    color: var(--tb-label-on-deep);
   }
 
   .tabbar__icon--light {

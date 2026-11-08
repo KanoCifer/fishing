@@ -28,6 +28,25 @@
  * 就是真发生了一次页面切换，这时反推出来的页签必然是对的。小程序没有全局
  * 的路由变化钩子，只能这样轮询；间隔 200ms，代价是一次 getCurrentPages()
  * 加一次字符串比较。
+ *
+ * 材质的真值在哪
+ * --------------
+ *
+ * 底栏浮在页面上，材质得跟它压着的那张面走 —— 天气页整页是一层天色（照片面），
+ * 底栏压在它上面，材质就跟着照片面走；其余页是页面底，跟系统主题走。
+ *
+ * 材质是**每个实例各自一份**，不共享 —— 与选中态相反。
+ *
+ * 选中态是「现在在哪一格」，全局一份：所有实例都要亮同一格。
+ * 材质是「我这一页压着什么」，每页一份：天气页的底栏是深玻璃，
+ * 钓点页的底栏是页面底。共享一份的话，切页那一瞬间两个真值会打架 ——
+ * 上一页的底栏还压在屏幕上，下一页的底栏已经把材质换掉了。
+ *
+ * 所以每个实例自己认领自己那一份：
+ *   · attached —— 此刻页面栈可能还没更新（切 tab 时新页的实例创建早于页面栈
+ *     更新），用点击真值：刚点的那一格就是要去的页。冷启动没有点击，
+ *     按当前路由反推。
+ *   · show —— 页面栈已经是最新的，路由反推就是本页。这是准的那一次。
  */
 
 var LIST = [
@@ -36,6 +55,13 @@ var LIST = [
     type: 'tab',
     text: '天气',
     path: '/pages/data/index',
+    /*
+     * 照片面。天气页整页是一层天色，底栏压在它上面。
+     *
+     * 材质不跟系统主题走 —— 浅色系统下也是深玻璃：半透明白压在天色上
+     * 就是一块灰斑，天色等于白铺（见 theme.scss 的 .on-photo 一族）。
+     */
+    surface: 'photo',
     icon: '/static/tabbar/data.png',
     activeIcon: '/static/tabbar/data-active.png',
     iconDark: '/static/tabbar/data-dark.png',
@@ -195,6 +221,21 @@ function keyByRoute(route) {
   return null;
 }
 
+/**
+ * 这一页的底栏材质。
+ *
+ * 'photo' —— 照片面：恒为深玻璃，不随系统主题翻。
+ * 'default' —— 页面底那一套，跟系统主题翻。
+ */
+function surfaceOf(key) {
+  for (var i = 0; i < LIST.length; i++) {
+    if (LIST[i].key === key) {
+      return LIST[i].surface || 'default';
+    }
+  }
+  return 'default';
+}
+
 /** 把选中态刷到一个实例上 */
 function render(instance, key) {
   if (!instance || instance.data.selectedKey === key) return;
@@ -206,6 +247,30 @@ function renderAll(key) {
   for (var i = 0; i < instances.length; i++) {
     render(instances[i], key);
   }
+}
+
+/**
+ * 刷一个实例的材质。
+ *
+ * 材质是「这一页的属性」：天气页的底栏压在照片面上，钓点页的底栏压在页面底上。
+ * 所以材质不共享一份真值 —— 共享的话，切页的那一瞬间两个真值会打架：
+ * 上一页的底栏还压在屏幕上，下一页的底栏已经把材质换掉了。
+ *
+ * 取值时机是 show：那时页面栈顶就是本页，读到的路由准。
+ * attached 时只能拿栈顶当猜测（切 tab 时新页的实例创建早于页面栈更新，
+ * 那时读到的是上一页），猜错了 show 会纠正，而首次绘制也在 show 之后 ——
+ * 猜错的那一下不会被人看见。
+ *
+ * 照片面下底栏恒为深玻璃 —— 天气页整页是一层天色，半透明白压上去
+ * 就是一块灰斑，天色等于白铺。这跟系统主题无关，所以不放在媒体查询里。
+ */
+function renderSurface(instance, key) {
+  if (!instance) return;
+
+  var surface = surfaceOf(key);
+  if (instance.data.surface === surface) return;
+
+  instance.setData({ surface: surface });
 }
 
 /**
@@ -249,6 +314,8 @@ Component({
     list: LIST,
     /** 选中的页签 key。null = 还没选中（冷启动先别亮一格错的） */
     selectedKey: null,
+    /** 底栏材质所在的表面。'default' 跟系统主题走，'photo' 恒为深玻璃 */
+    surface: 'default',
   },
 
   lifetimes: {
@@ -264,6 +331,12 @@ Component({
         selectedKey = keyByRoute(currentRoute());
       }
       render(this, selectedKey);
+
+      /*
+       * 材质认领自己那一份。此刻页面栈可能还没更新（切 tab 时新页的实例创建
+       * 早于页面栈更新），所以这里用点击真值 —— 刚点的那一格就是要去的页。
+       */
+      renderSurface(this, selectedKey);
     },
 
     detached: function () {
@@ -294,6 +367,18 @@ Component({
         selectedKey = key;
       }
       renderAll(selectedKey);
+
+      /*
+       * 材质只刷自己这一个实例 —— 别的 tab 页的底栏不在屏幕上，
+       * 它们各自的材质由各自的 show 事件负责。
+       *
+       * 这里是路由真值：show 触发时页面栈顶就是本页。
+       * 反推不出页签（当前不是 tab 页）就不动 —— 那时底栏不在屏幕上，
+       * 拿一个猜的材质去改它是白改。
+       */
+      if (key) {
+        renderSurface(this, key);
+      }
     },
   },
 

@@ -28,13 +28,14 @@
 
 <script setup lang="ts">
 /**
- * RecordRing —— 圆环。
+ * ProgressRing —— 圆环。
  *
  * 环长是值在量程里占的比例：value / max。
  * 组件本身不管这个数是什么意思（连续天数、别的什么）—— 语义在调用方。
  */
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { useSurface } from '@/composables/useSurface';
 import { windowMetrics } from '@/composables/windowMetrics';
 import { createCanvasLayer, useCanvasPageShow } from '@/utils/chartCanvas';
 import { chartPalette } from '@/utils/chartPalette';
@@ -70,10 +71,18 @@ const props = withDefaults(defineProps<Props>(), {
   fillColor: undefined,
 });
 
+/**
+ * 这一块压在什么上面。
+ *
+ * 照片面上的环要走照片面那套色板（深玻璃上的白字与亮档图形）——
+ * 同一块环在浅色页面与整页照片上不是同一个颜色。
+ */
+const surface = useSurface();
+
 const instance = getCurrentInstance()!;
 const uid = Math.random().toString(36).slice(2, 8);
 // canvasId 必须页面内唯一，同一页面可能画多个环
-const canvasId = `record-ring-${uid}`;
+const canvasId = `progress-ring-${uid}`;
 
 /** 画布的 CSS 尺寸（px）。rpx 只对样式有效，canvas 内部坐标用 px */
 const sizePx = computed(() => uni.upx2px(props.size));
@@ -97,7 +106,7 @@ const layer = createCanvasLayer({
     dprRef.value = dpr;
     return { width: size, height: size, dpr };
   },
-  label: 'RecordRing',
+  label: 'ProgressRing',
 });
 
 /** 起点：正上方。canvas 的角度以 +x 轴为 0、顺时针为正，所以正上方是 -90° */
@@ -132,7 +141,7 @@ function draw(): void {
   // 轨道：整圈
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
-  ctx.strokeStyle = props.trackColor ?? chartPalette().ringTrack;
+  ctx.strokeStyle = props.trackColor ?? chartPalette(surface).ringTrack;
   ctx.stroke();
 
   const value = ratio();
@@ -141,7 +150,7 @@ function draw(): void {
   // 值弧：从正上方顺时针走
   ctx.beginPath();
   ctx.arc(cx, cy, r, START_ANGLE, START_ANGLE + Math.PI * 2 * value, false);
-  ctx.strokeStyle = props.fillColor ?? chartPalette().ringFill;
+  ctx.strokeStyle = props.fillColor ?? chartPalette(surface).ringFill;
   ctx.stroke();
 }
 

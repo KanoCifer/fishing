@@ -14,9 +14,14 @@ import type { WeatherGroup } from '@/types/view';
 /** 地点标签选点失败时的说法 */
 export const HERO_PICK_FAILED = '选点失败，请重试';
 
-/** 弧形表的边长与线宽（rpx） */
-export const HERO_GAUGE_SIZE = 300;
-export const HERO_GAUGE_STROKE = 25;
+/**
+ * 鱼口概率环的边长与线宽（rpx）。
+ *
+ * 头图里那一圈是整圈的进度环（components/ProgressRing），
+ * 不是弧形表 —— 弧形表留给了潮位那一块（components/TideGauge）。
+ */
+export const HERO_RING_SIZE = 156;
+export const HERO_RING_STROKE = 16;
 
 /**
  * 背景档位 = 天气外观组（十一种，见 utils/weather 的 weatherGroup）。
@@ -27,29 +32,6 @@ export const HERO_GAUGE_STROKE = 25;
  * 深色模式是另一条路径：那时不看当前天气，一律走 night（见 useWeatherBackdrop）。
  */
 export type HeroBackdrop = WeatherGroup;
-
-/**
- * 鱼口概率色阶（弧形表的值弧）。
- *
- * 红 → 黄 → 绿：概率由低到高。
- *
- * 色阶是**按量程位置**取的 —— 值落在量程的哪一段，弧上那一段就是那个颜色。
- * 所以弧尖那一段的颜色直接说明概率落在哪一档：40 分是橙，70 分是黄绿，
- * 90 分是绿。不用再回头去看数字。
- *
- * 原来这弧是按等级词涂一整条（绿/蓝/橙/红/灰），颜色跟着 level 走 ——
- * 同一个词在两个页面上必须是同一个颜色，可这条弧画的是 0–100 的数，
- * 跟着词走就丢了数：分数从 62 涨到 68，弧一点没变。
- *
- * 这三个值是 canvas 颜色的**唯一出处** —— canvas 2d 不解析 SCSS 变量与
- * CSS 变量，SCSS 侧不抄它们（抄一份只会让人以为改那里就能改到 canvas）。
- * 红与绿跟语义色同值（$fish-destructive / $fish-success），黄是日照色那一档。
- */
-export const HERO_GAUGE_STOPS: readonly string[] = [
-  '#ff3b30', // = $fish-destructive
-  '#ffd60a', // = $fish-sun-soft
-  '#34c759', // = $fish-success
-];
 
 /**
  * 十一档天色的背景渐变。

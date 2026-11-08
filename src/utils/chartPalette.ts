@@ -24,6 +24,7 @@
 import { isDarkTheme } from './theme';
 
 import type { Surface } from '@/composables/useSurface';
+import type { Tone } from '@/types/view';
 
 export interface ChartPalette {
   /** 纵轴刻度文字。= $fish-muted / --fish-muted */
@@ -66,6 +67,16 @@ export interface ChartPalette {
   halo: string;
   /** 选中点底下那圈底色：把点从线上「拔」出来的那个洞。必须等于卡片面色 */
   markerRing: string;
+  /**
+   * 等级色调 → 图形色。
+   *
+   * 等级词与它的图形必须是同一个颜色：同一条鱼口概率在别处是红的，
+   * 这里的环是绿的，读的人得自己翻译一遍。
+   *
+   * 取值与令牌层的同语义档相等（填充档那一族）——
+   * 图形不是文字，压的是填充档，不是 -ink 那一档。
+   */
+  toneFill: Record<Tone, string>;
   /** 弧形表的轨道。压深色面，深浅两套同值 */
   gaugeTrack: string;
   /** 弧形表的值弧渐变起点。压深色面，深浅两套同值 */
@@ -106,6 +117,14 @@ const LIGHT: ChartPalette = {
    * 低于「有意义图形 3:1」那条线，曲线细到几乎看不见；这一档对白卡 5.4:1。
    */
   metricWind: '#0e7490',
+  // 等级色 = 填充档那一族（$fish-success / $fish-warning / $fish-destructive / $fish-blue）
+  toneFill: {
+    success: '#34c759',
+    blue: '#0f66d6',
+    warning: '#ff9500',
+    destructive: '#ff3b30',
+    muted: '#666666', // = $fish-muted-60
+  },
   halo: '#ffffff', // = $fish-card-face
   // 选中点底下那圈底色。跟 halo 同值 —— 它不是一圈白环，
   // 是把线从点底下「擦」出来的洞，所以必须等于卡片面色。
@@ -150,6 +169,14 @@ const DARK: ChartPalette = {
    * 这一档是它在深色面上的对应值。
    */
   metricWind: '#63c4de',
+  // 深色下翻亮档：图形压在深色面上，深一档的填充色读不出来
+  toneFill: {
+    success: '#3ddc84',
+    blue: '#4c9bff',
+    warning: '#ffb340',
+    destructive: '#ff6961',
+    muted: '#8e939c', // = --fish-muted-60
+  },
   halo: '#16181d', // = --fish-card-face
   // 跟 halo 同值（浅色那边也是）：它是擦掉线的那个洞，不是白环。
   markerRing: '#16181d',
@@ -185,6 +212,14 @@ const PHOTO: ChartPalette = {
   metricTemp: '#ff9f99',
   metricPrecip: '#8fd0ff',
   metricWind: '#7fdcea',
+  // 照片面：跟 .on-photo 的语义文字档同值（--fish-success-ink 等）
+  toneFill: {
+    success: '#7fe3a5',
+    blue: '#a8ccff',
+    warning: '#ffd08a',
+    destructive: '#ff9f99',
+    muted: 'rgba(255, 255, 255, 0.52)',
+  },
   /**
    * 数值标注的描边 halo 与选中点的底圈。
    *

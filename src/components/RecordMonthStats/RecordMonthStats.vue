@@ -2,12 +2,12 @@
   <view class="month">
     <!-- 环：已过的这个月里走了几成 -->
     <view class="month__lead">
-      <RecordRing :value="trips" :max="elapsed" :size="150" :stroke="8">
+      <ProgressRing :value="trips" :max="elapsed" :size="150" :stroke="8">
         <view class="month__ringmid">
           <text class="month__num">{{ trips }}</text>
           <text class="month__unit">{{ unit }}</text>
         </view>
-      </RecordRing>
+      </ProgressRing>
 
       <text class="month__leadlabel">{{ tripsLabel }}</text>
     </view>
@@ -57,7 +57,7 @@ import { computed } from 'vue';
 
 import { RECORD_DAY_UNIT, RECORD_MONTH } from '@/constants/record';
 import type { FishingLog } from '@/types/record';
-import RecordRing from '../RecordRing/RecordRing.vue';
+import ProgressRing from '../ProgressRing/ProgressRing.vue';
 
 const props = defineProps<{
   /** 当前显示的月份 `YYYY-MM` */

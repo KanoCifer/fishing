@@ -103,12 +103,8 @@ const ALLOW = [
     why: '照片上的遮罩层',
   },
   {
-    file: 'src/components/WeatherHero/WeatherHero.vue',
-    why: '头图仪表的轨道色（压在深色面上）。那是「此刻的天气」，不是界面底色',
-  },
-  {
     file: 'src/constants/weatherHero.ts',
-    why: '头图量表的色阶与十一档天色渐变。与头图同理由',
+    why: '十一档天色渐变。头图整页的天色由这一份说了算，它就是那一份',
   },
   {
     file: 'src/constants/weatherTemp.ts',

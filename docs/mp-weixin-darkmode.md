@@ -92,7 +92,7 @@ $fish-ink: var(--fish-ink, #000000); // 原来：#000000
 
 色板集中在 `src/utils/chartPalette.ts`，浅色 / 深色 / 照片面三套。canvas 侧从那里取，取色时机是**绘制时** —— 模块顶层缓存会把颜色锁死在首次取到的那一套。
 
-主题变了要重画：TideChart、LineChart、RecordRing 各挂一个 `watch(themeMode)`，重画走的是「作废画布层 → 重新取节点 → 再画」那条路（`useCanvasPageShow`）。往死 ctx 上画是原生崩溃，不是 JS 异常。
+主题变了要重画：TideChart、LineChart、ProgressRing 各挂一个 `watch(themeMode)`，重画走的是「作废画布层 → 重新取节点 → 再画」那条路（`useCanvasPageShow`）。往死 ctx 上画是原生崩溃，不是 JS 异常。
 
 ### 图标颜色烤死在 data URI
 
@@ -109,6 +109,14 @@ $fish-ink: var(--fish-ink, #000000); // 原来：#000000
 ### 自定义底栏不在 page 作用域内
 
 `src/custom-tab-bar/` 不经 uni-app 编译，拿不到 SCSS 令牌，也继承不到 page 上的 CSS 变量。底栏自带一套深色值：WXSS 里写 `@media (prefers-color-scheme: dark)` 块，图标另出深色 PNG。
+
+**但照片面那一维底栏自己也有。** 天气页整页是一层天色，底栏压在它上面 ——
+浅色系统下若跟着主题用半透明白，就是一块灰斑。所以天气页的底栏恒为深玻璃，
+与深色系统下是同一档（见 design-system.md 的「底栏的材质跟着它压着的那张面走」）。
+WXSS 一半是 `.tabbar--photo` 类，JS 一半是每个实例认领自己那份 `data.surface`。
+
+底栏自带的两档色值用 `var()` 在文件内引用（变量定义在 `.tabbar` 自己身上，
+不依赖继承）—— 一份字面量两处引用，两处字面量就是两份漂移。
 
 底栏图标的未选中色是 `#666666`（`$fish-muted-60`），压在深色底上几乎不可见 —— 必须出深色版。
 

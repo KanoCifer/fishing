@@ -3,7 +3,7 @@
  *
  * 色阶与 SCSS 里的令牌是同一件事的两处落点：这里给的是**逐段的锚点**
  * （canvas / 渐变串要按温度插值，SCSS 变量给不了连续值），
- * 与 constants/weatherHero.ts 的 HERO_GAUGE_STOPS 同一套路。
+ * 与 canvas 那一侧取色（utils/chartPalette.ts）同一套路。
  *
  * 色相跨蓝 → 青 → 黄 → 橙 → 红，**跳过绿色**：这套设计里绿色是
  * 「好」的意思（钓鱼等级、降水分档），拿它当温度中段会跟语义撞车。

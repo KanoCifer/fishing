@@ -62,7 +62,12 @@ const { statusBarHeight, navBarHeight, capsuleInsetRight } = useNavMetrics();
 
 const refreshIcon = computed(() => icon('rotate-cw', 'muted'));
 
-/** AI 建议键。与头图上那一枚同一个图标、同一档蓝 —— 两处是同一个入口 */
+/**
+ * AI 建议键。
+ *
+ * 与头图卡底那一枚是同一个入口，但颜色不同：这条是浅色玻璃条，压蓝；
+ * 头图那枚落在深玻璃卡上，压白（照片面那一档）。
+ */
 const sparklesIcon = computed(() => icon('sparkles', 'blue600'));
 </script>
 

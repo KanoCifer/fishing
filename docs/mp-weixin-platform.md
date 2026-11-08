@@ -56,7 +56,7 @@
 - **同一块画布导出两次，两次写同一个临时文件**：后一次把前一次盖掉 → 要出两张图就备两块画布，别指望一块导出两遍。
 - **`createImage()` 的图像对象跟着画布节点走**：另一块画布要用同一张图，得在它自己身上重新 `createImage()`。
 - **页面隐藏期间画布节点会被回收**：缓存下来的 ctx 指向一块死画布，在它上面绘制是**原生崩溃**（小程序闪退），不是 JS 异常，开发者工具里看不出来 → 画布统一走 `utils/chartCanvas.ts` 的 `createCanvasLayer`，页面回前台时先 `reset()` 再重新取节点。
-- **切 tab 就是「页面被隐藏」**：底栏一 `switchTab`，旧页的画布节点就被回收了。天气页有 `TideGauge` 与 `LineChart` 两块画布，回来时数据一刷新就往死画布上画 —— 这是 iPhone 上偶现闪退的主因。**回前台不能拿旧 ctx 补画一帧**，要作废重取。
+- **切 tab 就是「页面被隐藏」**：底栏一 `switchTab`，旧页的画布节点就被回收了。天气页有 `ProgressRing`（头图那圈鱼口概率）、`TideChart` 与 `LineChart` 三块画布，回来时数据一刷新就往死画布上画 —— 这是 iPhone 上偶现闪退的主因。**回前台不能拿旧 ctx 补画一帧**，要作废重取。
 - **子组件里的 `onShow` 也能收到页面显示**：uni-app 的 `onShow` 走 `injectHook`，页面类钩子（`isRootHook`）会挂到 `target.root`，也就是所属页面 → 组件里写和页面里写效果一样。统一用 `chartCanvas.ts` 的 `useCanvasPageShow(layers, redraw)`：层已就绪（可能有死 ctx）就作废重取，没就绪的不用管。
 - **画布层 `reset()` 之后取消动画要认旧节点**：`createEntryAnimator` 记下排帧时那个节点再取消 —— 现去 `getNode()` 拿到的是新节点，不认识旧的 requestId，旧节点上那串帧就停不下来，会一直往死画布上排帧。
 
