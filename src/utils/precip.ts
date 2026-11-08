@@ -150,6 +150,22 @@ export function precipLevelIcon(level: PrecipLevel): string {
 const MIN_HEIGHT_PCT = 5;
 
 /**
+ * 「这一格没测到」那根虚线空框的高度（占柱阵的百分比）。
+ *
+ * 满高的框在图上像一堵墙，比它承载的信息显眼得多 ——
+ * 读者要看的是「雨什么时候到」，不是「哪几格没数据」。
+ */
+export const GAP_HEIGHT_PCT = 42;
+
+/**
+ * 「这一格测到 0」那根短柱的高度（rpx）。
+ *
+ * 留这一根是为了跟「没有数据」区分开：0 高度是「这一格测过，是 0」，
+ * 虚线空框是「这一格没测到」。两者长得一样，读者就会把没测到的当成没下雨。
+ */
+export const ZERO_BAR_HEIGHT = '6rpx';
+
+/**
  * 色卡上要列的档位。
  *
  * 不列「无降水」：没下雨的那一格画出来是一根极淡的短柱，

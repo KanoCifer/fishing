@@ -50,8 +50,6 @@ interface Props {
   size?: number;
   /** 环线粗细（rpx） */
   stroke?: number;
-  /** 轨道色 */
-  trackColor?: string;
   /** 值弧色 */
   fillColor?: string;
 }
@@ -66,8 +64,10 @@ const props = withDefaults(defineProps<Props>(), {
    *
    * 取色走 utils/chartPalette（轨道 = $fish-surface，值弧 = $fish-accent），
    * 调用方显式传色时才用传入的（见 utils/canvas.ts 的说明）。
+   *
+   * 轨道色没有对外参数：它恒等于轨道那一档，两处传过不同的值反而会让
+   * 「轨道是什么颜色」变成调用方各自决定的事。
    */
-  trackColor: undefined,
   fillColor: undefined,
 });
 
@@ -141,7 +141,7 @@ function draw(): void {
   // 轨道：整圈
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
-  ctx.strokeStyle = props.trackColor ?? chartPalette(surface).ringTrack;
+  ctx.strokeStyle = chartPalette(surface).ringTrack;
   ctx.stroke();
 
   const value = ratio();
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  () => [props.value, props.max, props.fillColor, props.trackColor],
+  () => [props.value, props.max, props.fillColor],
   () => {
     // 画布还没拿到就先补拿，等节点到了再画
     if (!layer.ready) {

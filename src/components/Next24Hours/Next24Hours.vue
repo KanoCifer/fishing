@@ -33,8 +33,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
-import { icon } from '@/constants/icons';
 import { useSurface } from '@/composables/useSurface';
+import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 
 import HourlyWeather from '../HourlyWeather/HourlyWeather.vue';
 import MetricChart from '../MetricChart/MetricChart.vue';
@@ -49,13 +49,8 @@ const mode = ref<Mode>('hours');
  */
 const surface = useSurface();
 
-/*
- * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
- * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
- */
-const clockIcon = computed(() =>
-  surface === 'photo' ? icon('clock', 'onPhoto') : icon('clock', 'muted'),
-);
+/** 图标色档由 useSurfaceIcons 统一给（见该文件的说明） */
+const { clock: clockIcon } = useSurfaceIcons();
 </script>
 
 <style lang="scss" scoped>
@@ -92,7 +87,7 @@ const clockIcon = computed(() =>
  * 白 72% 正是照片面上 --fish-muted 的值，压完之后图标与标题同档。
  */
 .next24__title-icon--dim {
-  opacity: 0.72;
+  @include fish-photo-icon-dim;
 }
 
 .next24__title {

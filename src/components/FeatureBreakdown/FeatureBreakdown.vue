@@ -47,6 +47,7 @@
  */
 import { computed } from 'vue';
 
+import { LOADING_TEXT, retryable } from '@/constants/copy';
 import { useConditionsStore } from '@/stores/conditions';
 import { toFeatureTiles } from '@/types/fishing';
 
@@ -56,7 +57,7 @@ const tiles = computed(() => toFeatureTiles(conditionsStore.indexData?.feature_b
 
 const loading = computed(() => conditionsStore.indexLoading);
 
-const emptyText = computed(() => (loading.value ? '加载中…' : '暂无构成数据，刷新可重试'));
+const emptyText = computed(() => (loading.value ? LOADING_TEXT : retryable('暂无构成数据')));
 </script>
 
 <style lang="scss" scoped>

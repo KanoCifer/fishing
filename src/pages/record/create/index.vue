@@ -244,6 +244,7 @@ import { useViewport } from '@/composables/useViewport';
 import { loginErrorMessage } from '@/utils/error';
 import { fishingApi } from '@/api/fishing';
 import { FISHING_FEEDBACK } from '@/constants/feedback';
+import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import { icon } from '@/constants/icons';
 import { RECORD_CREATE, RECORD_METHODS } from '@/constants/record';
 import { UPLOADING_BLOCK } from '@/constants/upload';
@@ -423,7 +424,7 @@ const placeText = computed(() => {
  * 反馈没有「选点」这一步 —— 游客报的是「我这儿今天的鱼口」，
  * 地点就用当前定位那份地名，定位不到就说钓鱼地点。
  */
-const guestPlace = computed(() => conditionsStore.locationName || placeText.value || '钓鱼地点');
+const guestPlace = computed(() => conditionsStore.locationName || placeText.value || PLACE_NAME_FALLBACK);
 
 /**
  * 当前鱼口概率。一句话告诉用户「你在给哪一条鱼打分」。
@@ -709,7 +710,7 @@ async function submitFeedback(params: {
     buildFishingFeedbackPayload({
       level: params.level,
       locationId: params.locationId ?? 'default',
-      locationName: params.locationName || '钓鱼地点',
+      locationName: params.locationName || PLACE_NAME_FALLBACK,
       fishingTime: params.fishingTime,
       weather: weather.value,
     }),

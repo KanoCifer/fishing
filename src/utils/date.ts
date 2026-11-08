@@ -9,6 +9,15 @@
  * 所以这里只做字符串切片，不做任何时区换算。
  */
 
+/**
+ * 一天 1440 分钟。
+ *
+ * 一天的长度在三处算过：分钟降水的偏移取模、天文轨道那把尺子、
+ * 日期工具里的时长差。散着写 1440 与 24 * 60 各写一遍，
+ * 迟早有一处写成 24 * 60.5 那样的小数。
+ */
+export const MINUTES_PER_DAY = 24 * 60;
+
 /** 今天的日期，格式 `YYYYMMDD`，用作潮汐接口的 date 参数 */
 export function formatCompactDate(date: Date = new Date()): string {
   const y = date.getFullYear();
@@ -247,24 +256,3 @@ export function minutesOfDay(value: string | undefined | null): number | null {
   return hours * 60 + minutes;
 }
 
-/**
- * 两个「HH:MM」时刻之间的时长，形如「11小时31分」。
- *
- * 结束早于开始时按跨零点补一整天 —— 白昼时长不会是负的，
- * 而「日落 18:19 → 民用晨昏 05:10」这种跨越零点的时段是真实存在的。
- */
-export function durationBetween(start: string, end: string): string {
-  const from = minutesOfDay(start);
-  const to = minutesOfDay(end);
-  if (from === null || to === null) return '';
-
-  let diff = to - from;
-  if (diff <= 0) diff += 24 * 60;
-
-  const hours = Math.floor(diff / 60);
-  const minutes = diff % 60;
-
-  if (hours === 0) return `${minutes}分`;
-  if (minutes === 0) return `${hours}小时`;
-  return `${hours}小时${minutes}分`;
-}

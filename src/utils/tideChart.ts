@@ -19,10 +19,10 @@ import { setCanvasFont } from './canvas';
  * 上面留的那一截不是留白，是**给曲线上的数值标注用的**——
  * 标注画在极值点上方，没有这截就会顶出画布被切掉。
  */
-export const PAD = { left: 2, right: 2, top: 22, bottom: 4 };
+const PAD = { left: 2, right: 2, top: 22, bottom: 4 };
 
 /** X 轴标签区的高度 */
-export const AXIS_H = 26;
+const AXIS_H = 26;
 
 /** 时间刻度的字号（px）。测量与绘制要用同一个值 */
 export const X_LABEL_SIZE = 11;

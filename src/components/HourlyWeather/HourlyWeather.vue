@@ -58,23 +58,22 @@
 import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
+import { OTHER_DATA_UNAFFECTED } from '@/constants/copy';
 import { useConditionsStore } from '@/stores/conditions';
-import { useLocationStore } from '@/stores/location';
 import { parseFxTime } from '@/utils/date';
 import { toFiniteNumber } from '@/utils/number';
 import { weatherIconUri } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
-const locationStore = useLocationStore();
 
-const loading = computed(() => locationStore.locating || conditionsStore.weatherLoading);
+const loading = computed(() => conditionsStore.weatherPending);
 
 const settled = computed(
   () => !loading.value && (conditionsStore.indexData !== null || conditionsStore.weatherError !== ''),
 );
 
 const emptyText = computed(() => {
-  if (conditionsStore.weatherError) return '逐时预报暂时取不到，其余天气数据不受影响';
+  if (conditionsStore.weatherError) return `逐时预报暂时取不到，${OTHER_DATA_UNAFFECTED}`;
   return '未来 24 小时没有逐时数据';
 });
 

@@ -61,10 +61,10 @@
  */
 import { computed, onMounted, watch } from 'vue';
 
-import { icon } from '@/constants/icons';
 import { useSurface } from '@/composables/useSurface';
+import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 import { useConditionsStore } from '@/stores/conditions';
-import { fxHourKey, localHourKey, parseFxTime } from '@/utils/date';
+import { useTideCurve } from '@/composables/useTideCurve';
 
 import SkeletonCard from '../SkeletonCard/SkeletonCard.vue';
 import TideChart from '../TideChart/TideChart.vue';
@@ -79,39 +79,12 @@ const DETAIL_URL = '/pages/tide/index';
  */
 const surface = useSurface();
 
-/*
- * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
- * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
- */
-const chevronIcon = computed(() =>
-  surface === 'photo' ? icon('chevron-right', 'onPhoto') : icon('chevron-right', 'muted60'),
+/** 图标色档由 useSurfaceIcons 统一给（见该文件的说明） */
+const { chevronRight: chevronIcon, waves: wavesIcon } = useSurfaceIcons();
+/** 曲线管线：点 / 刻度 / 现在线。口径见 composables/useTideCurve */
+const { points: chartPoints, labels: chartLabels, nowIndex, hasHourly } = useTideCurve(
+  computed(() => conditionsStore.homeTideData?.tideHourly),
 );
-const wavesIcon = computed(() =>
-  surface === 'photo' ? icon('waves', 'onPhoto') : icon('waves', 'muted'),
-);
-const hourly = computed(() => conditionsStore.homeTideData?.tideHourly ?? []);
-
-/** 至少要有一条数值可用的逐时记录才画曲线 */
-const hasHourly = computed(() => hourly.value.length > 0);
-
-const chartPoints = computed(() => hourly.value);
-
-const chartLabels = computed(() => hourly.value.map((point) => parseFxTime(point.fxTime)?.time ?? ''));
-
-/**
- * 当前时刻落在逐时序列里的下标，画「现在」竖线用。
- *
- * 比对的是小时键（`2026-10-17T14`），不 new Date()：
- * 后端 fxTime 自带 +08:00，转成 Date 会按设备时区重解释，
- * 开发者工具和真机时区不一致时整条标线会偏几小时，且只在真机复现。
- *
- * 逐时数据是整点（`...T14:00`），当前时刻是整点内（比如 14:23），
- * 所以按小时对齐，不去比分钟。
- */
-const nowIndex = computed(() => {
-  const stamp = localHourKey();
-  return hourly.value.findIndex((point) => fxHourKey(point.fxTime) === stamp);
-});
 
 /** 站名 + 日期。取不到站名时先不写站名，别让卡片顶着一个空标签 */
 const entryText = computed(() => {
@@ -119,6 +92,14 @@ const entryText = computed(() => {
   return spot ? `${spot} · 今日` : '今日';
 });
 
+/**
+ * 这张卡在等潮汐，不在等鱼口概率。
+ *
+ * 两个来源：enriched 顺带回来的近站点潮汐（indexLoading 那条取数在飞时），
+ * 与 store 去固定港口补取的那一份（homeTideLoading）。
+ *
+ * 已有逐时数据时不算加载 —— 那时候曲线已经画着了，不该退回骨架。
+ */
 const loading = computed(() => (conditionsStore.indexLoading || conditionsStore.homeTideLoading) && !hasHourly.value);
 
 function openDetail(): void {
@@ -188,7 +169,7 @@ watch(
 
 /* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
 .tide-card__title-icon--dim {
-  opacity: 0.72;
+  @include fish-photo-icon-dim;
 }
 
 .tide-card__entry {

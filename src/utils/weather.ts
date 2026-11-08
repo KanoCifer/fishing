@@ -423,3 +423,17 @@ export function forecastDays(days: WeatherDay[]): ForecastDay[] {
 
   return rows.filter((day): day is ForecastDay => day.max !== null && day.min !== null);
 }
+
+/**
+ * 「今天」是哪一天 —— 唯一真源在 forecastDays，这里给出它的日期键。
+ *
+ * 返回的是归一后**第一行**的日期（fxDate），不是设备当前日期。
+ *
+ * 为什么不是设备日期：接口给的是「今天起」的序列，设备时区与后端 +08:00
+ * 不一致时，设备日期可能落在序列之外 —— 那时「今天」就变成了「序列里的哪天」，
+ * 两张卡会各说各的。走归一后的第一行，头图、多日预报、日照与月相说的
+ * 是同一天。
+ */
+export function todayForecastDate(days: WeatherDay[]): string | null {
+  return forecastDays(days)[0]?.fxDate ?? null;
+}

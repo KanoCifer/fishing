@@ -11,9 +11,6 @@
 
 import type { WeatherGroup } from '@/types/view';
 
-/** 地点标签选点失败时的说法 */
-export const HERO_PICK_FAILED = '选点失败，请重试';
-
 /**
  * 鱼口概率环的边长与线宽（rpx）。
  *

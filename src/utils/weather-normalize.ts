@@ -25,7 +25,8 @@
  * - daily                            → 拆 daytime / nighttime 两段
  */
 
-import { minutesOfDay, parseFxTime } from '@/utils/date';
+import { MINUTES_PER_DAY, minutesOfDay, parseFxTime } from '@/utils/date';
+import { mphToKmh, msToKmh } from '@/utils/units';
 import type {
   MinutelyForecast,
   MinutelyResponse,
@@ -81,7 +82,7 @@ function ratioToPercent(ratio: number | undefined): number | undefined {
 /**
  * 风速统一到 km/h。
  *
- * 视图模型的风速口径是 km/h：WeatherCard 按它除 3.6 显示 m/s，
+ * 视图模型的风速口径是 km/h：WeatherCard 按它换算成 m/s 显示，
  * 后端专家模型的特征也按 km/h 调参。这里按上游给的 unit 换算，
  * 上游哪天把默认单位换了也不会算错。
  */
@@ -89,8 +90,8 @@ function toKmh(value: number | undefined, unit: string | undefined): number | un
   if (value === undefined) return undefined;
   const u = (unit ?? '').toLowerCase();
   if (u.includes('km/h')) return value;
-  if (u.includes('mph')) return value * 1.609344;
-  return value * 3.6;
+  if (u.includes('mph')) return mphToKmh(value);
+  return msToKmh(value);
 }
 
 /** 能见度统一到 km（上游给 m） */
@@ -533,7 +534,8 @@ export function normalizeMinutely(payload: MinutelyResponse): MinutelyForecast {
   const points = raw.map((item, i) => {
     const minutes = minutesOfDay(times[i] ?? '');
     // 头一格的时间认不出来时退回「每格 5 分钟」—— 上游就是 5 分钟一格
-    const offset = first === null || minutes === null ? i * 5 : (((minutes - first) % 1440) + 1440) % 1440;
+    const offset =
+      first === null || minutes === null ? i * 5 : (((minutes - first) % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
 
     return {
       time: times[i] ?? '',

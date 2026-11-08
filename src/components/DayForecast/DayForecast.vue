@@ -86,31 +86,26 @@
 import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
-import { icon } from '@/constants/icons';
+import { retryable } from '@/constants/copy';
 import { useSurface } from '@/composables/useSurface';
+import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 import { tempGradient } from '@/constants/weatherTemp';
 import { useConditionsStore } from '@/stores/conditions';
-import { useLocationStore } from '@/stores/location';
 import { weekdayCn } from '@/utils/date';
 import { toFiniteNumber } from '@/utils/number';
+import { REVEAL_STEP_MS } from '@/utils/motion';
 import type { ForecastDay } from '@/types/view';
 import { forecastDays, weatherIconUri } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
-const locationStore = useLocationStore();
 
 /**
  * 这一块压在什么上面。照片面上图标要压白（见 utils/theme 的图标说明）。
  */
 const surface = useSurface();
 
-/*
- * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
- * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
- */
-const calendarIcon = computed(() =>
-  surface === 'photo' ? icon('calendar-days', 'onPhoto') : icon('calendar-days', 'muted'),
-);
+/** 图标色档由 useSurfaceIcons 统一给（见该文件的说明） */
+const { calendarDays: calendarIcon } = useSurfaceIcons();
 
 /**
  * 有效的预报日。
@@ -195,7 +190,11 @@ function segmentGeometry(day: ForecastDay): { left: number; width: number } {
 function segmentStyle(day: ForecastDay, index: number): string {
   const { left, width } = segmentGeometry(day);
 
-  return [`left:${left.toFixed(2)}%`, `width:${width.toFixed(2)}%`, `animation-delay:${index * 12}ms`].join(';');
+  return [
+    `left:${left.toFixed(2)}%`,
+    `width:${width.toFixed(2)}%`,
+    `animation-delay:${index * REVEAL_STEP_MS}ms`,
+  ].join(';');
 }
 
 /**
@@ -269,7 +268,7 @@ const title = computed(() => `未来 ${days.value.length} 天`);
  *
  * 有数据时刷新不算加载 —— 已有读数换成骨架，读的人会以为数据没了。
  */
-const loading = computed(() => locationStore.locating || conditionsStore.weatherLoading);
+const loading = computed(() => conditionsStore.weatherPending);
 
 /**
  * 骨架与实数据交叉淡入。
@@ -298,9 +297,9 @@ const skeletonRows = computed(() => conditionsStore.forecasts.length || 7);
  * 这里只说清「这一块没取到」，免得让人以为整页都废了。
  */
 const emptyText = computed(() => {
-  if (conditionsStore.weatherError) return '预报暂时取不到，刷新可重试';
+  if (conditionsStore.weatherError) return retryable('预报暂时取不到');
 
-  return conditionsStore.forecasts.length ? '预报数据不完整，刷新可重试' : '暂无预报数据，刷新可重试';
+  return conditionsStore.forecasts.length ? retryable('预报数据不完整') : retryable('暂无预报数据');
 });
 </script>
 
@@ -361,7 +360,7 @@ const emptyText = computed(() => {
 
 /* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
 .days__title-icon--dim {
-  opacity: 0.72;
+  @include fish-photo-icon-dim;
 }
 
 /* 列表 */

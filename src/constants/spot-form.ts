@@ -118,5 +118,4 @@ export const SPOT_FORM_MISSING = {
  */
 export const SPOT_PHOTO_MAX = 6;
 
-/** 选点失败时的说法 */
-export const SPOT_FORM_PICK_FAILED = '选点失败，请重试';
+

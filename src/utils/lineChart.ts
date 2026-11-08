@@ -10,9 +10,9 @@ import { axisScale, formatTick, type AxisScale } from './chartAxis';
 import { CANVAS_FONT_STACK } from './canvas';
 
 /** 绘图区的内边距。右边留得多一点：最后一个 X 标签不要贴着边 */
-export const PAD = { right: 12, top: 14, bottom: 6 };
+const PAD = { right: 12, top: 14, bottom: 6 };
 /** X 轴标签区的高度 */
-export const AXIS_H = 24;
+const AXIS_H = 24;
 /** Y 轴刻度与绘图区之间的间距 */
 export const GUTTER_GAP = 10;
 

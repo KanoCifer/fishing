@@ -8,7 +8,7 @@
  * 色相跨蓝 → 青 → 黄 → 橙 → 红，**跳过绿色**：这套设计里绿色是
  * 「好」的意思（钓鱼等级、降水分档），拿它当温度中段会跟语义撞车。
  */
-export interface TempStop {
+interface TempStop {
   /** 温度（°C） */
   t: number;
   /** 十六进制色 */
@@ -16,7 +16,7 @@ export interface TempStop {
 }
 
 /** 色阶锚点。由冷到热 */
-export const TEMP_SCALE_STOPS: readonly TempStop[] = [
+const TEMP_SCALE_STOPS: readonly TempStop[] = [
   { t: -20, c: '#3f7ae0' },
   { t: 4, c: '#58a6f0' },
   { t: 12, c: '#a8d8f0' },
@@ -53,7 +53,7 @@ function mix(from: string, to: string, ratio: number): string {
  *
  * 落在锚点之间就插值，落在两端之外就取端点色。
  */
-export function tempColor(temp: number): string {
+function tempColor(temp: number): string {
   const stops = TEMP_SCALE_STOPS;
 
   if (temp <= stops[0].t) return stops[0].c;

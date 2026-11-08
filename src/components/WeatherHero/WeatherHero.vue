@@ -115,6 +115,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ProgressRing from '@/components/ProgressRing/ProgressRing.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useSurface } from '@/composables/useSurface';
+import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import { icon } from '@/constants/icons';
 import { HERO_RING_SIZE, HERO_RING_STROKE } from '@/constants/weatherHero';
 import { useConditionsStore } from '@/stores/conditions';
@@ -150,7 +151,7 @@ const surface = useSurface();
 
 /* ── 地点 ──────────────────────────────────────────────────────────────── */
 
-const placeName = computed(() => conditionsStore.locationName || '钓鱼地点');
+const placeName = computed(() => conditionsStore.locationName || PLACE_NAME_FALLBACK);
 
 /* ── 此刻的天气 ────────────────────────────────────────────────────────── */
 
@@ -198,11 +199,8 @@ const hiloItems = computed(() => {
 
 /* ── 鱼口概率 ──────────────────────────────────────────────────────────── */
 
-const score = computed(() => {
-  const value = conditionsStore.indexData?.fishing_index ?? 0;
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(100, value));
-});
+/** 鱼口概率。钳位在 store 里（见 stores/conditions 的 fishingScore） */
+const score = computed(() => conditionsStore.fishingScore);
 
 /** 等级词（极好 / 好 / 一般 …） */
 const level = computed(() => conditionsStore.indexData?.level ?? '');

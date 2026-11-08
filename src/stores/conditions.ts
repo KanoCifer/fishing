@@ -15,6 +15,7 @@ import { computed, ref, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 
 import { fishingApi } from '@/api/fishing';
+import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import type {
   FishingIndexData,
   LngLat,
@@ -84,7 +85,6 @@ export const useConditionsStore = defineStore('conditions', () => {
   // 鱼口概率
   const indexData = shallowRef<FishingIndexData | null>(null);
   const indexLoading = ref(false);
-  const indexError = ref('');
   /**
    * 当前 indexData 是按哪个坐标取的。
    *
@@ -168,6 +168,33 @@ export const useConditionsStore = defineStore('conditions', () => {
    */
   const nearestStationResolved = ref(false);
 
+  /* ── 派生状态 ──────────────────────────────────────────────────────────── */
+
+  /**
+   * 鱼口概率，钳在 0–100。
+   *
+   * 接口给的值偶尔越界（负数、>100）。进度环按 0–100 画，
+   * 不钳的话弧会画出圈外，或者整块空掉。
+   *
+   * 钳位只有这一处：结论条与头图那个环都读它，两边不会一个画得出、一个画不出。
+   */
+  const fishingScore = computed(() => {
+    const value = indexData.value?.fishing_index ?? 0;
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(100, value));
+  });
+
+  /**
+   * 这一组读数是不是还在取。
+   *
+   * 定位算在内：定位是取数的前置（授权询问 + 一次往返），
+   * 那段时间请求还没发出去，只看 weatherLoading 会把「还没取」当成「没有」。
+   */
+  const weatherPending = computed(() => locationStore.locating || weatherLoading.value);
+
+  /** 鱼口概率这一组是不是还在取 */
+  const indexPending = computed(() => locationStore.locating || indexLoading.value);
+
   /* ── 取数 ──────────────────────────────────────────────────────────────── */
 
   /**
@@ -200,7 +227,6 @@ export const useConditionsStore = defineStore('conditions', () => {
     weatherLoading.value = true;
     indexLoading.value = true;
     weatherError.value = '';
-    indexError.value = '';
 
     await weatherFlight.run(key, async () => {
       try {
@@ -224,7 +250,7 @@ export const useConditionsStore = defineStore('conditions', () => {
         liveWeather.value = now;
         forecasts.value = daily;
         weatherHourly.value = hourly;
-        locationName.value = nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
+        locationName.value = nameFromEnriched || (now?.text ? '当前位置' : PLACE_NAME_FALLBACK);
         // 生活指数是 v7 结构（官方没出新版），字段与视图模型一致，只做取值规整。
         weatherIndices.value = normalizeWeatherIndices(data.weather_indices);
         tideData.value = data.tide_data ?? null;
@@ -249,7 +275,6 @@ export const useConditionsStore = defineStore('conditions', () => {
         const message = networkMessage || '服务暂时不可用，请稍后重试';
         showToast(message);
         weatherError.value = networkMessage || '天气取不到，请稍后重试';
-        indexError.value = message;
         /* 机器文案不上屏，但也不丢 —— 留在控制台里查 */
         if (!networkMessage) console.warn('[conditions] 取数失败：', err);
         // 失败也算近站点「到齐」—— 不会有更准的站了，面板退到固定港口出图
@@ -579,8 +604,9 @@ export const useConditionsStore = defineStore('conditions', () => {
     // 鱼口概率
     indexData,
     indexLoading,
-    indexError,
     indexLocation,
+    fishingScore,
+    indexPending,
     // 天气
     liveWeather,
     forecasts,
@@ -588,6 +614,7 @@ export const useConditionsStore = defineStore('conditions', () => {
     locationName,
     weatherLoading,
     weatherError,
+    weatherPending,
     weatherIndices,
     // 分钟级降水
     minutelyForecast,

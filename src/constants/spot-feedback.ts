@@ -9,6 +9,8 @@
  * 按钮怎么写，这些是产品要改的，改文案不该先读版式。
  */
 
+import { PICK_FAILED } from '@/constants/copy';
+
 import type { FishingSpotFeeType, FishingSpotFeedbackType } from '@/types/fishing';
 import { FISHING_SPOT_FEE_LABELS } from '@/types/fishing';
 
@@ -176,5 +178,5 @@ export const SPOT_FEEDBACK_ERRORS = {
   /** 金额不是个数或小于 0 */
   feeAmountInvalid: '金额填 0 或者更大的数',
   /** 选点失败 */
-  pickFailed: '选点失败，请重试',
+  pickFailed: PICK_FAILED,
 } as const;

@@ -221,11 +221,12 @@ import {
   SPOT_FORM_FIELDS,
   SPOT_FORM_GROUPS,
   SPOT_FORM_MISSING,
-  SPOT_FORM_PICK_FAILED,
+
   SPOT_PHOTO_MAX,
   SPOT_SUITABLE_OPTIONS,
 } from '@/constants/spot-form';
 import { UPLOADING_BLOCK } from '@/constants/upload';
+import { PICK_FAILED } from '@/constants/copy';
 import { SPOT_PUBLISH_CONFIRM, SPOT_PUBLISH_REPORT_DOC } from '@/constants/spot-publish';
 import { useSpotStore } from '@/stores/spots';
 import { useSessionStore } from '@/stores/session';
@@ -613,7 +614,7 @@ function pickLocation() {
       // 只有真的出错（没授权、环境不支持）才提示。
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      showToast(SPOT_FORM_PICK_FAILED);
+      showToast(PICK_FAILED);
     },
   });
 }

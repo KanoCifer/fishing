@@ -121,6 +121,7 @@ import { useFishingAnalysis } from '@/composables/useFishingAnalysis';
 import { useConditionsStore } from '@/stores/conditions';
 import { formatDateTime, formatTimeOfDay } from '@/utils/date';
 import { icon } from '@/constants/icons';
+import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import type { WeatherAnalysisPayload } from '@/types/fishing';
 
 import MarkdownView from '../MarkdownView/MarkdownView.vue';
@@ -263,7 +264,7 @@ const payload = computed<WeatherAnalysisPayload>(() => {
           feature_breakdown: index.feature_breakdown,
         }
       : undefined,
-    locationName: conditionsStore.locationName || '钓鱼地点',
+    locationName: conditionsStore.locationName || PLACE_NAME_FALLBACK,
     tideSpotName: conditionsStore.panelTideSpotName,
     generatedAt: formatDateTime(),
   };

@@ -6,6 +6,7 @@
  * 这种对不上的情况。
  */
 
+import { PICK_FAILED } from '@/constants/copy';
 import { ENV } from '@/config/env';
 
 import { FISH_IMAGES } from './fish-images';
@@ -206,7 +207,7 @@ export const RECORD_CREATE = {
   /** 地点占位。地点是选出来的，不是打出来的 */
   locationPlaceholder: '选择钓鱼地点',
   /** 选点失败 */
-  locationPickFailed: '选点失败，请重试',
+  locationPickFailed: PICK_FAILED,
   /** 天气标题 */
   weatherTitle: '当时的天气',
   /** 天气卡的副标：说明这五个读数从哪来 */

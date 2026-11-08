@@ -27,8 +27,6 @@ export function useWeatherBackdrop() {
   const backdrop = computed<HeroBackdrop>(() => (isDarkTheme() ? 'night' : group.value));
 
   return {
-    /** 背景档位。深色下恒为 night */
-    backdrop,
     /** 背景：那一档的天色渐变。整页底色就是它 */
     gradient: computed(() => HERO_BACKDROP_GRADIENTS[backdrop.value]),
   };

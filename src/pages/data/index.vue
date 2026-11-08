@@ -12,7 +12,7 @@
         :level="level"
         :tone="tone"
         :place="placeName"
-        :busy="conditionsStore.indexLoading || locationStore.locating"
+        :busy="conditionsStore.indexPending"
         @refresh="onRefresh"
         @analysis="openAnalysis"
       />
@@ -86,20 +86,19 @@ import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import WeatherBackdrop from '@/components/WeatherBackdrop/WeatherBackdrop.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
+import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import { SHARE_CARDS } from '@/constants/share';
-import { HERO_PICK_FAILED } from '@/constants/weatherHero';
+import { PICK_FAILED } from '@/constants/copy';
 import { provideSurface } from '@/composables/useSurface';
 import { useNavMetrics } from '@/composables/useNavMetrics';
 import { useViewport } from '@/composables/useViewport';
 import { useConditionsStore } from '@/stores/conditions';
-import { useLocationStore } from '@/stores/location';
 import { useSessionStore } from '@/stores/session';
 import { enableShareMenu } from '@/utils/share';
 import { showToast } from '@/utils/toast';
 import { levelTone } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
-const locationStore = useLocationStore();
 const session = useSessionStore();
 const { navBarBottom } = useNavMetrics();
 const { windowHeight } = useViewport();
@@ -131,10 +130,11 @@ onPageScroll((event) => {
 });
 /* ── 结论条上的那几个值 ──────────────────────────────────────────────── */
 
-const score = computed(() => conditionsStore.indexData?.fishing_index ?? 0);
+/** 鱼口概率。钳位在 store 里（见 stores/conditions 的 fishingScore） */
+const score = computed(() => conditionsStore.fishingScore);
 const level = computed(() => conditionsStore.indexData?.level ?? '');
 const tone = computed(() => levelTone(conditionsStore.indexData?.level));
-const placeName = computed(() => conditionsStore.locationName || '钓鱼地点');
+const placeName = computed(() => conditionsStore.locationName || PLACE_NAME_FALLBACK);
 
 function onRefresh() {
   if (conditionsStore.indexLoading) return;
@@ -158,7 +158,7 @@ function onPickPlace() {
       // 用户主动取消是正常操作，不该弹一个「失败」把气氛搞砸
       const message = String(err?.errMsg ?? '');
       if (message.includes('cancel')) return;
-      showToast(HERO_PICK_FAILED);
+      showToast(PICK_FAILED);
     },
   });
 }

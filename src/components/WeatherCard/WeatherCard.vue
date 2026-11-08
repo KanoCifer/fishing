@@ -62,7 +62,7 @@
       {{ conditionsStore.weatherError }}
     </text>
 
-    <text v-else-if="!tiles.length && !skeletonVisible" class="weather__empty">暂无天气数据，刷新可重试</text>
+    <text v-else-if="!tiles.length && !skeletonVisible" class="weather__empty">{{ retryable('暂无天气数据') }}</text>
   </view>
 </template>
 
@@ -70,11 +70,13 @@
 import { computed } from 'vue';
 
 import { useCrossFade } from '@/composables/useCrossFade';
-import { icon, type IconName } from '@/constants/icons';
+import { retryable } from '@/constants/copy';
 import { useSurface } from '@/composables/useSurface';
+import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 import { useConditionsStore } from '@/stores/conditions';
 import { formatTimeOfDay } from '@/utils/date';
 import { toFiniteNumber } from '@/utils/number';
+import { kmhToMs } from '@/utils/units';
 import {
   cloudLevel,
   dewLevel,
@@ -93,14 +95,20 @@ const conditionsStore = useConditionsStore();
 /**
  * 这一块压在什么上面。
  *
- * 这一张卡有两处用：天气页（压在整页照片上）与记录详情页（普通页面）。
- * 两处的磁贴底不一样，图标色也就必须跟着走 ——
+ * 只有天气页在用（压在整页照片上）。图标色跟着表面走 ——
  * 图标是烤进 data URI 的，CSS 变量改不动它（见 utils/theme 的说明）。
  */
 const surface = useSurface();
 
-/** 图标色档：照片面上压白（再由 CSS 压到 72%），普通页面上压 muted 档 */
-const iconTier = computed(() => (surface === 'photo' ? 'onPhoto' : 'muted'));
+/**
+ * 九枚磁贴图标。
+ *
+ * 色档由 useSurfaceIcons 统一给：照片面上压白（再由 CSS 压到 72%），
+ * 普通页面上压 muted 档。
+ *
+ * 图标是标识用的，不是状态信号 —— 状态由旁边的档位词说。
+ */
+const tileIcons = useSurfaceIcons();
 
 /** 一格磁贴 */
 interface Tile {
@@ -117,10 +125,13 @@ interface Tile {
   note?: string;
 }
 
+/** 磁贴图标。取值只能来自这九枚 —— 键即图标名 */
+type TileIcon = 'droplet' | 'gauge' | 'eye' | 'compass' | 'wind' | 'umbrella' | 'cloud' | 'sun' | 'thermometer';
+
 function makeTile(t: {
   key: string;
   title: string;
-  iconName: IconName;
+  iconName: TileIcon;
   value: string;
   unit: string;
   level: { label: string; tone?: Tone } | null;
@@ -129,7 +140,7 @@ function makeTile(t: {
   return {
     key: t.key,
     title: t.title,
-    icon: icon(t.iconName, iconTier.value),
+    icon: tileIcons[t.iconName].value,
     value: t.value,
     unit: t.unit,
     level: t.level?.label ?? '--',
@@ -144,11 +155,13 @@ function makeTile(t: {
  * 钓鱼看的是 m/s —— 3 m/s 和 11 m/s 在竿子上的分量完全不同，
  * 而 km/h 的数字读起来总是偏大。转不动时留 '--'，
  * 免得模板渲染成 "NaN m/s"。
+ *
+ * 换算常数在 utils/units（取数那一侧也用它）。
  */
 function toMs(value: string | undefined): number | null {
   const kmh = toFiniteNumber(value);
   if (kmh === null) return null;
-  return kmh / 3.6;
+  return kmhToMs(kmh);
 }
 
 /** 数值转显示串。整数不带小数点，缺失给 '--' */
@@ -458,7 +471,7 @@ const updatedAt = computed(() => formatTimeOfDay(conditionsStore.liveWeather?.ob
 
 /* 照片面：压到 72%，与 muted 磁贴标题同档（见 Next24Hours 同名注释） */
 .weather__tile-icon--dim {
-  opacity: 0.72;
+  @include fish-photo-icon-dim;
 }
 
 .weather__tile-value {

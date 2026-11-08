@@ -145,10 +145,11 @@ import PageNav from '@/components/PageNav/PageNav.vue';
 import SkeletonCard from '@/components/SkeletonCard/SkeletonCard.vue';
 import TideChart from '@/components/TideChart/TideChart.vue';
 import { useNavMetrics } from '@/composables/useNavMetrics';
+import { useTideCurve } from '@/composables/useTideCurve';
 import { useViewport } from '@/composables/useViewport';
 import { icon } from '@/constants/icons';
 import { useConditionsStore } from '@/stores/conditions';
-import { formatCompactDate, fxHourKey, localHourKey, parseFxTime, shortDate, weekdayCn } from '@/utils/date';
+import { formatCompactDate, parseFxTime, shortDate, weekdayCn } from '@/utils/date';
 import { deriveTideNow, highestHighTide, lowestLowTide, nextTideEvent, tideRange } from '@/utils/tide';
 
 const conditionsStore = useConditionsStore();
@@ -208,25 +209,10 @@ const tide = computed(() => conditionsStore.panelTideData);
 
 const spotName = computed(() => conditionsStore.panelTideSpotName || conditionsStore.activeHarbor);
 
-const hourly = computed(() => tide.value?.tideHourly ?? []);
-
-/** 至少要有一条数值可用的逐时记录才画曲线 */
-const hasHourly = computed(() => hourly.value.length > 0);
-
-const chartPoints = computed(() => hourly.value);
-
-const chartLabels = computed(() => hourly.value.map((point) => parseFxTime(point.fxTime)?.time ?? ''));
-
-/**
- * 当前时刻落在逐时序列里的下标，画「现在」竖线用。
- *
- * 比对的是小时键，不 new Date()：后端 fxTime 自带 +08:00，
- * 转成 Date 会按设备时区重解释，开发者工具和真机会差出几个小时。
- */
-const nowIndex = computed(() => {
-  const stamp = localHourKey();
-  return hourly.value.findIndex((point) => fxHourKey(point.fxTime) === stamp);
-});
+/** 曲线管线：点 / 刻度 / 现在线。口径见 composables/useTideCurve */
+const { points: chartPoints, labels: chartLabels, nowIndex, hasHourly } = useTideCurve(
+  computed(() => tide.value?.tideHourly),
+);
 
 /** 此刻的潮位与涨退速率。看别的日子时给 null */
 const now = computed(() => deriveTideNow(tide.value));

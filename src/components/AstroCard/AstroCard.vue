@@ -79,13 +79,24 @@
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import { icon } from '@/constants/icons';
+import { LOADING_TEXT, retryable } from '@/constants/copy';
 import { useSurface } from '@/composables/useSurface';
+import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 import { useConditionsStore } from '@/stores/conditions';
 import type { WeatherDay } from '@/types/fishing';
-import { minutesOfDay, shortDate } from '@/utils/date';
+import { shortDate } from '@/utils/date';
+import {
+  astroBands,
+  astroTargets,
+  clockText,
+  dayWord,
+  nightWindows,
+  percentOf,
+  type AstroBand,
+  type AstroTarget,
+} from '@/utils/astro';
 import { createCountUp, enterDelayMs } from '@/utils/motion';
-import { moonPhaseIconUri } from '@/utils/weather';
+import { moonPhaseIconUri, todayForecastDate } from '@/utils/weather';
 
 const conditionsStore = useConditionsStore();
 
@@ -94,60 +105,34 @@ const conditionsStore = useConditionsStore();
  */
 const surface = useSurface();
 
-/*
- * 图标色档。两档都写成字面量，门禁（scripts/check-icons.mjs）才查得到
- * 「这一档到底存不存在」—— 用变量拼出来的那一档查不到，图标就悄悄没了。
- */
-const sunMoonIcon = computed(() =>
-  surface === 'photo' ? icon('sun-moon', 'onPhoto') : icon('sun-moon', 'muted'),
-);
-
-/** 一天 1440 分钟。轨道与倒计时共用这把尺子 */
-const DAY_MINUTES = 24 * 60;
-
-/** 一个倒计时目标 */
-interface AstroTarget {
-  key: string;
-  /** 胶囊上的字 */
-  label: string;
-  /** 目标时刻：从今天零点起算的分钟数，可以大于 1440（那是明天） */
-  at: number;
-  /** 这一刻是什么：天黑 / 月落 / 日出 / 日落 */
-  event: string;
-}
-
-/** 轨道上的一段 */
-interface AstroBand {
-  cls: string;
-  left: number;
-  width: number;
-}
+/** 图标色档由 useSurfaceIcons 统一给（见该文件的说明） */
+const { sunMoon: sunMoonIcon } = useSurfaceIcons();
 
 /* ── 数据 ──────────────────────────────────────────────────────────────── */
 
 /**
  * 带天文数据的那些天。
  *
- * 「今天」不一定是接口的第一条 —— 头一天要是脏数据（缺高低温），
- * 归一层会把它整条丢掉（见 utils/weather 的 forecastDays），
- * 剩下的第一行才是今天。所以今天按 fxDate 找，不按位置猜。
+ * 这里只要有日出日落的那几天 —— 天文数据与高低温的完整性无关。
  */
 const astroDays = computed(() => conditionsStore.forecasts.filter((row) => row.sunrise || row.sunset));
 
-/** 今天的日期键（设备本地）。fxDate 形如 2026-11-07 */
-function todayKey(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
+/**
+ * 今天的日期键。
+ *
+ * 口径与其他卡一致：归一后第一行（见 utils/weather 的 forecastDays）。
+ * 头一天要是脏数据（缺高低温）整条被丢掉，剩下的第一行才是今天 ——
+ * 头图、多日预报与这张卡说的必须是同一天。
+ */
+const todayDate = computed(() => todayForecastDate(conditionsStore.forecasts));
 
 /** 今天那一条 */
 const day = computed<WeatherDay | null>(() => {
   const rows = astroDays.value;
   if (!rows.length) return null;
 
-  const key = todayKey();
-  return rows.find((row) => row.fxDate === key) ?? rows[0];
+  const key = todayDate.value;
+  return (key ? rows.find((row) => row.fxDate === key) : null) ?? rows[0];
 });
 
 /**
@@ -217,166 +202,13 @@ onUnmounted(() => {
 
 /* ── 夜钓窗口 ────────────────────────────────────────────────────────── */
 
-/**
- * 一段「天黑且月亮在天上」的时间。
- *
- * 两个条件缺一不可：月亮不在天上那截钓不到鱼，天亮那截也不是夜里。
- */
-interface AstroWindow {
-  start: number;
-  end: number;
-  /** 窗口怎么开的：天黑 / 月出 */
-  open: string;
-  /** 窗口怎么关的：月落 / 天亮 */
-  close: string;
-}
-
-/**
- * 夜钓窗口 = 天黑 ∧ 月亮在天上。
- *
- * ⚠️ 不要按「天黑 → 月落」配对 —— 那是错的。
- * 月落若在天黑之前（残月常见：月亮后半夜升起、天黑前就落了），
- * 那一夜压根没有月亮在天上的时段，配出来的窗口既不是夜里也没有月。
- * 交集才是窗口：暗的那截 ∩ 月在天上的那截。
- *
- * 时刻是绝对分钟（从今天零点起算，可以超过 1440 —— 那是明天）。
- */
-const windows = computed<AstroWindow[]>(() => {
-  const today = day.value;
-  if (!today) return [];
-
-  const moonrise = minutesOfDay(today.moonrise);
-  const moonset = minutesOfDay(today.moonset);
-  const dusk = minutesOfDay(today.civilDusk);
-  const dawn = minutesOfDay(today.civilDawn);
-  if (moonrise === null || moonset === null || dusk === null || dawn === null) return [];
-
-  const next = tomorrow.value;
-  const tomorrowDawn = minutesOfDay(next?.civilDawn) ?? dawn;
-  const tomorrowDusk = minutesOfDay(next?.civilDusk) ?? dusk;
-  const tomorrowMoonrise = minutesOfDay(next?.moonrise);
-  const tomorrowMoonset = minutesOfDay(next?.moonset);
-
-  /**
-   * 月亮在天上的那一段。
-   *
-   * s < r 表示今夜升起、明晨落下 —— 那一段跨零点。
-   */
-  const up = (start: number, end: number, offset: number) =>
-    end > start
-      ? { start: offset + start, end: offset + end }
-      : { start: offset + start, end: offset + end + DAY_MINUTES };
-
-  const moonSpans = [
-    up(moonrise, moonset, 0),
-    // 上一段：它决定今天凌晨还亮不亮月亮
-    moonset > moonrise
-      ? { start: moonrise - DAY_MINUTES, end: moonset - DAY_MINUTES }
-      : { start: moonrise - DAY_MINUTES, end: moonset },
-  ];
-  if (tomorrowMoonrise !== null && tomorrowMoonset !== null) {
-    moonSpans.push(up(tomorrowMoonrise, tomorrowMoonset, DAY_MINUTES));
-  }
-
-  /** 天黑的那几段：昨夜剩下的、今夜、明夜 */
-  const darkSpans = [
-    { start: dusk - DAY_MINUTES, end: dawn },
-    { start: dusk, end: DAY_MINUTES + tomorrowDawn },
-    { start: DAY_MINUTES + tomorrowDusk, end: DAY_MINUTES * 2 + tomorrowDawn },
-  ];
-
-  const list: AstroWindow[] = [];
-
-  for (const moon of moonSpans) {
-    for (const dark of darkSpans) {
-      const start = Math.max(moon.start, dark.start);
-      const end = Math.min(moon.end, dark.end);
-      if (start >= end) continue;
-
-      list.push({
-        start,
-        end,
-        // 交集的起点取两者里靠后的那个 —— 那才是窗口真正开的那一刻
-        open: dark.start > moon.start ? '天黑' : '月出',
-        close: moon.end < dark.end ? '月落' : '天亮',
-      });
-    }
-  }
-
-  list.sort((a, b) => a.start - b.start);
-  return list;
-});
-
-/**
- * 夜钓窗口这一项数到哪一刻。
- *
- * 窗口正开着 → 数到它关（还剩多久收竿）；
- * 窗口还没开 → 数到它开（还有多久能下水）。
- */
-const nightTarget = computed<AstroTarget | null>(() => {
-  const now = nowMinutes.value;
-  const list = windows.value;
-  if (!list.length) return null;
-
-  const current = list.find((item) => now >= item.start && now <= item.end);
-  if (current) {
-    return { key: 'night', label: '夜钓窗口', at: current.end, event: current.close };
-  }
-
-  const upcoming = list.find((item) => item.start > now);
-  if (!upcoming) return null;
-
-  return { key: 'night', label: '夜钓窗口', at: upcoming.start, event: upcoming.open };
-});
+/** 夜钓窗口。算法见 utils/astro 的 nightWindows */
+const windows = computed(() => nightWindows(day.value, tomorrow.value));
 
 /* ── 目标 ──────────────────────────────────────────────────────────────── */
 
-/**
- * 三个倒计时目标：夜钓窗口、日出、日落。
- *
- * 每个目标都是「从现在往后，下一次发生的那一刻」。
- * 晚上 8 点看「日出」，数的是明天早上那一次 —— 所以日出的时刻可能落在
- * 明天，具体是哪一天由说明行说了算。
- */
-const targets = computed<AstroTarget[]>(() => {
-  const today = day.value;
-  if (!today) return [];
-
-  const now = nowMinutes.value;
-  const sunrise = minutesOfDay(today.sunrise);
-  const sunset = minutesOfDay(today.sunset);
-
-  const next = tomorrow.value;
-  const tomorrowSunrise = minutesOfDay(next?.sunrise);
-  const tomorrowSunset = minutesOfDay(next?.sunset);
-
-  /**
-   * 下一个「今天这个钟点」：今天的过了就取明天的。
-   *
-   * 两个来源都没有就返回 null —— 那一项不出现，
-   * 不用别处的时刻凑一个出来。
-   */
-  const pick = (todayValue: number | null, tomorrowValue: number | null): number | null => {
-    if (todayValue !== null && todayValue > now) return todayValue;
-    if (tomorrowValue !== null) return DAY_MINUTES + tomorrowValue;
-    if (todayValue !== null) return DAY_MINUTES + todayValue;
-    return null;
-  };
-
-  const list: AstroTarget[] = [];
-
-  // 夜钓窗口：数到下一个边界（窗口开 / 窗口关）
-  const night = nightTarget.value;
-  if (night) list.push(night);
-
-  const sunriseAt = pick(sunrise, tomorrowSunrise);
-  if (sunriseAt !== null) list.push({ key: 'sunrise', label: '日出', at: sunriseAt, event: '日出' });
-
-  const sunsetAt = pick(sunset, tomorrowSunset);
-  if (sunsetAt !== null) list.push({ key: 'sunset', label: '日落', at: sunsetAt, event: '日落' });
-
-  return list;
-});
+/** 三个倒计时目标：夜钓窗口、日出、日落。算法见 utils/astro 的 astroTargets */
+const targets = computed(() => astroTargets(day.value, tomorrow.value, windows.value, nowMinutes.value));
 
 /** 用户点的是哪一枚 */
 const selectedKey = ref('night');
@@ -456,58 +288,12 @@ const captionText = computed(() => {
   return `${dayWord(target.at)} ${clockText(target.at)} · ${target.event}`;
 });
 
-/** 时刻落在哪一天 */
-function dayWord(at: number): string {
-  return Math.floor(at / DAY_MINUTES) === 0 ? '今天' : '明天';
-}
-
-/** 时刻 → HH:mm */
-function clockText(at: number): string {
-  const minutes = ((at % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
-}
-
 /* ── 轨道 ──────────────────────────────────────────────────────────────── */
 
-function percent(minutes: number): number {
-  return (minutes / DAY_MINUTES) * 100;
-}
+/** 轨道上的两段：白昼与夜钓窗口。算法见 utils/astro 的 astroBands */
+const bands = computed(() => astroBands(day.value, windows.value));
 
-/**
- * 轨道上的两段。
- *
- * 白昼是日出到日落。冷色那些是夜钓窗口 —— 天黑且月亮在天上的那几段。
- * 窗口可能跨零点（夜里开始的窗口会在轨道上是两截：昨夜开的那截在早上，
- * 今夜开的那截在傍晚），所以冷色段不止一条。
- *
- * 轨道画的是一整天，所以只取落在今天这一天的部分。
- */
-const bands = computed<AstroBand[]>(() => {
-  const today = day.value;
-  if (!today) return [];
-
-  const list: AstroBand[] = [];
-  const sunrise = minutesOfDay(today.sunrise);
-  const sunset = minutesOfDay(today.sunset);
-
-  if (sunrise !== null && sunset !== null && sunset > sunrise) {
-    list.push({ cls: 'astro__band--day', left: percent(sunrise), width: percent(sunset - sunrise) });
-  }
-
-  for (const item of windows.value) {
-    const start = Math.max(item.start, 0);
-    const end = Math.min(item.end, DAY_MINUTES);
-    if (end <= start) continue;
-
-    list.push({ cls: 'astro__band--night', left: percent(start), width: percent(end - start) });
-  }
-
-  return list;
-});
-
-const nowPercent = computed(() => percent(nowMinutes.value));
+const nowPercent = computed(() => percentOf(nowMinutes.value));
 
 /** 段 → 行内样式。rpx 只对样式文件有效，行内样式这里统一用百分比 */
 function bandStyle(band: AstroBand): string {
@@ -534,9 +320,9 @@ const evidenceText = computed(() => {
 });
 
 const emptyText = computed(() => {
-  if (conditionsStore.weatherLoading) return '加载中…';
-  if (conditionsStore.weatherError) return '日照数据暂时取不到，刷新可重试';
-  return conditionsStore.forecasts.length ? '暂无日照数据，刷新可重试' : '暂无预报数据，刷新可重试';
+  if (conditionsStore.weatherLoading) return LOADING_TEXT;
+  if (conditionsStore.weatherError) return retryable('日照数据暂时取不到');
+  return conditionsStore.forecasts.length ? retryable('暂无日照数据') : retryable('暂无预报数据');
 });
 </script>
 
@@ -578,7 +364,7 @@ const emptyText = computed(() => {
 
 /* 照片面：压到 72%，与 muted 标题同档（见 Next24Hours 同名注释） */
 .astro__title-icon--dim {
-  opacity: 0.72;
+  @include fish-photo-icon-dim;
 }
 
 .astro__body {

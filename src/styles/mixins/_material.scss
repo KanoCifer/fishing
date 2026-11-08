@@ -27,3 +27,19 @@
     $shadow-deep,
     inset 0 1rpx 0 $fish-deep-inset;
 }
+
+/**
+ * 照片面上的图标：压到 72%。
+ *
+ * 图标的色值烤在 data URI 里，CSS 变量与 color 都改不动它 ——
+ * 只能整枚压暗（见 utils/theme 的说明）。
+ *
+ * 72% 不是随手取的：照片面上 --fish-muted 的值就是白 72%，
+ * 压完之后这枚图标与旁边的标题文字同一档。
+ *
+ * 天气页那几张卡的标题图标各写一遍 opacity: 0.72，
+ * 改了这一处忘了另一处，同一屏里的图标就分成了两档。
+ */
+@mixin fish-photo-icon-dim {
+  opacity: 0.72;
+}

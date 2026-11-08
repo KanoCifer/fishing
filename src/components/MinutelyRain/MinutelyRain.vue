@@ -130,13 +130,17 @@ import { useConditionsStore } from '@/stores/conditions';
 import type { MinutelyBucket } from '@/types/fishing';
 import {
   buildMinutelyCurtain,
+  GAP_HEIGHT_PCT,
   offsetLabel,
   precipLevelIcon,
   precipLevelLabel,
   PRECIP_LEGEND_LEVELS,
   PRECIP_REF_PCTS,
+  ZERO_BAR_HEIGHT,
 } from '@/utils/precip';
 import { createSelectorQuery } from '@/utils/selectorQuery';
+import { OTHER_DATA_UNAFFECTED } from '@/constants/copy';
+import { REVEAL_STEP_MS } from '@/utils/motion';
 import { rainBowSvg } from '@/constants/otherIcon';
 import { svgToDataUrl } from '@/utils/svg';
 
@@ -196,7 +200,7 @@ const refLines = PRECIP_REF_PCTS.map((pct) => ({ pct }));
  * 空态文案分两种：取不到（多为境外坐标，上游没覆盖）和拿到了但没数据。
  */
 const emptyText = computed(() =>
-  conditionsStore.minutelyError ? '分钟降水暂时取不到，其余天气数据不受影响' : '这个窗口内没有降水记录',
+  conditionsStore.minutelyError ? `分钟降水暂时取不到，${OTHER_DATA_UNAFFECTED}` : '这个窗口内没有降水记录',
 );
 
 /** 选中的格子序号。没选中时为 null */
@@ -513,17 +517,15 @@ function barStyle(bucket: MinutelyBucket): string {
   let height: string;
   if (bucket.value === null) {
     // 没有数据：整格画成虚线空框（见 .minutely__bar--gap）。
-    // 框只到柱阵的 42%：满高的框在图上像一堵墙，比它承载的信息显眼得多。
-    height = '42%';
+    height = `${GAP_HEIGHT_PCT}%`;
   } else if (!bucket.heightPct) {
-    // 测到 0 雨：留一根极短的淡柱。留这一根是为了跟「没有数据」区分开 ——
-    // 0 高度是「这一格测过，是 0」，虚线空框是「这一格没测到」
-    height = '6rpx';
+    // 测到 0 雨：留一根极短的淡柱，与「没有数据」区分开
+    height = ZERO_BAR_HEIGHT;
   } else {
     height = `${bucket.heightPct}%`;
   }
   // 逐格错开入场：柱子从左到右立起来，像雨幕一档档拉开
-  return `height: ${height}; animation-delay: ${bucket.index * 12}ms;`;
+  return `height: ${height}; animation-delay: ${bucket.index * REVEAL_STEP_MS}ms;`;
 }
 </script>
 

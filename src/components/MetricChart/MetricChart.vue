@@ -59,6 +59,7 @@
  */
 import { computed, ref } from 'vue';
 
+import { LOADING_TEXT, retryable } from '@/constants/copy';
 import { useConditionsStore } from '@/stores/conditions';
 import { parseFxTime } from '@/utils/date';
 import { chartPalette } from '@/utils/chartPalette';
@@ -81,11 +82,21 @@ interface Metric {
   key: 'temp' | 'precip' | 'windSpeed';
   label: string;
   unit: string;
+  /**
+   * 值域从 0 起。
+   *
+   * 降水是绝对量：0 就是「没下雨」，没有负的那一侧，
+   * 所以轴的下界固定在 0，不跟着数据往上下取整。
+   *
+   * 气温相反：0~50 的轴上 22~31 的起伏会被压成一条直线，
+   * 所以它与风速都按数据取整（见下面的 axis）。
+   */
+  zeroBased?: boolean;
 }
 
 const METRICS: ReadonlyArray<Metric> = [
   { key: 'temp', label: '气温', unit: '°C' },
-  { key: 'precip', label: '降水', unit: 'mm' },
+  { key: 'precip', label: '降水', unit: 'mm', zeroBased: true },
   { key: 'windSpeed', label: '风速', unit: 'km/h' },
 ];
 
@@ -131,18 +142,17 @@ const series = computed(() =>
 
 const hasData = computed(() => hours.value.length > 0);
 
-const loading = computed(() => conditionsStore.weatherLoading);
+const loading = computed(() => conditionsStore.weatherPending);
 
 /**
  * 取值域：按 step 向上/下取整，并各留 margin 的余量。返回 null 表示交给 LineChart 自己取整。
  *
- * 气温不给零基线：0~50 的轴上，22~31 的起伏会被压成一条直线。
- * 降水是绝对量、从 0 起最诚实，所以不给下界。
+ * 降水的下界固定在 0（见 Metric.zeroBased），不参与取整。
  */
 const axis = computed(() => {
   const values = hours.value.map((h) => h.value);
   if (!values.length) return null;
-  if (metric.value === 'precip') return null;
+  if (active.value.zeroBased) return null;
 
   const step = 5;
   const margin = 2;
@@ -152,7 +162,7 @@ const axis = computed(() => {
   return { min: Math.max(0, min), max };
 });
 
-const emptyText = computed(() => (loading.value ? '加载中…' : '暂无逐时数据，刷新可重试'));
+const emptyText = computed(() => (loading.value ? LOADING_TEXT : retryable('暂无逐时数据')));
 </script>
 
 <style lang="scss" scoped>
