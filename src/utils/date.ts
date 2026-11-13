@@ -157,6 +157,26 @@ export function weekdayCn(fxDate: string): string {
 
   return WEEKDAY_CN[new Date(stamp).getUTCDay()] ?? '';
 }
+
+/**
+ * 预报行的行首标签。
+ *
+ * 「今天」认的是**归一后的第一行**，不是接口的第一条 —— 头一天要是脏数据
+ * （缺高低温）整条被丢掉，剩下的第一行才是今天。所以这个判断按行在
+ * 归一后列表里的位置算，不按它在接口里的位置。
+ *
+ * 其余各行说星期而不是日期：钓鱼的人想的是「这周末去不去」，
+ * 星期不用自己换算，日期要。
+ *
+ * 多日预报与天气日切换器都从这里取 —— 两处各写一遍，迟早有一处改了
+ * 另一处没改。
+ */
+export function forecastDayLabel(fxDate: string, index: number): string {
+  if (index === 0) return '今天';
+
+  return weekdayCn(fxDate) || shortDate(fxDate);
+}
+
 /**
  * 把 `YYYY-MM-DD` 形式的日期切出 `MM-DD`，图表轴和预报行用。
  *

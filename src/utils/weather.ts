@@ -18,7 +18,12 @@
  * 那边少一个名字，这里就引用不到，那一格会退化成兜底云。
  */
 
-import { WEATHER_ICON_FALLBACK, WEATHER_ICONS, type WeatherIconSlug } from '@/constants/weatherIcons';
+import {
+  WEATHER_ICON_FALLBACK,
+  WEATHER_ICONS,
+  type WeatherCodeIconSlug,
+  type WeatherIconSlug,
+} from '@/constants/weatherIcons';
 import type { WeatherDay } from '@/types/fishing';
 import type { ForecastDay, Label, Level, PressureLabel, PressureTone, Tone, WeatherGroup } from '@/types/view';
 
@@ -39,9 +44,9 @@ import { rainLevelOf } from './precip';
  * 一张表同时给图标与外观组：以前分成两张，两张认不出的码只要差一格，
  * 同一个天气就会「有配色没图标」或者「有图标没配色」。
  *
- * 区间取自 SUPPORTED_RANGES —— 字体子集里存在的码（68 个，与和风官方码表一致）。
+ * 区间取自字体子集里存在的码（68 个，与和风官方码表一致）。
  */
-const WEATHER_CODE_RANGES: ReadonlyArray<readonly [number, number, WeatherIconSlug, WeatherGroup]> = [
+const WEATHER_CODE_RANGES: ReadonlyArray<readonly [number, number, WeatherCodeIconSlug, WeatherGroup]> = [
   [100, 100, 'clear-day', 'sunny'], // 晴（昼）
   [101, 101, 'cloudy', 'cloudy'], // 多云
   [102, 103, 'partly-cloudy-day', 'cloudy'], // 少云 / 晴间多云
@@ -83,7 +88,7 @@ const WEATHER_CODE_RANGES: ReadonlyArray<readonly [number, number, WeatherIconSl
  * 和风明确说过天气现象与图标会持续新增 —— 新码来得比图标快，
  * 所以这一层必须自己兜住。
  */
-function lookupWeatherCode(icon: string | undefined | null): { slug: WeatherIconSlug; group: WeatherGroup } | null {
+function lookupWeatherCode(icon: string | undefined | null): { slug: WeatherCodeIconSlug; group: WeatherGroup } | null {
   const n = Number(icon);
   if (!Number.isInteger(n)) return null;
 
@@ -94,10 +99,19 @@ function lookupWeatherCode(icon: string | undefined | null): { slug: WeatherIcon
   return null;
 }
 
+/**
+ * 天气码 → 图标名（Meteocons 的文件名）。
+ *
+ * 要图标名而不是数据 URI 的地方：需要按图形分派别的动作时
+ * （太阳自转、云浮动、雷闪 —— 见 WeatherDaySwitcher）。
+ */
+export function weatherIconSlug(icon: string | undefined | null): WeatherCodeIconSlug {
+  return lookupWeatherCode(icon)?.slug ?? WEATHER_ICON_FALLBACK;
+}
+
 /** 天气码 → 图标数据 URI，给 `<image>` 的 src 用 */
 export function weatherIconUri(icon: string | undefined | null): string {
-  const slug = lookupWeatherCode(icon)?.slug ?? WEATHER_ICON_FALLBACK;
-  return WEATHER_ICONS[slug];
+  return WEATHER_ICONS[weatherIconSlug(icon)];
 }
 
 /**
@@ -388,9 +402,14 @@ interface ForecastDayRaw {
   fxDate: string;
   max: number | null;
   min: number | null;
+  avg: number | null;
   icon: string;
+  text: string;
   prob: number;
 }
+
+/** 高低温齐了的那一天 */
+type CompleteDay = ForecastDayRaw & { max: number; min: number };
 
 /**
  * 只留高低温都有值的那几天 —— 缺一个读数的那天占一行，那一行就只剩半个信息。
@@ -411,17 +430,31 @@ export function forecastDays(days: WeatherDay[]): ForecastDay[] {
     const prob = toFiniteNumber(day.precipProbability);
     const max = toFiniteNumber(day.tempMax);
     const min = toFiniteNumber(day.tempMin);
+    const avg = toFiniteNumber(day.tempAvg);
 
     return {
       fxDate: day.fxDate,
       max: max === null ? null : Math.round(max),
       min: min === null ? null : Math.round(min),
+      avg: avg === null ? null : Math.round(avg),
       icon: day.iconDay,
+      text: day.textDay,
       prob: prob !== null && prob > 0 ? prob : 0,
     };
   });
 
-  return rows.filter((day): day is ForecastDay => day.max !== null && day.min !== null);
+  return rows
+    .filter((row): row is CompleteDay => row.max !== null && row.min !== null)
+    .map((row) => ({
+      fxDate: row.fxDate,
+      max: row.max,
+      min: row.min,
+      // 日均温：上游没给就由最高与最低折半 —— 粗，但比空着强
+      avg: row.avg ?? Math.round((row.max + row.min) / 2),
+      icon: row.icon,
+      text: row.text,
+      prob: row.prob,
+    }));
 }
 
 /**

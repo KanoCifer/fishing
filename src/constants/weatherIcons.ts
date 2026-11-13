@@ -36,6 +36,14 @@ export type WeatherIconSlug =
   | 'moon-last-quarter'
   | 'moon-waning-crescent';
 
+/**
+ * 天气码用的图标名 —— 月相那几枚除外。
+ *
+ * 月相图标是给月相卡画的，天气码永远不会落到它们身上。
+ * 摘成单独一族，别处按图形分派别时就不必再判一次月相。
+ */
+export type WeatherCodeIconSlug = Exclude<WeatherIconSlug, `moon-${string}`>;
+
 /** 已生成的图标数据 URI，键为图标名 */
 export const WEATHER_ICONS = {
   /** 晴（昼）100 */
@@ -115,4 +123,4 @@ export const WEATHER_ICONS = {
 } as const;
 
 /** 兜底图标名。认不出的天气码落在这里 —— 图标认不出是一回事，不能没有 */
-export const WEATHER_ICON_FALLBACK: WeatherIconSlug = 'cloudy';
+export const WEATHER_ICON_FALLBACK: WeatherCodeIconSlug = 'cloudy';

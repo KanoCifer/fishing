@@ -40,7 +40,7 @@
   },
   "overrides": [
     {
-      "files": ["**/scripts/**"],
+      "files": ["**/scripts/**", "**/tests/**"],
       "env": {
         "node": true
       }

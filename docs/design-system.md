@@ -8,6 +8,7 @@
 - 数值来源：**iOS App 设计速查表**（SF Pro）。字阶、文字色、间距、图标尺寸、按钮规格都从那里来。
 - 值在 `src/styles/tokens/`（`color / type / space / depth / material / motion / control / layout / card`），mixin 在 `src/styles/mixins/`（`type / material / card / control / layout / motion`）。两层不越界：令牌层不写 mixin，mixin 层不写值。
 - **值分三套**：`src/styles/theme/_surfaces.scss` 是唯一出处。随主题变的那族令牌在 `tokens/_color.scss` 里写成 `themed('fish-ink')`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。三套值由 `src/styles/theme.scss` 发成 CSS 变量：浅色在 `page, .page` 作用域，靠 `@media (prefers-color-scheme: dark)` 翻深色；**第三套是照片面**（`.on-photo`），给压在整页天色上的那几块用，它不随主题翻。
+- **天色有两份，刻意分开**：整页背景那段天在 `constants/weatherHero.ts`（十一档，跟着当前天气走）；天气日切换器那张卡自己的天在 `tokens/_color.scss` 的「卡片天色」一段（六档，跟着选中的那一天走）。为什么不是同一份：整页背景**就是**那片天，卡片若铺同一段，卡片会与页面底色化掉，读不出这是一块可以点的东西。
 - **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
 
 ### 一个值一个出处
@@ -82,6 +83,7 @@
 - **曲线即弹簧**：没有弹簧引擎，只能近似成 cubic-bezier；`$fish-spring` 临界阻尼，末端减速不回头。**落位只动 `transform`+`opacity`**，`enterDelay(index)` 步长 60ms、**第 9 项封顶**。
 - **交叉淡入**（同一位置换内容）：两态叠在同一个格子里，旧态淡出、新态淡入，160ms `$fish-dur-cross`、位移 4rpx。mixin `fish-cross-in`（新态，挂载即播）与 `fish-cross-out`（旧态，类一切就淡）；骨架摘除时机在 `composables/useCrossFade`。
   这条时长在 JS 侧也有一份（`utils/motion.ts` 的 `CROSS_FADE_DURATION`）—— **两个数必须一样**：旧态要等淡完才摘，两个数不等就等于在淡完之前把骨架摘了，中间露出卡片底色。
+- **换字**（天气日切换器里的天气现象与星期名）：同一套交叉淡入，旧层淡完才摘。时长是 `tokens/_motion.scss` 的 `$fish-dur-text-swap` / `$fish-dur-text-morph`，JS 侧也有一份（`utils/motion.ts` 的 `TEXT_SWAP_DURATION` / `TEXT_MORPH_DURATION`）—— **两个数必须一样**，理由同上。
 
 - **opacity 动画会掐断 `backdrop-filter`。** CSS 的 backdrop-root 规则：祖先上只要有 `opacity < 1`，或一个在生效的 opacity 动画，它就成了 backdrop root —— 后代的 `backdrop-filter` 只能采样它**内部**的背景当底。整页背景上的卡片因此不能挂 opacity 入场动画：背景在卡片祖先外面，祖先内部是空的，底断了糊的就是一片空。天气页（`pages/data`）的卡片入场动画整个去掉，`WeatherCard` 的交叉淡入只由骨架层承担。
 

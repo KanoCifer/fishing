@@ -34,7 +34,7 @@ const OUT_FILE = resolve(ROOT, 'src/constants/weatherIcons.ts');
  * 图标清单。
  *
  * 只列真正会被画出来的那些 —— 每一个都在 `src/utils/weather.ts` 的
- * ICON_RANGES / MOON_PHASE_SLUGS 里有对应的和风天气码。
+ * WEATHER_CODE_RANGES / MOON_PHASE_SLUGS 里有对应的和风天气码。
  * 清单与那两张表是配套的：这里多一个，那边没有码指向它，
  * 那个图标就白进包体；那边多一个，这里没有它，那一格就退化成兜底云。
  *
@@ -243,13 +243,21 @@ function main() {
     ...entries.map((e) => `  | '${e.slug}'`),
     ';',
     '',
+    '/**',
+    ' * 天气码用的图标名 —— 月相那几枚除外。',
+    ' *',
+    ' * 月相图标是给月相卡画的，天气码永远不会落到它们身上。',
+    ' * 摘成单独一族，别处按图形分派别时就不必再判一次月相。',
+    ' */',
+    'export type WeatherCodeIconSlug = Exclude<WeatherIconSlug, `moon-${string}`>;',
+    '',
     '/** 已生成的图标数据 URI，键为图标名 */',
     'export const WEATHER_ICONS = {',
     ...entries.map((e) => `  /** ${e.use} */\n  '${e.slug}':\n    '${e.uri}',`),
     '} as const;',
     '',
     '/** 兜底图标名。认不出的天气码落在这里 —— 图标认不出是一回事，不能没有 */',
-    "export const WEATHER_ICON_FALLBACK: WeatherIconSlug = 'cloudy';",
+    "export const WEATHER_ICON_FALLBACK: WeatherCodeIconSlug = 'cloudy';",
     '',
   ];
 

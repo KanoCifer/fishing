@@ -32,3 +32,47 @@ $fish-motion: true;
 $fish-enter-y: 40rpx; // 页面内容落位的上移幅度
 $fish-enter-sheet-y: 16rpx; // 浮层内内容的落位幅度，比页面内小一半
 $fish-cross-y: 4rpx; // 交叉淡入的位移
+
+/* ── 天气日切换器（WeatherDaySwitcher）──────────────────────────────
+   这一组时长与曲线来自组件原型（transitions.dev 的 Weather Day Switcher），
+   原样保留 —— 它们是一套调好的手感，换一条曲线等于换了一个组件。
+
+   数值仍然放在令牌层：时长与曲线只有一个出处，改的时候只改这一处。
+   ⚠️ 换字那两条在 JS 侧也有一份（utils/motion.ts 的 TEXT_SWAP_DURATION /
+   TEXT_MORPH_DURATION）—— 两个数必须一样，否则旧字还没淡完就被摘了。
+   逐位错开的间隔没有这份副本：它只用来拼 animation-delay，样式层读不到，
+   真值就一份（utils/motion.ts 的 DIGIT_STAGGER）。
+   ────────────────────────────────────────────────────────────────── */
+
+// 日期药丸滑动
+$fish-dur-tabs: 250ms;
+$fish-ease-tabs: cubic-bezier(0.22, 1, 0.36, 1);
+
+// 大图标换态（缩放 + 模糊 + 淡入）
+$fish-dur-icon-swap: 250ms;
+$fish-ease-swap: ease-in-out;
+
+// 温度数字落位
+$fish-dur-digit: 500ms;
+$fish-ease-digit: cubic-bezier(0.34, 1.45, 0.64, 1);
+
+// 天气现象换字 / 星期名 morph
+$fish-dur-text-swap: 150ms;
+$fish-dur-text-morph: 180ms;
+
+// 天色：交叉淡入、光晕漂移、雨丝、闪电
+$fish-dur-sky-fade: 700ms;
+$fish-dur-sky-drift: 16s;
+$fish-dur-sky-rain: 800ms;
+$fish-dur-sky-flash: 7s;
+
+// 图标待机：太阳自转、云浮动
+$fish-dur-icon-spin: 30s;
+$fish-dur-icon-float: 4s;
+
+// 位移与模糊
+$fish-distance-digit: 16rpx; // 数字落位的位移
+$fish-distance-swap: 8rpx; // 换字的位移
+$fish-distance-float: 6rpx; // 云浮动的幅度
+$fish-distance-drift: 36rpx; // 光晕漂移的幅度
+$fish-blur-soft: 4rpx; // 换字与图标换态的模糊量

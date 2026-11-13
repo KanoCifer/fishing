@@ -108,6 +108,24 @@ export const COUNT_UP_DURATION = 800;
 export const CROSS_FADE_DURATION = 160;
 
 /**
+ * 天气日切换器的换字时长。
+ *
+ * ⚠️ 这里手写 150 / 180 而不是引用 SCSS 的变量：JS 读不到 Sass 变量。
+ * 改的时候两处一起改（tokens/_motion.scss 的 $fish-dur-text-swap
+ * 与 $fish-dur-text-morph）—— 两个数必须一样：
+ * 旧字还没淡完就被摘掉，中间会露出空档。
+ */
+export const TEXT_SWAP_DURATION = 150;
+export const TEXT_MORPH_DURATION = 180;
+
+/**
+ * 温度数字逐位错开的间隔（ms）。
+ *
+ * 这一份是唯一出处：它只用来拼 animation-delay，样式层读不到。
+ */
+export const DIGIT_STAGGER = 70;
+
+/**
  * 数字滚动的缓动。
  *
  * CSS 那条 cubic-bezier(0.23, 1, 0.32, 1)（$fish-ease-out）在 JS 里复刻不了：

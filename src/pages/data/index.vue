@@ -36,6 +36,13 @@
         <view class="sect__card">
           <Next24Hours />
         </view>
+        <!--
+          天气日切换器：横着切几天，天色、图标、温度、天气现象一起换。
+          它自带一段天色，所以不用玻璃面 —— 自己就是面。
+        -->
+        <view class="sect__card">
+          <WeatherDaySwitcher />
+        </view>
         <view class="sect__card">
           <MinutelyRain />
         </view>
@@ -85,6 +92,7 @@ import TideCard from '@/components/TideCard/TideCard.vue';
 import VerdictBar from '@/components/VerdictBar/VerdictBar.vue';
 import WeatherBackdrop from '@/components/WeatherBackdrop/WeatherBackdrop.vue';
 import WeatherCard from '@/components/WeatherCard/WeatherCard.vue';
+import WeatherDaySwitcher from '@/components/WeatherDaySwitcher/WeatherDaySwitcher.vue';
 import WeatherHero from '@/components/WeatherHero/WeatherHero.vue';
 import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import { SHARE_CARDS } from '@/constants/share';

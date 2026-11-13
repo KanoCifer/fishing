@@ -26,7 +26,9 @@
         <view class="days__list">
           <view v-for="(day, i) in days" :key="day.fxDate" class="days__row">
             <!-- 行首的星期 -->
-            <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{ dayLabel(day.fxDate, i) }}</text>
+            <text class="days__label" :class="{ 'days__label--today': i === 0 }">{{
+              forecastDayLabel(day.fxDate, i)
+            }}</text>
 
             <image class="days__icon" :src="weatherIconUri(day.icon)" mode="aspectFill" />
 
@@ -91,7 +93,7 @@ import { useSurface } from '@/composables/useSurface';
 import { useSurfaceIcons } from '@/composables/useSurfaceIcons';
 import { tempGradient } from '@/constants/weatherTemp';
 import { useConditionsStore } from '@/stores/conditions';
-import { weekdayCn } from '@/utils/date';
+import { forecastDayLabel } from '@/utils/date';
 import { toFiniteNumber } from '@/utils/number';
 import { REVEAL_STEP_MS } from '@/utils/motion';
 import type { ForecastDay } from '@/types/view';
@@ -224,22 +226,6 @@ function segmentFillStyle(day: ForecastDay): string {
     `width:${((100 / width) * 100).toFixed(2)}%`,
     `background-image:${tempGradient(s.lo, s.hi, left / 100)}`,
   ].join(';');
-}
-
-/**
- * 行首的标签。
- *
- * 「今天」认的是**留下来的第一行**，不是接口的第一条 —— 头一天要是脏数据
- * （缺高低温）整条被丢掉，剩下的第一行才是今天。
- * 所以这个判断按行在列表里的位置算，不按它在接口里的位置。
- *
- * 其余各行说星期而不是日期：钓鱼的人想的是「这周末去不去」，
- * 星期不用自己换算，日期要。
- */
-function dayLabel(fxDate: string, index: number): string {
-  if (index === 0) return '今天';
-
-  return weekdayCn(fxDate) || fxDate.slice(5);
 }
 
 /**
