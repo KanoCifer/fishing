@@ -50,23 +50,25 @@ export interface CardWeatherState {
 /**
  * 每一段天色自己的叠层。
  *
- * 雨丝与闪电跟着天色走，不跟着图标走：雷阵雨与普通阵雨在图标上分得开，
+ * 雨丝、落雪与闪电跟着天色走，不跟着图标走：雷阵雨与普通阵雨在图标上分得开，
  * 在天上是一段天 —— 雨丝该在哪一段天里下，是天的事。
  */
 export interface CardSkyLayer {
   /** 雨丝 */
   rain: boolean;
+  /** 落雪 */
+  snow: boolean;
   /** 闪电 */
   flash: boolean;
 }
 
 export const CARD_SKIES: Record<CardSky, CardSkyLayer> = {
-  clear: { rain: false, flash: false },
-  cloudy: { rain: false, flash: false },
-  rain: { rain: true, flash: false },
-  storm: { rain: true, flash: true },
-  snow: { rain: false, flash: false },
-  night: { rain: false, flash: false },
+  clear: { rain: false, snow: false, flash: false },
+  cloudy: { rain: false, snow: false, flash: false },
+  rain: { rain: true, snow: false, flash: false },
+  storm: { rain: true, snow: false, flash: true },
+  snow: { rain: false, snow: true, flash: false },
+  night: { rain: false, snow: false, flash: false },
 };
 
 /**

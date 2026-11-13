@@ -66,6 +66,11 @@ $fish-dur-sky-drift: 16s;
 $fish-dur-sky-rain: 800ms;
 $fish-dur-sky-flash: 7s;
 
+// 落雪：比雨慢得多，横向还飘一点
+$fish-dur-sky-snow: 6s;
+$fish-distance-snow: 30rpx; // 横向飘移
+$fish-distance-snow-fall: 800rpx; // 落下的距离
+
 // 图标待机：太阳自转、云浮动
 $fish-dur-icon-spin: 30s;
 $fish-dur-icon-float: 4s;

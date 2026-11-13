@@ -159,6 +159,19 @@ export function weekdayCn(fxDate: string): string {
 }
 
 /**
+ * 现在是不是「夜里」。
+ *
+ * 18:00 到次日 06:00 —— 上游把一天分成白天段与夜间段，分界就是这一段
+ * （和风的昼夜分段：白天 06:00–18:00，夜间 18:00–次日 06:00）。
+ * 跟数据的那一刀对齐，看「夜里的天气」时才和接口说的是同一段。
+ */
+export function isNightHour(date: Date = new Date()): boolean {
+  const hour = date.getHours();
+
+  return hour >= 18 || hour < 6;
+}
+
+/**
  * 预报行的行首标签。
  *
  * 「今天」认的是**归一后的第一行**，不是接口的第一条 —— 头一天要是脏数据

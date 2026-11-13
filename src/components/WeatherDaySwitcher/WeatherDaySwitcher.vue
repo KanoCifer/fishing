@@ -21,6 +21,10 @@
           <view v-for="drop in rainDrops" :key="drop.key" class="wxs__drop" :style="drop.style" />
         </view>
 
+        <view v-if="sky.snow" class="wxs__snow">
+          <view v-for="flake in snowFlakes" :key="flake.key" class="wxs__flake" :style="flake.style" />
+        </view>
+
         <view v-if="sky.flash" class="wxs__flash" />
       </view>
     </view>
@@ -125,7 +129,7 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref
 import { PLACE_NAME_FALLBACK } from '@/constants/copy';
 import { WEATHER_ICONS, type WeatherCodeIconSlug } from '@/constants/weatherIcons';
 import { useConditionsStore } from '@/stores/conditions';
-import { forecastDayLabel } from '@/utils/date';
+import { forecastDayLabel, isNightHour } from '@/utils/date';
 import { DIGIT_STAGGER, TEXT_MORPH_DURATION, TEXT_SWAP_DURATION } from '@/utils/motion';
 import { createSelectorQuery } from '@/utils/selectorQuery';
 import { cardWeatherState, CARD_SKIES, IDLE_CLASS, type CardSky, type GlyphIdle } from '@/utils/weatherCard';
@@ -170,6 +174,15 @@ interface Digit {
 const conditionsStore = useConditionsStore();
 const instance = getCurrentInstance()!;
 
+/**
+ * 现在是不是夜里。
+ *
+ * 每分钟走一次 —— 跨过 18:00 时卡片要自己切成夜里的样子，
+ * 不该等下一次取数。
+ */
+const now = ref(Date.now());
+const nightNow = computed(() => isNightHour(new Date(now.value)));
+
 /** 节点 id。同一页里这张卡可能不止一份，id 得唯一 */
 const tabsId = `wxs-tabs-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -177,7 +190,12 @@ const days = computed<SwitcherDay[]>(() =>
   forecastDays(conditionsStore.forecasts)
     .slice(0, MAX_DAYS)
     .map((day, index) => {
-      const slug = weatherIconSlug(day.icon);
+      // 今天到了夜里就换成夜里的那一半：图标、现象、天色都取夜里的。
+      // 别的日子恒是白天那一半 —— 预报说的是「哪天白天什么天」，
+      // 钓鱼看的也是白天。
+      const atNight = nightNow.value && index === 0 && day.iconNight !== '';
+
+      const slug = weatherIconSlug(atNight ? day.iconNight : day.icon);
       const state = cardWeatherState(slug);
 
       return {
@@ -187,7 +205,7 @@ const days = computed<SwitcherDay[]>(() =>
         max: day.max,
         min: day.min,
         prob: day.prob,
-        condition: day.text,
+        condition: atNight ? day.textNight : day.text,
         sky: state.sky,
         slug,
         idle: state.idle,
@@ -231,9 +249,13 @@ const place = computed(() => conditionsStore.locationName || PLACE_NAME_FALLBACK
 /**
  * 出现的几段天色。每一档只给一层 —— 天色是事实，不是装饰，
  * 同一档天铺两层没有意义。
+ *
+ * 夜里那一档**永远在场**：它是按时辰切出来的，可能在任何一刻第一次出现。
+ * 事先就在，切天色才是交叉淡入 —— 临时插进来的那层不会过渡，直接盖上去，
+ * 读起来是硬切。
  */
 const skies = computed(() => {
-  const keys = new Set<CardSky>(days.value.map((day) => day.sky));
+  const keys = new Set<CardSky>([...days.value.map((day) => day.sky), 'night']);
 
   return [...keys].map((key) => ({ key, ...CARD_SKIES[key] }));
 });
@@ -252,6 +274,26 @@ const rainDrops = Array.from({ length: 16 }, (_, i) => {
       `height:${24 + ((i * 7) % 10) * 2}rpx`,
       // 负延迟：雨丝一出现就在半空，不用等它落下来
       `animation-delay:-${(((i * 0.618) % 1) * 0.8).toFixed(3)}s`,
+    ].join(';'),
+  };
+});
+
+/**
+ * 雪花。位置与大小是写死的（不是随机）—— 同一段天每次都长一个样，
+ * 随机的话每次切天雪都在换位置，读起来像卡了一下。
+ */
+const snowFlakes = Array.from({ length: 14 }, (_, i) => {
+  const x = ((i * 41) % 100) + (i % 4) * 3;
+  const size = 6 + ((i * 5) % 4) * 3;
+
+  return {
+    key: `flake-${i}`,
+    style: [
+      `left:${Math.min(x, 108)}%`,
+      `width:${size}rpx`,
+      `height:${size}rpx`,
+      // 负延迟：雪一出现就在半空，不用等它落下来
+      `animation-delay:-${(((i * 0.754) % 1) * 6).toFixed(2)}s`,
     ].join(';'),
   };
 });
@@ -528,9 +570,14 @@ watch(
 );
 
 let offResize: (() => void) | null = null;
+let clock: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
   void nextTick(measureTabs);
+
+  clock = setInterval(() => {
+    now.value = Date.now();
+  }, 60_000);
 
   const off = uni.onWindowResize(() => {
     void nextTick(measureTabs);
@@ -541,6 +588,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   offResize?.();
+
+  if (clock !== null) clearInterval(clock);
 
   clearCondition();
   clearDay();
@@ -674,6 +723,27 @@ const emptyText = computed(() => (conditionsStore.weatherError ? '预报暂时�
 
   @if $fish-motion {
     animation: wxs-fall $fish-dur-sky-rain linear infinite;
+  }
+}
+
+/* 落雪 */
+.wxs__snow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.wxs__flake {
+  position: absolute;
+  top: -24rpx;
+  border-radius: 50%;
+  background-color: $fish-sky-snow;
+  filter: blur(1rpx);
+
+  @if $fish-motion {
+    animation: wxs-fall-snow $fish-dur-sky-snow linear infinite;
   }
 }
 
@@ -1038,6 +1108,17 @@ const emptyText = computed(() => (conditionsStore.weatherError ? '预报暂时�
 
   to {
     transform: translate(-100rpx, 800rpx) rotate(8deg);
+  }
+}
+
+/* 落雪：比雨慢，横向还飘一点 */
+@keyframes wxs-fall-snow {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  to {
+    transform: translate($fish-distance-snow, $fish-distance-snow-fall) rotate(180deg);
   }
 }
 

@@ -405,6 +405,8 @@ interface ForecastDayRaw {
   avg: number | null;
   icon: string;
   text: string;
+  iconNight: string;
+  textNight: string;
   prob: number;
 }
 
@@ -439,6 +441,8 @@ export function forecastDays(days: WeatherDay[]): ForecastDay[] {
       avg: avg === null ? null : Math.round(avg),
       icon: day.iconDay,
       text: day.textDay,
+      iconNight: day.iconNight,
+      textNight: day.textNight,
       prob: prob !== null && prob > 0 ? prob : 0,
     };
   });
@@ -453,6 +457,8 @@ export function forecastDays(days: WeatherDay[]): ForecastDay[] {
       avg: row.avg ?? Math.round((row.max + row.min) / 2),
       icon: row.icon,
       text: row.text,
+      iconNight: row.iconNight,
+      textNight: row.textNight,
       prob: row.prob,
     }));
 }

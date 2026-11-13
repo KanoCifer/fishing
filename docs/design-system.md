@@ -9,6 +9,7 @@
 - 值在 `src/styles/tokens/`（`color / type / space / depth / material / motion / control / layout / card`），mixin 在 `src/styles/mixins/`（`type / material / card / control / layout / motion`）。两层不越界：令牌层不写 mixin，mixin 层不写值。
 - **值分三套**：`src/styles/theme/_surfaces.scss` 是唯一出处。随主题变的那族令牌在 `tokens/_color.scss` 里写成 `themed('fish-ink')`，名字不变，实现换成 CSS 变量 → 几百处调用点一行没改。三套值由 `src/styles/theme.scss` 发成 CSS 变量：浅色在 `page, .page` 作用域，靠 `@media (prefers-color-scheme: dark)` 翻深色；**第三套是照片面**（`.on-photo`），给压在整页天色上的那几块用，它不随主题翻。
 - **天色有两份，刻意分开**：整页背景那段天在 `constants/weatherHero.ts`（十一档，跟着当前天气走）；天气日切换器那张卡自己的天在 `tokens/_color.scss` 的「卡片天色」一段（六档，跟着选中的那一天走）。为什么不是同一份：整页背景**就是**那片天，卡片若铺同一段，卡片会与页面底色化掉，读不出这是一块可以点的东西。
+- **夜里看的是夜里的那一半**：今天到了夜里（18:00–次日 06:00，与上游的昼夜分段对齐，判据见 `utils/date` 的 `isNightHour`），卡片换成 `iconNight` / `textNight` 那一段的图标、现象与天色；别的日子恒是白天那一半 —— 预报说的是「哪天白天什么天」，钓鱼看的也是白天。
 - **颜色必须从令牌层取**：`scripts/check-hardcoded-colors.mjs` 扫源码，令牌层之外的硬编码色值一律失败（确属固定色的，在行尾标 `/* color-allow: 理由 */`）。
 
 ### 一个值一个出处

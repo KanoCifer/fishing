@@ -88,6 +88,12 @@ describe('卡片天气态', () => {
     assert.equal(CARD_SKIES.rain.rain, true);
     assert.equal(CARD_SKIES.snow.rain, false);
   });
+
+  it('雪那一档下的是雪，不是雨', () => {
+    assert.equal(CARD_SKIES.snow.snow, true);
+    assert.equal(CARD_SKIES.rain.snow, false);
+    assert.equal(CARD_SKIES.clear.snow, false);
+  });
 });
 
 describe('预报日归一', () => {
@@ -121,6 +127,15 @@ describe('预报日归一', () => {
     const [one] = forecastDays([day({ iconDay: '302', textDay: '中雨' })]);
 
     assert.equal(one.text, '中雨');
+  });
+
+  it('夜里那一半也带着：图标与现象各归各', () => {
+    const [one] = forecastDays([day({ iconDay: '100', textDay: '晴', iconNight: '150', textNight: '晴' })]);
+
+    assert.equal(one.icon, '100');
+    assert.equal(one.text, '晴');
+    assert.equal(one.iconNight, '150');
+    assert.equal(one.textNight, '晴');
   });
 
   it('降水概率 0 是有效值', () => {
